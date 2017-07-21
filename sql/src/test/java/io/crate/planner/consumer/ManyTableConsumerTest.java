@@ -22,6 +22,7 @@
 
 package io.crate.planner.consumer;
 
+import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -57,7 +58,6 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
@@ -107,12 +107,14 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "join t3 on t2.b = t3.c " +
                                         "order by t3.c, t1.a, t2.b");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        TwoTableJoin t3AndT1 = (TwoTableJoin) root.left();
+        assertThat(root.toString(), is("join.join.doc.t3.doc.t1.doc.t2"));
 
+        TwoTableJoin t3AndT1 = (TwoTableJoin) root.left();
+        assertThat(t3AndT1.toString(), is("join.doc.t3.doc.t1"));
         assertThat(t3AndT1.querySpec().where().query(), isSQL("null"));
 
         assertThat(root.joinPair().condition(),
-            isSQL("((doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']) AND (join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b))"));
+            isSQL("((join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b) AND (doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']))"));
     }
 
     @Test
@@ -168,15 +170,44 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testOptimizeJoinNoPresort() throws Exception {
-        JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);
-        JoinPair pair2 = JoinPair.crossJoin(T3.T2, T3.T3);
+    public void testFindFirstJoinPair() {
+        // SELECT * FROM t1, t2, t3 WHERE t1.id = t2.id AND t2.id = t3.id AND t3.id = t4.id
+        ObjectIntHashMap<QualifiedName> occurrences = new ObjectIntHashMap<>(4);
+        occurrences.put(T3.T1, 1);
+        occurrences.put(T3.T2, 1);
+        occurrences.put(T3.T3, 3);
+        occurrences.put(T3.T4, 1);
         @SuppressWarnings("unchecked")
+        Set<Set<QualifiedName>> sets = Sets.newHashSet(
+            ImmutableSet.of(T3.T1, T3.T2),
+            ImmutableSet.of(T3.T2, T3.T3),
+            ImmutableSet.of(T3.T3, T3.T4)
+        );
+        assertThat(ManyTableConsumer.findAndRemoveFirstJoinPair(occurrences, sets), is(ImmutableSet.of(T3.T2, T3.T3)));
+    }
+
+    @Test
+    public void testFindFirstJoinPairOnlyOneOccurrence() {
+        // SELECT * FROM t1, t2, t3 WHERE t1.id = t2.id AND t3.id = t4.id
+        ObjectIntHashMap<QualifiedName> occurrences = new ObjectIntHashMap<>(4);
+        occurrences.put(T3.T1, 1);
+        occurrences.put(T3.T2, 1);
+        occurrences.put(T3.T3, 1);
+        occurrences.put(T3.T4, 1);
+        Set<Set<QualifiedName>> sets = Sets.newLinkedHashSet();
+        sets.add(ImmutableSet.of(T3.T1, T3.T2));
+        sets.add(ImmutableSet.of(T3.T2, T3.T3));
+        sets.add(ImmutableSet.of(T3.T3, T3.T4));
+        assertThat(ManyTableConsumer.findAndRemoveFirstJoinPair(occurrences, sets), is(ImmutableSet.of(T3.T1, T3.T2)));
+    }
+
+    @Test
+    public void testOptimizeJoinNoPresort() throws Exception {
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
-            ImmutableSet.<Set<QualifiedName>>of(),
-            ImmutableList.of(pair1, pair2),
-            ImmutableList.<QualifiedName>of());
+            ImmutableSet.of(ImmutableSet.of(T3.T1, T3.T2)),
+            ImmutableSet.of(ImmutableSet.of(T3.T2, T3.T3)),
+            ImmutableList.of());
 
         assertThat(qualifiedNames, contains(T3.T1, T3.T2, T3.T3));
     }
@@ -185,8 +216,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
     public void testOptimizeJoinWithoutJoinConditionsAndPreSort() throws Exception {
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
-            ImmutableSet.<Set<QualifiedName>>of(),
-            ImmutableList.<JoinPair>of(),
+            ImmutableSet.of(),
+            ImmutableSet.of(),
             ImmutableList.of(T3.T2));
 
         assertThat(qualifiedNames, contains(T3.T2, T3.T1, T3.T3));
@@ -202,7 +233,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         sets.add(ImmutableSet.of(T3.T1, T3.T2));
         sets.add(ImmutableSet.of(T3.T2, T3.T3));
 
-        assertThat(ManyTableConsumer.getOrderedRelationNames(mss, sets),
+        assertThat(ManyTableConsumer.getOrderedRelationNames(mss, sets, Collections.emptySet()),
             contains(T3.T1, T3.T2, T3.T3));
     }
 
@@ -257,24 +288,6 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testReordering4TableSortOnWhereAndJoinConditionsThatDontMatchThePair() throws Exception {
-        List<QualifiedName> relations = ImmutableList.of(
-            T3.T1,
-            T3.T2,
-            T3.T3,
-            T3.T4);
-        List<JoinPair> joinPairs = ImmutableList.of(
-            JoinPair.of(T3.T1, T3.T2, JoinType.INNER, expressions.asSymbol("t1.a=t2.b")),
-            JoinPair.of(T3.T2, T3.T3, JoinType.INNER, expressions.asSymbol("t2.b=t1.a")),
-            JoinPair.of(T3.T4, T3.T3, JoinType.INNER, expressions.asSymbol("t4.id=t3.c")));
-        assertThat(ManyTableConsumer.orderByJoinConditions(
-            relations,
-            Collections.emptySet(),
-            joinPairs,
-            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T2, T3.T3));
-    }
-
-    @Test
     public void test4TableSortOnWhereAndJoinConditionsThatDontMatchThePair() throws Exception {
         MultiSourceSelect mss = analyze("select *" +
                                         " from t1" +
@@ -284,25 +297,23 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         " join users_multi_pk on t3.z=users_multi_pk.id" +
                                         " order by t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.toString(), is("join.join.join.join.doc.t3.doc.t1.doc.t2.doc.users.doc.users_multi_pk"));
+        assertThat(root.toString(), is("join.join.join.join.doc.t3.doc.t2.doc.t1.doc.users.doc.users_multi_pk"));
         assertThat(root.joinPair().condition(),
-                   isSQL("(join.join.join.doc.t3.doc.t1.doc.t2.doc.users.\"join.join.doc.t3.doc.t1.doc.t2\"" +
-                       "['join.doc.t3.doc.t1['doc.t3['z']']'] = to_int(doc.users_multi_pk.id))"));
+                   isSQL("(join.join.join.doc.t3.doc.t2.doc.t1.doc.users.\"join.join.doc.t3.doc.t2.doc.t1\"['" +
+                         "join.doc.t3.doc.t2['doc.t3['z']']'] = to_int(doc.users_multi_pk.id))"));
         TwoTableJoin tt1 = (TwoTableJoin) root.left();
-        assertThat(tt1.toString(), is("join.join.join.doc.t3.doc.t1.doc.t2.doc.users"));
+        assertThat(tt1.toString(), is("join.join.join.doc.t3.doc.t2.doc.t1.doc.users"));
         assertThat(tt1.joinPair().condition(),
-                   isSQL("(join.join.doc.t3.doc.t1.doc.t2.\"join.doc.t3.doc.t1\"['doc.t1['i']'] = " +
-                         "to_int(doc.users.id))"));
+                   isSQL("(join.join.doc.t3.doc.t2.doc.t1.doc.t1['i'] = to_int(doc.users.id))"));
         TwoTableJoin tt2 = (TwoTableJoin) tt1.left();
-        assertThat(tt2.toString(), is("join.join.doc.t3.doc.t1.doc.t2"));
+        assertThat(tt2.toString(), is("join.join.doc.t3.doc.t2.doc.t1"));
         assertThat(tt2.joinPair().condition(),
-                   isSQL("((doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']) AND " +
-                         "((join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b) AND " +
-                         "((doc.t2.b = '10') OR (join.doc.t3.doc.t1.doc.t1['a'] = '20'))))"));
+            isSQL("((doc.t1.a = join.doc.t3.doc.t2.doc.t2['b']) AND " +
+                  "((join.doc.t3.doc.t2.doc.t2['b'] = '10') OR (doc.t1.a = '20')))"));
 
         TwoTableJoin tt3 = (TwoTableJoin) tt2.left();
-        assertThat(tt3.toString(), is("join.doc.t3.doc.t1"));
-        assertThat(tt3.joinPair().condition(), nullValue());
+        assertThat(tt3.toString(), is("join.doc.t3.doc.t2"));
+        assertThat(tt3.joinPair().condition(), isSQL("(doc.t2.b = doc.t3.c)"));
     }
 
     @Test

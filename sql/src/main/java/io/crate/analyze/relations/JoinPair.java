@@ -125,8 +125,4 @@ public class JoinPair {
     public void joinType(JoinType joinType) {
         this.joinType = joinType;
     }
-
-    public boolean containsRelation(QualifiedName relation) {
-        return this.left.equals(relation) ||  this.right.equals(relation);
-    }
 }

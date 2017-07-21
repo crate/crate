@@ -22,11 +22,12 @@
 
 package io.crate.planner.consumer;
 
+import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
@@ -65,6 +66,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -89,78 +91,115 @@ public class ManyTableConsumer implements Consumer {
     }
 
     /**
-     * returns a new collection with the same items as relations contains but in an order which
-     * allows the most join condition push downs (assuming that a left-based tree is built later on)
+     * Returns a new collection with the same items as relations contains but in the best possible order.
+     * <p>
+     * Assuming that a left-based tree is built later on:
+     *  IF there is no `ORDER BY`:
+     *      IF no join conditions:
+     *          Don't change the order.
+     *      ELSE:
+     *          Return the relation in the order specified by the join conditions between them.
+     *  ELSE:
+     *      # If an `ORDER BY` exists then the {@param preSorted} list contains the relations that are referenced in the
+     *      # ORDER BY in the order they are used in its symbols.
+     *
+     *      IF all relations contained {@param preSorted}:
+     *          Return the {@param preSorted} ordering
+     *      ELSE:
+     *          Keep the "prefix" {@param preSorted} ordering and then find the best order possible based on the most
+     *          join conditions pushed down in the final left-based join tree.
      *
      * @param relations               all relations, e.g. [t1, t2, t3, t3]
-     * @param implicitJoinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
-     * @param joinPairs               contains a list of {@link JoinPair}.
+     * @param explicitJoinedRelations contains all relation pairs that have an explicit join condition
+     *                                e.g. {{t1, t2}, {t2, t3}}
+     * @param implicitJoinedRelations contains all relations pairs that have an implicit join condition
+     *                                e.g. {{t1, t2}, {t2, t3}}
      * @param preSorted               a ordered subset of the relations. The result will start with those relations.
      *                                E.g. [t3] - This would cause the result to start with [t3]
      */
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
+                                                           Set<? extends Set<QualifiedName>> explicitJoinedRelations,
                                                            Set<? extends Set<QualifiedName>> implicitJoinedRelations,
-                                                           List<JoinPair> joinPairs,
                                                            Collection<QualifiedName> preSorted) {
+        // All relations already sorted based the `ORDER BY` symbols
         if (relations.size() == preSorted.size()) {
             return preSorted;
         }
-        if (relations.size() == 2 || (joinPairs.isEmpty() && implicitJoinedRelations.isEmpty())) {
+
+        // Only 2 relations or the relations have no join conditions (explicit or implicit) between them
+        if (relations.size() == 2 ||
+            (explicitJoinedRelations.isEmpty() && implicitJoinedRelations.isEmpty())) {
             LinkedHashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>(preSorted);
             qualifiedNames.addAll(relations);
             return qualifiedNames;
         }
 
-        // Create a Copy to ensure equals works correctly for the subList check below.
-        preSorted = ImmutableList.copyOf(preSorted);
-        Set<QualifiedName> pair = new HashSet<>(2);
-        Set<QualifiedName> outerJoinRelations = JoinPairs.outerJoinRelations(joinPairs);
-        Collection<QualifiedName> bestOrder = null;
-        int best = -1;
-        List<JoinPair> currentPermutationJoinPairs = new ArrayList<>(joinPairs.size());
-        outerloop:
-        for (List<QualifiedName> permutation : Collections2.permutations(relations)) {
-            if (!preSorted.equals(permutation.subList(0, preSorted.size()))) {
-                continue;
-            }
-            currentPermutationJoinPairs.clear();
-            int joinPushDowns = 0;
-            for (int i = 0; i < permutation.size() - 1; i++) {
-                QualifiedName a = permutation.get(i);
-                QualifiedName b = permutation.get(i + 1);
+        LinkedHashSet<QualifiedName> bestOrder = new LinkedHashSet<>();
+        List<Set<QualifiedName>> pairsWithJoinConditions = new ArrayList<>(explicitJoinedRelations);
+        pairsWithJoinConditions.addAll(implicitJoinedRelations);
 
-                JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
-                if (joinPair == null) {
-                    // relations are not directly joined, lets check if they are part of an outer join
-                    if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
-                        // part of an outer join, don't change pairs, permutation not possible
-                        continue outerloop;
-                    } else {
-                        pair.clear();
-                        pair.add(a);
-                        pair.add(b);
-                        joinPushDowns += implicitJoinedRelations.contains(pair) ? 1 : 0;
-                        currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
-                    }
-                } else {
-                    if (JoinPairs.joinConditionIncludesRelations(currentPermutationJoinPairs, joinPair)) {
-                        joinPushDowns += 1;
-                    }
-                    currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
+        // If no `ORDER BY` present we have no preSort to follow so we return the relations in ordering
+        // obtained by the join conditions (explicit and/or implicit) between them.
+        if (preSorted.isEmpty()) {
+            ObjectIntHashMap<QualifiedName> occurrences =
+                getOccurrencesInJoinConditions(relations.size(), explicitJoinedRelations, implicitJoinedRelations);
+
+            Set<QualifiedName> firstJoinPair = findAndRemoveFirstJoinPair(occurrences, pairsWithJoinConditions);
+            assert firstJoinPair != null : "firstJoinPair should not be null";
+            bestOrder.addAll(firstJoinPair);
+        } else {
+            bestOrder.addAll(preSorted);
+        }
+
+        buildBestOrderByJoinConditions(pairsWithJoinConditions, bestOrder);
+        bestOrder.addAll(relations);
+        return bestOrder;
+    }
+
+    private static ObjectIntHashMap<QualifiedName> getOccurrencesInJoinConditions(
+        int numberOfRelations,
+        Set<? extends Set<QualifiedName>> explicitJoinedRelations,
+        Set<? extends Set<QualifiedName>> implicitJoinedRelations) {
+
+        ObjectIntHashMap<QualifiedName> occurrences = new ObjectIntHashMap<>(numberOfRelations);
+        explicitJoinedRelations.forEach(o -> o.forEach(qName -> occurrences.putOrAdd(qName, 1, 1)));
+        implicitJoinedRelations.forEach(o -> o.forEach(qName -> occurrences.putOrAdd(qName, 1, 1)));
+        return occurrences;
+    }
+
+    @VisibleForTesting
+    static Set<QualifiedName> findAndRemoveFirstJoinPair(ObjectIntHashMap<QualifiedName> occurrences,
+                                                         Collection<Set<QualifiedName>> joinPairs) {
+        Iterator<Set<QualifiedName>> setsIterator = joinPairs.iterator();
+        while (setsIterator.hasNext()) {
+            Set<QualifiedName> set = setsIterator.next();
+            for (QualifiedName name : set) {
+                int count = occurrences.getOrDefault(name, 0);
+                if (count > 1) {
+                    setsIterator.remove();
+                    return set;
                 }
             }
-            if (joinPushDowns == relations.size() - 1) {
-                return permutation;
-            }
-            if (joinPushDowns > best) {
-                best = joinPushDowns;
-                bestOrder = permutation;
+        }
+        return joinPairs.iterator().next();
+    }
+
+    private static void buildBestOrderByJoinConditions(List<Set<QualifiedName>> sets, LinkedHashSet<QualifiedName> bestOrder) {
+        Iterator<Set<QualifiedName>> setsIterator = sets.iterator();
+        while (setsIterator.hasNext()) {
+            Set<QualifiedName> set = setsIterator.next();
+            for (QualifiedName name: set) {
+                if (bestOrder.contains(name)) {
+                    bestOrder.addAll(set);
+                    setsIterator.remove();
+                    setsIterator = sets.iterator();
+                    break;
+                }
             }
         }
-        if (bestOrder == null) {
-            bestOrder = relations;
-        }
-        return bestOrder;
+
+        // Add the rest of the relations to the end of the collection
+        sets.forEach(bestOrder::addAll);
     }
 
     @VisibleForTesting
@@ -178,35 +217,34 @@ public class ManyTableConsumer implements Consumer {
         return orderByOrder;
     }
 
+    /**
+     * Try to add the {@param relationsToAddToCurrentOrder} to the current ordered collection {@param currentOrdered}.
+     * If all relations can be added return true else false.
+     *
+     * Start adding the relations of {@param relationsToAddToCurrentOrder} to the {@param currentOrdered}.
+     * When a violation of the outer join pairs is detected stop adding and possibly remove the last
+     * relation of the {@param currentOrdered} list that caused the violation.
+     */
     private static boolean validateAndAddToOrderedRelations(Collection<QualifiedName> currentOrdered,
-                                                            Collection<QualifiedName> names,
+                                                            Collection<QualifiedName> relationsToAddToCurrentOrder,
                                                             List<JoinPair> joinPairs,
                                                             Set<QualifiedName> outerJoinRelations) {
-        Iterator<QualifiedName> currentOrderedIterator= names.iterator();
-        QualifiedName a = null;
-        // a = last element of existing ordered list
-        while (currentOrderedIterator.hasNext()) {
-            a = currentOrderedIterator.next();
-        }
+        Iterator<QualifiedName> currentOrderedIterator = relationsToAddToCurrentOrder.iterator();
+        QualifiedName a = Iterators.getLast(currentOrderedIterator, null);
 
-        Iterator<QualifiedName> namesIterator = names.iterator();
+        Iterator<QualifiedName> namesIterator = relationsToAddToCurrentOrder.iterator();
         while (namesIterator.hasNext()) {
             if (a == null) {
                 a = namesIterator.next();
             }
             if (namesIterator.hasNext()) {
                 QualifiedName b = namesIterator.next();
-                JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
-                if (joinPair == null) {
-                    // relations are not directly joined, lets check if they are part of an outer join
-                    if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
-                        // part of an outer join, don't change pairs, permutation not possible
-                        if (!currentOrdered.isEmpty()) {
-                            // Remove also the last element of the existing sorted list
-                            currentOrderedIterator.remove();
-                        }
-                        return false;
+                if (violatesOuterJoins(a, b, joinPairs, outerJoinRelations)) {
+                    if (!currentOrdered.isEmpty()) {
+                        // Remove also the last element of the existing sorted list
+                        currentOrderedIterator.remove();
                     }
+                    return false;
                 }
                 currentOrdered.add(b);
                 a = b;
@@ -215,20 +253,31 @@ public class ManyTableConsumer implements Consumer {
         return true;
     }
 
+    private static boolean violatesOuterJoins(QualifiedName a,
+                                              QualifiedName b,
+                                              List<JoinPair> joinPairs,
+                                              Set<QualifiedName> outerJoinRelations) {
+        JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
+        // relations are not directly joined and they are part of an outer join
+        return (joinPair == null && (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)));
+    }
+
     @VisibleForTesting
-    static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
-                                                             Set<? extends Set<QualifiedName>> relationPairs) {
-        List<JoinPair> joinPairs = statement.joinPairs();
+    static Collection<QualifiedName> getOrderedRelationNames(
+        MultiSourceSelect statement,
+        Set<? extends Set<QualifiedName>> explicitJoinConditions,
+        Set<? extends Set<QualifiedName>> implicitJoinConditions) {
+
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
         Optional<OrderBy> orderBy = statement.querySpec().orderBy();
         if (orderBy.isPresent()) {
-            orderedRelations = getNamesFromOrderBy(orderBy.get(), joinPairs);
+            orderedRelations = getNamesFromOrderBy(orderBy.get(), statement.joinPairs());
         }
 
         return orderByJoinConditions(
             statement.sources().keySet(),
-            relationPairs,
-            statement.joinPairs(),
+            explicitJoinConditions,
+            implicitJoinConditions,
             orderedRelations);
     }
 
@@ -274,7 +323,10 @@ public class ManyTableConsumer implements Consumer {
             mss.querySpec().where(WhereClause.MATCH_ALL);
         }
 
-        Collection<QualifiedName> orderedRelationNames = getOrderedRelationNames(mss, splitQuery.keySet());
+        List<JoinPair> joinPairs = mss.joinPairs();
+        Map<Set<QualifiedName>, Symbol> joinConditionsMap = buildJoinConditionsMap(joinPairs);
+        Collection<QualifiedName> orderedRelationNames =
+            getOrderedRelationNames(mss, joinConditionsMap.keySet(), splitQuery.keySet());
         Iterator<QualifiedName> it = orderedRelationNames.iterator();
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("relations={} orderedRelations={}", mss.sources().keySet(), orderedRelationNames);
@@ -285,10 +337,8 @@ public class ManyTableConsumer implements Consumer {
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(leftName);
         QuerySpec leftQuerySpec = leftRelation.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
-        List<JoinPair> joinPairs = mss.joinPairs();
         List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
         Set<QualifiedName> currentTreeRelationNames = new HashSet<>(orderedRelationNames.size());
-        Map<Set<QualifiedName>, Symbol> joinConditionsMap = buildJoinConditionsMap(joinPairs);
         currentTreeRelationNames.add(leftName);
         QualifiedName rightName;
         QueriedRelation rightRelation;
@@ -491,7 +541,7 @@ public class ManyTableConsumer implements Consumer {
 
     static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2 : "number of mss.sources() must be 2";
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.of()).iterator();
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.of(), ImmutableSet.of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
@@ -612,7 +662,7 @@ public class ManyTableConsumer implements Consumer {
      */
     @VisibleForTesting
     static Map<Set<QualifiedName>, Symbol> buildJoinConditionsMap(List<JoinPair> joinPairs) {
-        Map<Set<QualifiedName>, Symbol> conditionsMap = new HashMap<>();
+        Map<Set<QualifiedName>, Symbol> conditionsMap = new LinkedHashMap<>();
         for (JoinPair joinPair : joinPairs) {
             Symbol condition = joinPair.condition();
             if (condition != null) {

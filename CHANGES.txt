@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+ - Optimized the algorithm that determines the best ordering of the tables in
+   a ``JOIN``.
+
  - Updated Crash to ``0.21.4`` which fixes an issue with ``\verbose`` command
    not working correctly when ``Crash`` is started without ``--verbose``.
 
