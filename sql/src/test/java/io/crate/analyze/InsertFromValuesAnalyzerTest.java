@@ -46,12 +46,23 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.SymbolMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -275,6 +286,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.sourceMaps().size(), is(1));
         assertThat(analysis.sourceMaps().get(0).length, is(1));
         assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
+    }
+
+    @Test
+    public void testInsertWithInvalidColumnReference() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid table column reference 'a'");
+        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users ('a') values (1)");
     }
 
     @Test(expected = UnsupportedOperationException.class)

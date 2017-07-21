@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+ - Improved the error message if an invalid table column reference is used in
+   ``INSERT`` statements.
+
  - Optimized the algorithm that determines the best ordering of the tables in
    a ``JOIN``.
 
