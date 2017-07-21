@@ -164,25 +164,73 @@ public class ManyTableConsumer implements Consumer {
         return bestOrder;
     }
 
-    private static Collection<QualifiedName> getNamesFromOrderBy(OrderBy orderBy) {
+    @VisibleForTesting
+    static Collection<QualifiedName> getNamesFromOrderBy(OrderBy orderBy, List<JoinPair> joinPairs) {
+        Set<QualifiedName> outerJoinRelations = JoinPairs.outerJoinRelations(joinPairs);
         Set<QualifiedName> orderByOrder = new LinkedHashSet<>();
-        Set<QualifiedName> names = new HashSet<>();
+        Set<QualifiedName> names = new LinkedHashSet<>();
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
             names.clear();
             QualifiedNameCounter.INSTANCE.process(orderBySymbol, names);
-            orderByOrder.addAll(names);
+            if (validateAndAddToOrderedRelations(orderByOrder, names, joinPairs, outerJoinRelations) == false) {
+                return orderByOrder;
+            }
         }
         return orderByOrder;
     }
 
-    private static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
-                                                                     Set<? extends Set<QualifiedName>> relationPairs) {
+    private static boolean validateAndAddToOrderedRelations(Collection<QualifiedName> currentOrdered,
+                                                            Collection<QualifiedName> names,
+                                                            List<JoinPair> joinPairs,
+                                                            Set<QualifiedName> outerJoinRelations) {
+        Iterator<QualifiedName> currentOrderedIterator= names.iterator();
+        QualifiedName a = null;
+        // a = last element of existing ordered list
+        while (currentOrderedIterator.hasNext()) {
+            a = currentOrderedIterator.next();
+        }
+
+        Iterator<QualifiedName> namesIterator = names.iterator();
+        while (namesIterator.hasNext()) {
+            if (a == null) {
+                a = namesIterator.next();
+            }
+            if (namesIterator.hasNext()) {
+                QualifiedName b = namesIterator.next();
+                JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
+                if (joinPair == null) {
+                    // relations are not directly joined, lets check if they are part of an outer join
+                    if (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)) {
+                        // part of an outer join, don't change pairs, permutation not possible
+                        if (!currentOrdered.isEmpty()) {
+                            // Remove also the last element of the existing sorted list
+                            currentOrderedIterator.remove();
+                        }
+                        return false;
+                    }
+                }
+                currentOrdered.add(b);
+                a = b;
+            }
+        }
+        return true;
+    }
+
+    @VisibleForTesting
+    static Collection<QualifiedName> getOrderedRelationNames(MultiSourceSelect statement,
+                                                             Set<? extends Set<QualifiedName>> relationPairs) {
+        List<JoinPair> joinPairs = statement.joinPairs();
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
         Optional<OrderBy> orderBy = statement.querySpec().orderBy();
         if (orderBy.isPresent()) {
-            orderedRelations = getNamesFromOrderBy(orderBy.get());
+            orderedRelations = getNamesFromOrderBy(orderBy.get(), joinPairs);
         }
-        return orderByJoinConditions(statement.sources().keySet(), relationPairs, statement.joinPairs(), orderedRelations);
+
+        return orderByJoinConditions(
+            statement.sources().keySet(),
+            relationPairs,
+            statement.joinPairs(),
+            orderedRelations);
     }
 
     /**
