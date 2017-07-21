@@ -170,35 +170,4 @@ public final class JoinPairs {
         }
         return outputs;
     }
-
-
-    /**
-     * Returns true if join condition contains both relations of the join pair and also
-     * doesn't contain any relation that's not already part of the join tree.
-     */
-    public static boolean joinConditionIncludesRelations(List<JoinPair> currentPermutationJoinPairs,
-                                                         JoinPair joinPair) {
-        boolean rel1Included = false;
-        boolean rel2Included = false;
-
-        for (Field f : JoinPairs.extractFieldsFromJoinConditions(Collections.singletonList(joinPair))) {
-            QualifiedName relationName = f.relation().getQualifiedName();
-            if (relationName.equals(joinPair.left())) {
-                rel1Included = true;
-            }
-            if (relationName.equals(joinPair.right())) {
-                rel2Included = true;
-            }
-
-            // Join condition contains relations not included in existing join pairs
-            if (currentPermutationJoinPairs.stream().noneMatch(jp -> jp.containsRelation(relationName))) {
-                return false;
-            }
-
-            if (rel1Included && rel2Included) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

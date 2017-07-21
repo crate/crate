@@ -586,7 +586,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         NestedLoop innerNl = (NestedLoop) outerNl.left();
 
         assertThat(((FilterProjection) innerNl.nestedLoopPhase().projections().get(0)).query(),
-            isSQL("((INPUT(2) = INPUT(0)) AND (INPUT(3) = INPUT(1)))"));
+            isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
     }
 
     @Test

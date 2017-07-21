@@ -25,6 +25,9 @@ Changes
 Fixes
 =====
 
+ - Optimized the algorithm that determines the best ordering of the tables in
+   a ``JOIN``.
+
  - Fixed a regression causing incorrect results for queries with ``DISTINCT``
    on scalar functions. E.g.::
 

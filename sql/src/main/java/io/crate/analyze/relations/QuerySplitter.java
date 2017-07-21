@@ -30,8 +30,9 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.ManyTableConsumer;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -80,7 +81,7 @@ public class QuerySplitter {
      * </pre>
      */
     public static Map<Set<QualifiedName>, Symbol> split(Symbol symbol) {
-        Map<Set<QualifiedName>, Symbol> splits = new HashMap<>();
+        Map<Set<QualifiedName>, Symbol> splits = new LinkedHashMap<>();
         SPLIT_VISITOR.process(symbol, splits);
         return splits;
     }
@@ -90,7 +91,7 @@ public class QuerySplitter {
         @Override
         public Void visitFunction(Function function, Map<Set<QualifiedName>, Symbol> splits) {
             if (!function.info().equals(AndOperator.INFO)) {
-                HashSet<QualifiedName> qualifiedNames = new HashSet<>();
+                HashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>();
                 ManyTableConsumer.QualifiedNameCounter.INSTANCE.process(function, qualifiedNames);
                 Symbol prevQuery = splits.put(qualifiedNames, function);
                 if (prevQuery != null) {
