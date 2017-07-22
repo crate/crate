@@ -81,7 +81,6 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
@@ -127,7 +126,6 @@ public class ContextPreparer extends AbstractComponent {
                            ThreadPool threadPool,
                            DistributingDownstreamFactory distributingDownstreamFactory,
                            TransportActionProvider transportActionProvider,
-                           IndexNameExpressionResolver indexNameExpressionResolver,
                            Functions functions,
                            SystemCollectSource systemCollectSource) {
         super(settings);
