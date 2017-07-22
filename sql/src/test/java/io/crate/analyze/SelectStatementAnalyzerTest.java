@@ -609,6 +609,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testSelectDistinctWithFunction() {
+        SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id + 1 from users");
+        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("add(doc.users.id, 1)"));
+        assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("add(doc.users.id, 1)"));
+    }
+
+    @Test
     public void testSelectDistinctWithGroupBySameFieldsSameOrder() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id, name from users group by id, name");
         SelectAnalyzedStatement groupByAnalysis = analyze("select id, name from users group by id, name");

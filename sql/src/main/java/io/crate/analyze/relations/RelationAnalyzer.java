@@ -343,7 +343,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (Aggregations.containsAggregationOrscalar(symbol) == false) {
+            if (Aggregations.containsAggregation(symbol) == false) {
                 GroupBySymbolValidator.validate(symbol);
                 groupBy.add(symbol);
             }
