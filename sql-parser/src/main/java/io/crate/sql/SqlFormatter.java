@@ -710,7 +710,7 @@ public final class SqlFormatter {
                 appendPrivilegesList(node.privileges());
             }
 
-            if (node.clazz() != "CLUSTER") {
+            if (!node.clazz().equals("CLUSTER")) {
                 builder.append(" ON " + node.clazz() + " ");
                 appendTableOrSchemaNames(node.privilegeIdents());
             }
