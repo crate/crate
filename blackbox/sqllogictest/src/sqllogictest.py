@@ -277,7 +277,7 @@ def get_logger(level, filename=None):
 
 def run_file(filename, host, port, log_level, log_file, failfast):
     logger = get_logger(log_level, log_file)
-    conn = psycopg2.connect("host=" + host + " port=" + port + " dbname='doc'")
+    conn = psycopg2.connect("host=" + host + " port=" + port + " user=crate dbname='doc'")
     cursor = conn.cursor()
     fh = open(filename, 'r', encoding='utf-8')
     commands = get_commands(fh)
