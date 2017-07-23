@@ -202,12 +202,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
         FullQualifiedNameFieldProvider fieldProvider = new FullQualifiedNameFieldProvider(context.sources(), context.parentSources());
+        SubqueryAnalyzer subQueryAnalyzer = new SubqueryAnalyzer(this, statementContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             statementContext.sessionContext(),
             statementContext.convertParamFunction(),
             fieldProvider,
-            new SubqueryAnalyzer(this, statementContext));
+            subQueryAnalyzer);
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
@@ -220,7 +221,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             statementContext.sessionContext(),
             statementContext.convertParamFunction(),
             new SelectAnalysisFieldProvider(selectAnalysis, fieldProvider),
-            new SubqueryAnalyzer(this, statementContext));
+            subQueryAnalyzer);
 
         List<Symbol> groupBy = analyzeGroupBy(
             selectAnalysis,
