@@ -900,6 +900,29 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
+
+``scale(number)``
+-----------------
+
+Returns the scale of the argument (the number of decimal digits in the fractional part)
+
+If the input is of type double or long the result is long.
+
+If the input is of type float or integer the result is integer.
+
+Returns: ``long`` or ``integer``
+
+See below for an example::
+
+    cr> select scale(32.2) from sys.cluster;
+    +-------------+
+    | round(32.2) |
+    +-------------+
+    |          1 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 ``sqrt(number)``
 ----------------
 
