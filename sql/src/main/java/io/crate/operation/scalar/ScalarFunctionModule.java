@@ -87,6 +87,7 @@ public class ScalarFunctionModule extends AbstractModule {
         SubscriptObjectFunction.register(this);
 
         RoundFunction.register(this);
+        ScaleFunction.register(this);
         CeilFunction.register(this);
         RandomFunction.register(this);
         AbsFunction.register(this);
