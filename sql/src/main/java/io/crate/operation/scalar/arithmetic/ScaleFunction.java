@@ -6,14 +6,11 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import sun.tools.jstat.Literal;
 
-import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*
