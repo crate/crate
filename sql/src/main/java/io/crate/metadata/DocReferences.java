@@ -79,14 +79,8 @@ public final class DocReferences {
 
     private static Reference docRefToRegularRef(Reference reference) {
         ReferenceIdent ident = reference.ident();
-
-        if (!ident.isColumn()
-            && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
-            && ident.columnIdent().name().equals(DocSysColumns.Names.DOC)) {
-
-            return reference.getRelocated(
-                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().shiftRight())
-            );
+        if (!ident.isColumn() && ident.columnIdent().name().equals(DocSysColumns.Names.DOC)) {
+            return reference.getRelocated(new ReferenceIdent(ident.tableIdent(), ident.columnIdent().shiftRight()));
         }
         return reference;
     }
