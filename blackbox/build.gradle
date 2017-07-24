@@ -49,6 +49,10 @@ task hdfsTest(type: Exec) {
     commandLine "$projectDir/bin/test-hdfs"
 }
 
+task bwcTest(type: Exec) {
+    commandLine "$projectDir/bin/test-bwc"
+}
+
 task monitoringTest(type: Exec) {
     commandLine "$projectDir/bin/test-jmx"
 }
@@ -81,6 +85,7 @@ monitoringTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThresh
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 logicTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
+bwcTest.dependsOn(bootstrap, project(':app').distTar)
 
 task cleanDocs {
     doLast {

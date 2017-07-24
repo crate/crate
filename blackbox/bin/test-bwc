@@ -1,0 +1,3 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PYTHONPATH=$DIR/../bwc/src:$DIR/../shared/src $DIR/../.venv/bin/zope-testrunner --test-path $DIR/../bwc/src "$@"

@@ -7,3 +7,4 @@ zope.testrunner
 zc.customdoctests
 tqdm
 psycopg2
+cr8
