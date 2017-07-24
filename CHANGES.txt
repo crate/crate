@@ -24,7 +24,8 @@ Changes
 
  - Table functions now support value expressions as arguments.
 
- - Add scale for Scalar functions
+ - Add scale for Scalar functions.
+
 
 Fixes
 =====
