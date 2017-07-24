@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+ - Updated Crash to ``0.21.4`` which fixes an issue with ``\verbose`` command
+   not working correctly when ``Crash`` is started without ``--verbose``.
+
  - Implemented flexible return type of sum-function depending on the input
    types, which was previously only double.
 
