@@ -45,14 +45,13 @@ import java.util.Map;
  */
 public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
 
-    private final Map<QualifiedName, AnalyzedRelation> parentSources;
     private final Map<QualifiedName, AnalyzedRelation> sources;
+    private final ParentRelations parents;
 
-    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources,
-                                          Map<QualifiedName, AnalyzedRelation> parentSources) {
-        this.parentSources = parentSources;
+    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources, ParentRelations parents) {
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
+        this.parents = parents;
     }
 
     public Field resolveField(QualifiedName qualifiedName, Operation operation) {
@@ -132,11 +131,15 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
     private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName) {
         String schema = columnSchema == null ? Schemas.DEFAULT_SCHEMA_NAME : columnSchema;
         QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
-        if (parentSources.containsKey(qn)) {
+        if (parents.containsRelation(qn)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot use relation \"%s.%s\" in subquery. Correlated subqueries are not supported",
                 schema,
                 columnTableName));
+        }
+        if (columnSchema == null && parents.containsRelation(new QualifiedName(columnTableName))) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "Cannot use relation \"%s\" in subquery. Correlated subqueries are not supported", columnTableName));
         }
     }
 }

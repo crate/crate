@@ -2206,9 +2206,23 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSubSelectWithAcessToParentRelationThrowsUnsupportedFeature() throws Exception {
+    public void testSubSelectWithAccessToParentRelationThrowsUnsupportedFeature() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use relation \"doc.t1\" in subquery. Correlated subqueries are not supported");
         analyze("select (select 1 from t1 as ti where ti.x = t1.x) from t1");
+    }
+
+    @Test
+    public void testSubSelectWithAccessToParentRelationAliasThrowsUnsupportedFeature() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use relation \"tparent\" in subquery. Correlated subqueries are not supported");
+        analyze("select (select 1 from t1 where t1.x = tparent.x) from t1 as tparent");
+    }
+
+    @Test
+    public void testSubSelectWithAccessToGrandParentRelation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use relation \"grandparent\" in subquery. Correlated subqueries are not supported");
+        analyze("select (select (select 1 from t1 where grandparent.x = t1.x) from t1 as parent) from t1 as grandparent");
     }
 }

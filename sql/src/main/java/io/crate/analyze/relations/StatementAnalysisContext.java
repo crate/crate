@@ -26,12 +26,9 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
-import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public class StatementAnalysisContext {
@@ -65,13 +62,14 @@ public class StatementAnalysisContext {
     }
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
-        Map<QualifiedName, AnalyzedRelation> parentSources;
+        ParentRelations parentRelations;
         if (lastRelationContextQueue.isEmpty()) {
-            parentSources = Collections.emptyMap();
+            parentRelations = ParentRelations.NO_PARENTS;
         } else {
-            parentSources = lastRelationContextQueue.get(lastRelationContextQueue.size() - 1).sources();
+            RelationAnalysisContext parentCtx = lastRelationContextQueue.get(lastRelationContextQueue.size() - 1);
+            parentRelations = parentCtx.parentSources().newLevel(parentCtx.sources());
         }
-        RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(aliasedRelation, parentSources);
+        RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(aliasedRelation, parentRelations);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }
