@@ -914,7 +914,7 @@ Returns: ``long`` or ``integer``
 
 See below for an example::
 
-    cr> select scale(32.2) from sys.cluster;
+    cr> select scale(32.2);
     +-------------+
     | round(32.2) |
     +-------------+
