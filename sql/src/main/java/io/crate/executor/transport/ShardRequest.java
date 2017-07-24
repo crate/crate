@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport;
 
-import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.Constants;
@@ -30,6 +29,7 @@ import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -45,7 +45,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     private String routing;
     private UUID jobId;
     protected List<I> items;
-    protected IntArrayList locations;
 
     public ShardRequest() {
     }
@@ -57,12 +56,11 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         this.routing = routing;
         this.jobId = jobId;
         this.index = shardId.getIndexName();
-        locations = new IntArrayList();
         items = new ArrayList<>();
     }
 
     public void add(int location, I item) {
-        locations.add(location);
+        item.location(location);
         items.add(item);
     }
 
@@ -73,10 +71,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     @Override
     public Iterator<I> iterator() {
         return Iterators.unmodifiableIterator(items.iterator());
-    }
-
-    public IntArrayList itemIndices() {
-        return locations;
     }
 
     public String type() {
@@ -97,12 +91,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         super.readFrom(in);
         routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
-
-        int size = in.readVInt();
-        locations = new IntArrayList(size);
-        for (int i = 0; i < size; i++) {
-            locations.add(in.readVInt());
-        }
     }
 
     protected void readItems(StreamInput in, int size) throws IOException {
@@ -118,10 +106,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
-        out.writeVInt(locations.size());
-        for (int i = 0; i < locations.size(); i++) {
-            out.writeVInt(locations.get(i));
-        }
     }
 
     @Override
@@ -131,13 +115,12 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
         return Objects.equal(routing, that.routing) &&
                Objects.equal(jobId, that.jobId) &&
-               Objects.equal(items, that.items) &&
-               Objects.equal(locations, that.locations);
+               Objects.equal(items, that.items);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(routing, jobId, shardId(), items, locations);
+        return Objects.hashCode(routing, jobId, shardId(), items);
     }
 
     @Override
@@ -161,48 +144,58 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     protected abstract I readItem(StreamInput input) throws IOException;
 
     /**
-     * A single item with just an id.
+     * A single item with just an id and an optional location.
      */
-    public abstract static class Item {
+    public abstract static class Item implements Writeable {
 
-        protected String id;
-
-        protected Item() {
-        }
+        protected final String id;
+        private int location = -1;
 
         public Item(String id) {
             this.id = id;
+        }
+
+        protected Item(StreamInput in) throws IOException {
+            id = in.readString();
+            location = in.readInt();
         }
 
         public String id() {
             return id;
         }
 
-        public void readFrom(StreamInput in) throws IOException {
-            id = in.readString();
+        public void location(int location) {
+            this.location = location;
+        }
+
+        public int location() {
+            return location;
         }
 
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
+            out.writeInt(location);
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
+
             Item item = (Item) o;
-            return Objects.equal(id, item.id);
+            return location == item.location && id.equals(item.id);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Objects.hashCode(id, location);
         }
 
         @Override
         public String toString() {
-            return getClass().getSimpleName() + "{" +
+            return "Item{" +
                    "id='" + id + '\'' +
+                   ", location=" + location +
                    '}';
         }
     }

@@ -65,9 +65,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     protected WriteResult<ShardResponse> processRequestItems(IndexShard indexShard, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
-        for (int i = 0; i < request.itemIndices().size(); i++) {
-            int location = request.itemIndices().get(i);
-            ShardDeleteRequest.Item item = request.items().get(i);
+        for (ShardDeleteRequest.Item item : request.items) {
+            int location = item.location();
             if (killed.get()) {
                 // set failure on response, mark current item and skip all next items.
                 // this way replica operation will be executed, but only items already processed here
@@ -113,14 +112,13 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Override
     protected Translog.Location processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) {
         Translog.Location translogLocation = null;
-        for (int i = 0; i < request.itemIndices().size(); i++) {
-            int location = request.itemIndices().get(i);
+        for (ShardDeleteRequest.Item item : request.items) {
+            int location = item.location();
             if (request.skipFromLocation() == location) {
                 // skipping this and all next items, the primary did not processed them (mostly due to a kill request)
                 break;
             }
 
-            ShardDeleteRequest.Item item = request.items().get(i);
             Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
             indexShard.delete(delete);
             logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());

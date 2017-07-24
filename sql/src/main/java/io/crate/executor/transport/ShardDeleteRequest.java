@@ -56,6 +56,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVInt(items.size());
         for (Item item : items) {
             item.writeTo(out);
         }
@@ -70,7 +71,8 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readItems(in, locations.size());
+        int numItems = in.readVInt();
+        readItems(in, numItems);
         if (in.readBoolean()) {
             skipFromLocation = in.readVInt();
         }
@@ -78,9 +80,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
     @Override
     protected Item readItem(StreamInput input) throws IOException {
-        Item item = new Item();
-        item.readFrom(input);
-        return item;
+        return new Item(input);
     }
 
     public static class Item extends ShardRequest.Item {
@@ -88,8 +88,10 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
 
-        protected Item() {
-            super();
+        protected Item(StreamInput in) throws IOException {
+            super(in);
+            this.version = in.readLong();
+            this.versionType = VersionType.fromValue(in.readByte());
         }
 
         public Item(String id) {
@@ -126,13 +128,6 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         @Override
         public int hashCode() {
             return Objects.hashCode(super.hashCode(), version, versionType);
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
-            version = in.readLong();
-            versionType = VersionType.fromValue(in.readByte());
         }
 
         @Override

@@ -168,7 +168,9 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         continueOnError = in.readBoolean();
         overwriteDuplicates = in.readBoolean();
         validateConstraints = in.readBoolean();
-        readItems(in, locations.size());
+
+        int numItems = in.readVInt();
+        readItems(in, numItems);
     }
 
     @Override
@@ -194,6 +196,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
         out.writeBoolean(validateConstraints);
+
+        out.writeVInt(items.size());
         for (Item item : items) {
             item.writeTo(out, insertValuesStreamer);
         }
@@ -247,9 +251,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
          */
         @Nullable
         private Object[] insertValues;
-
-        protected Item() {
-        }
 
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
@@ -311,7 +312,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
 
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
-            id = in.readString();
+            super(in);
             int assignmentsSize = in.readVInt();
             if (assignmentsSize > 0) {
                 updateAssignments = new Symbol[assignmentsSize];
@@ -336,7 +337,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
 
         public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
-            out.writeString(id);
+            super.writeTo(out);
             if (updateAssignments != null) {
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {

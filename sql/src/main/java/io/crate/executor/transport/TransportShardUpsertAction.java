@@ -149,9 +149,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         Translog.Location translogLocation = null;
-        for (int i = 0; i < request.itemIndices().size(); i++) {
-            int location = request.itemIndices().get(i);
-            ShardUpsertRequest.Item item = request.items().get(i);
+        for (ShardUpsertRequest.Item item : request.items) {
+            int location = item.location();
             if (killed.get()) {
                 // set failure on response and skip all next items.
                 // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
