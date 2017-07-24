@@ -7,10 +7,17 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+/*
+ * Return the scale of the argument (the number of decimal digits in the fractional part)
+ */
 public abstract class ScaleFunction extends SingleArgumentArithmeticFunction {
 
     public static final String NAME = "scale";
@@ -24,11 +31,11 @@ public abstract class ScaleFunction extends SingleArgumentArithmeticFunction {
             ImmutableMap.<DataType, SingleArgumentArithmeticFunction>builder()
                 .put(DataTypes.FLOAT, new FloatScaleFunction(Collections.singletonList(DataTypes.FLOAT)))
                 .put(DataTypes.INTEGER, new FloatScaleFunction(Collections.singletonList(DataTypes.INTEGER)))
-                .put(DataTypes.LONG, new DoubleScaleFunction(Collections.singletonList(DataTypes.LONG)))
-                .put(DataTypes.DOUBLE, new DoubleScaleFunction(Collections.singletonList(DataTypes.DOUBLE)))
-                .put(DataTypes.SHORT, new DoubleScaleFunction(Collections.singletonList(DataTypes.SHORT)))
-                .put(DataTypes.BYTE, new DoubleScaleFunction(Collections.singletonList(DataTypes.BYTE)))
-                .put(DataTypes.UNDEFINED, new DoubleScaleFunction(Collections.singletonList(DataTypes.UNDEFINED)))
+                .put(DataTypes.LONG, new FloatScaleFunction(Collections.singletonList(DataTypes.LONG)))
+                .put(DataTypes.DOUBLE, new FloatScaleFunction(Collections.singletonList(DataTypes.DOUBLE)))
+                .put(DataTypes.SHORT, new FloatScaleFunction(Collections.singletonList(DataTypes.SHORT)))
+                .put(DataTypes.BYTE, new FloatScaleFunction(Collections.singletonList(DataTypes.BYTE)))
+                .put(DataTypes.UNDEFINED, new FloatScaleFunction(Collections.singletonList(DataTypes.UNDEFINED)))
                 .build();
         module.register(NAME, new Resolver(NAME, functionMap));
     }
@@ -46,42 +53,16 @@ public abstract class ScaleFunction extends SingleArgumentArithmeticFunction {
                 return null;
             }
 
-            String numberAsString = value.toString();
-            if (numberAsString.contains("-")) {
-                numberAsString.replace("-", "");
+            String numberAsString = String.format(Locale.ENGLISH, "%s", value);
+            Pattern p = Pattern.compile("(\\d+)\\.[\b0]+$");
+            if (p.matcher(numberAsString).find()) {
+                numberAsString = numberAsString.split("\\.")[0];
             }
-            if (numberAsString.contains(".")) {
-                int integerPlaces = numberAsString.indexOf('.');
+            int integerPlaces = numberAsString.indexOf('.');
+            if (integerPlaces != -1) {
                 return numberAsString.length() - integerPlaces - 1;
             }
             return 0;
         }
     }
-
-
-    private static class DoubleScaleFunction extends ScaleFunction {
-
-        DoubleScaleFunction(List<DataType> dataTypes) {
-            super(generateDoubleFunctionInfo(NAME, dataTypes));
-        }
-
-        @Override
-        public Long evaluate(Input[] args) {
-            Object value = args[0].value();
-            if (value == null) {
-                return null;
-            }
-            String numberAsString = value.toString();
-            if (numberAsString.contains("-")) {
-                numberAsString.replace("-", "");
-            }
-            if (numberAsString.contains(".")) {
-                int integerPlaces = numberAsString.indexOf('.');
-                return new Long(numberAsString.length() - integerPlaces - 1);
-            }
-            return new Long(0);
-
-        }
-    }
-
 }
