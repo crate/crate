@@ -6,6 +6,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import sun.tools.jstat.Literal;
 
 import java.text.DecimalFormat;
 import java.util.Collections;
@@ -51,6 +52,9 @@ public abstract class ScaleFunction extends SingleArgumentArithmeticFunction {
             Object value = args[0].value();
             if (value == null) {
                 return null;
+            }
+            if (!(value instanceof Float || value instanceof Double)) {
+                return 0;
             }
 
             String numberAsString = String.format(Locale.ENGLISH, "%s", value);
