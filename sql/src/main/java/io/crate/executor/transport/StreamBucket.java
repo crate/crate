@@ -21,9 +21,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
@@ -113,10 +110,15 @@ public class StreamBucket implements Bucket, Streamable {
     }
 
     private static boolean validStreamers(Streamer<?>[] streamers) {
-        if (streamers == null || streamers.length == 0) {
+        if (streamers == null) {
             return true;
         }
-        return !Iterables.all(FluentIterable.of(streamers), Predicates.isNull());
+        for (Streamer<?> streamer : streamers) {
+            if (streamer == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {

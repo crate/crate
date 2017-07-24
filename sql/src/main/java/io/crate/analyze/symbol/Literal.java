@@ -1,7 +1,6 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
@@ -13,7 +12,14 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,7 +44,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             values = (Iterable) literalValue;
             size = ((Collection) literalValue).size();
         } else {
-            values = FluentIterable.of((Object[]) literalValue);
+            values = Arrays.asList((Object[]) literalValue);
             size = ((Object[]) literalValue).length;
         }
 
