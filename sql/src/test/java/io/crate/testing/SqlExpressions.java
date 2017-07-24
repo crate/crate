@@ -31,6 +31,7 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -104,7 +105,7 @@ public class SqlExpressions {
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
-            new FullQualifiedNameFieldProvider(sources, Collections.emptyMap()),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
             null
         );
         normalizer = new EvaluatingNormalizer(

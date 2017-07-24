@@ -29,6 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -98,7 +99,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, SessionContext.SYSTEM_SESSION, paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -111,7 +112,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -149,7 +150,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         FunctionCall subscriptFunctionCall = new FunctionCall(
@@ -179,7 +180,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             SessionContext.SYSTEM_SESSION,
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(sources, Collections.emptyMap()),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
             null
         );
         Function andFunction = (Function) expressionAnalyzer.convert(

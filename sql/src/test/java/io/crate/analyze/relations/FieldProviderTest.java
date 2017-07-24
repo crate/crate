@@ -33,7 +33,6 @@ import io.crate.testing.DummyRelation;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -51,7 +50,7 @@ public class FieldProviderTest extends CrateUnitTest {
     }
 
     private static FullQualifiedNameFieldProvider newFQFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
-        return new FullQualifiedNameFieldProvider(sources, Collections.emptyMap());
+        return new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS);
     }
 
     @Test
