@@ -22,7 +22,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -36,7 +35,6 @@ import org.apache.lucene.util.BytesRef;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 public class IndexNameResolver {
@@ -78,11 +76,7 @@ public class IndexNameResolver {
         return () -> {
             // copy because the values of the inputs are mutable
             List<BytesRef> partitions = Lists2.copyAndReplace(partitionedByInputs, Inputs.TO_BYTES_REF);
-            try {
-                return cache.get(partitions);
-            } catch (ExecutionException e) {
-                throw Throwables.propagate(e);
-            }
+            return cache.getUnchecked(partitions);
         };
     }
 }
