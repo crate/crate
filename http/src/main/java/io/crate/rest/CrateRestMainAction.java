@@ -100,7 +100,9 @@ public class CrateRestMainAction implements RestHandler {
         siteDirectory = environment.libFile().resolve("site");
         Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
-        logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
+        if (esApiEnabled) {
+            logger.warn("Unofficial Elasticsearch HTTP REST API is enabled");
+        }
     }
 
     void registerHandler() {
