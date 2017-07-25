@@ -140,7 +140,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         execute(
             "select fruits.name as name, price " +
             "from colors, fruits " +
-            "group by name, price " +
+            "group by fruits.name, price " +
             "having count(colors.name) > 0 " +
             "order by name, price"
         );

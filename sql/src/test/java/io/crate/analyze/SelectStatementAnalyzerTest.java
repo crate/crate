@@ -25,14 +25,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
-import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -135,13 +133,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testGroupedSelectMissingOutput() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("column 'load['5']' must appear in the GROUP BY clause or be used in an aggregation function");
-        analyze("select load['5'] from sys.nodes group by load['1']");
-    }
-
-    @Test
     public void testIsNullQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where id is not null");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
@@ -169,69 +160,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testGroupKeyNotInResultColumnList() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes group by name");
-        assertThat(analysis.relation().querySpec().groupBy().get().size(), is(1));
-        assertThat(analysis.relation().fields().get(0).path().outputName(), is("count(*)"));
-    }
-
-    @Test
-    public void testGroupByOnAlias() throws Exception {
-        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by n").relation();
-        assertThat(relation.querySpec().groupBy().get().size(), is(1));
-        assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
-        assertThat(relation.fields().get(1).path().outputName(), is("n"));
-
-        assertEquals(relation.querySpec().groupBy().get().get(0), relation.querySpec().outputs().get(1));
-    }
-
-    @Test
-    public void testGroupByOnOrdinal() throws Exception {
-        // just like in postgres access by ordinal starts with 1
-        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by 2").relation();
-        assertThat(relation.querySpec().groupBy().get().size(), is(1));
-        assertEquals(relation.querySpec().groupBy().get().get(0), relation.querySpec().outputs().get(1));
-    }
-
-    @Test
-    public void testGroupByOnInvalidOrdinal() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("GROUP BY position -4 is not in select list");
-        analyze("select count(*), name from sys.nodes group by -4");
-    }
-
-    @Test
-    public void testGroupByOnOrdinalAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
-        analyze("select count(*), name as n from sys.nodes group by 1");
-    }
-
-    @Test
-    public void testGroupByWithDistinctAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
-        analyze("select count(DISTINCT name) from sys.nodes group by 1");
-    }
-
-    @Test
     public void testNegativeLiteral() throws Exception {
         SelectAnalyzedStatement analyze = analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function) analyze.relation().querySpec().where().query();
         Symbol symbol = whereClause.arguments().get(1);
         assertThat(((Literal) symbol).value(), is(-400));
-    }
-
-    @Test
-    public void testGroupedSelect() throws Exception {
-        QueriedRelation relation = analyze("select load['1'], count(*) from sys.nodes group by load['1']").relation();
-        assertThat(relation.querySpec().limit().isPresent(), is(false));
-
-        assertThat(relation.querySpec().groupBy(), notNullValue());
-        assertThat(relation.querySpec().outputs().size(), is(2));
-        assertThat(relation.querySpec().groupBy().get().size(), is(1));
-        assertThat(relation.querySpec().groupBy().get().get(0), isReference("load['1']"));
-
     }
 
     @Test
@@ -370,21 +303,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testAmbiguousOrderByOnAlias() throws Exception {
-        expectedException.expect(AmbiguousColumnAliasException.class);
-        expectedException.expectMessage("Column alias \"load\" is ambiguous");
-        analyze("select id as load, load from sys.nodes order by load");
-    }
-
-    @Test
-    public void testSelectGroupByOrderByWithColumnMissingFromSelect() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
-                                        "when grouping or global aggregation is used");
-        analyze("select name, count(id) from users group by name order by id");
-    }
-
-    @Test
     public void testSelectGlobalAggregationOrderByWithColumnMissingFromSelect() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
@@ -398,14 +316,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
                                         "when SELECT DISTINCT is used");
         analyze("select distinct name from users order by id");
-    }
-
-    @Test
-    public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY function 'max(count(upper(name)))' is not allowed. " +
-                                        "Only scalar functions can be used");
-        analyze("select name, count(id) from users group by name order by max(count(upper(name)))");
     }
 
     @Test
@@ -593,22 +503,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSelectAggregationMissingGroupBy() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "column 'name' must appear in the GROUP BY clause or be used in an aggregation function");
-        analyze("select name, count(id) from users");
-    }
-
-    @Test
-    public void testSelectGlobalDistinctAggregationMissingGroupBy() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "column 'name' must appear in the GROUP BY clause or be used in an aggregation function");
-        analyze("select distinct name, count(id) from users");
-    }
-
-    @Test
     public void testSelectDistinctWithFunction() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id + 1 from users");
         assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("add(doc.users.id, 1)"));
@@ -638,80 +532,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("ORDER BY expression 'add(id, 10)' must appear in the " +
                                         "select clause when SELECT DISTINCT is used");
         analyze("select distinct id from users order by id + 10");
-    }
-
-    @Test
-    public void testSelectDistinctWithGroupBy() {
-        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from users group by name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
-                   isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) ORDER BY doc.users.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
-    }
-
-    @Test
-    public void testSelectDistinctWithGroupByLimitAndOffset() {
-        SelectAnalyzedStatement analysis =
-            analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
-                   isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) " +
-                         "ORDER BY doc.users.max(id) LIMIT 5 OFFSET 10"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
-    }
-
-    @Test
-    public void testSelectDistinctWithGroupByOnJoin() {
-        SelectAnalyzedStatement analysis =
-            analyze("select DISTINCT max(users.id) from users " +
-                    "  inner join users_multi_pk on users.id = users_multi_pk.id " +
-                    "group by users.name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
-                   isSQL("SELECT io.crate.analyze.MultiSourceSelect.max(id) " +
-                         "GROUP BY io.crate.analyze.MultiSourceSelect.max(id) " +
-                         "ORDER BY io.crate.analyze.MultiSourceSelect.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
-        assertThat(outerRelation.subRelation(), instanceOf(MultiSourceSelect.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
-    }
-
-    @Test
-    public void testSelectDistinctWithGroupByOnSubSelectOuter() {
-        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from (" +
-                                                   "  select * from users order by name limit 10" +
-                                                   ") t group by name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
-                   isSQL("SELECT io.crate.analyze.QueriedSelectRelation.max(id) " +
-                         "GROUP BY io.crate.analyze.QueriedSelectRelation.max(id) " +
-                         "ORDER BY io.crate.analyze.QueriedSelectRelation.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
-    }
-
-    @Test
-    public void testSelectDistinctWithGroupByOnSubSelectInner() {
-        SelectAnalyzedStatement analysis =
-            analyze("select * from (" +
-                    "  select distinct id from users group by id, name order by 1" +
-                    ") t order by 1 desc");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
-                   isSQL("SELECT doc.users.id GROUP BY doc.users.id ORDER BY doc.users.id DESC"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name"));
     }
 
     @Test
@@ -760,13 +580,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         for (Symbol s : distinctAnalysis.relation().querySpec().groupBy().get()) {
             assertThat(distinctAnalysis.relation().querySpec().groupBy().get().contains(s), is(true));
         }
-    }
-
-    @Test
-    public void testGroupByValidationWhenRewritingDistinct() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'friends': invalid data type 'object_array'");
-        analyze("select distinct(friends) from users");
     }
 
     @Test
@@ -1130,50 +943,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testGroupWithIdx() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select name from users u group by 1");
-        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().groupBy().get().get(0));
-    }
-
-    @Test
-    public void testGroupByOnLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select [1,2,3], count(*) from users u group by 1");
-        assertThat(analysis.relation().querySpec().outputs(), isSQL("[1, 2, 3], count()"));
-        assertThat(analysis.relation().querySpec().groupBy().get(), isSQL("[1, 2, 3]"));
-    }
-
-    @Test
-    public void testGroupByOnNullLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select null, count(*) from users u group by 1");
-        assertThat(analysis.relation().querySpec().outputs(), isSQL("NULL, count()"));
-        assertThat(analysis.relation().querySpec().groupBy().get(), isSQL("NULL"));
-    }
-
-    @Test
-    public void testGroupWithInvalidIdx() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("GROUP BY position 2 is not in select list");
-        analyze("select name from users u group by 2");
-    }
-
-    @Test
-    public void testGroupWithInvalidLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use 'abc' in GROUP BY clause");
-        analyze("select max(id) from users u group by 'abc'");
-    }
-
-    @Test
-    public void testGroupWithInvalidNullLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use NULL in GROUP BY clause");
-        analyze("select max(id) from users u group by NULL");
-    }
-
-    @Test
     public void testOrderByOnArray() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'object_array'.");
@@ -1252,13 +1021,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid array expression: 'name'");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
-    }
-
-    @Test
-    public void testPositionalArgumentGroupByArrayType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'friends': invalid data type 'object_array'");
-        analyze("SELECT sum(id), friends FROM users GROUP BY 2");
     }
 
     @Test
@@ -1527,85 +1289,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 entry.setValue(BytesRefs.toString(value));
             }
         }
-    }
-
-    @Test
-    public void testGroupByHaving() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
-        assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), isReference("name"));
-        assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
-    }
-
-    @Test
-    public void testGroupByHavingNormalize() throws Exception {
-        QuerySpec querySpec = analyze("select sum(floats) from users group by name having 1 > 4")
-            .relation().querySpec();
-        HavingClause having = querySpec.having().get();
-        assertThat(having.noMatch(), is(true));
-        assertNull(having.query());
-    }
-
-    @Test
-    public void testGroupByHavingOtherColumnInAggregate() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
-        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_="));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
-        assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), isFunction("max"));
-        Function maxFunction = (Function) havingFunction.arguments().get(0);
-
-        assertThat(maxFunction.arguments().get(0), isReference("bytes"));
-        assertThat(havingFunction.arguments().get(1), isLiteral((byte) 4, DataTypes.BYTE));
-    }
-
-    @Test
-    public void testGroupByHavingOtherColumnOutsideAggregate() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
-        analyze("select sum(floats) from users group by name having bytes = 4");
-    }
-
-    @Test
-    public void testGroupByHavingOtherColumnOutsideAggregateInFunction() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
-        analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4");
-    }
-
-    @Test
-    public void testGroupByHavingByGroupKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
-            "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().get().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
-        assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), isReference("name"));
-        assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
-    }
-
-    @Test
-    public void testGroupByHavingComplex() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
-                                                   "group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().get().hasQuery(), is(true));
-        Function andFunction = (Function) analysis.relation().querySpec().having().get().query();
-        assertThat(andFunction, is(notNullValue()));
-        assertThat(andFunction.info().ident().name(), is("op_and"));
-        assertThat(andFunction.arguments().size(), is(2));
-
-        assertThat(andFunction.arguments().get(0), isFunction("any_="));
-        assertThat(andFunction.arguments().get(1), isFunction("op_not"));
-    }
-
-    @Test
-    public void testGroupByHavingRecursiveFunction() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
-                                                   "group by name having sum(power(power(id, id), id)) > 0");
-        assertThat(analysis.relation().querySpec().having().get().query(),
-            isSQL("(sum(power(power(doc.users.id, doc.users.id), doc.users.id)) > 0.0)"));
     }
 
     @Test
@@ -2021,13 +1704,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testGroupByHiddenColumn() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select count(*) from users group by _docid");
-    }
-
-    @Test
     public void testHavingHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column _docid unknown");
@@ -2103,27 +1779,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot ORDER BY 'shape': invalid data type 'geo_shape'.");
         analyze("select * from users ORDER BY shape");
-    }
-
-    @Test
-    public void testGroupByGeoShape() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'shape': invalid data type 'geo_shape'");
-        analyze("select count(*) from users group by shape");
-    }
-
-    @Test
-    public void testGroupByCastedArray() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
-        analyze("select count(*) from locations group by cast(loc as array(double))");
-    }
-
-    @Test
-    public void testGroupByCastedArrayByIndex() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'to_double_array(loc)': invalid data type 'double_array'");
-        analyze("select cast(loc as array(double)) from locations group by 1");
     }
 
     @Test
