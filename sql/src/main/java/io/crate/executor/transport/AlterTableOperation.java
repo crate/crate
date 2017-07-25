@@ -38,8 +38,11 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
+import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionRequest;
+import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionResponse;
 import io.crate.executor.transport.ddl.RenameTableRequest;
 import io.crate.executor.transport.ddl.RenameTableResponse;
+import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -110,6 +113,7 @@ public class AlterTableOperation {
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportIndicesAliasesAction transportIndicesAliasesAction;
+    private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final UserManager userManager;
     private final SQLOperations sqlOperations;
 
@@ -123,6 +127,7 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportIndicesAliasesAction transportIndicesAliasesAction,
+                               TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                UserManager userManager,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
@@ -134,6 +139,7 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportIndicesAliasesAction = transportIndicesAliasesAction;
+        this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.userManager = userManager;
         this.sqlOperations = sqlOperations;
     }
@@ -162,33 +168,16 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
-        List<CompletableFuture<Long>> results = new ArrayList<>(2);
-        DocTableInfo table = analysis.tableInfo();
-
-        String[] concreteIndices;
+        FutureActionListener<OpenCloseTableOrPartitionResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        String partitionIndexName = null;
         Optional<PartitionName> partitionName = analysis.partitionName();
         if (partitionName.isPresent()) {
-            concreteIndices = new String[]{partitionName.get().asIndexName()};
-        } else {
-            concreteIndices = analysis.tableInfo().concreteIndices();
-            if (table.isPartitioned()) {
-                results.add(updateOpenCloseOnPartitionTemplate(analysis.openTable(), table.ident()));
-            } else if (!table.isClosed() == analysis.openTable()) {
-                return CompletableFuture.completedFuture(-1L);
-            }
+            partitionIndexName = partitionName.get().asIndexName();
         }
-
-        if (concreteIndices.length > 0) {
-            if (analysis.openTable()) {
-                results.add(openTable(concreteIndices));
-            } else {
-                results.add(closeTable(concreteIndices));
-            }
-        }
-
-        final CompletableFuture<Long> result = new CompletableFuture<>();
-        applyMultiFutureCallback(result, results);
-        return result;
+        OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
+            analysis.tableInfo().ident(), partitionIndexName, analysis.openTable());
+        transportOpenCloseTableOrPartitionAction.execute(request, listener);
+        return listener;
     }
 
     private CompletableFuture<Long> openTable(String... indices) {
@@ -541,7 +530,7 @@ public class AlterTableOperation {
         }
     }
 
-    private static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
+    public static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
                                                             Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
         for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
@@ -560,7 +549,7 @@ public class AlterTableOperation {
         return mergedMapping;
     }
 
-    private static Map<String, Object> removeFromMapping(Map<String, Object> mapping, Map<String, Object> mappingsToRemove) {
+    public static Map<String, Object> removeFromMapping(Map<String, Object> mapping, Map<String, Object> mappingsToRemove) {
         for (String key : mappingsToRemove.keySet()) {
             if (mapping.containsKey(key)) {
                 if (mapping.get(key) instanceof Map) {

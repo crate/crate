@@ -26,24 +26,16 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.executor.JobTask;
-import io.crate.metadata.PartitionName;
+import io.crate.executor.transport.ddl.DropTableRequest;
+import io.crate.executor.transport.ddl.DropTableResponse;
+import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.user.UserManager;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateResponse;
-import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.Locale;
 
@@ -52,91 +44,37 @@ public class DropTableTask extends JobTask {
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
 
-    private static final Logger logger = Loggers.getLogger(DropTableTask.class);
+    private static final Logger LOGGER = Loggers.getLogger(DropTableTask.class);
 
     private final DocTableInfo tableInfo;
-    private final TransportDeleteIndexTemplateAction deleteTemplateAction;
-    private final TransportDeleteIndexAction deleteIndexAction;
-    private final UserManager userManager;
+    private final TransportDropTableAction transportDropTableAction;
     private final boolean ifExists;
 
     public DropTableTask(DropTablePlan plan,
-                         TransportDeleteIndexTemplateAction deleteTemplateAction,
-                         TransportDeleteIndexAction deleteIndexAction,
-                         UserManager userManager) {
+                         TransportDropTableAction transportDropTableAction) {
         super(plan.jobId());
         this.ifExists = plan.ifExists();
         this.tableInfo = plan.tableInfo();
-        this.deleteTemplateAction = deleteTemplateAction;
-        this.deleteIndexAction = deleteIndexAction;
-        this.userManager = userManager;
+        this.transportDropTableAction = transportDropTableAction;
     }
 
     @Override
     public void execute(final BatchConsumer consumer, Row parameters) {
-        if (tableInfo.isPartitioned()) {
-            String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
-            deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
-                @Override
-                public void onResponse(DeleteIndexTemplateResponse response) {
-                    if (!response.isAcknowledged()) {
-                        warnNotAcknowledged();
-                    }
-                    if (!tableInfo.partitions().isEmpty()) {
-                        deleteESIndex(tableInfo.ident(), consumer);
-                    } else {
-                        userManager.dropTablePrivileges(tableInfo.ident().fqn()).whenComplete((r, t) -> {
-                            if (t != null) {
-                                logger.warn(
-                                    String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableInfo.ident().fqn()),
-                                    t);
-                            }
-                            consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
-                        });
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    Throwable t = ExceptionsHelper.unwrapCause(e);
-                    if (t instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
-                        logger.warn(t.getMessage());
-                        deleteESIndex(tableInfo.ident(), consumer);
-                    } else {
-                        consumer.accept(null, t);
-                    }
-                }
-            });
-        } else {
-            deleteESIndex(tableInfo.ident(), consumer);
-        }
-    }
-
-    private void deleteESIndex(TableIdent tableIdent, final BatchConsumer consumer) {
-        DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(tableIdent.indexName());
-        if (tableInfo.isPartitioned()) {
-            deleteIndexRequest.indicesOptions(IndicesOptions.lenientExpandOpen());
-        }
-        deleteIndexAction.execute(deleteIndexRequest, new ActionListener<DeleteIndexResponse>() {
+        TableIdent tableIdent = tableInfo.ident();
+        DropTableRequest request = new DropTableRequest(tableIdent, tableInfo.isPartitioned());
+        transportDropTableAction.execute(request, new ActionListener<DropTableResponse>() {
             @Override
-            public void onResponse(DeleteIndexResponse response) {
+            public void onResponse(DropTableResponse response) {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }
-                userManager.dropTablePrivileges(tableIdent.fqn()).whenComplete((r, t) -> {
-                    if (t != null) {
-                        logger.warn(
-                            String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableIdent.fqn()),
-                            t);
-                    }
-                    consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
-                });
+                consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
             }
 
             @Override
             public void onFailure(Exception e) {
                 if (tableInfo.isPartitioned()) {
-                    logger.warn(
+                    LOGGER.warn(
                         String.format(Locale.ENGLISH, "Could not (fully) delete all partitions of %s. " +
                                                       "Some orphaned partitions might still exist, " +
                                                       "but are not accessible.", tableInfo.ident().fqn()),
@@ -152,8 +90,8 @@ public class DropTableTask extends JobTask {
     }
 
     private void warnNotAcknowledged() {
-        if (logger.isWarnEnabled()) {
-            logger.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", tableInfo.ident());
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.", tableInfo.ident());
         }
     }
 }

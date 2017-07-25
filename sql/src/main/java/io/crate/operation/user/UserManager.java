@@ -66,12 +66,6 @@ public interface UserManager extends UserLookup {
     CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent);
 
     /**
-     * Removes all privileges from all users for the provided {@param tableIdent}
-     * @return a future which returns the number of privileges which were removed
-     */
-    CompletableFuture<Long> dropTablePrivileges(String tableIdent);
-
-    /**
      * Look up a statement authorization validator for the given user.
      * All statements will be validated by this before planning/executing.
      */

@@ -28,6 +28,7 @@ import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
@@ -80,11 +81,12 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         }
     };
 
+    private static final UserManagerDDLModifier DDL_MODIFIER = new UserManagerDDLModifier();
+
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
     private final TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction;
-    private final TransportDropTablePrivilegesAction transportDropTablePrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     @Inject
@@ -92,14 +94,13 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                               TransportDropUserAction transportDropUserAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction,
-                              TransportDropTablePrivilegesAction transportDropTablePrivilegesAction,
                               SysTableRegistry sysTableRegistry,
-                              ClusterService clusterService) {
+                              ClusterService clusterService,
+                              DDLClusterStateService ddlClusterStateService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         this.transportTransferTablePrivilegesAction = transportTransferTablePrivilegesAction;
-        this.transportDropTablePrivilegesAction = transportDropTablePrivilegesAction;
         clusterService.addListener(this);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(users()),
@@ -108,6 +109,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
             SysPrivilegesTableInfo.expressions());
+
+        ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
 
     static Set<User> getUsers(@Nullable UsersMetaData metaData,
@@ -174,14 +177,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         FutureActionListener<PrivilegesResponse, Long> listener =
             new FutureActionListener<>(PrivilegesResponse::affectedRows);
         transportTransferTablePrivilegesAction.execute(new TransferTablePrivilegesRequest(sourceIdent, targetIdent), listener);
-        return listener;
-    }
-
-    @Override
-    public CompletableFuture<Long> dropTablePrivileges(String tableIdent) {
-        FutureActionListener<PrivilegesResponse, Long> listener =
-            new FutureActionListener<>(PrivilegesResponse::affectedRows);
-        transportDropTablePrivilegesAction.execute(new DropTablePrivilegesRequest(tableIdent), listener);
         return listener;
     }
 

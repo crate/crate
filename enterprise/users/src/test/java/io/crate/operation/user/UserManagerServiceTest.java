@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
@@ -41,7 +42,9 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpUserManager() throws Exception {
-        userManagerService = new UserManagerService(null, null, null, null, null, mock(SysTableRegistry.class), clusterService);
+        userManagerService = new UserManagerService(null, null,
+            null, null,
+            mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
     }
 
     @Test

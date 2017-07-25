@@ -36,6 +36,7 @@ import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.FunctionDispatchTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.task.SetSessionTask;
+import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.executor.transport.task.DropTableTask;
 import io.crate.executor.transport.task.KillJobTask;
@@ -55,7 +56,6 @@ import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.user.UserManager;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
@@ -108,8 +108,8 @@ public class TransportExecutor implements Executor {
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
-    private final UserManager userManager;
     private final IndicesService indicesService;
+    private final TransportDropTableAction transportDropTableAction;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
     private final MultiPhaseExecutor multiPhaseExecutor = new MultiPhaseExecutor();
@@ -130,7 +130,7 @@ public class TransportExecutor implements Executor {
                              IndicesService indicesService,
                              SystemCollectSource systemCollectSource,
                              DCLStatementDispatcher dclStatementDispatcher,
-                             UserManager userManager) {
+                             TransportDropTableAction transportDropTableAction) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
@@ -141,7 +141,7 @@ public class TransportExecutor implements Executor {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.dclStatementDispatcher = dclStatementDispatcher;
-        this.userManager = userManager;
+        this.transportDropTableAction = transportDropTableAction;
         plan2TaskVisitor = new TaskCollectingVisitor();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
@@ -222,10 +222,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitDropTablePlan(DropTablePlan plan, Void context) {
-            return new DropTableTask(plan,
-                transportActionProvider.transportDeleteIndexTemplateAction(),
-                transportActionProvider.transportDeleteIndexAction(),
-                userManager);
+            return new DropTableTask(plan, transportDropTableAction);
         }
 
         @Override

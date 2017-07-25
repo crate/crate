@@ -27,9 +27,11 @@ Breaking Changes
 Changes
 =======
 
+ - Improved resiliency of drop, close and open table operations
+
 
 Fixes
 =====
 
- - Fixed user defined functions persistence. 
+ - Fixed user defined functions persistence.
 
