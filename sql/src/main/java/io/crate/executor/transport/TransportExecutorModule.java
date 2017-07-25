@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.TransportJobAction;
 import io.crate.executor.Executor;
+import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
@@ -49,5 +50,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportKillJobsNodeAction.class).asEagerSingleton();
         bind(TransportNodeStatsAction.class).asEagerSingleton();
         bind(TransportRenameTableAction.class).asEagerSingleton();
+        bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
     }
 }

@@ -33,13 +33,14 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class TableIdent {
+public class TableIdent implements Writeable {
 
     private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
     private static final Splitter SPLITTER = Splitter.on(".").limit(6);
@@ -173,6 +174,7 @@ public class TableIdent {
         return fqn();
     }
 
+    @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(schema);
         out.writeString(name);
