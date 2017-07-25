@@ -32,7 +32,6 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.junit.After;
 import org.junit.Test;
 
-import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
@@ -71,7 +70,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
     }
 
     private static void sendSslRequest(EmbeddedChannel channel) {
-        ByteBuf buffer = releaseLater(Unpooled.buffer());
+        ByteBuf buffer = Unpooled.buffer();
         buffer.writeInt(SslReqHandler.SSL_REQUEST_BYTE_LENGTH);
         buffer.writeInt(SslReqHandler.SSL_REQUEST_CODE);
         channel.writeInbound(buffer);

@@ -48,7 +48,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.mockito.Mockito.any;
@@ -103,9 +102,13 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
-        ByteBuf buffer = releaseLater(Unpooled.buffer());
-        Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
-        ctx.handleSimpleQuery(buffer, channel);
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
+            ctx.handleSimpleQuery(buffer, channel);
+        } finally {
+            buffer.release();
+        }
 
         ByteBuf firstResponse = channel.readOutbound();
         byte[] responseBytes = new byte[5];
@@ -175,7 +178,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
-        ByteBuf buffer = releaseLater(Unpooled.buffer());
+        ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendSslReqMessage(buffer);
         channel.writeInbound(buffer);
 
