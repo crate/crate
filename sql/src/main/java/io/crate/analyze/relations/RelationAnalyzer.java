@@ -48,6 +48,7 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -221,7 +222,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
-            ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
+            ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
         }
 
         boolean distinctProcessed = false;
@@ -352,15 +353,27 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private static void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols,
-                                                     List<Path> outputNames,
                                                      List<Symbol> groupBy) throws IllegalArgumentException {
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
-                if (!Aggregations.containsAggregationOrscalar(output) || !Aggregations.matchGroupBySymbol(output, groupBy)) {
+                if (output.symbolType().isValueSymbol()) {
+                    // values are allowed even if not present in group by
+                    continue;
+                }
+
+                if (Aggregations.containsAggregationOrscalar(output) == false ||
+                    Aggregations.matchGroupBySymbol(output, groupBy) == false) {
+                    String offendingSymbolName = output.representation();
+                    if (output instanceof Function) {
+                        ensureNonAggregatesInGroupBy(((Function) output).arguments(), groupBy);
+                    } else if (output instanceof Path) {
+                        offendingSymbolName = ((Path) output).outputName();
+                    }
+
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "column '%s' must appear in the GROUP BY clause " +
-                                      "or be used in an aggregation function", outputNames.get(i).outputName()));
+                                                      "or be used in an aggregation function", offendingSymbolName));
                 }
             }
         }
@@ -386,6 +399,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Expression sortKey = sortItem.getSortKey();
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
                 sortKey, selectAnalysis, "ORDER BY", expressionAnalyzer, expressionAnalysisContext);
+
             SemanticSortValidator.validate(symbol);
             if (hasAggregatesOrGrouping) {
                 OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols(), isDistinct);
@@ -414,7 +428,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                         ExpressionAnalysisContext expressionAnalysisContext) {
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
         for (Expression expression : groupBy) {
-            Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
+            Symbol symbol = symbolFromExpressionFallbackOnSelectOutput(
                 expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
             GroupBySymbolValidator.validate(symbol);
             groupBySymbols.add(symbol);
@@ -437,13 +451,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return null;
     }
 
-
     /**
      * <h2>resolve expression by also taking alias and ordinal-reference into account</h2>
      * <p>
      * <p>
-     * in group by or order by clauses it is possible to reference anything in the
-     * select list by using a number or alias
+     * in order by clauses it is possible to reference anything in the select list by using a number or alias
      * </p>
      * <p>
      * These are allowed:
@@ -485,6 +497,52 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
         }
+        return symbol;
+    }
+
+    /**
+     * Resolve expression by also taking ordinal reference into account (eg. for `GROUP BY` clauses).
+     * In case we cannot resolve the expression because an alias is used, will try to resolve the alias.
+     * <p>
+     * NOTE: in case an alias with the same name as a real column is used, we will take the column value into account
+     */
+    private static Symbol symbolFromExpressionFallbackOnSelectOutput(Expression expression,
+                                                                     SelectAnalysis selectAnalysis,
+                                                                     String clause,
+                                                                     ExpressionAnalyzer expressionAnalyzer,
+                                                                     ExpressionAnalysisContext expressionAnalysisContext) {
+        Symbol symbol;
+        try {
+            symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+            if (symbol.symbolType().isValueSymbol()) {
+                Literal longLiteral;
+                try {
+                    longLiteral = Literal.convert(symbol, DataTypes.LONG);
+                } catch (ClassCastException | IllegalArgumentException e) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                }
+                if (longLiteral.value() == null) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                }
+                symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
+            }
+        } catch (ColumnUnknownException e) {
+            if (expression instanceof QualifiedNameReference) {
+                List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
+                if (parts.size() == 1) {
+                    symbol = getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
+                    if (symbol != null) {
+                        return symbol;
+                    }
+                }
+            }
+            throw e;
+        }
+
         return symbol;
     }
 
