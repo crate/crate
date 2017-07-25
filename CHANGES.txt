@@ -30,6 +30,9 @@ Changes
 Fixes
 =====
 
+ - Added missing documentation about the default value of the table setting
+   ``write.wait_for_active_shards``.
+
  - Improved user privileges matching to constant time complexity.
 
  - Improved the error message if an invalid table column reference is used in

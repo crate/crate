@@ -270,13 +270,18 @@ For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
 ``write.wait_for_active_shards``
 ................................
 
-  Specifies the number of shard copies that need to be active for the write
-  operation to proceed. If less shards are active the operation will wait
-  for 30s for them to become active or timeout.
+Specifies the number of shard copies that need to be active for the write
+operation to proceed. If less shards are active the operation will wait for 30s
+for them to become active or timeout.
 
-  The number of shard copies is defined like this ::
+The number of shard copies is defined like this::
 
-      number_of_shard_copies = (1 + number_of_replicas)
+  number_of_shard_copies = (1 + number_of_replicas)
+
+:value: The number of active shard copies to wait for or ``all``. The default
+        value is set to ``all`` which will cause write operations to wait for
+        the primary and all replica shards to be active.
+
 
 
 .. _ref-configuration-blocks:
