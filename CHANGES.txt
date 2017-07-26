@@ -27,6 +27,8 @@ Changes
 Fixes
 =====
 
+ - Opening or closing a complete partitioned table is an atomic operation now.
+
  - Improved user privileges matching to constant time complexity.
 
  - Improved the error message if an invalid table column reference is used in
