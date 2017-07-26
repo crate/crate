@@ -12,8 +12,9 @@ regular data.
 Creating a Table for Blobs
 ==========================
 
-Before adding blobs a ``blob table`` must be created. Lets use the CrateDB
-shell ``crash`` to issue the SQL statement::
+Before adding blobs a ``blob table`` must be created. Blob tables can be
+sharded. This makes it possible to distribute binaries over multiple nodes.
+Lets use the CrateDB shell crash to issue the SQL statement::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
     CREATE OK, 1 row affected (... sec)
@@ -62,6 +63,37 @@ Creating a blob table with a custom blob data path::
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (blobs_path='/tmp/crate_blob_data')" # doctest: +SKIP
     CREATE OK, 1 row affected (... sec)
 
+List
+====
+
+.. Hidden: Add a blob entry to list it afterwards::
+
+    sh$ curl -isSX PUT '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    HTTP/1.1 201 Created
+    content-length: 0
+
+To list all blobs inside a blob table a ``SELECT`` statement can be used::
+
+    sh$ crash -c "select digest, last_modified from blob.myblobs"
+    +------------------------------------------+---------------+
+    | digest                                   | last_modified |
+    +------------------------------------------+---------------+
+    | 4a756ca07e9487f482465a99e8286abc86ba4dc7 | ...           |
+    +------------------------------------------+---------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    To query blob tables it is necessary to always specify the schema name
+    ``blob``.
+
+.. Hidden: Delete the blob entry::
+
+    sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    HTTP/1.1 204 No Content
+    content-length: 0
+
+
 Altering a Blob Table
 =====================
 
@@ -71,8 +103,34 @@ TABLE`` clause::
     sh$ crash -c "alter blob table myblobs set (number_of_replicas=0)"
     ALTER OK, 1 row affected (... sec)
 
+Deleting a Blob Table
+=====================
+
+Blob tables can be deleted similar to normal tables::
+
+    sh$ crash -c "drop blob table myblobs"
+    DROP OK, 1 row affected (... sec)
+
+.. Hidden: Re-create the blob table so information_schema will show it::
+
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
+    CREATE OK, 1 row affected (... sec)
+
+
+Using Blob Tables
+=================
+
+The usage of Blob Tables is only supported using the HTTP/HTTPS protocol. This
+section describes how binaries can be stored, fetched and deleted.
+
+.. NOTE::
+
+    For the reason of internal optimization any successful request could lead to
+    a 307 Temporary Redirect response.
+
+
 Uploading
-=========
+---------
 
 To upload a blob the sha1 hash of the blob has to be known upfront since this
 has to be used as the ID of the new blob. For this example we use a fancy
@@ -93,38 +151,13 @@ If a blob already exists with the given hash a 409 Conflict is returned::
     HTTP/1.1 409 Conflict
     content-length: 0
 
-List
-====
-
-To list all blobs inside a blob table a ``SELECT`` statement can be used::
-
-    sh$ crash -c "select digest, last_modified from blob.myblobs"
-    +------------------------------------------+---------------+
-    | digest                                   | last_modified |
-    +------------------------------------------+---------------+
-    | 4a756ca07e9487f482465a99e8286abc86ba4dc7 | ...           |
-    +------------------------------------------+---------------+
-    SELECT 1 row in set (... sec)
-
-.. NOTE::
-
-    To query blob tables it is necessary to always specify the schema name
-    ``blob``.
-
 Download
-========
+--------
 
 To download a blob simply use a GET request::
 
     sh$ curl -sS '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     contents
-
-.. NOTE::
-
-    Since the blobs are sharded throughout the cluster not every node has all
-    the blobs. In case that the GET request has been sent to a node that
-    doesn't contain the requested file it will respond with a 307 Temporary
-    Redirect which will lead to a node that does contain the file.
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
@@ -148,7 +181,7 @@ used::
     cache the response forever since the blob is immutable.
 
 Delete
-======
+------
 
 To delete a blob simply use a DELETE request::
 
@@ -162,18 +195,5 @@ If the blob doesn't exist a 404 Not Found error is returned::
     HTTP/1.1 404 Not Found
     content-length: 0
 
-Deleting a Blob Table
-=====================
-
-Blob tables can be deleted similar to normal tables (again using the CrateDB
-shell here)::
-
-    sh$ crash -c "drop blob table myblobs"
-    DROP OK, 1 row affected (... sec)
-
-.. Hidden: Re-create the blob table so information_schema will show it::
-
-    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
-    CREATE OK, 1 row affected (... sec)
 
 .. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object
