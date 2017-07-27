@@ -22,8 +22,10 @@
 
 package io.crate.integrationtests;
 
+import io.crate.operation.Paging;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -33,6 +35,7 @@ import java.util.List;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -398,6 +401,62 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "       order by x limit 3" +
                 ") t");
         assertThat(printedTable(response.rows()), is("3\n"));
+    }
+
+    @Test
+    public void testJoinOnSubQueriesWithLimitAndOffset() {
+        execute("create table t1(col1 integer)");
+        execute("create table t2(col1 integer)");
+        ensureYellow();
+        execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
+        execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
+        refresh();
+
+        execute("select * from" +
+                " (select * from t1 order by 1 limit 3 offset 1) t1, " +
+                " (select * from t2 order by 1 limit 5 offset 3) t2 " +
+                "where t1.col1 = t2.col1 " +
+                "order by 1 desc, 2 " +
+                "limit 2 offset 1");
+        assertThat(printedTable(response.rows()), is("3| 3\n2| 2\n"));
+    }
+
+    @Test
+    public void testJoinOnSubQueriesWithLimitAndOffsetAndPaging() {
+        // Test that {@link BatchPagingIterator} can moveToStart() even if iteration hasn't exhausted all rows.
+        Paging.PAGE_SIZE = 2;
+        execute("create table t1(col1 integer)");
+        execute("create table t2(col1 integer)");
+        ensureYellow();
+        execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
+        execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
+        refresh();
+
+        execute("select * from" +
+                " (select * from t1 order by 1 limit 4 offset 1) t1, " +
+                " (select * from t2 order by 1 desc limit 5 offset 1) t2 " +
+                "where t1.col1 = t2.col1 " +
+                "order by 1 desc, 2 " +
+                "limit 4 offset 2");
+        assertThat(printedTable(response.rows()), is("3| 3\n3| 3\n2| 2\n2| 2\n"));
+    }
+
+    @Test
+    public void testJoinWithAggregationsOnSubQueriesWithLimitOffsetAndAggregations() {
+        execute("create table t1(col1 integer)");
+        execute("create table t2(col1 integer)");
+        ensureYellow();
+        execute("insert into t1(col1) values (1), (2), (2), (3), (3)");
+        execute("insert into t2(col1) values (1), (1), (1), (2), (2), (3), (3), (4), (4)");
+        refresh();
+
+        execute("select * from" +
+                " (select distinct col1 from t1 order by 1 limit 2 offset 1) t1, " +
+                " (select col1, count(*) as cnt from t2 group by col1 order by 2, 1 limit 2 offset 2) t2 " +
+                "where t1.col1 = t2.cnt " +
+                "order by 1 desc, 2, 3 " +
+                "limit 1 offset 1");
+        assertThat(printedTable(response.rows()), is("2| 4| 2\n"));
     }
 
     @Test

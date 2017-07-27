@@ -23,16 +23,29 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import io.crate.analyze.*;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.TwoTableJoin;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
@@ -141,48 +154,28 @@ class NestedLoopConsumer implements Consumer {
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
-            if (isDistributed) {
+            if (isDistributed && subPlanHashNoLimits(leftResultDesc)) {
                 leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                 nlExecutionNodes = leftResultDesc.nodeIds();
             } else {
                 leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-                if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.nodeIds(), false)) {
-                    leftMerge = new MergePhase(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        "nl-merge",
-                        leftResultDesc.nodeIds().size(),
-                        nlExecutionNodes,
-                        leftResultDesc.streamOutputs(),
-                        Collections.emptyList(),
-                        DistributionInfo.DEFAULT_SAME_NODE,
-                        PositionalOrderBy.of(left.querySpec().orderBy().orElse(null), left.querySpec().outputs())
-                    );
+                if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                    leftMerge = buildMergePhase(context.plannerContext(), left, leftResultDesc, nlExecutionNodes);
                 }
             }
             if (nlExecutionNodes.size() == 1
-                && nlExecutionNodes.equals(rightResultDesc.nodeIds())) {
+                && nlExecutionNodes.equals(rightResultDesc.nodeIds())
+                && subPlanHashNoLimits(rightResultDesc)) {
                 // if the left and the right plan are executed on the same single node the mergePhase
                 // should be omitted. This is the case if the left and right table have only one shards which
                 // are on the same node
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc.nodeIds(), isDistributed)) {
-                    rightMerge = new MergePhase(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        "nl-merge",
-                        rightResultDesc.nodeIds().size(),
-                        nlExecutionNodes,
-                        rightResultDesc.streamOutputs(),
-                        Collections.emptyList(),
-                        DistributionInfo.DEFAULT_SAME_NODE,
-                        PositionalOrderBy.of(right.querySpec().orderBy().orElse(null), right.querySpec().outputs())
-                    );
+                if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, isDistributed)) {
+                    rightMerge = buildMergePhase(context.plannerContext(), right, rightResultDesc, nlExecutionNodes);
                 }
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
-
 
             if (broadcastLeftTable) {
                 Plan tmpPlan = leftPlan;
@@ -190,8 +183,6 @@ class NestedLoopConsumer implements Consumer {
                 rightPlan = tmpPlan;
                 leftMerge = rightMerge;
                 rightMerge = null;
-                leftResultDesc = leftPlan.resultDescription();
-                rightResultDesc = rightPlan.resultDescription();
             }
             List<Projection> projections = new ArrayList<>();
 
@@ -244,7 +235,7 @@ class NestedLoopConsumer implements Consumer {
                 right.querySpec().outputs().size()
             );
 
-             // postNLOutputs includes orderBy only symbols, these need to be stripped in the handlerMerge
+            // postNLOutputs includes orderBy only symbols, these need to be stripped in the handlerMerge
             int postMergeNumOutput = querySpec.outputs().size();
             if (isDistributed) {
                 return new NestedLoop(
@@ -285,14 +276,47 @@ class NestedLoopConsumer implements Consumer {
         }
 
         private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
-                                                  Collection<String> upstreamPhaseExecutionNodes,
+                                                  ResultDescription resultDescription,
                                                   boolean isDistributed) {
-            if (!isDistributed && upstreamPhaseExecutionNodes.equals(executionNodes)) {
-                // if the nested loop is on the same node we don't need a mergePhase to receive requests
-                // but can access the RowReceiver of the nestedLoop directly
+            if (!isDistributed && resultDescription.nodeIds().equals(executionNodes)
+                && subPlanHashNoLimits(resultDescription)) {
+                // If the nested loop is on the same node and there are not limits on the subplan,
+                // we don't need a mergePhase to receive requests but can access the RowReceiver
+                // of the nestedLoop directly.
                 return false;
             }
             return true;
         }
+    }
+
+    private static boolean subPlanHashNoLimits(ResultDescription resultDescription) {
+        return resultDescription.limit() == TopN.NO_LIMIT && resultDescription.offset() == 0;
+    }
+
+    private static MergePhase buildMergePhase(Planner.Context plannerContext,
+                                              QueriedRelation relation,
+                                              ResultDescription resultDescription,
+                                              Collection<String> nlExecutionNodes) {
+        List<Projection> projections = Collections.emptyList();
+        if (subPlanHashNoLimits(resultDescription) == false) {
+            projections = Collections.singletonList(ProjectionBuilder.topNOrEvalIfNeeded(
+                resultDescription.limit(),
+                resultDescription.offset(),
+                resultDescription.numOutputs(),
+                resultDescription.streamOutputs()
+            ));
+        }
+
+        return new MergePhase(
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            "nl-merge",
+            resultDescription.nodeIds().size(),
+            nlExecutionNodes,
+            resultDescription.streamOutputs(),
+            projections,
+            DistributionInfo.DEFAULT_SAME_NODE,
+            PositionalOrderBy.of(relation.querySpec().orderBy().orElse(null), relation.querySpec().outputs())
+        );
     }
 }

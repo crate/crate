@@ -159,7 +159,10 @@ public final class RelationSplitter {
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
                 if (!relationPartOfJoinConditions.contains(rel.getQualifiedName())) {
                     QuerySpec spec = specs.get(rel);
-                    spec.limit(limitAndOffset);
+                    // If it's a sub-select it might already have a limit
+                    if (!spec.limit().isPresent()) {
+                        spec.limit(limitAndOffset);
+                    }
                 }
             }
         }
@@ -289,9 +292,12 @@ public final class RelationSplitter {
         if (relations.size() == 1 && joinPairs.stream().noneMatch(p -> p.joinType().isOuter())) {
             AnalyzedRelation relationInOrderBy = relations.iterator().next();
             QuerySpec spec = getSpec(relationInOrderBy);
-            orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
-            spec.orderBy(orderBy);
-            requiredForQuery.addAll(orderBy.orderBySymbols());
+            // If it's a sub-select it might already have an ordering
+            if (!(spec.orderBy().isPresent() && (spec.limit().isPresent() || spec.offset().isPresent()))) {
+                orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
+                spec.orderBy(orderBy);
+                requiredForQuery.addAll(orderBy.orderBySymbols());
+            }
         } else {
             remainingOrderBy = new RemainingOrderBy();
             for (AnalyzedRelation relation : relations) {

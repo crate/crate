@@ -137,6 +137,45 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testJoinOnSubSelectsWithOrderByAndLimitNotPushedDown() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select * from " +
+                                                    " (select a, i from t1 order by a limit 5) t1 " +
+                                                    "left join" +
+                                                    " (select b, i from t2 where b > 10) t2 " +
+                                                    "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                                    "order by 2 limit 10");
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.querySpec(),
+            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
+                  "io.crate.analyze.QueriedSelectRelation.i, doc.t2.b, doc.t2.i " +
+                  "ORDER BY io.crate.analyze.QueriedSelectRelation.i LIMIT 10"));
+        assertThat(relation.joinPairs().get(0).condition(),
+            isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+            isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
+        assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+            isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '10') AND (doc.t2.b > '100'))"));
+    }
+
+    @Test
+    public void testJoinOnSubSelectsWithOrderByPushedDown() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select * from " +
+                                                    " (select a, i from t1 order by a) t1, " +
+                                                    " (select b, i from t2 where b > 10) t2 " +
+                                                    "where t1.a > 50 and t2.b > 100 " +
+                                                    "order by 2 limit 10");
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i ORDER BY doc.t1.i LIMIT 10"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+            isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50') ORDER BY doc.t1.i LIMIT 10"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+            isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '100') AND (doc.t2.b > '10')) LIMIT 10"));
+    }
+
+    @Test
     public void testSubSelectWithOuterJoinAndAggregations() throws Exception {
         SelectAnalyzedStatement statement = analyze("select * from " +
                                                     " (select max(a) ma, i from t1 group by i) t1 " +

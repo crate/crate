@@ -15,13 +15,13 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
- - `GROUP BY` now executes against the real columns and fallbacks to 
-   substituting possible aliases in case the columns do not exist. This will 
-   cause statements that used alias values that shadowed multiple columns with 
-   the same name to fail (eg. alias `name` in a join statement where multiple 
-   tables have the real column `name`). Statements with aliases that shadowed 
-   a real column and also retrieve that real column will no longer fail as the 
-   real column will be used in the `GROUP BY` clause (this will not be 
+ - `GROUP BY` now executes against the real columns and fallbacks to
+   substituting possible aliases in case the columns do not exist. This will
+   cause statements that used alias values that shadowed multiple columns with
+   the same name to fail (eg. alias `name` in a join statement where multiple
+   tables have the real column `name`). Statements with aliases that shadowed
+   a real column and also retrieve that real column will no longer fail as the
+   real column will be used in the `GROUP BY` clause (this will not be
    ambigous anymore).
 
 Changes
@@ -48,7 +48,26 @@ Changes
 Fixes
 =====
 
- - Fixed the error message to be more descriptive when the condition in a 
+ - Fixed an issue causing ``JOINs`` on virtual tables (sub-selects) which
+   contain ``LIMIT`` and/or ``OFFSET`` to return incorrect results.
+   E.g.::
+
+      SELECT * FROM
+        (SELECT * FROM t1 ORDER BY a LIMIT 5) t1,
+      JOIN
+        (SELECT * FROM t2 ORDER BY b OFFSET 2) t2
+      ON t1.a = t2.max
+
+ - Fixed an issue causing ``JOINs`` with aggregations on virtual tables
+   (sub-selects) which also contain aggregations to return incorrect results.
+   E.g.::
+
+     SELECT t1.a, COUNT(*) FROM t1
+     JOIN (SELECT b, max(i) as max FROM t2 GROUP BY b) t2
+     ON t1.a = t2.max
+     GROUP BY t1.id
+
+ - Fixed the error message to be more descriptive when the condition in a
    `CASE/WHEN` expression is not a boolean.
 
  - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a

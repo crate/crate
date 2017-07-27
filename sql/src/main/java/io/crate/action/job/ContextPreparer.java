@@ -675,9 +675,17 @@ public class ContextPreparer extends AbstractComponent {
                 ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), batchConsumer);
                 return null;
             }
-            // projections should be part of the previous phase or part of the nestedLoopPhase.
-            // mergePhase is only used to receive data
-            assert mergePhase.projections().isEmpty() : "NL mergePhase shouldn't have any projections";
+
+            // In case of join on virtual table the left or right merge phase of the nl might have projections (TopN)
+            if (mergePhase.hasProjections()) {
+                batchConsumer = ProjectingBatchConsumer.create(
+                    batchConsumer,
+                    mergePhase.projections(),
+                    mergePhase.jobId(),
+                    ramAccountingContext,
+                    projectorFactory
+                );
+            }
             return new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),

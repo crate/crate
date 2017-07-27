@@ -59,7 +59,6 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     private final RowColumns rowData;
 
     private Iterator<Row> it;
-    private boolean reachedEnd = false;
     private CompletableFuture<Void> currentlyLoading;
 
     private boolean closed = false;
@@ -86,12 +85,8 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     @Override
     public void moveToStart() {
         raiseIfClosedOrKilled();
-        if (reachedEnd) {
-            this.it = pagingIterator.repeat().iterator();
-            rowData.updateRef(RowBridging.OFF_ROW);
-        } else {
-            throw new UnsupportedOperationException("Cannot moveToStart before all rows have been consumed once");
-        }
+        this.it = pagingIterator.repeat().iterator();
+        rowData.updateRef(RowBridging.OFF_ROW);
     }
 
     @Override
@@ -106,7 +101,6 @@ public class BatchPagingIterator<Key> implements BatchIterator {
             return true;
         }
         rowData.updateRef(RowBridging.OFF_ROW);
-        reachedEnd = allLoaded();
         return false;
     }
 

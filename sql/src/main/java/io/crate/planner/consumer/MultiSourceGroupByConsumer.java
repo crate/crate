@@ -26,7 +26,6 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -76,7 +75,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
             querySpec.hasAggregates(false);
 
             querySpec.outputs(splitPoints.toCollect());
-            removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
+            updateQuerySpec(multiSourceSelect, splitPoints);
 
             context.setFetchMode(FetchMode.NEVER);
 
@@ -95,9 +94,12 @@ public class MultiSourceGroupByConsumer implements Consumer {
         }
 
         /**
-         * Remove limit, offset, order by and group by from RelationSource and MultiSourceSelect QuerySpec.
+         * Update QuerySpec of MultiSourceSelect:
+         *  - replace outputs by keeping the fields required for the grouping operation
+         *  - remove limit, offset, order by since those must be applied after the grouping operation
+         *  - remove group by
          */
-        private static void removePostGroupingActionsFromQuerySpec(MultiSourceSelect mss, SplitPoints splitPoints) {
+        private static void updateQuerySpec(MultiSourceSelect mss, SplitPoints splitPoints) {
             QuerySpec querySpec = mss.querySpec();
             List<Symbol> outputs = Lists2.concatUnique(
                 splitPoints.toCollect(),
@@ -106,10 +108,6 @@ public class MultiSourceGroupByConsumer implements Consumer {
             querySpec.outputs(outputs);
             querySpec.hasAggregates(false);
             removePostGroupingActions(querySpec);
-
-            for (AnalyzedRelation relation : mss.sources().values()) {
-                removePostGroupingActions(((QueriedRelation) relation).querySpec());
-            }
         }
 
         /**

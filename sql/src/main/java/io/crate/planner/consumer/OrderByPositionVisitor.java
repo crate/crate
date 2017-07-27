@@ -22,11 +22,9 @@
 package io.crate.planner.consumer;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
@@ -37,7 +35,7 @@ import java.util.List;
  * This can only be used under the following restriction:
  * <ul>
  * <li>if an <code>orderBySymbol</code> is no input column with explicit index,
- * it must be part of <code>sourceSymbols</code>.
+ * it must be part of <code>outputSymbols</code> otherwise it's skipped.
  * </li>
  * </ul>
  */
@@ -63,8 +61,9 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
     private OrderByPositionVisitor() {
     }
 
-    public static int[] orderByPositions(Iterable<? extends Symbol> orderBySymbols, List<? extends Symbol> sourceSymbols) {
-        Context context = new Context(sourceSymbols);
+    public static int[] orderByPositions(Iterable<? extends Symbol> orderBySymbols,
+                                         List<? extends Symbol> outputSymbols) {
+        Context context = new Context(outputSymbols);
         for (Symbol orderBySymbol : orderBySymbols) {
             INSTANCE.process(orderBySymbol, context);
         }
@@ -82,8 +81,6 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
         int idx = context.sourceSymbols.indexOf(symbol);
         if (idx >= 0) {
             context.orderByPositions.add(idx);
-        } else {
-            throw new IllegalArgumentException(SymbolFormatter.format("Cannot sort by: %s - not part of source symbols", symbol));
         }
         return null;
     }
