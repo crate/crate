@@ -53,6 +53,12 @@ REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintTenuringDistribution
 REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCApplicationStoppedTime
 REM JAVA_OPTS=%JAVA_OPTS% -Xloggc:/var/log/crate/gc.log
 
+REM Disables explicit GC
+set JAVA_OPTS=%JAVA_OPTS% -XX:+DisableExplicitGC
+
+REM Use our provided JNA always versus the system one
+set JAVA_OPTS=%JAVA_OPTS% -Djna.nosys=true
+
 REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 
