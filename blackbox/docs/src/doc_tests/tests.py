@@ -326,7 +326,8 @@ def setUpCountries(test):
     cmd.stmt("""
         create table countries (
           name string,
-          "geo" geo_shape INDEX using GEOHASH with (precision='1km')
+          "geo" geo_shape INDEX using GEOHASH with (precision='1km'),
+          population long
         ) with(number_of_replicas=0)""".strip())
     dept_file = get_abspath("countries.json")
     cmd.stmt("""copy countries from '{0}'""".format(dept_file))
@@ -483,7 +484,8 @@ def test_suite():
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt',):
+    for fn in ('sql/joins.txt',
+               'sql/subquery_expressions.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,
