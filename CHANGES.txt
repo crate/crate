@@ -27,9 +27,9 @@ Breaking Changes
 Changes
 =======
  
- - Support single column subselects within the `IN` operator, e.g.::
+ - Introduce support for single column subselects in `ANY` and `IN`, e.g.::
 
-    select * from t1 where id IN (select id from t2)
+    select id from t where id IN (select id from t2)
 
  - Improved resiliency of the table rename operation.
 
@@ -39,12 +39,6 @@ Changes
 
  - Added empty tables `KEY_COLUMN_USAGE` and `REFERENTIAL_CONSTRAINTS` to
   `INFORMATION_SCHEMA` to be more compliant with the SQL99 standard.
-
- - Introduce support for single column subselects in ANY, e.g.::
-
-     Select id from t where id = ANY(Select id from t2)
-
-
 
 Fixes
 =====
