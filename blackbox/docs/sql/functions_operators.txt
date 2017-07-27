@@ -1,0 +1,21 @@
+.. highlight:: psql
+.. _sql_functions_operators:
+
+=======================
+Functions and Operators
+=======================
+
+This chapter provides an overview of functions and operators that are permitted
+for writing expressions in CrateDB. Operators are reserved symbols that are
+primarily used in a :ref:`sql_dql_where_clause` to perform arithmetic operations
+or comparisons.
+
+.. toctree::
+  :maxdepth: 2
+
+  scalar
+  aggregation
+  arithmetic
+  table_functions
+  operators
+  subquery_expressions
