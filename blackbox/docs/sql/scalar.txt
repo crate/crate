@@ -918,7 +918,7 @@ See below for an example::
     +-------------+
     | round(32.2) |
     +-------------+
-    |          1 |
+    |           1 |
     +-------------+
     SELECT 1 row in set (... sec)
 
