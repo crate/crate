@@ -114,6 +114,9 @@ public class PositionalOrderBy {
             return null;
         }
         int[] indices = OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), orderByInputSymbols);
+        if (indices.length == 0) {
+            return null;
+        }
         return new PositionalOrderBy(indices, orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 }

@@ -46,6 +46,8 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -53,7 +55,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).addDocTable(T3.T2_INFO).build();
     }
 
     @Test
@@ -173,5 +175,110 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         Function function = (Function) projection.keys().get(0);
 
         assertEquals(ArithmeticFunctions.Names.ADD, function.info().ident().name());
+    }
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void testJoinOnSubSelectsWithLimitAndOffset() throws Exception {
+        NestedLoop nl = e.plan("select * from " +
+                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                               "join" +
+                               " (select i from t2 order by b limit 10 offset 5) t2 " +
+                               "on t1.i = t2.i");
+        assertThat(nl.nestedLoopPhase().projections().size(), is(1));
+        assertThat(nl.nestedLoopPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(5));
+        assertThat(topNProjection.offset(), is(2));
+        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(10));
+        assertThat(topNProjection.offset(), is(5));
+
+        Collect leftPlan = (Collect) nl.left();
+        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
+        assertThat(leftPlan.limit(), is(5));
+        assertThat(leftPlan.offset(), is(2));
+        assertThat(leftPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(7));
+        assertThat(topNProjection.offset(), is(0));
+
+        Collect rightPlan = (Collect) nl.right();
+        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
+        assertThat(rightPlan.limit(), is(10));
+        assertThat(rightPlan.offset(), is(5));
+        assertThat(rightPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(15));
+        assertThat(topNProjection.offset(), is(0));
+    }
+
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void testJoinWithAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
+        NestedLoop nl = e.plan("select t1.a, count(*) from " +
+                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                               "join" +
+                               " (select i from t2 order by i desc limit 10 offset 5) t2 " +
+                               "on t1.i = t2.i " +
+                               "group by t1.a");
+        assertThat(nl.nestedLoopPhase().projections().size(), is(3));
+        assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(GroupProjection.class));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(5));
+        assertThat(topNProjection.offset(), is(2));
+        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(10));
+        assertThat(topNProjection.offset(), is(5));
+
+        Collect leftPlan = (Collect) nl.left();
+        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[false], nullsFirst=[null]}"));
+        assertThat(leftPlan.limit(), is(5));
+        assertThat(leftPlan.offset(), is(2));
+        assertThat(leftPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(7));
+        assertThat(topNProjection.offset(), is(0));
+
+        Collect rightPlan = (Collect) nl.right();
+        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[true], nullsFirst=[null]}"));
+        assertThat(rightPlan.limit(), is(10));
+        assertThat(rightPlan.offset(), is(5));
+        assertThat(rightPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(15));
+        assertThat(topNProjection.offset(), is(0));
+    }
+
+    @Test
+    public void testJoinWithAggregationOnSubSelectsWithAggregations() throws Exception {
+        NestedLoop nl = e.plan("select t1.a, count(*) from " +
+                               " (select a, count(*) as cnt from t1 group by a) t1 " +
+                               "join" +
+                               " (select distinct i from t2) t2 " +
+                               "on t1.cnt = t2.i " +
+                               "group by t1.a");
+        assertThat(nl.nestedLoopPhase().projections().size(), is(3));
+        assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(GroupProjection.class));
+        assertThat(nl.left(), instanceOf(Merge.class));
+        Merge leftPlan = (Merge) nl.left();
+        assertThat(leftPlan.subPlan(), instanceOf(Collect.class));
+        assertThat(((Collect)leftPlan.subPlan()).collectPhase().projections().size(), is(1));
+        assertThat(((Collect)leftPlan.subPlan()).collectPhase().projections().get(0),
+            instanceOf(GroupProjection.class));
+        Merge rightPlan = (Merge) nl.right();
+        assertThat(rightPlan.subPlan(), instanceOf(Collect.class));
+        assertThat(((Collect)rightPlan.subPlan()).collectPhase().projections().size(), is(1));
+        assertThat(((Collect)rightPlan.subPlan()).collectPhase().projections().get(0),
+            instanceOf(GroupProjection.class));
     }
 }

@@ -53,14 +53,11 @@ public class OrderByPositionVisitorTest extends CrateUnitTest {
 
     @Test
     public void testSymbolNotContained() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot sort by: other - not part of source symbols");
-
         Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
-        OrderByPositionVisitor.orderByPositions(
+        int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
             ImmutableList.of(ref, new InputColumn(1), TestingHelpers.createReference("other", DataTypes.LONG)),
             ImmutableList.of(ref, Literal.BOOLEAN_FALSE)
         );
-
+        assertArrayEquals(new int[]{0, 1}, orderByPositions);
     }
 }
