@@ -25,6 +25,8 @@ Changes
 Fixes
 =====
 
+ - Fixed support for negate on null in conditional expression.
+
  - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
    table.
 

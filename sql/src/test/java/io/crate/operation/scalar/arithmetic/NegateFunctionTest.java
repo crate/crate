@@ -55,4 +55,9 @@ public class NegateFunctionTest extends AbstractScalarFunctionsTest {
     public void testNegateDouble() throws Exception {
         assertEvaluate("- cast(age as double)", -4.2d, Literal.of(4.2d));
     }
+
+    @Test
+    public void testNegateUndefinedType() throws Exception {
+        assertEvaluate("- - (case 3 when 1 then 1 else Null end) + 1 ", null);
+    }
 }
