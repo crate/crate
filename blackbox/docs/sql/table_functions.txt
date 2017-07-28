@@ -43,3 +43,45 @@ possible to access values of the object using the subscript notation::
 
     cr> select col1['x'] from unnest([{x=10}]);
     SQLActionException[ColumnUnknownException: Column col1['x'] unknown]
+
+``generate_series( start , stop [ , step ] )``
+==============================================
+
+Generates a series of numeric values, from inclusive ``start`` to inclusive
+``stop`` with an optional ``step``. The default ``step`` is 1.
+Based on the argument type, either a set of int, long, float or double is
+used as a return type.
+
+Example: Generate a series in ascending order from 1 to 10
+::
+
+    cr> select * from generate_series(1, 10);
+    +-----------------+
+    | generate_series |
+    +-----------------+
+    |               1 |
+    |               2 |
+    |               3 |
+    |               4 |
+    |               5 |
+    |               6 |
+    |               7 |
+    |               8 |
+    |               9 |
+    |              10 |
+    +-----------------+
+    SELECT 10 rows in set (... sec)
+
+
+Example: Generate a series in descending order from 1.1 to 0 by subtracting 0.5
+::
+
+    cr> select * from generate_series(1.1, 0, -0.5);
+    +---------------------+
+    |     generate_series |
+    +---------------------+
+    | 1.1                 |
+    | 0.6000000000000001  |
+    | 0.10000000000000009 |
+    +---------------------+
+    SELECT 3 rows in set (... sec)
