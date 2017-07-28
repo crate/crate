@@ -41,6 +41,9 @@ Changes
 Fixes
 =====
 
+ - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
+   table.
+
  - Added missing documentation about the default value of the table setting
    ``write.wait_for_active_shards``.
 

@@ -333,4 +333,14 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         expectedException.expectMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
         e.analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
     }
+
+    @Test
+    public void testAlterTableWithWaitForActiveShards() throws Exception {
+        AlterTableAnalyzedStatement analyzedStatement = e.analyze("ALTER TABLE parted " +
+                                                                  "SET (\"write.wait_for_active_shards\"=1)");
+        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS), is("1"));
+
+        analyzedStatement = e.analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
+        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS), is("all"));
+    }
 }
