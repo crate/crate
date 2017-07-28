@@ -162,4 +162,31 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         String expression = "CASE 38 WHEN 38 THEN 1 ELSE NULL END";
         assertEvaluate(expression, 1L);
     }
+
+    @Test
+    public void testCaseWithDifferentResultTypesReturnsInteger() throws Exception {
+        String expression = "CASE 47 WHEN 38 THEN 1 ELSE 12::integer END";
+        assertEvaluate(expression, 12);
+    }
+
+    @Test
+    public void testCaseWithDifferentResultTypesReturnsLong() throws Exception {
+        String expression = "CASE 34 WHEN 38 THEN 1::integer ELSE 12 END";
+        assertEvaluate(expression, 12L);
+    }
+
+    @Test
+    public void testCaseWithStringAndLongResultTypesReturnsString() throws Exception {
+        assertEvaluate("CASE 38 WHEN 38 THEN '38' ELSE 40 END","38");
+    }
+
+    @Test
+    public void testCaseWithStringDefaultTypeReturnsString() throws Exception {
+        assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END","40");
+    }
+
+    @Test
+    public void testCaseWithStringDefaultTypeReturnsLong() throws Exception {
+        assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",34L);
+    }
 }
