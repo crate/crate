@@ -61,6 +61,10 @@ public abstract class DataType<T> implements Comparable, Streamable {
         return possibleConversions.contains(other);
     }
 
+    public boolean isNumeric() {
+        return DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(this);
+    }
+
     static <T> int nullSafeCompareValueTo(T val1, T val2, Comparator<T> cmp) {
         if (val1 == null) {
             if (val2 == null) {

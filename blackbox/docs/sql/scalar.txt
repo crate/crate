@@ -1478,7 +1478,7 @@ Example:
 
 .. NOTE::
 
-   All *result* expressions must result in the same data type.
+   All *result* expressions must be convertible to a single data type.
 
 .. Hidden: drop table case_example
 

@@ -22,6 +22,7 @@
 
 package io.crate.operation.scalar.conditional;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -119,10 +120,19 @@ public class IfFunction extends Scalar<Object, Object> {
         DataType returnType = valueType;
         if (dataTypes.size() == 3) {
             returnType = dataTypes.get(2);
-            if ((returnType.id() != valueType.id()) && (valueType != DataTypes.UNDEFINED) && (returnType != DataTypes.UNDEFINED)) {
+            // checks if valueType is convertable to returnType
+            if (valueType.id() != returnType.id() &&
+                (!valueType.isConvertableTo(returnType)) &&
+                (valueType != DataTypes.UNDEFINED) &&
+                (returnType != DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "%s type of default result argument %s does not match type of results argument %s",
+                    "%s type of default result argument %s cannot be converted to type of results argument %s",
                     NAME, returnType, valueType));
+            }
+
+            // prefer numeric dataType as the function returnType when applicable
+            if (!returnType.isNumeric()) {
+                returnType = valueType;
             }
         }
         return new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.SCALAR);
@@ -131,7 +141,7 @@ public class IfFunction extends Scalar<Object, Object> {
     private static class Resolver extends BaseFunctionResolver {
 
         public Resolver() {
-            super(Signature.withStrictVarArgs(Signature.ArgMatcher.BOOLEAN, Signature.ArgMatcher.ANY));
+            super(Signature.withLenientVarArgs(Signature.ArgMatcher.BOOLEAN, Signature.ArgMatcher.ANY));
         }
 
         @Override
