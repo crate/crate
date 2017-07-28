@@ -11,6 +11,6 @@ build_script:
 - cmd: >-
     git submodule update --init -- es/upstream
 
-    gradlew.bat compileJava
+    gradlew.bat --quiet compileJava
 test_script:
 - cmd: gradlew.bat :sql:test
