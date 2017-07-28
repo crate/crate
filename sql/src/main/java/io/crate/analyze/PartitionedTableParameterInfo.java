@@ -47,6 +47,7 @@ public class PartitionedTableParameterInfo extends TableParameterInfo {
             .add(MAPPING_TOTAL_FIELDS_LIMIT)
             .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
+            .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .build();
 
     private static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();

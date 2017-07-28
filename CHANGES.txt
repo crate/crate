@@ -25,6 +25,9 @@ Changes
 Fixes
 =====
 
+ - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
+   table.
+
  - Optimized the algorithm that determines the best ordering of the tables in
    a ``JOIN``.
 
