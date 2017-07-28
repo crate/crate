@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -47,6 +48,8 @@ public class InformationSchemaIterables {
     private final FluentIterable<TableInfo> constraints;
     private final FluentIterable<RoutineInfo> routines;
     private final SqlFeaturesIterable sqlFeatures;
+    private final FluentIterable<Void> keyColumnUsages;
+    private final FluentIterable<Void> referentialConstraints;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
@@ -64,6 +67,8 @@ public class InformationSchemaIterables {
         RoutineInfos routineInfos = new RoutineInfos(ftResolver, clusterService);
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         sqlFeatures = new SqlFeaturesIterable();
+        keyColumnUsages = FluentIterable.from(Collections.emptyList());
+        referentialConstraints = FluentIterable.from(Collections.emptyList());
     }
 
     public Iterable<SchemaInfo> schemas() {
@@ -93,6 +98,10 @@ public class InformationSchemaIterables {
     public Iterable<SqlFeatureContext> features() {
         return sqlFeatures;
     }
+
+    public Iterable<Void> keyColumnUsageInfos() { return keyColumnUsages; }
+
+    public Iterable<Void> referentialConstraintsInfos() { return referentialConstraints; }
 
 
     static class ColumnsIterable implements Iterable<ColumnContext> {

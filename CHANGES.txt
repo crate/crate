@@ -33,6 +33,8 @@ Changes
 
  - Improved resiliency of drop, close and open table operations
 
+ - Added empty tables `KEY_COLUMN_USAGE` and `REFERENTIAL_CONSTRAINTS` to
+  `INFORMATION_SCHEMA` to be more compliant with the SQL99 standard.
 
 Fixes
 =====

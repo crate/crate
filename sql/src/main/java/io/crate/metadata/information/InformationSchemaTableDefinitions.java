@@ -41,7 +41,7 @@ public class InformationSchemaTableDefinitions {
 
     @Inject
     public InformationSchemaTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
-        tableDefinitions = new HashMap<>(7);
+        tableDefinitions = new HashMap<>(9);
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::schemas,
             (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
@@ -75,6 +75,14 @@ public class InformationSchemaTableDefinitions {
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(informationSchemaIterables.features()),
             InformationSqlFeaturesTableInfo.expressions()
+        ));
+        tableDefinitions.put(InformationKeyColumnUsageTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(informationSchemaIterables.keyColumnUsageInfos()),
+            InformationKeyColumnUsageTableInfo.expressions()
+        ));
+        tableDefinitions.put(InformationReferentialConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
+            InformationReferentialConstraintsTableInfo.expressions()
         ));
     }
 
