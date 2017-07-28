@@ -96,6 +96,9 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
             case LongType.ID:
                 info = NegateLong.INFO;
                 break;
+            case UndefinedType.ID:
+                info = NegateLong.INFO;
+                break;
             default:
                 throw new IllegalArgumentException("Cannot negate values of type " + argument.valueType().getName());
         }
