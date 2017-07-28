@@ -25,6 +25,9 @@ Changes
 Fixes
 =====
 
+ - Allow support of conditional expression with different return types that can
+   be converted to a single return type.
+
  - Fixed support for negate on null in conditional expression.
 
  - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
