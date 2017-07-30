@@ -904,13 +904,10 @@ See below for an example::
 ``scale(number)``
 -----------------
 
-Returns the scale of the argument (the number of decimal digits in the fractional part)
+The ``scale`` function returns the scale of the argument (the number of decimal digits in the fractional part)
 
-If the input is of type double or long the result is long.
-
-If the input is of type float or integer the result is integer.
-
-Returns: ``long`` or ``integer``
+If the input is float or double the result will be the scale of the argument. In other cases the result will be ``0``.
+Returns: ``integer``
 
 See below for an example::
 

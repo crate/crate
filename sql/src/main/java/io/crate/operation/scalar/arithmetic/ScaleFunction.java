@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 /*
  * Return the scale of the argument (the number of decimal digits in the fractional part)
@@ -55,13 +54,13 @@ public abstract class ScaleFunction extends SingleArgumentArithmeticFunction {
             }
 
             String numberAsString = String.format(Locale.ENGLISH, "%s", value);
-            Pattern p = Pattern.compile("(\\d+)\\.[\b0]+$");
-            if (p.matcher(numberAsString).find()) {
-                numberAsString = numberAsString.split("\\.")[0];
-            }
-            int integerPlaces = numberAsString.indexOf('.');
-            if (integerPlaces != -1) {
-                return numberAsString.length() - integerPlaces - 1;
+            int dotLocation = numberAsString.indexOf('.');
+            if (dotLocation != -1) {
+                int numDigits = numberAsString.length() - dotLocation - 1;
+                if (numDigits == 1 && numberAsString.charAt(numberAsString.length() - 1) == '0') {
+                    return 0;
+                }
+                return numDigits;
             }
             return 0;
         }
