@@ -71,6 +71,7 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
+    | DROP INGEST RULE rule_name=ident                                               #dropIngestRule
     | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
       (ON clazz  ( qname (',' qname)* ))?
       TO userNames                                                                   #grantPrivilege
@@ -420,6 +421,10 @@ createStmt
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident                                                         #createUser
+    | CREATE INGEST RULE rule_name=ident
+        ON source_ident=ident
+        (where)?
+        INTO table_ident=qname                                                       #createIngestRule
     ;
 
 functionArgument
@@ -590,7 +595,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME 
-    | PRIVILEGES | SCHEMA
+    | PRIVILEGES | SCHEMA | INGEST
     ;
 
 SELECT: 'SELECT';
@@ -798,6 +803,8 @@ REVOKE: 'REVOKE';
 PRIVILEGES: 'PRIVILEGES';
 SCHEMA: 'SCHEMA';
 
+INGEST: 'INGEST';
+RULE: 'RULE';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
