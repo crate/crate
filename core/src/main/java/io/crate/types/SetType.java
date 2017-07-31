@@ -26,24 +26,22 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
-public class SetType extends DataType implements CollectionType, Streamer<Set> {
+public class SetType extends CollectionType {
 
     public static final int ID = 101;
 
-    private DataType innerType;
-
-    SetType() {
+    public SetType(DataType<?> innerType) {
+        super(innerType);
     }
 
-    public SetType(DataType innerType) {
-        this.innerType = innerType;
-    }
-
-    @Override
-    public DataType innerType() {
-        return innerType;
+    public SetType() {
+        super();
     }
 
     @Override
@@ -53,16 +51,11 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
 
     @Override
     public String getName() {
-        return innerType.getName() + "_set";
+        return super.getName() + "_set";
     }
 
     @Override
-    public Streamer<?> streamer() {
-        return this;
-    }
-
-    @Override
-    public Set value(Object value) {
+    public Set<?> value(Object value) {
         if (value instanceof Set) {
             return (Set) value;
         }
@@ -81,13 +74,6 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
     }
 
     @Override
-    public boolean isConvertableTo(DataType other) {
-        return other.id() == UndefinedType.ID ||
-               ((other instanceof CollectionType)
-                && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
-    }
-
-    @Override
     public int compareValueTo(Object val1, Object val2) {
         if (val2 == null) {
             return 1;
@@ -101,65 +87,47 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
     }
 
     @Override
-    public int compareTo(Object o) {
-        if (!(o instanceof SetType)) return -1;
-        return Integer.compare(innerType.id(), ((SetType) o).innerType().id());
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        innerType = DataTypes.fromStream(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        DataTypes.toStream(innerType, out);
-    }
-
-    @Override
-    public Set readValueFrom(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        Set<Object> s = new HashSet<>(size);
-        for (int i = 0; i < size; i++) {
-            s.add(innerType.streamer().readValueFrom(in));
+    public Streamer<?> streamer() {
+        if (streamer == null) {
+            streamer = new SetStreamer(innerType);
         }
-        if (in.readBoolean()) {
-            s.add(null);
-        }
-        return s;
+        return streamer;
     }
 
-    @Override
-    public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        assert v instanceof Set : "v must be instance of Set";
-        Set s = (Set) v;
-        boolean containsNull = s.contains(null);
-        out.writeVInt(containsNull ? s.size() - 1 : s.size());
-        for (Object e : s) {
-            if (e == null) {
-                continue;
+    private static class SetStreamer implements Streamer {
+
+        private DataType innerType;
+
+        private SetStreamer(DataType innerType) {
+            this.innerType = innerType;
+        }
+
+        @Override
+        public Set readValueFrom(StreamInput in) throws IOException {
+            int size = in.readVInt();
+            Set<Object> s = new HashSet<>(size);
+            for (int i = 0; i < size; i++) {
+                s.add(innerType.streamer().readValueFrom(in));
             }
-            innerType.streamer().writeValueTo(out, e);
+            if (in.readBoolean()) {
+                s.add(null);
+            }
+            return s;
         }
-        out.writeBoolean(containsNull);
-    }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof SetType)) return false;
-        if (!super.equals(o)) return false;
-
-        SetType setType = (SetType) o;
-
-        if (!innerType.equals(setType.innerType)) return false;
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + innerType.hashCode();
-        return result;
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            assert v instanceof Set : "v must be instance of Set";
+            Set s = (Set) v;
+            boolean containsNull = s.contains(null);
+            out.writeVInt(containsNull ? s.size() - 1 : s.size());
+            for (Object e : s) {
+                if (e == null) {
+                    continue;
+                }
+                innerType.streamer().writeValueTo(out, e);
+            }
+            out.writeBoolean(containsNull);
+        }
     }
 }

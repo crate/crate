@@ -21,24 +21,15 @@
 
 package io.crate.operation.operator.any;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.sql.tree.ComparisonExpression;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
 public class AnyEqOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
-
-    public static FunctionInfo createInfo(DataType targetType) {
-        return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(targetType, new SetType(targetType))), DataTypes.BOOLEAN);
-    }
 
     private static class AnyEqResolver extends AnyResolver {
 

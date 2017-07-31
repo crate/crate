@@ -23,14 +23,24 @@ package io.crate.operation.operator.any;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Signature;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.Operator;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

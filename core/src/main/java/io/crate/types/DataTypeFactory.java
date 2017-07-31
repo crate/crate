@@ -23,5 +23,5 @@ package io.crate.types;
 
 public interface DataTypeFactory {
 
-    public DataType<?> create();
+    DataType<?> create();
 }

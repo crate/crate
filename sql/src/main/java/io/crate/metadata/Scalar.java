@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.data.Input;
+import io.crate.exceptions.UnsupportedFeatureException;
 
 import java.util.Collection;
 import java.util.List;
@@ -97,7 +98,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * This method will evaluate the function using the given scalar if all arguments are literals.
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      */
-    private static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
+    protected static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
         List<Symbol> arguments = function.arguments();
         for (Symbol argument : arguments) {
             if (!(argument instanceof Input)) {

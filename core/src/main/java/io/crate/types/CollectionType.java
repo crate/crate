@@ -21,14 +21,150 @@
 
 package io.crate.types;
 
-public interface CollectionType {
+import io.crate.Streamer;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    DataType<?> innerType();
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 
-    static DataType unnest(DataType dataType) {
+/**
+ * A type which contains a collection of elements of another type.
+ */
+public abstract class CollectionType extends DataType {
+
+    protected DataType<?> innerType;
+    protected Streamer streamer;
+
+    /**
+     * Construct a new Collection type
+     * @param innerType The type of the elements inside the collection
+     */
+    public CollectionType(DataType<?> innerType) {
+        this.innerType = innerType;
+    }
+
+    /**
+     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
+     * interface which initializes the fields after object creation.
+     */
+    public CollectionType() {}
+
+    /**
+     * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
+     */
+    @Override
+    public Streamer<?> streamer() {
+        if (streamer == null) {
+            streamer = new ArrayStreamer(innerType);
+        }
+        return streamer;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        innerType = DataTypes.fromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(innerType, out);
+    }
+
+    public String getName() {
+        return innerType.getName();
+    }
+
+    public final DataType<?> innerType() {
+        return innerType;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if (!(o instanceof CollectionType)) return -1;
+        return Integer.compare(innerType.id(), ((CollectionType) o).innerType().id());
+    }
+
+    @Override
+    public int compareValueTo(Object val1, Object val2) {
+        if (val2 == null) {
+            return 1;
+        } else if (val1 == null) {
+            return -1;
+        }
+        if (val1 instanceof Collection) {
+            return val1.equals(val2) ? 0 : 1;
+        }
+        return Arrays.deepEquals((Object[]) val1, (Object[]) val2) ? 0 : 1;
+    }
+
+    @Override
+    public boolean isConvertableTo(DataType other) {
+        return other.id() == UndefinedType.ID ||
+               ((other instanceof CollectionType)
+                && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CollectionType)) return false;
+        if (!super.equals(o)) return false;
+
+        CollectionType collectionType = (CollectionType) o;
+        return innerType.equals(collectionType.innerType);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + innerType.hashCode();
+        return result;
+    }
+
+    public static DataType unnest(DataType dataType) {
         while (DataTypes.isCollectionType(dataType)) {
             dataType = ((CollectionType) dataType).innerType();
         }
         return dataType;
+    }
+
+    static class ArrayStreamer implements Streamer {
+
+        private DataType innerType;
+
+        ArrayStreamer(DataType innerType) {
+            this.innerType = innerType;
+        }
+
+        @Override
+        public Object[] readValueFrom(StreamInput in) throws IOException {
+            int size = in.readVInt();
+            // size of 0 is treated as null value so real size must be decreased by 1
+            if (size == 0) {
+                return null;
+            }
+            size--;
+            Object[] array = new Object[size];
+            for (int i = 0; i < size; i++) {
+                array[i] = innerType.streamer().readValueFrom(in);
+            }
+            return array;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object values) throws IOException {
+            // write null as size 0, so increase real size by 1
+            if (values == null) {
+                out.writeVInt(0);
+                return;
+            }
+            Object[] array = (Object[]) values;
+            out.writeVInt(array.length + 1);
+            for (Object value : array) {
+                innerType.streamer().writeValueTo(out, value);
+            }
+        }
     }
 }

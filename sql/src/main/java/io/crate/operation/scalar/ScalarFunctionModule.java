@@ -24,7 +24,18 @@ package io.crate.operation.scalar;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
-import io.crate.operation.scalar.arithmetic.*;
+import io.crate.operation.scalar.arithmetic.AbsFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.operation.scalar.arithmetic.ArrayFunction;
+import io.crate.operation.scalar.arithmetic.CeilFunction;
+import io.crate.operation.scalar.arithmetic.FloorFunction;
+import io.crate.operation.scalar.arithmetic.LogFunction;
+import io.crate.operation.scalar.arithmetic.MapFunction;
+import io.crate.operation.scalar.arithmetic.NegateFunction;
+import io.crate.operation.scalar.arithmetic.RandomFunction;
+import io.crate.operation.scalar.arithmetic.RoundFunction;
+import io.crate.operation.scalar.arithmetic.SquareRootFunction;
+import io.crate.operation.scalar.arithmetic.TrigonometricFunctions;
 import io.crate.operation.scalar.cast.CastFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
 import io.crate.operation.scalar.conditional.CoalesceFunction;
@@ -74,6 +85,7 @@ public class ScalarFunctionModule extends AbstractModule {
         SubstrFunction.register(this);
         MatchesFunction.register(this);
         ReplaceFunction.register(this);
+        SingleValueFunction.register(this);
 
         ArithmeticFunctions.register(this);
 

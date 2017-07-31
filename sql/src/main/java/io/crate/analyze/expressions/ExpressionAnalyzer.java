@@ -23,7 +23,11 @@
 package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DataTypeAnalyzer;
@@ -32,22 +36,37 @@ import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
-import io.crate.operation.operator.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.LikeOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.RegexpMatchCaseInsensitiveOperator;
+import io.crate.operation.operator.RegexpMatchOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.ExtractFunctions;
+import io.crate.operation.scalar.SingleValueFunction;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
@@ -57,12 +76,63 @@ import io.crate.operation.scalar.conditional.IfFunction;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArithmeticExpression;
+import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.ArrayLikePredicate;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ComparisonExpression;
+import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.IfExpression;
+import io.crate.sql.tree.InListExpression;
+import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IsNotNullPredicate;
+import io.crate.sql.tree.IsNullPredicate;
+import io.crate.sql.tree.LikePredicate;
+import io.crate.sql.tree.LogicalBinaryExpression;
+import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
-import io.crate.types.*;
+import io.crate.sql.tree.MatchPredicateColumnIdent;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NotExpression;
+import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.SearchedCaseExpression;
+import io.crate.sql.tree.SimpleCaseExpression;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubqueryExpression;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.WhenClause;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
+import io.crate.types.SingleColumnTableType;
+import io.crate.types.UndefinedType;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -425,10 +495,10 @@ public class ExpressionAnalyzer {
                     symbols.add(castIfNeededOrFail(symbol, targetType));
                 }
             }
+            FunctionInfo functionInfo = ArrayFunction.createInfo(Symbols.typeView(symbols));
             return context.allocateFunction(
-                AnyEqOperator.createInfo(targetType),
-                Arrays.asList(
-                    left, context.allocateFunction(ArrayFunction.createInfo(Symbols.typeView(symbols)), symbols))
+                getBuiltinFunctionInfo(AnyEqOperator.NAME, Arrays.asList(targetType, functionInfo.returnType())),
+                Arrays.asList(left, context.allocateFunction(functionInfo, symbols))
             );
         }
 
@@ -530,8 +600,8 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = process(node.getRight(), context);
             Symbol leftSymbol = process(node.getLeft(), context);
+            Symbol arraySymbol = process(node.getRight(), context);
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -774,9 +844,15 @@ public class ExpressionAnalyzer {
              * But there are no other row-expressions yet. In addition the cast functions and operators don't work with
              * row types (yet).
              *
-             * Since we only support 1 column and only single-row subselects it is okay to use the inner type directly.
+             * However, we support a single column RowType through the SingleColumnTableType.
              */
-            return new SelectSymbol(relation, fields.get(0).valueType());
+            Field field = fields.get(0);
+            SingleColumnTableType singleColumnTableType = new SingleColumnTableType(field.valueType());
+            SelectSymbol selectSymbol = new SelectSymbol(relation, singleColumnTableType);
+            return context.allocateFunction(
+                getBuiltinFunctionInfo(SingleValueFunction.NAME, Collections.singletonList(singleColumnTableType)),
+                // needs to be a mutable list as Crate manipulates symbols in-place...
+                Arrays.asList(selectSymbol));
         }
 
     }

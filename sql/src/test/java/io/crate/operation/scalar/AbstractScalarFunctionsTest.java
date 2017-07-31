@@ -40,6 +40,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import io.crate.types.SingleColumnTableType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matcher;
@@ -78,6 +79,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("int_array", new ArrayType(DataTypes.INTEGER))
             .add("array_string_array", new ArrayType(new ArrayType(DataTypes.STRING)))
             .add("long_set", new SetType(DataTypes.LONG))
+            .add("table_long", new SingleColumnTableType(DataTypes.LONG))
+            .add("table_string", new SingleColumnTableType(DataTypes.STRING))
             .add("regex_pattern", DataTypes.STRING)
             .add("geoshape", DataTypes.GEO_SHAPE)
             .add("geopoint", DataTypes.GEO_POINT)

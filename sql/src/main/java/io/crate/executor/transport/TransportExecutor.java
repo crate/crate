@@ -88,6 +88,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -142,7 +143,7 @@ public class TransportExecutor implements Executor {
         this.indicesService = indicesService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
-        plan2TaskVisitor = new TaskCollectingVisitor();
+        this.plan2TaskVisitor = new TaskCollectingVisitor();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,
@@ -335,8 +336,8 @@ public class TransportExecutor implements Executor {
             for (Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
                 Plan plan = entry.getKey();
 
-                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
-                CollectingBatchConsumer<Object[], Object> consumer = SingleRowSingleValueConsumer.create();
+                CollectingBatchConsumer<Collection<Object>, Object[]> consumer =
+                    FirstColumnConsumer.createConsumer();
 
                 CompletableFuture<Plan> planFuture = process(plan, context);
                 planFuture.whenComplete((p, e) -> {
@@ -349,6 +350,7 @@ public class TransportExecutor implements Executor {
                         consumer.accept(null, e);
                     }
                 });
+                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
                 dependencyFutures.add(consumer.resultFuture().thenAccept(replacer::onSuccess));
             }
             CompletableFuture[] cfs = dependencyFutures.toArray(new CompletableFuture[0]);
