@@ -14,3 +14,4 @@ Database Administration Statements
    user_defined_functions
    user_management
    privileges
+   ingestion_rules

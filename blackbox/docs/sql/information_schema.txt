@@ -644,3 +644,36 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 :comments:
     Either ``NULL`` or shows a comment about the supported status of the
     feature
+
+.. _information_schema_ingest:
+
+Ingestion Rules
+===============
+
+The ingestion rules table contains rules created by ``CREATE INGEST RULE``
+statements (see :ref:`create-ingest-rule`).
+
+Columns
+-------
+
++--------------------+-------------+
+| Name               | Data Type   |
++====================+=============+
+| rule_name          | String      |
++--------------------+-------------+
+| source_ident       | String      |
++--------------------+-------------+
+| target_table       | String      |
++--------------------+-------------+
+| condition          | String      |
++--------------------+-------------+
+
+
+:rule_name:
+    The identifier of the ingestion rule.
+:source_ident:
+    The identifier of the ingestion implementation (eg. ``mqtt``).
+:target_table:
+    The identifier of the target table.
+:condition:
+    A boolean expression used to filter the source data.

@@ -22,6 +22,7 @@ CrateDB.
     reference/create_function
     reference/create_repository
     reference/create_snapshot
+    reference/create_ingest_rule
     reference/create_table
     reference/create_user
     reference/constraints
@@ -30,6 +31,7 @@ CrateDB.
     reference/drop_function
     reference/drop_repository
     reference/drop_snapshot
+    reference/drop_ingest_rule
     reference/drop_table
     reference/drop_user
     reference/explain
