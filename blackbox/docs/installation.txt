@@ -94,7 +94,7 @@ additional packages if we see enough interest.
 
  :doc:`Configuring CrateDB <configuration>`
 
- :doc:`Hello CrateDB <hello>` - To learn how to interact with CrateDB.
+ `Hello CrateDB`_ - To learn how to interact with CrateDB.
 
  `Multi Node Setup`_ - To see how to install and run CrateDB in a Multi Node
  setup.
@@ -107,3 +107,4 @@ additional packages if we see enough interest.
 .. _`docker-crate`: https://github.com/crate/docker-crate/
 .. _`Multi Node Setup`: https://crate.io/docs/scale/multi_node_setup/
 .. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
+.. _Hello CrateDB: https://crate.io/docs/crate/guide/tutorials/hello.html
