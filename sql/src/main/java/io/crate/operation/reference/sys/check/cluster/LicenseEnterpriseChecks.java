@@ -32,16 +32,16 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class LicenseEnterpriseChecks extends AbstractSysCheck {
     private static final int ID = 4;
-    private static final String DESCRIPTION = "You are currently using the Enterprise Edition, " +
-        "but have not configured a license. Please request a license or deactivate the "+
-        "Enterprise Edition. https://crate.io/enterprise";
+    private static final String DESCRIPTION = "CrateDB Enterprise features are active. Please request a license " +
+                                              "before deploying in production or deactivate the Enterprise features. " +
+                                              "https://crate.io/enterprise";
 
     private final boolean licenseEnterprise;
     private String licenseIdent;
 
     @Inject
     public LicenseEnterpriseChecks(ClusterSettings clusterSettings, Settings settings) {
-        super(ID, DESCRIPTION, Severity.HIGH);
+        super(ID, DESCRIPTION, Severity.LOW);
         licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
         clusterSettings.addSettingsUpdateConsumer(SharedSettings.LICENSE_IDENT_SETTING.setting(), this::setLicenseIdent);
         licenseEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);

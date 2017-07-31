@@ -1133,7 +1133,7 @@ Here's an example query::
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
-  |  4 | You are currently using the Enterprise Edition, but have not ... |
+  |  4 | CrateDB Enterprise features are active. Please request a lice... |
   +----+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
 
