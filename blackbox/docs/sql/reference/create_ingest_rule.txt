@@ -1,0 +1,90 @@
+.. _create-ingest-rule:
+
+======================
+``CREATE INGEST RULE``
+======================
+
+Defines a new ingestion rule.
+
+Synopsis
+========
+.. highlight:: psql
+
+::
+
+    CREATE INGEST RULE rule_name
+    ON source_ident
+    [WHERE condition]
+    INTO table_ident
+
+
+Description
+===========
+
+``CREATE INGEST RULE`` creates a new ingestion rule, applying on a
+``source_ident`` and ingesting into the specified target ``table_ident``.
+
+The ingestion rules will be used by ingestion implementations to filter the
+``source_ident`` stream, the filtered data will then be stored in the
+corresponding target ``table_ident``.
+
+Parameters
+==========
+
+:rule_name: The identifier of the rule to create.
+
+:source_ident: The registration identifier of an ingestion implementation.
+
+:condition: A boolean expression using references specific to the ingestion
+            implementation.
+
+:table_ident: The identifier of the target table.
+
+
+Notes
+=====
+
+.. NOTE::
+
+    When the :ref:`administration_user_management` is enabled, this statement
+    can only be issued by a superuser.
+
+    The default user for the ``INSERT`` operations in the target
+    ``table_ident`` is the superuser ``crate``.
+
+Ingestion rules can be created and dropped, even if no ingestion implementation
+is available. In such case the ingestion rules will not take any effect, until
+the ingestion implementation is installed.
+
+There is no default ingestion rule,  all incoming streams into any ingestion
+endpoint should be discarded by default by any ingestion implementation.
+
+The target table must be created manually, and should contain the same
+structure as the ingestion implementation's data structure. Otherwise, the
+ingestion will fail and an error will be logged.
+
+The references to be used in the ``WHERE`` clause are specific to each
+ingestion implementation.
+
+Examples
+========
+
+Create an ingestion rule on ``mqtt``, that filters the ``mqtt`` messages by
+topic and stores the messages in ``my_schema.raw_v4``
+::
+
+    CREATE INGEST RULE v4 ON mqtt WHERE topic like 'v4/%' INTO my_schema.raw_v4
+
+This statement will return an error if the table ``my_schema.raw_v4`` does not
+exist.
+
+
+.. SEEALSO::
+
+    :ref:`drop-ingest-rule` for deleting ingestion rules.
+
+    :ref:`information_schema_ingest` to list all existing ingestion rules
+
+
+
+
