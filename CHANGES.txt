@@ -27,6 +27,9 @@ Breaking Changes
 Changes
 =======
 
+ - Changed the Enterprise License missing check message, as well as lowering
+   the severity from HIGH to LOW.
+
  - Added a warning message to the log if the Unofficial Elasticsearch HTTP
    REST API is enabled via ``es.api.enabled`` setting.
 
