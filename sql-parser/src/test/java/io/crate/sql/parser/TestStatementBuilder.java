@@ -417,6 +417,21 @@ public class TestStatementBuilder {
         printStatement("grant ALL ON TABLE my_schema.t, banana.b, tree to anna, nyan, cat");
     }
 
+
+    @Test
+    public void testCreateIngestRuleStmtBuilder() {
+        printStatement("CREATE INGEST RULE v4 ON mqtt WHERE topic like 'v4/%' INTO my_schema.raw_v4");
+        printStatement("CREATE INGEST RULE \"Nyan cat space übercool\" ON \"http\" WHERE topic like 'v4/%' INTO my_schema.raw_v4");
+        printStatement("CREATE INGEST RULE v5 ON http INTO t1");
+    }
+
+    @Test
+    public void testDropIngestRuleStmtBuilder() {
+        printStatement("DROP INGEST RULE v4");
+        printStatement("DROP INGEST RULE \"Nyan cat space übercool\"");
+    }
+
+
     @Test
     public void testDenyPrivilegeStmtBuilder() {
         printStatement("deny DML To \"Günter\"");
@@ -1155,7 +1170,9 @@ public class TestStatementBuilder {
             statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
-            statement instanceof RevokePrivilege) {
+            statement instanceof RevokePrivilege ||
+            statement instanceof CreateIngestRule ||
+            statement instanceof DropIngestRule) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);
