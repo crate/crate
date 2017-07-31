@@ -35,10 +35,12 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.Explain;
@@ -670,6 +672,31 @@ public final class SqlFormatter {
                 builder.append(' ');
                 node.properties().get().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateIngestRule(CreateIngestRule node, Integer context) {
+            builder.append("CREATE INGEST RULE ")
+                .append(quoteIdentifierIfNeeded(node.ruleName().toString()));
+
+            builder.append(" ON ")
+                .append(quoteIdentifierIfNeeded(node.sourceIdent().toString()));
+
+            if (node.where().isPresent()) {
+                builder.append(" WHERE " + formatExpression(node.where().get()));
+            }
+            builder.append(" INTO ")
+                .append(quoteIdentifierIfNeeded(node.targetTable().toString()));
+
+            return null;
+        }
+
+        @Override
+        public Void visitDropIngestRule(DropIngestRule node, Integer context) {
+            builder.append("DROP INGEST RULE ")
+                .append(quoteIdentifierIfNeeded(node.name().toString()));
+
             return null;
         }
 
