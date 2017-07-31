@@ -142,7 +142,7 @@ public class TransportExecutor implements Executor {
         this.indicesService = indicesService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.userManager = userManager;
-        plan2TaskVisitor = new TaskCollectingVisitor();
+        this.plan2TaskVisitor = new TaskCollectingVisitor();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,
@@ -338,7 +338,6 @@ public class TransportExecutor implements Executor {
             for (Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
                 Plan plan = entry.getKey();
 
-                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
                 CollectingBatchConsumer<Object[], Object> consumer = SingleRowSingleValueConsumer.create();
 
                 CompletableFuture<Plan> planFuture = process(plan, context);
@@ -352,6 +351,7 @@ public class TransportExecutor implements Executor {
                         consumer.accept(null, e);
                     }
                 });
+                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
                 dependencyFutures.add(consumer.resultFuture().thenAccept(replacer::onSuccess));
             }
             CompletableFuture[] cfs = dependencyFutures.toArray(new CompletableFuture[0]);

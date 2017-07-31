@@ -69,7 +69,6 @@ public final class DataTypes {
     public final static DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
     public final static DataType OBJECT_ARRAY = new ArrayType(OBJECT);
 
-
     public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
         BYTE,
         BOOLEAN,
@@ -112,7 +111,9 @@ public final class DataTypes {
         .put(GeoPointType.ID, GEO_POINT)
         .put(GeoShapeType.ID, GEO_SHAPE)
         .put(ArrayType.ID, ArrayType::new)
-        .put(SetType.ID, SetType::new).map();
+        .put(SetType.ID, SetType::new)
+        .put(TableType.ID, TableType::new)
+        .map();
 
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
@@ -147,7 +148,7 @@ public final class DataTypes {
         .build();
 
     public static boolean isCollectionType(DataType type) {
-        return type.id() == ArrayType.ID || type.id() == SetType.ID;
+        return type.id() == ArrayType.ID || type.id() == SetType.ID || type.id() == TableType.ID;
     }
 
     public static DataType fromStream(StreamInput in) throws IOException {

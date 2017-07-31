@@ -106,7 +106,7 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testExceptionForwarding() throws Exception {
+    public void testIncompatibleTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         anyEq(1, "bar");
     }

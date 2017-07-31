@@ -530,14 +530,21 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = process(node.getRight(), context);
+            Expression right = node.getRight();
+            if (right instanceof SubqueryExpression) {
+                ((SubqueryExpression) right).setArrayExpression();
+            }
+
             Symbol leftSymbol = process(node.getLeft(), context);
+            Symbol arraySymbol = process(right, context);
+
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("invalid array expression: '%s'", arraySymbol));
             }
+
             DataType rightInnerType = ((CollectionType) rightType).innerType();
             if (rightInnerType.equals(DataTypes.OBJECT)) {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
@@ -776,7 +783,14 @@ public class ExpressionAnalyzer {
              *
              * Since we only support 1 column and only single-row subselects it is okay to use the inner type directly.
              */
-            return new SelectSymbol(relation, fields.get(0).valueType());
+            Field field = fields.get(0);
+            final DataType dataType;
+            if (node.isArrayExpression()) {
+                dataType = new TableType(field.valueType());
+            } else {
+                dataType = field.valueType();
+            }
+            return new SelectSymbol(relation, dataType);
         }
 
     }

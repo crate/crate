@@ -143,7 +143,7 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         @Override
         public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
             if (selectSymbol == selectSymbolToReplace) {
-                return Literal.of(selectSymbolToReplace.valueType(), value);
+                return Literal.of(selectSymbolToReplace.valueType(), selectSymbol.valueType().value(value));
             }
             return selectSymbol;
         }

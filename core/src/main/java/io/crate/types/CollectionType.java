@@ -21,6 +21,9 @@
 
 package io.crate.types;
 
+/**
+ * A type which contains elements of another type.
+ */
 public interface CollectionType {
 
     DataType<?> innerType();

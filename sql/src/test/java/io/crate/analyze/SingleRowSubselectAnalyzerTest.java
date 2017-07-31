@@ -114,5 +114,9 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
         SelectAnalyzedStatement stmt = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(stmt.relation().querySpec().where().query(),
             isSQL("(SelectSymbol{string} = ANY(doc.users.tags))"));
+
+        stmt = e.analyze("select * from users where 'bar' = ANY (select 'bar')");
+        assertThat(stmt.relation().querySpec().where().query(),
+            isSQL("('bar' = ANY(SelectSymbol{string_table}))"));
     }
 }
