@@ -1,0 +1,55 @@
+.. highlight:: psql
+
+.. _drop-ingest-rule:
+
+====================
+``DROP INGEST RULE``
+====================
+
+Deletes an existing ingestion rule.
+
+Synopsis
+========
+
+::
+
+    DROP INGEST RULE [ IF EXISTS ] rule_name
+
+
+Description
+===========
+
+``DROP INGEST RULE`` drops an existing ingestion rule.
+
+Parameters
+==========
+
+:IF EXISTS: Do not fail if the rule doesn't exist.
+
+:rule_name: The identifier of the rule to drop.
+
+
+Notes
+=====
+.. NOTE::
+
+    When the :ref:`administration_user_management` is enabled, this statement
+    can only be issued by a superuser.
+
+Ingestion rules can be dropped even if no ingestion implementation is available.
+
+Examples
+========
+
+Drop Ingestion rule ``rule_v4``
+::
+
+    DROP INGEST RULE rule_v4
+
+This statement will raise an error, if the rule isn't found.
+
+.. SEEALSO::
+
+    :ref:`create-ingest-rule` for more details on creating ingestion rules.
+
+    :ref:`information_schema_ingest` to list all existing ingestion rules
