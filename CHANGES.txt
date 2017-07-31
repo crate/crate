@@ -25,6 +25,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
+   statement that uses the ``ANY (array_expression)`` operator.
+
  - Allow support of conditional expression with different return types that can
    be converted to a single return type.
 
