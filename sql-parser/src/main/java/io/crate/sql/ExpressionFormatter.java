@@ -64,6 +64,18 @@ public final class ExpressionFormatter {
         }
 
         @Override
+        public String visitArrayComparisonExpression(ArrayComparisonExpression node, Void context) {
+            StringBuilder builder = new StringBuilder();
+
+            String array = node.getRight().toString();
+            String left = node.getLeft().toString();
+            String type = node.getType().getValue();
+
+            builder.append(left + " " + type + " ANY(" + array + ")");
+            return builder.toString();
+        }
+
+        @Override
         protected String visitCurrentTime(CurrentTime node, Void context) {
             StringBuilder builder = new StringBuilder();
             switch (node.getType()) {
