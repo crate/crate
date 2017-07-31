@@ -22,13 +22,17 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -116,6 +120,13 @@ public class IfFunction extends Scalar<Object, Object> {
     }
 
     private static FunctionInfo createInfo(List<DataType> dataTypes) {
+        DataType condition = dataTypes.get(0);
+        if (condition.equals(DataTypes.BOOLEAN) == false) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Argument of CASE/WHEN must be type boolean, not type %s",
+                condition.getName()));
+        }
+
         DataType valueType = dataTypes.get(1);
         DataType returnType = valueType;
         if (dataTypes.size() == 3) {
