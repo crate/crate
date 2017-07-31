@@ -124,6 +124,13 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testCaseConditionNotBooleanThrowsIllegalArgumentException() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Argument of CASE/WHEN must be type boolean, not type long");
+        assertEvaluate("case when x then x else 1 end", "");
+    }
+
+    @Test
     public void testIf() throws Exception {
         assertEvaluate("if(id = 0, 'zero', 'other')", "zero", Literal.of(0), Literal.of(0));
         assertEvaluate("if(id = 0, 'zero', if(id = 1, 'one', 'other'))", "one", Literal.of(1), Literal.of(1));
