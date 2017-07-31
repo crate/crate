@@ -53,7 +53,7 @@ public class CrateDB extends EnvironmentAwareCommand {
     private final OptionSpecBuilder quietOption;
 
     private CrateDB() {
-        super("starts CrateDB");
+        super("starts CrateDB", "C");
         versionOption = parser.acceptsAll(Arrays.asList("V", "version"),
             "Prints CrateDB version information and exits");
         daemonizeOption = parser.acceptsAll(Arrays.asList("d", "daemonize"),

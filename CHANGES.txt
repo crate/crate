@@ -27,6 +27,10 @@ Breaking Changes
 Changes
 =======
 
+ - Made the help messages of ``bin/crate`` and the Java code consistent. This
+   change also removes the undocumented ``-E`` command line option which makes
+   ``-C`` the only valid option for passing settings to CrateDB.
+
  - Changed the Enterprise License missing check message, as well as lowering
    the severity from HIGH to LOW.
 

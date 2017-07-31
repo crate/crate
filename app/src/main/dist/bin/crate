@@ -113,10 +113,10 @@ launch_service()
     pidpath=$1
     daemonized=$2
     javaProperties=$3
-    props="-Epath.home=$CRATE_HOME $4"
+    props="-Cpath.home=$CRATE_HOME $4"
 
     if [ "x$pidpath" != "x" ]; then
-        props="-Epidfile=$pidpath $props"
+        props="-Cpidfile=$pidpath $props"
     fi
 
     if [ "x$daemonized" = "x" ]; then
@@ -160,16 +160,17 @@ while true; do
             shift
         ;;
         -h)
-            echo "Crate is a shared nothing, fully searchable document oriented cluster datastore."
+            echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
             echo ""
             echo "  Usage: $(basename $0) [OPTION]..."
-            echo "         starts a new Crate database instance"
+            echo "         starts a new CrateDB instance"
             echo ""
             echo "General options:"
             echo "  -d            start the daemon in the background"
             echo "  -h            print usage information"
             echo "  -p <pidfile>  log the pid to a file"
             echo "  -v            print version information"
+            echo "  -C            set a CrateDB setting"
             echo "  -D            set a java system property value"
             echo "  -X            set a nonstandard java option"
             exit 0
@@ -179,7 +180,7 @@ while true; do
             shift 2
         ;;
         -C)
-            properties="$properties -E$2"
+            properties="$properties -C$2"
             shift 2
         ;;
         -X)
