@@ -887,7 +887,7 @@ and ports retrieved from the mechanism will be used to generate a list of
 unicast hosts for node discovery.
 
 The same lookup is also performed by all nodes in a cluster whenever the master
-is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
+is re-elected (see `Cluster Meta Data`).
 
 **disovery.type**
   | *Default:*   ``not set``
@@ -900,7 +900,7 @@ is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
   | *Runtime:*   ``no``
   | *Allowed Values:* ``srv``, ``azure``
 
-See also: :ref:`shared_nothing_discovery`.
+See also: `Discovery`_.
 
 .. _conf_dns_discovery:
 
@@ -1984,3 +1984,5 @@ Layer Security (TLS).
 .. _`Enterprise Edition`: https://crate.io/enterprise-edition/
 .. _request an Enterprise Edition license: https://crate.io/enterprise-edition/
 .. _Enterprise Subscription Agreement: https://crate.io/subscription_agreement/
+.. _Cluster Meta Data: https://crate.io/docs/crate/guide/architecture/storage_consistency.html#cluster-meta-data
+.. _Discovery: https://crate.io/docs/crate/guide/architecture/shared_nothing.html#discovery

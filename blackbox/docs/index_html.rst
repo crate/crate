@@ -14,7 +14,6 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   architecture/index
    release_notes/index
    installation
    configuration
