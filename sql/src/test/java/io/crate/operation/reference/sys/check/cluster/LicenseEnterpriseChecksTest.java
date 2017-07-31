@@ -31,7 +31,7 @@ public class LicenseEnterpriseChecksTest extends CrateUnitTest {
         LicenseEnterpriseChecks licenseEnterpriseCheck = new LicenseEnterpriseChecks(clusterSettings, settings);
 
         assertThat(licenseEnterpriseCheck.id(), Is.is(4));
-        assertThat(licenseEnterpriseCheck.severity(), Is.is(SysCheck.Severity.HIGH));
+        assertThat(licenseEnterpriseCheck.severity(), Is.is(SysCheck.Severity.LOW));
         assertThat(licenseEnterpriseCheck.validate(), Is.is(true));
     }
 
