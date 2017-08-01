@@ -209,9 +209,9 @@ public class OrderBy implements Writeable {
             sb.append(leaf.representation());
             sb.append(" ");
             if (reverseFlags[i]) {
-                sb.append("ASC");
-            } else {
                 sb.append("DESC");
+            } else {
+                sb.append("ASC");
             }
             Boolean nullFirst = nullsFirst[i];
             if (nullFirst != null) {
