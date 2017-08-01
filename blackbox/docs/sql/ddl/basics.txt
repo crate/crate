@@ -118,8 +118,41 @@ length. They:
   - should not exceed 255 bytes when encoded with ``utf-8`` (this
     limit applies on the optionally schema-qualified table name)
 
-Column names are restricted in terms of characters. They:
+Column names are restricted in terms of characters.
 
-  - may not contain one of the following characters: ``[`` ``'`` ``]`` ``.``
+  - Columns that *start* with an underscore (``_``) followed by a lowercase
+    letter, followed by a sequence of lower case letters or underscores and
+    ending with a lower case letter are not allowed (equivalent to
+    ``^_[a-z][_a-z]*[a-z]$``).
+    Such fields are reserved for virtual system columns.
 
-  - may not *start* with an underscore: ``_``
+    Examples:
+
+    +--------------+--------------+
+    | allowed      | not allowed  |
+    +==============+==============+
+    | _foo_        | _foo         |
+    +--------------+--------------+
+    | _Foo         | _foo_bar     |
+    +--------------+--------------+
+    | _fo1o        |              |
+    +--------------+--------------+
+    | __foo        |              |
+    +--------------+--------------+
+
+  - Character sequences that conform to the
+    :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are
+    not allowed as this notation is already used for the identification of
+    fields in object columns and indices of array columns.
+
+    Examples:
+
+    +--------------+--------------+
+    | allowed      | not allowed  |
+    +==============+==============+
+    | ['bar']      | foo['bar']   |
+    +--------------+--------------+
+    | foo]'bar'[   | foo[bar]     |
+    +--------------+--------------+
+    | foo['bar'    | foo[]        |
+    +--------------+--------------+
