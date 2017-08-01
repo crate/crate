@@ -25,11 +25,14 @@ package io.crate.analyze.expressions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -42,19 +45,27 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.StringLiteral;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,7 +88,7 @@ import static org.mockito.Mockito.when;
  * Additional tests for the ExpressionAnalyzer.
  * Most of the remaining stuff is tested via {@link io.crate.analyze.SelectStatementAnalyzerTest} and other *AnalyzerTest classes.
  */
-public class ExpressionAnalyzerTest extends CrateUnitTest {
+public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
     private ExpressionAnalysisContext context;
@@ -236,5 +247,43 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         // but equal
         assertThat(fn1, is(equalTo(fn2)));
         assertThat(fn1, is(not(equalTo(fn3))));
+    }
+
+    @Test
+    public void testInPredicateWithSubqueryIsRewrittenToAnyEqWithCollectSet() {
+        TestingDocTableInfoFactory docTableInfoFactory = new TestingDocTableInfoFactory(
+            ImmutableMap.of(
+                T3.T1_INFO.ident(), T3.T1_INFO,
+                T3.T2_INFO.ident(), T3.T2_INFO
+            )
+        );
+        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
+            new QualifiedName("t1"), T3.TR_1,
+            new QualifiedName("t2"), T3.TR_2
+        );
+        StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
+            SessionContext.SYSTEM_SESSION,
+            paramTypeHints,
+            Operation.READ,
+            null
+        );
+        Schemas schemas = new Schemas(
+            Settings.EMPTY,
+            ImmutableMap.of(
+                Schemas.DEFAULT_SCHEMA_NAME,
+                new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, null, docTableInfoFactory)),
+            clusterService,
+            new DocSchemaInfoFactory(docTableInfoFactory, functions, null)
+        );
+        RelationAnalyzer analyzer = new RelationAnalyzer(clusterService, functions, schemas);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            SessionContext.SYSTEM_SESSION,
+            paramTypeHints,
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
+            new SubqueryAnalyzer(analyzer, statementAnalysisContext)
+        );
+        Symbol symbol = expressionAnalyzer.convert(SqlParser.createExpression("t1.x in (select t2.y from t2)"), context);
+        assertThat(symbol, isSQL("(doc.t1.x = ANY(to_int_array(SelectSymbol{integer_set})))"));
     }
 }

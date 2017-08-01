@@ -32,8 +32,13 @@ public class ExpressionAnalysisContext {
     public boolean hasAggregates = false;
 
     public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
+        boolean aggregates = this.hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
+        return allocateFunction(functionInfo, arguments, aggregates);
+    }
+
+    public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments, boolean hasAggregates) {
+        this.hasAggregates = hasAggregates;
         Function newFunction = new Function(functionInfo, arguments);
-        hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
         return newFunction;
     }
 }

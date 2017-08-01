@@ -28,10 +28,12 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -397,39 +399,75 @@ public class ExpressionAnalyzer {
             /*
              * convert where x IN (values)
              *
-             * where values = a list of expressions
+             * where values = a list of expressions or a subquery
              *
              * into
-             *
              *      x = ANY(array(1, 2, 3, ...))
+             * or
+             *      x = ANY (select collect_set(x) from t)
              */
             Symbol left = process(node.getValue(), context);
             DataType targetType = left.valueType();
 
             Expression valueList = node.getValueList();
-            if (!(valueList instanceof InListExpression)) {
+            if (valueList instanceof InListExpression) {
+                List<Expression> expressions = ((InListExpression) valueList).getValues();
+                List<Symbol> symbols = new ArrayList<>(expressions.size());
+
+                for (Expression expression : expressions) {
+                    Symbol symbol = process(expression, context);
+                    if (targetType == DataTypes.UNDEFINED) {
+                        targetType = symbol.valueType();
+                        left = castIfNeededOrFail(left, targetType);
+
+                        symbols.add(symbol);
+                    } else {
+                        symbols.add(castIfNeededOrFail(symbol, targetType));
+                    }
+                }
+                return context.allocateFunction(
+                    AnyEqOperator.createInfo(targetType),
+                    Arrays.asList(
+                        left, context.allocateFunction(ArrayFunction.createInfo(Symbols.typeView(symbols)), symbols))
+                );
+            } else if (valueList instanceof SubqueryExpression) {
+                // IN argument is a subquery
+                SubqueryExpression subqueryExpression = (SubqueryExpression) valueList;
+                SelectSymbol selectSymbol = (SelectSymbol) process(subqueryExpression, context);
+                QueriedRelation relation = (QueriedRelation) selectSymbol.relation();
+
+                // wrap and rewrite `col1` --> `collect_set(col1)`
+                // prevent from "non-aggregates in group by"-check by setting hasAggregates = false
+                Symbol collectSetFunction = context.allocateFunction(
+                    functions.getBuiltin(CollectSetAggregation.NAME, Arrays.asList(relation.querySpec().outputs().get(0).valueType())).info(),
+                    Arrays.asList(relation.querySpec().outputs().get(0)),
+                    false
+                );
+                relation.querySpec().outputs(Arrays.asList(collectSetFunction));
+                relation.querySpec().hasAggregates(true);
+
+                Symbol subSelectSymbol = new SelectSymbol(relation, collectSetFunction.valueType());
+                // left-hand side type can differ from the type on the right-hand side
+                // try to cast the right-hand side symbol if possible
+                if (SymbolVisitors.any(symbol -> symbol instanceof Field, left) || selectSymbol.valueType() == DataTypes.UNDEFINED) {
+                    // left-hand side is a field
+                    // right-hand side needs to be an array-type.
+                    subSelectSymbol = castIfNeededOrFail(subSelectSymbol, new ArrayType(left.valueType()));
+                } else {
+                    // left-hand side is probably value symbol (e.g. 1 IN (select ...)
+                    // so define a non-array type for the right symbol
+                    left = castIfNeededOrFail(left, selectSymbol.valueType());
+                }
+
+                // Return x = ANY (select collect_set(y) from t)
+                return context.allocateFunction(
+                    getBuiltinFunctionInfo(AnyEqOperator.NAME, Arrays.asList(left.valueType(), subSelectSymbol.valueType())),
+                    Arrays.asList(left, subSelectSymbol));
+
+            } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Expression %s is not supported in IN", ExpressionFormatter.formatExpression(valueList)));
             }
-            List<Expression> expressions = ((InListExpression) valueList).getValues();
-            List<Symbol> symbols = new ArrayList<>(expressions.size());
-
-            for (Expression expression : expressions) {
-                Symbol symbol = process(expression, context);
-                if (targetType == DataTypes.UNDEFINED) {
-                    targetType = symbol.valueType();
-                    left = castIfNeededOrFail(left, targetType);
-
-                    symbols.add(symbol);
-                } else {
-                    symbols.add(castIfNeededOrFail(symbol, targetType));
-                }
-            }
-            return context.allocateFunction(
-                AnyEqOperator.createInfo(targetType),
-                Arrays.asList(
-                    left, context.allocateFunction(ArrayFunction.createInfo(Symbols.typeView(symbols)), symbols))
-            );
         }
 
         @Override
@@ -765,9 +803,11 @@ public class ExpressionAnalyzer {
              */
             AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
             List<Field> fields = relation.fields();
+
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
             }
+
             /*
              * The SelectSymbol should actually have a RowType as it is a row-expression.
              *
