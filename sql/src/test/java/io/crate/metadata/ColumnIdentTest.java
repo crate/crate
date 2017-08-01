@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.doc.DocSysColumns;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -82,5 +84,55 @@ public class ColumnIdentTest {
 
         ColumnIdent fooBar = new ColumnIdent("foo", "bar");
         assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));
+    }
+
+    @Test
+    public void testValidColumnNameValidation() throws Exception {
+        // Allowed.
+        ColumnIdent.validateColumnName("valid");
+        ColumnIdent.validateColumnName("field_name_");
+        ColumnIdent.validateColumnName("_Name");
+        ColumnIdent.validateColumnName("_name_");
+        ColumnIdent.validateColumnName("__name");
+        ColumnIdent.validateColumnName("_name1");
+        ColumnIdent.validateColumnName("['index']");
+        ColumnIdent.validateColumnName("[0]");
+        ColumnIdent.validateColumnName("[]i");
+        ColumnIdent.validateColumnName("ident['index");
+        ColumnIdent.validateColumnName("i][[");
+        ColumnIdent.validateColumnName("1'");
+    }
+
+    @Test
+    public void testIllegalColumnNameValidation() throws Exception {
+        assertExceptionIsThrownOnValidation(".name", "contains a dot");
+        assertExceptionIsThrownOnValidation("column.name", "contains a dot");
+        assertExceptionIsThrownOnValidation(".", "contains a dot");
+        assertExceptionIsThrownOnValidation("_a", "system column");
+        assertExceptionIsThrownOnValidation("_name", "system column");
+        assertExceptionIsThrownOnValidation("_field_name", "system column");
+        assertExceptionIsThrownOnValidation("ident['index']", "subscript");
+        assertExceptionIsThrownOnValidation("ident['index]", "subscript");
+        assertExceptionIsThrownOnValidation("ident[0]", "subscript");
+    }
+
+    /**
+     * Function that tests if validation is throwing an IllegalArgumentException with
+     * given expected Message.
+     *
+     * @param columnName      the column name which causes an exception to be thrown
+     * @param expectedMessage exception message that is expected
+     */
+    private void assertExceptionIsThrownOnValidation(String columnName, String expectedMessage) {
+        boolean expecedExceptionIsThrown = false;
+        try {
+            ColumnIdent.validateColumnName(columnName);
+        } catch (InvalidColumnNameException e) {
+            if (expectedMessage == null || e.getMessage().contains(expectedMessage)) {
+                expecedExceptionIsThrown = true;
+            }
+        }
+
+        assertTrue(expecedExceptionIsThrown);
     }
 }

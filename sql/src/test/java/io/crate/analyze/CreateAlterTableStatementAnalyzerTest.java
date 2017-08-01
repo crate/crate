@@ -25,12 +25,17 @@ import io.crate.Version;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
-import io.crate.exceptions.*;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -45,6 +50,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +58,12 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -503,9 +514,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreateTableWithSystemColumnPrefix() throws Exception {
+    @Test
+    public void testCreateTableWithObjectAndUnderscoreColumnPrefix() throws Exception {
+        CreateTableAnalyzedStatement analysis = e.analyze("create table test (o object as (_id integer), name string)");
+
+        assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
+        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
+        assertEquals(column.ident(), new ColumnIdent("o"));
+        assertThat(column.children().size(), is(1));
+        AnalyzedColumnDefinition xColumn = column.children().get(0);
+        assertEquals(xColumn.ident(), new ColumnIdent("o", Arrays.asList("_id")));
+    }
+
+    @Test(expected = InvalidColumnNameException.class)
+    public void testCreateTableWithUnderscoreColumnPrefix() throws Exception {
         e.analyze("create table test (_id integer, name string)");
+    }
+
+    @Test(expected = ParsingException.class)
+    public void testCreateTableWithColumnDot() throws Exception {
+        e.analyze("create table test (dot.column integer)");
     }
 
     @Test(expected = InvalidTableNameException.class)
@@ -676,8 +704,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(InvalidSchemaNameException.class);
         expectedException.expectMessage("schema name \"\" is invalid.");
         e.analyze("create table \"\".my_table (" +
-                "id long primary key" +
-                ")");
+                  "id long primary key" +
+                  ")");
     }
 
     @Test
@@ -685,24 +713,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(InvalidSchemaNameException.class);
         expectedException.expectMessage("schema name \"with.\" is invalid.");
         e.analyze("create table \"with.\".my_table (" +
-                "id long primary key" +
-                ")");
+                  "id long primary key" +
+                  ")");
     }
 
     @Test
     public void testCreateTableWithInvalidColumnName() throws Exception {
         expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("column name \"'test\" is invalid");
-        e.analyze("create table my_table (\"'test\" string)");
-    }
-
-    @Test
-    public void testInvalidColumnNamePredicate() throws Exception {
-        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("validName"), is(false));
-        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid["), is(true));
-        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid'"), is(true));
-        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid]"), is(true));
-        assertThat(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply("invalid."), is(true));
+        expectedException.expectMessage(
+            "\"_test\" conflicts with system column pattern");
+        e.analyze("create table my_table (\"_test\" string)");
     }
 
     @Test

@@ -481,7 +481,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                  Engine.Index operation) throws Exception {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
-            validateMapping(update.root().iterator(), TableIdent.fromIndexName(request.shardId().getIndexName()));
+            validateMapping(update.root().iterator(), false);
+
             schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), update);
 
             operation = prepareIndexOnPrimary(indexShard, version, request, item);
@@ -494,13 +495,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    static void validateMapping(Iterator<Mapper> mappers, TableIdent tableIdent) {
+    static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
         while (mappers.hasNext()) {
             Mapper mapper = mappers.next();
-            AnalyzedColumnDefinition.validateName(mapper.simpleName(), tableIdent);
-            validateMapping(mapper.iterator(), tableIdent);
+            if (nested) {
+                ColumnIdent.validateObjectKey(mapper.simpleName());
+            } else {
+                ColumnIdent.validateColumnName(mapper.simpleName());
+            }
+            validateMapping(mapper.iterator(), true);
         }
-
     }
 
     private Engine.IndexResult shardIndexOperationOnReplica(ShardUpsertRequest request,

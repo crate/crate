@@ -23,7 +23,6 @@
 package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -111,8 +110,7 @@ public class ValueNormalizer {
     @SuppressWarnings("unchecked")
     private void normalizeObjectValue(Map<String, Object> value, Reference info, TableInfo tableInfo) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
-            AnalyzedColumnDefinition.validateName(entry.getKey(), tableInfo.ident());
-            ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
+            ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.ident().columnIdent(), entry.getKey());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
