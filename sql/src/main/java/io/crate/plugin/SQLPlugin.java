@@ -37,6 +37,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
+import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -218,6 +219,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UserDefinedFunctionsMetaData::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
+            MetaData.Custom.class,
+            IngestRulesMetaData.TYPE,
+            IngestRulesMetaData::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UserDefinedFunctionsMetaData.TYPE,
             UserDefinedFunctionsMetaData::readDiffFrom
@@ -235,6 +241,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             MetaData.Custom.class,
             new ParseField(UserDefinedFunctionsMetaData.TYPE),
             UserDefinedFunctionsMetaData::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            IngestRulesMetaData.class,
+            new ParseField(IngestRulesMetaData.TYPE),
+            IngestRulesMetaData::fromXContent
         ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
