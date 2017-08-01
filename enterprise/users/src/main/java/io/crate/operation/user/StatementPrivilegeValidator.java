@@ -32,6 +32,7 @@ import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.CreateIngestionRuleAnalysedStatement;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
@@ -39,6 +40,7 @@ import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
+import io.crate.analyze.DropIngestionRuleAnalysedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
@@ -121,6 +123,18 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        public Void visitCreateIngestRuleStatement(CreateIngestionRuleAnalysedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        public Void visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, User user) {
             throwUnauthorized(user);
             return null;
         }
