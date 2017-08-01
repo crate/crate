@@ -27,6 +27,8 @@ Breaking Changes
 Changes
 =======
 
+ - Relaxed column naming restrictions.
+
  - Improved resiliency of drop, close and open table operations
 
 

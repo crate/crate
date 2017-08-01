@@ -196,12 +196,6 @@ Quoted identifiers can contain an arbitrary sequence of charactes enclosed by
 double quotes (``"``). Quoted identifiers are never keywords, so you can use
 ``"update"`` as a table or column name.
 
-.. NOTE::
-
-  It is even possible to create column names that look like subscript notation,
-  e.g. ``"column['looks_like_nested']"``. When querying the information schema,
-  the colum name would look identical as a nested object column!
-
 .. _sql_lexical_special_chars:
 
 Special Characters

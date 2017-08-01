@@ -23,16 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
-import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -87,24 +84,16 @@ public class AnalyzedColumnDefinition {
     @Nullable
     private Expression generatedExpression;
 
-    public static void validateName(String name, TableIdent tableIdent) {
-        Preconditions.checkArgument(!name.startsWith("_"), "Column name must not start with '_'");
-        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)) {
-            throw new InvalidColumnNameException(name, tableIdent);
-        }
-    }
-
     AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
     }
 
-    public void name(String name, TableIdent tableIdent) {
-        validateName(name, tableIdent);
+    public void name(String name) {
         this.name = name;
         if (this.parent != null) {
-            this.ident = ColumnIdent.getChild(this.parent.ident, name);
+            this.ident = ColumnIdent.getChildSafe(this.parent.ident, name);
         } else {
-            this.ident = new ColumnIdent(name);
+            this.ident = ColumnIdent.fromNameSafe(name);
         }
     }
 

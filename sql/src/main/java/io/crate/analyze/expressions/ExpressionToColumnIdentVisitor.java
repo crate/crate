@@ -55,9 +55,9 @@ public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List
             ));
         }
         if (context != null) {
-            return new ColumnIdent(node.getName().toString(), context);
+            return ColumnIdent.fromNameAndPathSafe(node.getName().toString(), context);
         }
-        return new ColumnIdent(node.getName().toString());
+        return ColumnIdent.fromNameSafe(node.getName().toString());
     }
 
     @Override
@@ -71,6 +71,7 @@ public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List
             ));
         }
 
+        ColumnIdent.validateObjectKey(node.getValue());
         context.add(node.getValue());
         return null;
     }

@@ -241,6 +241,10 @@ Columns Specification
 | ``table_name``                | Table Name                                    | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``column_name``               | Column Name                                   | ``String``    |
+|                               | For fields in object columns this is not an   |               |
+|                               | identifier but a path and therefore must not  |               |
+|                               | be double quoted when programmatically        |               |
+|                               | obtained.                                     |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``ordinal_position``          | The position of the column within the         | ``Integer``   |
 |                               | table                                         |               |

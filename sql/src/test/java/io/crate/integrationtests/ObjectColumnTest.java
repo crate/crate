@@ -304,12 +304,12 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAddRestrictedColumnName() throws Exception {
+    public void testAddUnderscoreColumnNameToObjectAtInsert() throws Exception {
         execute("create table test (foo object)");
         ensureYellow();
         execute("INSERT INTO test (o) (select {\"_w\"= 20})");
         refresh();
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(0L));
+        assertThat(response.rows()[0][0], is(1L));
     }
 }

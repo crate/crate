@@ -95,7 +95,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
-            context.analyzedColumnDefinition.name(node.ident(), context.tableIdent);
+            context.analyzedColumnDefinition.name(node.ident());
             for (ColumnConstraint columnConstraint : node.constraints()) {
                 process(columnConstraint, context);
             }
@@ -111,7 +111,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
             ColumnIdent ident = ExpressionToColumnIdentVisitor.convert(node.name());
-            context.analyzedColumnDefinition.name(ident.name(), context.tableIdent);
+            context.analyzedColumnDefinition.name(ident.name());
 
             // nested columns can only be added using alter table so no other columns exist.
             assert context.analyzedTableElements.columns().size() == 0 :
@@ -138,7 +138,7 @@ public class TableElementsAnalyzer {
                     }
                     parent.markAsParentColumn();
                     leaf = new AnalyzedColumnDefinition(parent);
-                    leaf.name(name, context.tableIdent);
+                    leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
                 }
@@ -257,7 +257,7 @@ public class TableElementsAnalyzer {
         public Void visitIndexDefinition(IndexDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.setAsIndexColumn();
             context.analyzedColumnDefinition.dataType("text");
-            context.analyzedColumnDefinition.name(node.ident(), context.tableIdent);
+            context.analyzedColumnDefinition.name(node.ident());
 
             setAnalyzer(node.properties(), context, node.method());
 
