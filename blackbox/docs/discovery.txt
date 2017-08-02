@@ -12,11 +12,12 @@ Services* (AWS). The discovery mechanism uses the `Amazon EC2`_ API to to
 generate the list of hosts for the unicast host discovery (see
 :ref:`conf_host_discovery`).
 
-There is a :ref:`best practice <ec2_setup>` how to configure and run a CrateDB
+There is a `best practice`_ how to configure and run a CrateDB
 cluster on Amazon EC2.
 
 .. _`Amazon EC2`: https://aws.amazon.com/ec2
 .. _`EC2 API`: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html
+.. _best practice: http://crate.io/docs/crate/guide/best_practices/ec2_setup.html
 
 .. _azure_discovery:
 
