@@ -179,7 +179,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
             createPendingIndices(pendingRequestsForCurrentBulk)
                 .thenAccept(resp -> {
-                    bulkRequests.putAll(getFromPendingToRequestMap(pendingRequestsForCurrentBulk));
+                    addPendingRequestsToRequestMap(pendingRequestsForCurrentBulk, bulkRequests);
                     sendRequestsForBulk(executeBulkFuture, bulkRequests);
                 });
         } else {
@@ -221,7 +221,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             }
 
             if (nodeId == null && LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Unable to get the node id for index {} and shard {}", indexName, id);
+                LOGGER.debug("Unable to get the node id for index {} and shard {}", indexName, shardIterator.shardId());
             }
             return new ShardLocation(shardIterator.shardId(), nodeId);
         } catch (IndexNotFoundException e) {
@@ -326,23 +326,20 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         return listener;
     }
 
-    private Map<ShardLocation, TReq> getFromPendingToRequestMap(
-        Map<String, List<PendingRequest<TItem>>> requestsByIndexForCurrentBulk) {
-        Map<ShardLocation, TReq> requests = new HashMap<>();
+    private void addPendingRequestsToRequestMap(Map<String, List<PendingRequest<TItem>>> requestsByIndexForCurrentBulk,
+                                                Map<ShardLocation, TReq> requests) {
 
         for (Map.Entry<String,List<PendingRequest<TItem>>> indexToRequestEntry : requestsByIndexForCurrentBulk.entrySet()) {
             String index = indexToRequestEntry.getKey();
             List<PendingRequest<TItem>> pendingRequests = indexToRequestEntry.getValue();
 
-            for (int i = 0; i < pendingRequests.size(); i++) {
-                PendingRequest<TItem> pendingRequest = pendingRequests.get(i);
+            for (PendingRequest<TItem> pendingRequest : pendingRequests) {
                 ShardLocation shardLocation = getShardLocation(index, pendingRequest.item.id(), pendingRequest.routing);
                 assert shardLocation != null : "Unable to get location of shard " + pendingRequest.item.id() +
                                                " for index " + index;
                 addToRequest(pendingRequest.item, shardLocation, requests);
             }
         }
-        return requests;
     }
 
     private static class PendingRequest<TItem> {
