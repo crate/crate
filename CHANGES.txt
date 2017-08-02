@@ -48,6 +48,10 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue when using dots in an identifier for column creation in alter
+   table, where they were interpreted as sub-fields of an object. The usage of
+   dots as part of a column name is prohibited.
+
  - Fixed an issue that prevented CrateDB from starting when ``path.home`` was
    set via command line argument.
 
