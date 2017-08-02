@@ -20,62 +20,49 @@
  * agreement.
  */
 
-package io.crate.metadata.rule.ingest;
+package io.crate.operation.rule.ingest;
 
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.ValidateActions;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class IngestRule implements Writeable {
+public class DropIngestRuleRequest extends AcknowledgedRequest<DropIngestRuleRequest> {
 
-    private final String name;
-    private final String targetTable;
-    private final String condition;
+    private String ingestRuleName;
 
-    public IngestRule(String name, String targetTable, String condition) {
-        this.name = name;
-        this.targetTable = targetTable;
-        this.condition = condition;
+    DropIngestRuleRequest() {
     }
 
-    public IngestRule(StreamInput in) throws IOException {
-        name = in.readString();
-        targetTable = in.readString();
-        condition = in.readString();
+    public DropIngestRuleRequest(String ingestRuleName) {
+        this.ingestRuleName = ingestRuleName;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getTargetTable() {
-        return targetTable;
-    }
-
-    public String getCondition() {
-        return condition;
+    public String getIngestRuleName() {
+        return ingestRuleName;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        IngestRule that = (IngestRule) o;
-        return name.equals(that.name);
+    public ActionRequestValidationException validate() {
+        ActionRequestValidationException validationException = null;
+        if (ingestRuleName == null || ingestRuleName.trim().isEmpty()) {
+            validationException = ValidateActions.addValidationError("Ingest rule name is missing", null);
+        }
+        return validationException;
     }
 
     @Override
-    public int hashCode() {
-        return name.hashCode();
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        ingestRuleName = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeString(targetTable);
-        out.writeString(condition);
+        super.writeTo(out);
+        out.writeString(ingestRuleName);
     }
 }
