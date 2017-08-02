@@ -43,9 +43,29 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
 
     public static final String TYPE = "ingest_rules";
 
+    /**
+     * Returns a copy of {@link IngestRulesMetaData}
+     */
+    @Nullable
+    public static IngestRulesMetaData copyOf(@Nullable IngestRulesMetaData oldMetaData) {
+        if (oldMetaData == null) {
+            return new IngestRulesMetaData();
+        }
+
+        Map<String, Set<IngestRule>> copyIngestRules = new HashMap<>(oldMetaData.sourceIngestRules.size());
+        for (Map.Entry<String, Set<IngestRule>> entry : oldMetaData.sourceIngestRules.entrySet()) {
+            copyIngestRules.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        return new IngestRulesMetaData(copyIngestRules);
+    }
+
     private final Map<String, Set<IngestRule>> sourceIngestRules;
 
-    IngestRulesMetaData(Map<String, Set<IngestRule>> sourceIngestRules) {
+    private IngestRulesMetaData() {
+        this(new HashMap<>());
+    }
+
+    public IngestRulesMetaData(Map<String, Set<IngestRule>> sourceIngestRules) {
         this.sourceIngestRules = sourceIngestRules;
     }
 
@@ -62,6 +82,34 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
             }
             sourceIngestRules.put(source, sourceRules);
         }
+    }
+
+    @Nullable
+    public Set<IngestRule> getIngestRules(String sourceIdent) {
+        return sourceIngestRules.get(sourceIdent);
+    }
+
+    public void createIngestRule(String sourceIdent, IngestRule ingestRule) throws IllegalArgumentException {
+        for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
+            if (ingestRules.contains(ingestRule)) {
+                throw new IllegalArgumentException("Ingest rule with name " + ingestRule.getName() + " already exists");
+            }
+        }
+
+        Set<IngestRule> ingestRules = sourceIngestRules.computeIfAbsent(sourceIdent, k -> new HashSet<>());
+        ingestRules.add(ingestRule);
+    }
+
+    public void dropIngestRule(String ruleName) {
+        for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
+            for (IngestRule rule : ingestRules) {
+                if (rule.getName().equals(ruleName)) {
+                    ingestRules.remove(rule);
+                    return;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Ingest rule " + ruleName + " doesn't exist");
     }
 
     @Override
@@ -102,7 +150,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return builder;
     }
 
-    public void ingestRuleToXContent(IngestRule ingestRule, XContentBuilder builder) throws IOException {
+    private void ingestRuleToXContent(IngestRule ingestRule, XContentBuilder builder) throws IOException {
         builder.startObject()
             .field("name", ingestRule.getName())
             .field("targetTable", ingestRule.getTargetTable())
@@ -126,7 +174,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return new IngestRulesMetaData(ingestRules);
     }
 
-    static IngestRule ingestRuleFromXContent(XContentParser parser) throws IOException {
+    private static IngestRule ingestRuleFromXContent(XContentParser parser) throws IOException {
         String name = null;
         String targetTable = null;
         String condition = null;
