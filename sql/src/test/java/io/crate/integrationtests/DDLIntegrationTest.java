@@ -447,6 +447,48 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAlterTableAddDotExpression() {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("InvalidColumnNameException: column name \"o.x\" is invalid");
+        execute("alter table t add \"o.x\" int");
+    }
+
+    @Test
+    public void testAlterTableAddDotExpressionInSubscript() {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("InvalidColumnNameException: column name \"o['x.y']\" is invalid");
+
+        execute("alter table t add \"o['x.y']\" int");
+    }
+
+    @Test
+    public void testAlterTableAddObjectColumnToNonExistingObject() {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        ensureYellow();
+        execute("alter table t add o['x'] int");
+        execute("select column_name from information_schema.columns where " +
+                "table_name = 't' and table_schema='doc'" +
+                "order by column_name asc");
+        assertThat(response.rowCount(), is(3L));
+
+        List<String> fqColumnNames = new ArrayList<>();
+        for (Object[] row : response.rows()) {
+            fqColumnNames.add((String) row[0]);
+        }
+        assertThat(fqColumnNames, Matchers.contains("id", "o", "o['x']"));
+    }
+
+    @Test
     public void testAlterTableAddObjectColumnToExistingObject() {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +

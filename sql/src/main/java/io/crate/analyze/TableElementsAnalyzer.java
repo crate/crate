@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionToColumnIdentVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
@@ -109,8 +110,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
-            String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameters);
-            ColumnIdent ident = ColumnIdent.fromPath(columnName);
+            ColumnIdent ident = ExpressionToColumnIdentVisitor.convert(node.name());
             context.analyzedColumnDefinition.name(ident.name(), context.tableIdent);
 
             // nested columns can only be added using alter table so no other columns exist.
