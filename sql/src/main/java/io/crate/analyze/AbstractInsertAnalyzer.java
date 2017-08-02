@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.*;
 import io.crate.sql.tree.Insert;
 
@@ -73,7 +71,7 @@ abstract class AbstractInsertAnalyzer {
             }
             context.columns(new ArrayList<Reference>(numColumns));
             for (int i = 0; i < node.columns().size(); i++) {
-                addColumn(new ColumnIdent(node.columns().get(i)), context, i);
+                addColumn(ColumnIdent.fromNameSafe(node.columns().get(i)), context, i);
             }
         }
 
@@ -114,17 +112,12 @@ abstract class AbstractInsertAnalyzer {
     }
 
     /**
-     * validates the column and sets primary key / partitioned by / routing information as well as a
+     * Sets primary key / partitioned by / routing information as well as a
      * column Reference to the context.
      * <p>
      * the created column reference is returned
      */
     private Reference addColumn(ColumnIdent column, AbstractInsertAnalyzedStatement context, int i) {
-        Preconditions.checkArgument(!column.name().startsWith("_"), "Inserting system columns is not allowed");
-        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(column.name())) {
-            throw new InvalidColumnNameException(column.name(), context.tableInfo().ident());
-        }
-
         // set primary key column if found
         for (ColumnIdent pkIdent : context.tableInfo().primaryKey()) {
             if (pkIdent.getRoot().equals(column)) {

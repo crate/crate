@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -232,8 +233,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
-                   is("VersionConflictEngineException[[default][1]: version conflict, " +
-                      "document with id: 1 already exists in 'characters']"));
+            is("VersionConflictEngineException[[default][1]: version conflict, " +
+               "document with id: 1 already exists in 'characters']"));
     }
 
     @Test
@@ -409,23 +410,19 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testValidateMapping() throws Exception {
-        /*
-         * create a mapping which contains an invalid column name
-         * {
-         *      "valid": {},
-         *      "_invalid": {}
-         * }
-         */
+        // Create valid nested mapping with underscore.
         Settings settings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(settings, new ContentPath());
-        Mapper.Builder validInnerMapper = new ObjectMapper.Builder("valid");
-        Mapper.Builder invalidInnerMapper = new ObjectMapper.Builder("_invalid");
-        Mapper outerMapper = new ObjectMapper.Builder("outer").add(validInnerMapper).add(invalidInnerMapper).build(builderContext);
+        Mapper outerMapper = new ObjectMapper.Builder("valid")
+            .add(new ObjectMapper.Builder("_invalid"))
+            .build(builderContext);
+        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
 
-        // validate the invalid mapping
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column name must not start with '_'");
-        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), new TableIdent(null, "t1"));
+        // Create invalid mapping
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("system column pattern");
+        outerMapper = new ObjectMapper.Builder("_invalid").build(builderContext);
+        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
     }
 
     @Test

@@ -22,6 +22,7 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -78,11 +79,17 @@ public class ExpressionToColumnIdentVisitorTest extends CrateUnitTest {
         assertColumnIdent("a['b']", new ColumnIdent("a", "b"));
         assertColumnIdent("a['b']['c']", ColumnIdent.fromPath("a.b.c"));
 
-        // We allow dot here in the string literal, since the column name check
-        // will throw an error when index contains a dot.
-        assertColumnIdent("a['b.c']", new ColumnIdent("a", "b.c"));
-
         assertIllegalArgumentExceptionOnConvert("a[b.c]", "Key of subscript must not be a reference");
+    }
+
+    @Test
+    public void testConvertWithInvalidObjectColumnName() throws Exception {
+        assertInvalidColumnNameExceptionOnConvert("a['b.c']", "contains a dot");
+    }
+
+    @Test
+    public void testConvertWithInvalidSubscriptObjectColumnName() throws Exception {
+        assertInvalidColumnNameExceptionOnConvert("a['b[0]']", "subscript pattern");
     }
 
     @Test
@@ -111,6 +118,12 @@ public class ExpressionToColumnIdentVisitorTest extends CrateUnitTest {
 
     private void assertIllegalArgumentExceptionOnConvert(String stringValue, String exceptionMessage) {
         expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage(exceptionMessage);
+        createIdentFromString(stringValue);
+    }
+
+    private void assertInvalidColumnNameExceptionOnConvert(String stringValue, String exceptionMessage) {
+        expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage(exceptionMessage);
         createIdentFromString(stringValue);
     }

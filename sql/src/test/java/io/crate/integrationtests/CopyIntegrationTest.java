@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Array;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -182,6 +183,35 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("select * from foo order by id");
         assertThat(response.rows()[0][0], is(1));
         assertThat(response.rows()[1][0], is(2));
+    }
+
+    @Test
+    public void testCopyFromFileWithInvalidColumns() throws Exception {
+        execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        File newFile = folder.newFile();
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
+            writer.write("{\"id\":1, \"_invalid\":1}\n");
+            writer.write("{\"id\":2, \"invalid['index']\":2}\n");
+            writer.write("{\"id\":3, \"invalid['_invalid']\":3}\n");
+            writer.write("{\"id\":4, \"valid\": {\"_valid\": 4}}\n");
+        }
+
+        execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select * from foo order by id");
+
+        // Check columns.
+        assertEquals(2L, response.cols().length);
+        assertEquals("valid", response.cols()[1]);
+
+        // Check data of column.
+        assertThat(response.rows()[0][0], is(4));
+        HashMap data = (HashMap)response.rows()[0][1];
+        assertThat(data.get("_valid"), is(4));
     }
 
     @Test

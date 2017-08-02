@@ -22,12 +22,11 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.core.StringUtils;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -41,7 +40,8 @@ import java.util.regex.Pattern;
 
 public class ColumnIdent implements Path, Comparable<ColumnIdent> {
 
-    public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]\\.]"));
+    private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
+    private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
 
     private static final Ordering<Iterable<String>> ordering = Ordering.<String>natural().lexicographical();
 
@@ -75,6 +75,54 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
         this.path = MoreObjects.firstNonNull(path, ImmutableList.<String>of());
     }
 
+    /**
+     * Creates and validates ident from given string.
+     *
+     * @param name ident name used for ColumnIdent creation
+     *
+     * @return the validated ColumnIdent
+     */
+    public static ColumnIdent fromNameSafe(String name) {
+        validateColumnName(name);
+        return new ColumnIdent(name);
+    }
+
+    /**
+     * Creates and validates ident from given string.
+     *
+     * @param name ident name used for ColumnIdent creation
+     *
+     * @return the validated ColumnIdent
+     */
+    public static ColumnIdent fromNameAndPathSafe(String name, @Nullable List<String> path) {
+        validateColumnName(name);
+        for (String part : path) {
+            validateObjectKey(part);
+        }
+        return new ColumnIdent(name, path);
+    }
+
+    /**
+     * Creates ColumnIdent for parent and validates + adds given child name to
+     * existing path.
+     *
+     * @param parent ColumnIdent of parent
+     * @param name path name of child
+     *
+     * @return the validated ColumnIdent
+     */
+    public static ColumnIdent getChildSafe(ColumnIdent parent, String name) {
+        validateObjectKey(name);
+        return getChild(parent, name);
+    }
+
+    /**
+     * Creates ColumnIdent by creating path by splitting given string.
+     *
+     * @param path string that will be split and interpreted
+     *
+     * @return the requested ColumnIdent
+     */
     public static ColumnIdent fromPath(@Nullable String path) {
         if (path == null) {
             return null;
@@ -96,9 +144,10 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     }
 
     /**
-     * checks whether this ColumnIdent is a child of <code>parentIdent</code>
+     * Checks whether this ColumnIdent is a child of <code>parentIdent</code>
      *
      * @param parentIdent the ident to check for parenthood
+     *
      * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
      */
     public boolean isChildOf(ColumnIdent parentIdent) {
@@ -114,6 +163,64 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Checks if column-name satisfies the criteria for naming a column or
+     * throws an exception otherwise.
+     *
+     * @param columnName column name to check for validity
+     */
+    public static void validateColumnName(String columnName) {
+        validateDotInColumnName(columnName);
+        validateSubscriptPatternInColumnName(columnName);
+        validateUnderscorePatternInColumnName(columnName);
+    }
+
+    /**
+     * Checks if column-name satisfies the criteria for naming an object column
+     * or throws an exception otherwise.
+     * This function differs from validate column name in terms of that all
+     * names beginning with an underscore are allowed.
+     *
+     * @param columnName column name to check for validity
+     */
+    public static void validateObjectKey(String columnName) {
+        validateDotInColumnName(columnName);
+        validateSubscriptPatternInColumnName(columnName);
+    }
+
+    /**
+     * Checks if a column name contains a dot and throws an exception if it does.
+     *
+     * @param columnName column name to check for validity
+     */
+    private static void validateDotInColumnName(String columnName) {
+        if (columnName.indexOf('.') != -1) {
+            throw new InvalidColumnNameException(columnName, "contains a dot");
+        }
+    }
+
+    /**
+     * Checks if a column name contains a subscript notation and throws an exception if it does.
+     *
+     * @param columnName column name to check for validity
+     */
+    private static void validateSubscriptPatternInColumnName(String columnName) {
+        if (SUBSCRIPT_PATTERN.matcher(columnName).matches()) {
+            throw new InvalidColumnNameException(columnName, "conflicts with subscript pattern");
+        }
+    }
+
+    /**
+     * Checks if a column name contains a underscore pattern and throws an exception if it does.
+     *
+     * @param columnName column name to check for validity
+     */
+    private static void validateUnderscorePatternInColumnName(String columnName) {
+        if (UNDERSCORE_PATTERN.matcher(columnName).matches()) {
+            throw new InvalidColumnNameException(columnName, "conflicts with system column pattern");
+        }
     }
 
     /**

@@ -27,6 +27,8 @@ Breaking Changes
 Changes
 =======
 
+ - Relaxed column naming restrictions.
+
  - Made the help messages of ``bin/crate`` and the Java code consistent. This
    change also removes the undocumented ``-E`` command line option which makes
    ``-C`` the only valid option for passing settings to CrateDB.

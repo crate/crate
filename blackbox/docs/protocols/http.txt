@@ -73,7 +73,7 @@ expected under the ``args`` key::
 
 .. WARNING::
 
-    Parameter substition must not be used within subscript notation.
+    Parameter substitution must not be used within subscript notation.
 
     For example, ``column[?]`` is not allowed.
 

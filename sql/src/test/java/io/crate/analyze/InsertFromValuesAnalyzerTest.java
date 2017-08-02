@@ -457,7 +457,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(((Object[]) analysis.sourceMaps().get(0)[1]).length, is(0));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = InvalidColumnNameException.class)
     public void testInsertSystemColumn() throws Exception {
         e.analyze("insert into users (id, _id) values (?, ?)",
             new Object[]{1, "1"});
@@ -854,36 +854,37 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInvalidColumnName() throws Exception {
         expectedException.expect(InvalidColumnNameException.class);
-        expectedException.expectMessage("column name \"newCol[\" is invalid");
-       e.analyze("insert into users (\"newCol[\") values(test)");
+        expectedException.expectMessage(
+            "\"newCol['a']\" conflicts with subscript pattern");
+        e.analyze("insert into users (\"newCol['a']\") values(test)");
     }
 
     @Test
     public void testInsertIntoTableWithNestedObjectPrimaryKeyAndNullInsert() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
-       e.analyze("insert into nested_pk (o) values (null)");
+        e.analyze("insert into nested_pk (o) values (null)");
     }
 
     @Test
     public void testNestedPrimaryKeyColumnMustNotBeNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
-       e.analyze("insert into nested_pk (o) values ({b=null})");
+        e.analyze("insert into nested_pk (o) values ({b=null})");
     }
 
     @Test
     public void testNestedClusteredByColumnMustNotBeNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value must not be NULL");
-       e.analyze("insert into nested_clustered (o) values ({c=null})");
+        e.analyze("insert into nested_clustered (o) values ({c=null})");
     }
 
     @Test
     public void testNestedClusteredByColumnMustNotBeNullWholeObject() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value must not be NULL");
-       e.analyze("insert into nested_clustered (o) values (null)");
+        e.analyze("insert into nested_clustered (o) values (null)");
     }
 
     @Test

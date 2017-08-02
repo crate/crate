@@ -453,7 +453,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("InvalidColumnNameException: column name \"o.x\" is invalid");
+        expectedException.expectMessage("\"o.x\" contains a dot");
         execute("alter table t add \"o.x\" int");
     }
 
@@ -464,7 +464,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("InvalidColumnNameException: column name \"o['x.y']\" is invalid");
+        expectedException.expectMessage("\"o['x.y']\" contains a dot");
 
         execute("alter table t add \"o['x.y']\" int");
     }

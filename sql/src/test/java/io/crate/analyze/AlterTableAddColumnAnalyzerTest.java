@@ -156,6 +156,17 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat((String) inner.get("type"), is("keyword"));
     }
 
+    public void testAddObjectColumnWithUnderscore() throws Exception {
+        AddColumnAnalyzedStatement analysis = e.analyze("alter table users add column foo['_x'] int");
+
+        assertThat(analysis.analyzedTableElements().columns().size(), is(2)); // id pk column is also added
+        AnalyzedColumnDefinition column = analysis.analyzedTableElements().columns().get(0);
+        assertThat(column.ident(), Matchers.equalTo(new ColumnIdent("foo")));
+        assertThat(column.children().size(), is(1));
+        AnalyzedColumnDefinition xColumn = column.children().get(0);
+        assertThat(xColumn.ident(), Matchers.equalTo(new ColumnIdent("foo", Arrays.asList("_x"))));
+    }
+
     @Test
     public void testAddNewNestedObjectColumn() throws Exception {
         AddColumnAnalyzedStatement analysis = e.analyze(

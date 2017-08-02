@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
@@ -38,6 +39,7 @@ import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.omg.CORBA.DynAnyPackage.Invalid;
 
 import java.util.HashMap;
 import java.util.List;
@@ -162,11 +164,11 @@ public class ValueNormalizerTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeDynamicObjectWithRestrictedAdditionalColumn() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column name must not start with '_'");
+        expectedException.expect(InvalidColumnNameException.class);
+        expectedException.expectMessage("contains a dot");
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
-        map.put("_invalid_column_name", 0);
+        map.put("_invalid.column_name", 0);
         normalizeInputForReference(Literal.of(map), objInfo);
     }
 
