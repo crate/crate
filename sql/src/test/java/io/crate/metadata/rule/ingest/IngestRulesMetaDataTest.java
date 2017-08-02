@@ -30,6 +30,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -38,18 +39,27 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 public class IngestRulesMetaDataTest extends CrateUnitTest {
 
-    @Test
-    public void testStreaming() throws IOException {
+    private static final String SOURCE_NAME = "mqtt";
+    private static final String RULE_NAME = "processV4TopicRule";
+    private IngestRulesMetaData inputMetaData;
+
+    @Before
+    public void setupIngestRulesMetaData() {
         Map<String, Set<IngestRule>> sourceRules = new HashMap<>();
         Set<IngestRule> rules = new HashSet<>();
-        rules.add(new IngestRule("mqtt", "mqtt_raw", "topic like v4/%"));
-        sourceRules.put("theMqttRule", rules);
-        IngestRulesMetaData inputMetaData = new IngestRulesMetaData(sourceRules);
+        rules.add(new IngestRule(RULE_NAME, "mqtt_raw", "topic like v4/%"));
+        sourceRules.put(SOURCE_NAME, rules);
+        inputMetaData = new IngestRulesMetaData(sourceRules);
+    }
 
+    @Test
+    public void testStreaming() throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
         inputMetaData.writeTo(out);
 
@@ -63,12 +73,6 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         builder.startObject();
 
-        Map<String, Set<IngestRule>> sourceRules = new HashMap<>();
-        Set<IngestRule> rules = new HashSet<>();
-        rules.add(new IngestRule("processV4TopicRule", "mqtt_raw", "topic like v4/%"));
-        sourceRules.put("mqtt", rules);
-        IngestRulesMetaData inputMetaData = new IngestRulesMetaData(sourceRules);
-
         inputMetaData.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
@@ -79,5 +83,58 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
+    }
+
+    @Test
+    public void testGetIngestRulesForValidSourceReturnsIngestRules() {
+        Set<IngestRule> ingestRules = inputMetaData.getIngestRules(SOURCE_NAME);
+        assertThat(ingestRules.size(), is(1));
+        assertThat(ingestRules.iterator().next().getName(), is(RULE_NAME));
+    }
+
+    @Test
+    public void testGetIngestRulesForMissingSourceReturnsNull() {
+        assertThat(inputMetaData.getIngestRules("some_missing_source"), nullValue());
+    }
+
+    @Test
+    public void testCreateIngestRule() {
+        inputMetaData.createIngestRule("new_source", new IngestRule("new_rule", "log", "topic like log%"));
+
+        Set<IngestRule> newSourceRules = inputMetaData.getIngestRules("new_source");
+        assertThat(newSourceRules, notNullValue());
+        assertThat(newSourceRules.size(), is(1));
+        assertThat(newSourceRules.iterator().next().getName(), is("new_rule"));
+    }
+
+    @Test
+    public void testCreateExistingRuleThrowsIllegalArgumentException() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Ingest rule with name " + RULE_NAME + " already exist");
+        inputMetaData.createIngestRule("new_source", new IngestRule(RULE_NAME, "log", "topic like log%"));
+    }
+
+    @Test
+    public void testDropExistingIngestRule() {
+        inputMetaData.dropIngestRule(RULE_NAME);
+        assertThat(inputMetaData.getIngestRules(SOURCE_NAME), nullValue());
+    }
+
+    @Test
+    public void testDropMissingIngestRuleThrowsIllegalArgumentException() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Ingest rule missing_rule doesn't exist");
+        inputMetaData.dropIngestRule("missing_rule");
+    }
+
+    @Test
+    public void testCopyOfNullReturnsNewInstance() {
+        assertThat(IngestRulesMetaData.copyOf(null), notNullValue());
+    }
+
+    @Test
+    public void testCopyOf() {
+        IngestRulesMetaData copyOfMetaData = IngestRulesMetaData.copyOf(inputMetaData);
+        assertNotSame(copyOfMetaData, inputMetaData);
     }
 }
