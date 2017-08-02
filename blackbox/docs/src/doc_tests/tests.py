@@ -491,23 +491,11 @@ def test_suite():
                      tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         docs_suite.addTest(s)
-
     for fn in ('sql/dml.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsQuotesAndUserVisits,
                      tearDown=tearDownLocationsQuotesAndUserVisits)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('best_practice/migrating_from_mongodb.txt',
-               'best_practice/systables.txt'):
-        path = os.path.join('..', '..', fn)
-        s = docsuite(path, parser=crash_parser, setUp=setUp)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('data_import.txt', 'rolling_upgrade.txt'):
-        path = os.path.join('..', '..', 'best_practice', fn)
-        s = docsuite(path, parser=crash_parser, setUp=setUpTutorials)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/snapshot_restore.txt',):

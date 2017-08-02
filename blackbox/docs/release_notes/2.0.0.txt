@@ -287,7 +287,9 @@ network interface) you must add the following line to your
 .. NOTE::
 
    If you bind to a network reachable IP address, you must follow the
-   instructions in the new :ref:`bootstrap_checks` guide.
+   instructions in the new `bootstrap checks`_ guide.
+
+.. _bootstrap checks: http://crate.io/docs/crate/guide/best_practices/bootstrap_checks.html
 
 Heap Size
 ---------
