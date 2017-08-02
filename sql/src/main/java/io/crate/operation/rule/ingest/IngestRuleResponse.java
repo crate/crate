@@ -20,62 +20,32 @@
  * agreement.
  */
 
-package io.crate.metadata.rule.ingest;
+package io.crate.operation.rule.ingest;
 
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class IngestRule implements Writeable {
+public class IngestRuleResponse extends AcknowledgedResponse {
 
-    private final String name;
-    private final String targetTable;
-    private final String condition;
-
-    public IngestRule(String name, String targetTable, String condition) {
-        this.name = name;
-        this.targetTable = targetTable;
-        this.condition = condition;
+    IngestRuleResponse() {
     }
 
-    public IngestRule(StreamInput in) throws IOException {
-        name = in.readString();
-        targetTable = in.readString();
-        condition = in.readString();
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getTargetTable() {
-        return targetTable;
-    }
-
-    public String getCondition() {
-        return condition;
+    IngestRuleResponse(boolean acknowledged) {
+        super(acknowledged);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        IngestRule that = (IngestRule) o;
-        return name.equals(that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        readAcknowledged(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeString(targetTable);
-        out.writeString(condition);
+        super.writeTo(out);
+        writeAcknowledged(out);
     }
 }
