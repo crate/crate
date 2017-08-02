@@ -39,7 +39,7 @@ public class CreateIngestRuleRequest extends AcknowledgedRequest<CreateIngestRul
     CreateIngestRuleRequest() {
     }
 
-    CreateIngestRuleRequest(String sourceIdent, IngestRule ingestRule) {
+    public CreateIngestRuleRequest(String sourceIdent, IngestRule ingestRule) {
         this.sourceIdent = sourceIdent;
         this.ingestRule = ingestRule;
     }
