@@ -138,4 +138,14 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
         IngestRulesMetaData copyOfMetaData = IngestRulesMetaData.copyOf(inputMetaData);
         assertNotSame(copyOfMetaData, inputMetaData);
     }
+
+    @Test
+    public void testGetAllRulesForTargetTable() {
+        IngestRule newIngestRule = new IngestRule("newRule", "mqtt_table", "topic = 'test'");
+        inputMetaData.createIngestRule("newSource", newIngestRule);
+
+        Set<IngestRule> allRules = inputMetaData.getAllRulesForTargetTable("mqtt_table");
+        assertThat(allRules.size(), is(1));
+        assertThat(allRules.iterator().next(), is(newIngestRule));
+    }
 }
