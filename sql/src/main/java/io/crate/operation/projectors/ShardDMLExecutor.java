@@ -156,7 +156,8 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
             scheduler,
             l -> transportAction.accept(request, l),
             listener,
-            BACKOFF_POLICY
+            BACKOFF_POLICY,
+            executionFuture
         );
     }
 

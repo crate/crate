@@ -28,6 +28,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -38,14 +39,17 @@ public class RetryListener<TResp> implements ActionListener<TResp> {
     private final ActionListener<TResp> delegate;
     private final Iterator<TimeValue> delay;
     private final Runnable retryCommand;
+    private final CompletableFuture<?> executionFuture;
 
     public RetryListener(ScheduledExecutorService scheduler,
                          Consumer<ActionListener<TResp>> command,
                          ActionListener<TResp> delegate,
-                         Iterable<TimeValue> backOffPolicy) {
+                         Iterable<TimeValue> backOffPolicy,
+                         CompletableFuture<?> executionFuture) {
         this.scheduler = scheduler;
         this.delegate = delegate;
         this.delay = backOffPolicy.iterator();
+        this.executionFuture = executionFuture;
         this.retryCommand = () -> command.accept(this);
     }
 
@@ -56,6 +60,10 @@ public class RetryListener<TResp> implements ActionListener<TResp> {
 
     @Override
     public void onFailure(Exception e) {
+        if (executionFuture.isDone()) {
+            // if the execution future was completed (most likely failed or killed) we stop retrying
+            return;
+        }
         Throwable throwable = SQLExceptions.unwrap(e);
         if (throwable instanceof EsRejectedExecutionException && delay.hasNext()) {
             TimeValue currentDelay = delay.next();

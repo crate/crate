@@ -265,7 +265,8 @@ public class UpsertByIdTask extends JobTask {
                     scheduler,
                     actionListener -> upsertAction.execute(request, actionListener),
                     listener,
-                    BACK_OFF_POLICY
+                    BACK_OFF_POLICY,
+                    result
                 )
             );
         }

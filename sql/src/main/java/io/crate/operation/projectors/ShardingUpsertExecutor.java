@@ -299,7 +299,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                     requestExecutor.execute(request, l);
                 },
                 listener,
-                BACKOFF_POLICY
+                BACKOFF_POLICY,
+                executionFuture
             );
             requestExecutor.execute(request, listener);
         }
