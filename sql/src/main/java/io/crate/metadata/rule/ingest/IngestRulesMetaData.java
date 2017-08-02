@@ -85,13 +85,25 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
     }
 
     @Nullable
-    public Set<IngestRule> getIngestRules(String sourceIdent) {
+    Set<IngestRule> getIngestRules(String sourceIdent) {
         return sourceIngestRules.get(sourceIdent);
     }
 
     @Nullable
     public Map<String, Set<IngestRule>> getIngestRules() {
         return sourceIngestRules;
+    }
+
+    public Set<IngestRule> getAllRulesForTargetTable(String targetTable) {
+        Set<IngestRule> allRulesForTable = new HashSet<>();
+        sourceIngestRules.values().forEach(sourceIngestRules -> {
+            for (IngestRule ingestRule : sourceIngestRules) {
+                if(ingestRule.getTargetTable().equals(targetTable)) {
+                    allRulesForTable.add(ingestRule);
+                }
+            }
+        });
+        return allRulesForTable;
     }
 
     public void createIngestRule(String sourceIdent, IngestRule ingestRule) throws IllegalArgumentException {
