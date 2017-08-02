@@ -34,7 +34,7 @@ Changes
  - Changed the Enterprise License missing check message, as well as lowering
    the severity from HIGH to LOW.
    
-  - Introduce support for single row subselects in ANY, e.g.::
+  - Introduce support for single column subselects in ANY, e.g.::
 
       Select id from t where id = ANY(Select id from t2)
 
