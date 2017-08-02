@@ -48,6 +48,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that prevented CrateDB from starting when ``path.home`` was
+   set via command line argument.
+
  - Fixed an issue causing ``JOINs`` on virtual tables (sub-selects) which
    contain ``LIMIT`` and/or ``OFFSET`` to return incorrect results.
    E.g.::
