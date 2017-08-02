@@ -22,11 +22,20 @@
 
 package io.crate.action.sql;
 
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.CreateIngestionRuleAnalysedStatement;
+import io.crate.analyze.DropIngestionRuleAnalysedStatement;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
+import io.crate.metadata.rule.ingest.IngestRule;
+import io.crate.operation.rule.ingest.CreateIngestRuleRequest;
+import io.crate.operation.rule.ingest.DropIngestRuleRequest;
+import io.crate.operation.rule.ingest.IngestRuleResponse;
+import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
+import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -44,13 +53,18 @@ import java.util.function.BiFunction;
 @Singleton
 public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
 
-    private static final InnerVisitor INNER_VISITOR = new InnerVisitor();
-
+    private final InnerVisitor INNER_VISITOR = new InnerVisitor();
+    private final TransportCreateIngestRuleAction transportCreateIngestRuleAction;
+    private final TransportDropIngestRuleAction transportDropIngestRuleAction;
     private final UserManager userManager;
 
     @Inject
-    public DCLStatementDispatcher(Provider<UserManager> userManagerProvider) {
+    public DCLStatementDispatcher(Provider<UserManager> userManagerProvider,
+                                  Provider<TransportCreateIngestRuleAction> transportCreateIngestRuleActionProvider,
+                                  Provider<TransportDropIngestRuleAction> transportDropIngestRuleActionProvider) {
         this.userManager = userManagerProvider.get();
+        this.transportCreateIngestRuleAction = transportCreateIngestRuleActionProvider.get();
+        this.transportDropIngestRuleAction = transportDropIngestRuleActionProvider.get();
     }
 
     @Override
@@ -58,7 +72,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         return INNER_VISITOR.process(analyzedStatement, userManager);
     }
 
-    private static class InnerVisitor extends AnalyzedStatementVisitor<UserManager, CompletableFuture<Long>> {
+    private class InnerVisitor extends AnalyzedStatementVisitor<UserManager, CompletableFuture<Long>> {
 
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UserManager userManager) {
@@ -69,6 +83,24 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         @Override
         public CompletableFuture<Long> visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, UserManager userManager) {
             return userManager.applyPrivileges(analysis.userNames(), analysis.privileges());
+        }
+
+        @Override
+        public CompletableFuture<Long> visitCreateIngestRuleStatement(CreateIngestionRuleAnalysedStatement analysis, UserManager context) {
+            IngestRule ingestRule = new IngestRule(analysis.ruleName(), analysis.targetTable().fqn(), analysis.whereClause());
+            FutureActionListener<IngestRuleResponse, Long> listener =
+                new FutureActionListener<>(r -> 1L);
+            transportCreateIngestRuleAction.execute(
+                new CreateIngestRuleRequest(analysis.sourceName(), ingestRule), listener);
+            return listener;
+        }
+
+        @Override
+        public CompletableFuture<Long> visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, UserManager context) {
+            FutureActionListener<IngestRuleResponse, Long> listener =
+                new FutureActionListener<>(r -> 1L);
+            transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName()), listener);
+            return listener;
         }
     }
 }
