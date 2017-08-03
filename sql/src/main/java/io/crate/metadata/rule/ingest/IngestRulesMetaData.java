@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -119,9 +120,11 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
 
     public void dropIngestRule(String ruleName) {
         for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
-            for (IngestRule rule : ingestRules) {
+            Iterator<IngestRule> iterator = ingestRules.iterator();
+            while (iterator.hasNext()) {
+                IngestRule rule = iterator.next();
                 if (rule.getName().equals(ruleName)) {
-                    ingestRules.remove(rule);
+                    iterator.remove();
                     return;
                 }
             }
