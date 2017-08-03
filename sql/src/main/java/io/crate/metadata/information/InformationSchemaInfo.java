@@ -52,6 +52,7 @@ public class InformationSchemaInfo implements SchemaInfo {
             .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(clusterService))
             .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(clusterService))
             .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo(clusterService))
+            .put(InformationSchemaIngestionRulesTableInfo.NAME, new InformationSchemaIngestionRulesTableInfo(clusterService))
             .build();
     }
 
