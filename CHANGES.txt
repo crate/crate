@@ -33,6 +33,10 @@ Changes
 
  - Changed the Enterprise License missing check message, as well as lowering
    the severity from HIGH to LOW.
+   
+  - Introduce support for single column subselects in ANY, e.g.::
+
+      Select id from t where id = ANY(Select id from t2)
 
  - Added a warning message to the log if the Unofficial Elasticsearch HTTP
    REST API is enabled via ``es.api.enabled`` setting.

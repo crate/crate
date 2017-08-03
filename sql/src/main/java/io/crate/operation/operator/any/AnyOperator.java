@@ -30,7 +30,12 @@ import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -103,11 +108,7 @@ public abstract class AnyOperator extends Operator<Object> {
             return null;
         }
         Iterable<?> rightIterable;
-        try {
-            rightIterable = collectionValueToIterable(collectionReference);
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        rightIterable = collectionValueToIterable(collectionReference);
         return doEvaluate(value, rightIterable);
     }
 

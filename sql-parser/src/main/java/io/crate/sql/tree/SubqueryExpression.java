@@ -25,12 +25,25 @@ public class SubqueryExpression
     extends Expression {
     private final Query query;
 
+    private boolean isArrayExpression;
+
     public SubqueryExpression(Query query) {
         this.query = query;
     }
 
     public Query getQuery() {
         return query;
+    }
+
+    /**
+     * Set to true to indicate this expressions will be used in an array operator
+     */
+    public void setArrayExpression() {
+        isArrayExpression = true;
+    }
+
+    public boolean isArrayExpression() {
+        return isArrayExpression;
     }
 
     @Override

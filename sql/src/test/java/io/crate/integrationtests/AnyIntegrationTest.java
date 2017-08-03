@@ -105,6 +105,29 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testAnyWithSubselect() throws Exception {
+        execute("select 2 where 1 = ANY(select 2)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select 2 where 1 = ANY(select null)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select 2 where 1 = ANY(select 1)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is(2L));
+
+        execute("create table t (id integer) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t values(1)");
+        execute("insert into t values(2)");
+        execute("refresh table t");
+
+        execute("select id from t where id = ANY(select id from t where id = 1)");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is(1));
+    }
+
+    @Test
     public void testAnyOnArrayLiteralWithNullElements() throws Exception {
         execute("create table t (s string)");
         ensureYellow();
