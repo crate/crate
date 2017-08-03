@@ -23,10 +23,13 @@
 package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -44,7 +47,7 @@ import static org.junit.Assert.fail;
 public class CrateSettingsPreparerTest {
 
     @Rule
-    public final ExpectedException exception = ExpectedException.none();
+    public final ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testValidateKnownSettings() {
@@ -59,8 +62,8 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder()
             .put("stats.enabled", "foo")
             .put("psql.port", 5432);
-        exception.expect(RuntimeException.class);
-        exception.expectMessage(containsString("Invalid value [foo] for the [stats.enabled] setting."));
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectMessage(containsString("Invalid value [foo] for the [stats.enabled] setting."));
         CrateSettingsPreparer.validateKnownSettings(builder);
     }
 
@@ -87,5 +90,31 @@ public class CrateSettingsPreparerTest {
 
         assertThat(builder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()), is("crate"));
         assertThat(builder.get(Node.NODE_NAME_SETTING.getKey()), isIn(CrateSettingsPreparer.nodeNames()));
+    }
+
+    @Test
+    public void testThatCommandLineArgumentsOverrideSettingsFromConfigFile() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put("path.home", ".");
+        builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
+        builder.put("stats.enabled", true);
+        Environment environment = new Environment(builder.build());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        // Overriding value from crate.yml
+        assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
+        // Value kept from crate.yml
+        assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
+    }
+
+    @Test
+    public void testErrorWithDuplicateSettingInConfigFile() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put("path.home", ".");
+        builder.put("path.conf", PathUtils.get(getClass().getResource("config_invalid").toURI()));
+        Environment environment = new Environment(builder.build());
+        expectedException.expect(ElasticsearchParseException.class);
+        expectedException.expectMessage("duplicate settings key [stats.enabled] found at line number [2], " +
+                                        "column number [16], previous value [false], current value [true]");
+        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
     }
 }
