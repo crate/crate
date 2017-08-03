@@ -1428,22 +1428,20 @@ exception is raised.
   A constant that all request estimations are multiplied with to determine a
   final estimation.
 
-Threadpools
------------
+Thread Pools
+------------
 
 Every node holds several thread pools to improve how threads are managed within
 a node. There are several pools, but the important ones include:
 
-    * index: For index/delete operations, defaults to fixed
-    * search: For count/search operations, defaults to fixed
-    * get: For queries that are optimized to do a direct lookup by primary key,
-      defaults to fixed
-    * bulk: For bulk operations, defaults to fixed
-    * refresh: For refresh operations, defaults to cache
+* ``index``: For index/delete operations, defaults to fixed
+* ``search``: For count/search operations, defaults to fixed
+* ``get``: For queries that are optimized to do a direct lookup by primary key,
+  defaults to fixed
+* ``bulk``: For bulk operations, defaults to fixed
+* ``refresh``: For refresh operations, defaults to cache
 
-.. _threadpool.<threadpool>.type:
-
-**threadpool.<threadpool>.type**
+**thread_pool.<name>.type**
   | *Runtime:*  ``no``
   | *Allowed Values:* ``fixed | cache``
 
@@ -1452,23 +1450,19 @@ a node. There are several pools, but the important ones include:
 
   ``cache`` will spawn a thread if there are pending requests (unbounded).
 
-Fixed Threadpool Settings
-.........................
+Settings for fixed thread pools
+...............................
 
-If the type of a threadpool is set to ``fixed`` there are a few optional
+If the type of a thread pool is set to ``fixed`` there are a few optional
 settings.
 
-.. _threadpool.<threadpool>.size:
-
-**threadpool.<threadpool>.size**
+**thread_pool.<name>.size**
   | *Runtime:*  ``no``
 
   Number of threads. The default size of the different thread pools depend on
   the number of available CPU cores.
 
-.. _threadpool.<threadpool>.queue_size:
-
-**threadpool.<threadpool>.queue_size**
+**thread_pool.<name>.queue_size**
   | *Default index:*  ``200``
   | *Default search:* ``1000``
   | *Default get:* ``1000``
