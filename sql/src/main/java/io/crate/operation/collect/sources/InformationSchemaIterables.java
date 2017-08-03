@@ -47,6 +47,7 @@ public class InformationSchemaIterables {
     private final FluentIterable<TableInfo> constraints;
     private final FluentIterable<RoutineInfo> routines;
     private final SqlFeaturesIterable sqlFeatures;
+    private final FluentIterable<IngestionRuleInfo> ingestionRules;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
@@ -64,6 +65,8 @@ public class InformationSchemaIterables {
         RoutineInfos routineInfos = new RoutineInfos(ftResolver, clusterService);
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         sqlFeatures = new SqlFeaturesIterable();
+        IngestionRuleInfos ingestionRuleInfos = new IngestionRuleInfos(clusterService);
+        ingestionRules = FluentIterable.from(ingestionRuleInfos).filter(Objects::nonNull);
     }
 
     public Iterable<SchemaInfo> schemas() {
@@ -94,6 +97,9 @@ public class InformationSchemaIterables {
         return sqlFeatures;
     }
 
+    public Iterable<IngestionRuleInfo> ingestionRules() {
+        return ingestionRules;
+    }
 
     static class ColumnsIterable implements Iterable<ColumnContext> {
 
