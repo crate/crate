@@ -754,8 +754,8 @@
 # Every node holds several thread pools to improve how threads are managed
 # within a node. There are several pools, but the important ones include:
 # index, search, bulk, refresh
-#threadpool.index.type: fixed
-#threadpool.index.queue_size: 200
+#thread_pool.index.type: fixed
+#thread_pool.index.queue_size: 200
 
 
 ################################## Metadata ##################################
