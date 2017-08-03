@@ -56,6 +56,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | doc                | partitioned_table       |                4 | 0-1                |
     | doc                | quotes                  |                2 | 0                  |
     | information_schema | columns                 |                1 | 0                  |
+    | information_schema | ingestion_rules         |                1 | 0                  |
     | information_schema | key_column_usage        |                1 | 0                  |
     | information_schema | referential_constraints |                1 | 0                  |
     | information_schema | routines                |                1 | 0                  |
@@ -80,7 +81,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 |                1 | 0                  |
     | sys                | users                   |                1 | 0                  |
     +--------------------+-------------------------+------------------+--------------------+
-    SELECT 29 rows in set (... sec)
+    SELECT 30 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
