@@ -47,7 +47,6 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
     /**
      * Returns a copy of {@link IngestRulesMetaData}
      */
-    @Nullable
     public static IngestRulesMetaData copyOf(@Nullable IngestRulesMetaData oldMetaData) {
         if (oldMetaData == null) {
             return new IngestRulesMetaData();
@@ -167,6 +166,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
             }
             builder.endArray();
         }
+
         return builder;
     }
 
@@ -179,22 +179,25 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
     }
 
     public static IngestRulesMetaData fromXContent(XContentParser parser) throws IOException {
-        Map<String, Set<IngestRule>> ingestRules = new HashMap<>();
-        while (parser.nextToken() == Token.FIELD_NAME) {
+        IngestRulesMetaData metaData = new IngestRulesMetaData();
+        while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
             String source = parser.currentName();
-            Set<IngestRule> rulesForSource = new HashSet<>();
-            Token token;
-            while ((token = parser.nextToken()) != Token.END_ARRAY) {
-                if (token == Token.START_OBJECT) {
-                    rulesForSource.add(ingestRuleFromXContent(parser));
+            Set<IngestRule> rulesForSource = metaData.getIngestRules(source);
+            if (rulesForSource == null) {
+                rulesForSource = new HashSet<>();
+                metaData.sourceIngestRules.put(source, rulesForSource);
+            }
+            XContentParser.Token token;
+            while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+                if (token == XContentParser.Token.START_OBJECT) {
+                    ingestRuleFromXContent(parser, rulesForSource);
                 }
             }
-            ingestRules.put(source, rulesForSource);
         }
-        return new IngestRulesMetaData(ingestRules);
+        return metaData;
     }
 
-    private static IngestRule ingestRuleFromXContent(XContentParser parser) throws IOException {
+    private static void ingestRuleFromXContent(XContentParser parser, Set<IngestRule> ingestRules) throws IOException {
         String name = null;
         String targetTable = null;
         String condition = null;
@@ -216,9 +219,12 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
                     default:
                         throw new ElasticsearchException("Failed to parse ingest rule");
                 }
+            } else if (currentToken == Token.END_ARRAY) {
+                // empty list of ingest rules
+                return;
             }
         }
-        return new IngestRule(name, targetTable, condition);
+        ingestRules.add(new IngestRule(name, targetTable, condition));
     }
 
     @Override
