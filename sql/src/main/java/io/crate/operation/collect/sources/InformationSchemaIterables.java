@@ -48,6 +48,7 @@ public class InformationSchemaIterables {
     private final FluentIterable<TableInfo> constraints;
     private final FluentIterable<RoutineInfo> routines;
     private final SqlFeaturesIterable sqlFeatures;
+    private final FluentIterable<IngestionRuleInfo> ingestionRules;
     private final FluentIterable<Void> keyColumnUsages;
     private final FluentIterable<Void> referentialConstraints;
 
@@ -67,6 +68,8 @@ public class InformationSchemaIterables {
         RoutineInfos routineInfos = new RoutineInfos(ftResolver, clusterService);
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         sqlFeatures = new SqlFeaturesIterable();
+        IngestionRuleInfos ingestionRuleInfos = new IngestionRuleInfos(clusterService);
+        ingestionRules = FluentIterable.from(ingestionRuleInfos).filter(Objects::nonNull);
         keyColumnUsages = FluentIterable.from(Collections.emptyList());
         referentialConstraints = FluentIterable.from(Collections.emptyList());
     }
@@ -97,6 +100,10 @@ public class InformationSchemaIterables {
 
     public Iterable<SqlFeatureContext> features() {
         return sqlFeatures;
+    }
+
+    public Iterable<IngestionRuleInfo> ingestionRules() {
+        return ingestionRules;
     }
 
     public Iterable<Void> keyColumnUsageInfos() { return keyColumnUsages; }

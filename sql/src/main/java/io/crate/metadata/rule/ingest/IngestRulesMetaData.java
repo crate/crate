@@ -89,6 +89,11 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return sourceIngestRules.get(sourceIdent);
     }
 
+    @Nullable
+    public Map<String, Set<IngestRule>> getIngestRules() {
+        return sourceIngestRules;
+    }
+
     public void createIngestRule(String sourceIdent, IngestRule ingestRule) throws IllegalArgumentException {
         for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
             if (ingestRules.contains(ingestRule)) {
