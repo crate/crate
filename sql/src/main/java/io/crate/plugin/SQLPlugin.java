@@ -228,6 +228,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UserDefinedFunctionsMetaData.TYPE,
             UserDefinedFunctionsMetaData::readDiffFrom
         ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            IngestRulesMetaData.TYPE,
+            in -> IngestRulesMetaData.readDiffFrom(MetaData.Custom.class, IngestRulesMetaData.TYPE, in)
+        ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
         }
@@ -243,7 +248,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UserDefinedFunctionsMetaData::fromXContent
         ));
         entries.add(new NamedXContentRegistry.Entry(
-            IngestRulesMetaData.class,
+            MetaData.Custom.class,
             new ParseField(IngestRulesMetaData.TYPE),
             IngestRulesMetaData::fromXContent
         ));
