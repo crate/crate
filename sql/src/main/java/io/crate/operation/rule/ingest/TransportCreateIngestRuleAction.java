@@ -94,8 +94,8 @@ public class TransportCreateIngestRuleAction extends TransportMasterNodeAction<C
         // create a new instance of the metadata, to guarantee the cluster changed action.
         IngestRulesMetaData newMetaData = IngestRulesMetaData.copyOf(
             (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE));
-        mdBuilder.putCustom(IngestRulesMetaData.TYPE, newMetaData);
         newMetaData.createIngestRule(request.getSourceIdent(), request.getIngestRule());
+        mdBuilder.putCustom(IngestRulesMetaData.TYPE, newMetaData);
     }
 
     @Override
