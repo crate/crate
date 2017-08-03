@@ -46,6 +46,11 @@ Breaking Changes
    ``discovery.type``. Instead there is a new ``discovery.zen.hosts_provider``
    settings which can be set to either ``srv`` or ``azure``.
 
+ - Duplicate definition of settings is neither allowed in the ``crate.yml``
+   file nor as command line options. However, settings provided via command
+   line arguments can still override the settings defined in th ``crate.yml``
+   file.
+
 Packaging Changes
 .................
 
