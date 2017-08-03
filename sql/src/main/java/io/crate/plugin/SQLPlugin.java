@@ -232,7 +232,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedXContentRegistry.Entry(
-            UserDefinedFunctionsMetaData.class,
+            MetaData.Custom.class,
             new ParseField(UserDefinedFunctionsMetaData.TYPE),
             UserDefinedFunctionsMetaData::fromXContent
         ));
