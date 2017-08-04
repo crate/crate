@@ -92,7 +92,7 @@ public class TransportDropIngestRuleAction extends TransportMasterNodeAction<Dro
         // create a new instance of the metadata, to guarantee the cluster changed action.
         IngestRulesMetaData newMetaData = IngestRulesMetaData.copyOf(
             (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE));
-        newMetaData.dropIngestRule(request.getIngestRuleName());
+        newMetaData.dropIngestRule(request.getIngestRuleName(), request.ifExists());
         mdBuilder.putCustom(IngestRulesMetaData.TYPE, newMetaData);
     }
 
