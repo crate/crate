@@ -427,6 +427,7 @@ public class TestStatementBuilder {
     public void testDropIngestRuleStmtBuilder() {
         printStatement("DROP INGEST RULE v4");
         printStatement("DROP INGEST RULE \"Nyan cat space übercool\"");
+        printStatement("DROP INGEST RULE IF EXISTS \"Nyan cat space übercool\"");
     }
 
 

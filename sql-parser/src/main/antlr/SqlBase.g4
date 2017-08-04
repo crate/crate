@@ -71,7 +71,7 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
-    | DROP INGEST RULE rule_name=ident                                               #dropIngestRule
+    | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
     | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
       (ON clazz  ( qname (',' qname)* ))?
       TO userNames                                                                   #grantPrivilege
