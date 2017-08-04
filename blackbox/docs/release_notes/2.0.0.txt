@@ -135,6 +135,9 @@ Breaking Changes
      - ``indices.recovery.retry_activity_timeout`` has been renamed to
        ``indices.recovery.recovery_activity_timeout``
 
+ - Thread pool settings prefix has been changed from ``thread_pool`` to
+   ``threadpool``. E.g.: ``thread_pool.<name>.type``.
+
 Changes
 -------
 
