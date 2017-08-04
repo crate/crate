@@ -326,7 +326,8 @@ def setUpCountries(test):
     cmd.stmt("""
         create table countries (
           name string,
-          "geo" geo_shape INDEX using GEOHASH with (precision='1km')
+          "geo" geo_shape INDEX using GEOHASH with (precision='1km'),
+          population long
         ) with(number_of_replicas=0)""".strip())
     dept_file = get_abspath("countries.json")
     cmd.stmt("""copy countries from '{0}'""".format(dept_file))

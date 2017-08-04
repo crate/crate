@@ -1,0 +1,41 @@
+.. highlight:: psql
+.. _sql_subquery_expressions:
+
+Subquery Expressions
+====================
+
+The following operators can be used with a subquery to form a subquery
+expression that results in a Boolean (``true``/``false``).
+
+.. NOTE::
+
+    The used subquery has to be uncorrelated which means that the subquery does
+    not contain references to relations in a parent statement.
+
+.. _sql_in_subquery_expression:
+
+``IN (subquery)``
+-----------------
+
+Syntax:
+
+.. code-block:: sql
+
+    expression IN (subquery)
+
+The binary operator ``IN``, which allows you to verify the membership of
+left-hand operand in the right-hand side subquery that returns exactly one
+column. Returns ``true`` if any equal subquery row equals the left-hand operand.
+Returns ``false`` otherwise (including the case where the subquery returns no
+rows)::
+
+    cr> select name, surname, sex from employees
+    ... where dept_id in (select id from departments where name = 'Austria')
+    ... order by name, surname;
+
+The result of the ``IN`` construct yields to ``NULL`` if ...:
+
+- the left-hand expression evaluates to ``NULL``.
+
+- there are no equal right-hand values and at least one right-hand value yields
+  ``NULL``.

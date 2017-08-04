@@ -49,6 +49,9 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
             mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
                 ImmutableList.of(dataType)),
                 new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
+            mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
+                ImmutableList.of(dataType, DataTypes.BOOLEAN)),
+                new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
         }
     }
 
@@ -65,6 +68,10 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
     @Override
     public Set<Object> iterate(RamAccountingContext ramAccountingContext, Set<Object> state, Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
+        Object collectNulls = args[1].value();
+
+        if (collectNulls == null)
+
         if (value == null) {
             return state;
         }
