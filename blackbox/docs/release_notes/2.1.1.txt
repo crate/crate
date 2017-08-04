@@ -1,0 +1,157 @@
+.. _version_2.1.1:
+
+=============
+Version 2.1.1
+=============
+
+Released on 2017/08/04.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_1.1.3` or higher before you upgrade to 2.1.1.
+
+   If you want to perform a :ref:`rolling_upgrade`, your current CrateDB
+   version number must be :ref:`version_2.1.0`.  If you want to upgrade from a
+   version prior to this, the upgrade will introduce all of the breaking
+   changes listed for :ref:`version_2.1.0`, and will require a
+   :ref:`full_restart_upgrade`.
+
+   Consult the :ref:`version_2.1.0_upgrade_notes` for ``2.1.0`` when upgrading.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Changelog
+=========
+
+Changes
+-------
+
+ - Made the help messages of ``bin/crate`` and the Java code consistent. This
+   change also removes the undocumented ``-E`` command line option which makes
+   ``-C`` the only valid option for passing settings to CrateDB.
+
+ - Changed the Enterprise License missing check message, as well as lowering
+   the severity from ``HIGH`` to ``LOW``.
+
+ - Added a warning message to the log if the Unofficial Elasticsearch HTTP
+   REST API is enabled via ``es.api.enabled`` setting.
+
+ - Updated Elasticsearch to v5.4.3.
+
+ - Enabled ``mapping.total_fields.limit`` setting for tables in order to be
+   able to increase maximum number of columns higher than the default of
+   ``1000``.
+
+ - Table functions now support value expressions as arguments.
+
+Fixes
+-----
+
+ - Fixed an issue when using dots in an identifier for column creation in alter
+   table, where they were interpreted as sub-fields of an object. The usage of
+   dots as part of a column name is prohibited.
+
+ - Fixed an issue that prevented CrateDB from starting when ``path.home`` was
+   set via command line argument.
+
+ - Fixed an issue causing ``JOINs`` on virtual tables (sub-selects) which
+   contain ``LIMIT`` and/or ``OFFSET`` to return incorrect results.
+   E.g.::
+
+      SELECT * FROM
+        (SELECT * FROM t1 ORDER BY a LIMIT 5) t1,
+      JOIN
+        (SELECT * FROM t2 ORDER BY b OFFSET 2) t2
+      ON t1.a = t2.max
+
+ - Fixed an issue causing ``JOINs`` with aggregations on virtual tables
+   (sub-selects) which also contain aggregations to return incorrect results.
+   E.g.::
+
+     SELECT t1.a, COUNT(*) FROM t1
+     JOIN (SELECT b, max(i) as max FROM t2 GROUP BY b) t2
+     ON t1.a = t2.max
+     GROUP BY t1.id
+
+ - Fixed the error message to be more descriptive when the condition in a
+   ``CASE/WHEN`` expression is not a boolean.
+
+ - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
+   statement that uses the ``ANY (array_expression)`` operator.
+
+ - Allow support of conditional expression with different return types that can
+   be converted to a single return type.
+
+ - Fixed support for negate on null in conditional expression.
+
+ - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
+   table.
+
+ - Added missing documentation about the default value of the table setting
+   ``write.wait_for_active_shards``.
+
+ - Improved user privileges matching to constant time complexity.
+
+ - Improved the error message if an invalid table column reference is used in
+   ``INSERT`` statements.
+
+ - Optimized the algorithm that determines the best ordering of the tables in
+   a ``JOIN``.
+
+ - Updated Crash to ``0.21.4`` which fixes an issue with ``\verbose`` command
+   not working correctly when Crash is started without ``--verbose``.
+
+ - Implemented flexible return type of sum-function depending on the input
+   types, which was previously only double.
+
+ - Fixed a regression causing incorrect results for queries with ``DISTINCT``
+   on scalar functions. E.g.::
+
+     SELECT DISTINCT upper(name) FROM t
+
+ - Fixed a race condition which made it possible to create new columns in a
+   partition of a partitioned table that didn't match the type of the same
+   column of sibling partitions.
+
+ - Upgraded Admin UI version to fix an issue with the Twitter tutorial.
+
+ - Fixed a NPE when running ``select port from sys.nodes`` and
+   ``psql.enabled: false`` was set.
+
+ - Fixed an issue where the user that gets provided by the client on connect is
+   not always used as current user if host based authentication is disabled.
+
+ - Corrected the documentation of the ``version`` column of the ``sys.snapshots``
+   table. It was described as the CrateDB version whereas it's an internal
+   version instead.
+
+ - Dropping an empty partitioned table now drops the related table privileges.
+
+ - Implemented ``NOT NULL`` constraint validation for nested object columns,
+   which was previously ignored. E.g.::
+
+     CREATE TABLE test (
+       stuff object(dynamic) AS (
+         level1 object(dynamic) AS (
+           level2 string not null
+         ) NOT NULL
+       ) NOT NULL
+     )
+
+ - Internal system queries are now executed under the ``crate`` superuser if user
+   management is enabled.
+
+ - ``!= ANY()`` could not operate on arrays with more than 1024 elements. This
+   limit has been increased by default to 8192. A new node setting:
+   ``indices.query.bool.max_clause_count`` has been exposed to allow
+   configuration of this limit.
+
+ - Fixed an issue which caused unrelated table privileges to be lost after a
+   table was renamed.
+
+ - Fixed an issue that prevents CrateDB from bootstrapping on Windows hosts.
