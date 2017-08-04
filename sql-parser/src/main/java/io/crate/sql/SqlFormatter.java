@@ -695,8 +695,11 @@ public final class SqlFormatter {
 
         @Override
         public Void visitDropIngestRule(DropIngestRule node, Integer context) {
-            builder.append("DROP INGEST RULE ")
-                .append(quoteIdentifierIfNeeded(node.name().toString()));
+            builder.append("DROP INGEST RULE ");
+            if (node.ifExists()) {
+                builder.append("IF EXISTS ");
+            }
+            builder.append(quoteIdentifierIfNeeded(node.name()));
 
             return null;
         }

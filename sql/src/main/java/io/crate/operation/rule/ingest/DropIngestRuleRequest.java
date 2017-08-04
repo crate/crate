@@ -33,16 +33,22 @@ import java.io.IOException;
 public class DropIngestRuleRequest extends AcknowledgedRequest<DropIngestRuleRequest> {
 
     private String ingestRuleName;
+    private boolean ifExists;
 
     DropIngestRuleRequest() {
     }
 
-    public DropIngestRuleRequest(String ingestRuleName) {
+    public DropIngestRuleRequest(String ingestRuleName, boolean ifExists) {
         this.ingestRuleName = ingestRuleName;
+        this.ifExists = ifExists;
     }
 
     public String getIngestRuleName() {
         return ingestRuleName;
+    }
+
+    public boolean ifExists() {
+        return ifExists;
     }
 
     @Override
