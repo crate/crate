@@ -99,7 +99,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         public CompletableFuture<Long> visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, UserManager context) {
             FutureActionListener<IngestRuleResponse, Long> listener =
                 new FutureActionListener<>(r -> 1L);
-            transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName()), listener);
+            transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName(), analysis.ifExists()), listener);
             return listener;
         }
     }

@@ -18,6 +18,16 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.ruleName(), is("v4"));
         analysis = e.analyze("DROP INGEST RULE \"V4\"");
         assertThat(analysis.ruleName(), is("V4"));
+        assertThat(analysis.ifExists(), is(false));
+    }
+
+    @Test
+    public void testDropRuleIfExists() {
+        DropIngestionRuleAnalysedStatement analysis = e.analyze("DROP INGEST RULE v4");
+        assertThat(analysis.ruleName(), is("v4"));
+        analysis = e.analyze("DROP INGEST RULE IF EXISTS \"V4\"");
+        assertThat(analysis.ruleName(), is("V4"));
+        assertThat(analysis.ifExists(), is(true));
     }
 
 
