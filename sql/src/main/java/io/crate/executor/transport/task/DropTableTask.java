@@ -93,7 +93,6 @@ public class DropTableTask extends JobTask {
                             }
                             consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
                         });
-                        consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
                     }
                 }
 

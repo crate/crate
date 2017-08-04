@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fix issue where a `DROP TABLE` statement would return before the table 
+   privileges are dropped.
+
  - Fix display of redundant parenthesis around expressions visible in 
    `SHOW CREATE` and `EXPLAIN` statements.
 
