@@ -51,7 +51,7 @@ public class TransportCreateDropIngestRuleActionTest extends CrateUnitTest {
         IngestRulesMetaData inputMetaData = new IngestRulesMetaData(Maps.newHashMap());
         inputMetaData.createIngestRule("someSource", new IngestRule("ruleName", "table", "condition"));
         mdBuilder.putCustom(IngestRulesMetaData.TYPE, inputMetaData);
-        DropIngestRuleRequest dropIngestRuleRequest = new DropIngestRuleRequest("ruleName");
+        DropIngestRuleRequest dropIngestRuleRequest = new DropIngestRuleRequest("ruleName", false);
 
         TransportDropIngestRuleAction.dropIngestRule(mdBuilder, dropIngestRuleRequest);
 

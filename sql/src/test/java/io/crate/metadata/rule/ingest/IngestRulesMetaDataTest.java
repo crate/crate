@@ -117,7 +117,7 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testDropTheOnlyExistingIngestRuleReturnsEmptyCollection() {
-        inputMetaData.dropIngestRule(RULE_NAME);
+        inputMetaData.dropIngestRule(RULE_NAME, false);
         assertThat(inputMetaData.getIngestRules(SOURCE_NAME), empty());
     }
 
@@ -125,7 +125,12 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
     public void testDropMissingIngestRuleThrowsIllegalArgumentException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Ingest rule missing_rule doesn't exist");
-        inputMetaData.dropIngestRule("missing_rule");
+        inputMetaData.dropIngestRule("missing_rule", false);
+    }
+
+    @Test
+    public void testDropMissingIngestRuleIfExistsDoesntThrowsException() {
+        inputMetaData.dropIngestRule("missing_rule", true);
     }
 
     @Test
