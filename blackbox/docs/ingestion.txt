@@ -1,0 +1,43 @@
+.. _ingestion:
+
+===================
+Ingestion Framework
+===================
+
+Besides using standard SQL to ingest data, CrateDB also allows for
+ingesting data through custom event based ingestion endpoints. The
+ingestion framework of CratedB opens up the possibility to provide
+highly available distributed endpoints for custom protocols like
+MQTT_, where thousands of clients can send their events simultaniously
+by using the scalability of CrateDB without requiring to setup any
+intermediate queues or brokers.
+
+Terms And Concepts
+==================
+
+Ingestion is configured via *ingestion rules* which define how
+incomming data gets routed and stored. Such ingestion rules are bound
+to a specific *ingestion source*. Ingestion sources are provided by
+custom implementations, available as builtin components or as
+:ref:`CrateDB-Plugins <plugins>`.
+
+:Ingestion Rule:
+
+  An ingestion rule defines where to put the incomming data of a
+  specific ingestion source and also based on which conditions. For a
+  details see :ref:`ingestion_rules`
+
+
+:Ingestion Source:
+
+  An ingestion source is a registered source of data. Such sources are
+  registred and accessed by their unique *source ident*, provided by
+  the implementation.
+
+  How data is flowing into the system is totally implementation
+  specific. This could be an MQTT_ endpoint a compnenent listening to
+  HTTP-POSTs or a module listening for Kernel events.
+
+.. _MQTT: http://mqtt.org/
+
+
