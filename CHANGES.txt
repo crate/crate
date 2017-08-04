@@ -15,15 +15,6 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
- - `GROUP BY` now executes against the real columns and fallbacks to
-   substituting possible aliases in case the columns do not exist. This will
-   cause statements that used alias values that shadowed multiple columns with
-   the same name to fail (eg. alias `name` in a join statement where multiple
-   tables have the real column `name`). Statements with aliases that shadowed
-   a real column and also retrieve that real column will no longer fail as the
-   real column will be used in the `GROUP BY` clause (this will not be
-   ambigous anymore).
-
 Changes
 =======
 

@@ -21,7 +21,7 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testScalarFunctionArgumentsNotAllInGroupByThrowsException() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("column 'other_id' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("column '(id * other_id)' must appear in the GROUP BY clause or be used in an aggregation function");
         executor.analyze("select id * other_id from users group by id");
     }
 

@@ -1030,11 +1030,6 @@ This is useful if used in conjunction with aggregation functions::
 
 .. NOTE::
 
-   Grouping will be executed against the real table column when aliases that 
-   shadow the table columns are used.
-
-.. NOTE::
-
    Grouping on multi-value fields doesn't work. If such a field is encountered
    during a group by operation an error is thrown.
 
@@ -1090,10 +1085,6 @@ result columns::
     |        4 | Galaxy |
     +----------+--------+
     SELECT 1 row in set (... sec)
-
-.. NOTE::
-
-   Aliases are not supported in the having clause.
 
 Comparison Operators
 ````````````````````
