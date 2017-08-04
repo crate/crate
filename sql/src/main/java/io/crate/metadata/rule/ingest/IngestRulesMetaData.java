@@ -117,7 +117,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         ingestRules.add(ingestRule);
     }
 
-    public void dropIngestRule(String ruleName) {
+    public void dropIngestRule(String ruleName, boolean ifExists) {
         for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
             Iterator<IngestRule> iterator = ingestRules.iterator();
             while (iterator.hasNext()) {
@@ -128,7 +128,9 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
                 }
             }
         }
-        throw new IllegalArgumentException("Ingest rule " + ruleName + " doesn't exist");
+        if (ifExists == false) {
+            throw new IllegalArgumentException("Ingest rule " + ruleName + " doesn't exist");
+        }
     }
 
     @Override
