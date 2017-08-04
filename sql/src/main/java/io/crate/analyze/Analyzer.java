@@ -403,7 +403,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropIngestRule(DropIngestRule node, Analysis context) {
-            return new DropIngestionRuleAnalysedStatement(node.name());
+            return new DropIngestionRuleAnalysedStatement(node.name(), node.ifExists());
         }
 
         @Override

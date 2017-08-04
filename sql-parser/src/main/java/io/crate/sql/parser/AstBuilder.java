@@ -1367,7 +1367,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitDropIngestRule(SqlBaseParser.DropIngestRuleContext ctx) {
-        return new DropIngestRule(getIdentText(ctx.rule_name));
+        return new DropIngestRule(getIdentText(ctx.rule_name), ctx.EXISTS() != null);
     }
 
     @Override
