@@ -1,6 +1,5 @@
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
@@ -14,8 +13,6 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
-
-    private final static Set<DataType> NUMERIC_WITH_DECIMAL = Sets.newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
 
     public static class Names {
         public static final String ADD = "add";
@@ -151,7 +148,7 @@ public class ArithmeticFunctions {
 
     static boolean containsTypesWithDecimal(List<DataType> dataTypes) {
         for (DataType dataType : dataTypes) {
-            if (NUMERIC_WITH_DECIMAL.contains(dataType)) {
+            if (DataTypes.NUMERIC_WITH_DECIMAL.contains(dataType)) {
                 return true;
             }
         }

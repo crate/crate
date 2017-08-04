@@ -92,6 +92,11 @@ public final class DataTypes {
         LONG
     );
 
+    public final static ImmutableList<DataType> NUMERIC_WITH_DECIMAL = ImmutableList.of(
+        FLOAT,
+        DOUBLE
+    );
+
     /**
      * Type registry mapping type ids to the according data type instance.
      */
