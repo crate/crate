@@ -153,4 +153,10 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
         assertThat(allRules.size(), is(1));
         assertThat(allRules.iterator().next(), is(newIngestRule));
     }
+
+    @Test
+    public void testDropIngestRulesForTable() {
+        long affectedRows = inputMetaData.dropIngestRulesForTable("mqtt_raw");
+        assertThat(affectedRows, is(1L));
+    }
 }

@@ -225,6 +225,7 @@ public class TransportExecutor implements Executor {
             return new DropTableTask(plan,
                 transportActionProvider.transportDeleteIndexTemplateAction(),
                 transportActionProvider.transportDeleteIndexAction(),
+                transportActionProvider.transportDropIngestRulesForTableAction(),
                 userManager);
         }
 

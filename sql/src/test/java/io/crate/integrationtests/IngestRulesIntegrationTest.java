@@ -23,15 +23,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.rule.ingest.IngestRule;
-import io.crate.metadata.rule.ingest.IngestRulesMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
@@ -47,19 +41,7 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
 
     @After
     public void dropTableAndIngestRule() {
-        execute("drop table t1");
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        MetaData metaData = clusterService.state().metaData();
-        IngestRulesMetaData ingestRulesMetaData = (IngestRulesMetaData) metaData.getCustoms().get(IngestRulesMetaData.TYPE);
-        Set<IngestRule> allRules = ingestRulesMetaData.getAllRulesForTargetTable("doc.t1");
-        for (IngestRule rule : allRules) {
-            try {
-                execute("drop ingest rule " + rule.getName());
-            } catch (SQLActionException e) {
-                // TODO: drop the try/catch and replace the statement with "drop ingest rule if exists" once we support it
-                // TODO: or don't run "drop ingest rule" at all once "drop table" drops the associated rules too
-            }
-        }
+        execute("drop table if exists t1");
     }
 
     @Test
@@ -87,5 +69,12 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("SQLParseException: Ingest rule somerule doesn't exist");
         execute("drop ingest rule somerule");
+    }
+
+    @Test
+    public void testDropTargetTableRemovesAssociatedRules() {
+        execute("drop table t1");
+        execute("select * from information_schema.ingestion_rules where target_table='doc.t1'");
+        assertThat(response.rowCount(), is(0L));
     }
 }

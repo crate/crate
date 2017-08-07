@@ -133,6 +133,21 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         }
     }
 
+    public long dropIngestRulesForTable(String tableIdent) {
+        long affectedRows = 0L;
+        for (Set<IngestRule> rulesForSource : sourceIngestRules.values()) {
+            Iterator<IngestRule> iterator = rulesForSource.iterator();
+            while (iterator.hasNext()) {
+                IngestRule rule = iterator.next();
+                if (rule.getTargetTable().equals(tableIdent)) {
+                    iterator.remove();
+                    affectedRows++;
+                }
+            }
+        }
+        return affectedRows;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
