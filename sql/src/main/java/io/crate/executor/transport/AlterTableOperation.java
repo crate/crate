@@ -44,6 +44,9 @@ import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.rule.ingest.TransferIngestRuleResponse;
+import io.crate.operation.rule.ingest.TransferIngestRulesRequest;
+import io.crate.operation.rule.ingest.TransportTransferIngestRulesAction;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -109,6 +112,7 @@ public class AlterTableOperation {
     private final TransportOpenIndexAction transportOpenIndexAction;
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
+    private final TransportTransferIngestRulesAction transportTransferIngestRulesAction;
     private final TransportIndicesAliasesAction transportIndicesAliasesAction;
     private final UserManager userManager;
     private final SQLOperations sqlOperations;
@@ -123,6 +127,7 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportIndicesAliasesAction transportIndicesAliasesAction,
+                               TransportTransferIngestRulesAction transportTransferIngestRulesAction,
                                UserManager userManager,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
@@ -134,6 +139,7 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportIndicesAliasesAction = transportIndicesAliasesAction;
+        this.transportTransferIngestRulesAction = transportTransferIngestRulesAction;
         this.userManager = userManager;
         this.sqlOperations = sqlOperations;
     }
@@ -285,6 +291,10 @@ public class AlterTableOperation {
             () -> transferTablePrivileges(sourceTableIdent.fqn(), targetTableIdent.fqn()),
             () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
         ));
+        actions.add(new ChainableAction<>(
+            () -> transferIngestRules(sourceTableIdent.fqn(), targetTableIdent.fqn()),
+            () -> transferIngestRules(targetTableIdent.fqn(), sourceTableIdent.fqn())
+        ));
         if (sourceTableInfo.isClosed() == false) {
             actions.add(new ChainableAction<>(
                 () -> openTable(targetIndices),
@@ -348,6 +358,10 @@ public class AlterTableOperation {
             () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
         ));
         actions.add(new ChainableAction<>(
+            () -> transferIngestRules(sourceTableIdent.fqn(), targetTableIdent.fqn()),
+            () -> transferIngestRules(targetTableIdent.fqn(), sourceTableIdent.fqn())
+        ));
+        actions.add(new ChainableAction<>(
             () -> renameTemplate(sourceTableIdent, targetTableIdent),
             () -> renameTemplate(targetTableIdent, sourceTableIdent)
         ));
@@ -378,6 +392,13 @@ public class AlterTableOperation {
 
     private CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
         return userManager.transferTablePrivileges(sourceIdent, targetIdent);
+    }
+
+    private CompletableFuture<Long> transferIngestRules(String sourceIdent, String targetIdent) {
+        FutureActionListener<TransferIngestRuleResponse, Long> listener =
+            new FutureActionListener<>(TransferIngestRuleResponse::affectedRows);
+        transportTransferIngestRulesAction.execute(new TransferIngestRulesRequest(sourceIdent, targetIdent), listener);
+        return listener;
     }
 
     private CompletableFuture<Long> changeAliases(String[] partitions, String oldAlias, String newAlias) {

@@ -20,66 +20,52 @@
  * agreement.
  */
 
-package io.crate.metadata.rule.ingest;
+package io.crate.operation.rule.ingest;
 
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class IngestRule implements Writeable {
+public class TransferIngestRulesRequest extends AcknowledgedRequest<TransferIngestRulesRequest> {
 
-    private final String name;
-    private String targetTable;
-    private final String condition;
+    private String sourceIdent;
+    private String targetIdent;
 
-    public IngestRule(String name, String targetTable, String condition) {
-        this.name = name;
-        this.targetTable = targetTable;
-        this.condition = condition;
+    public TransferIngestRulesRequest() {
     }
 
-    public IngestRule(StreamInput in) throws IOException {
-        name = in.readString();
-        targetTable = in.readString();
-        condition = in.readString();
+    public TransferIngestRulesRequest(String sourceIdent, String targetIdent) {
+        this.sourceIdent = sourceIdent;
+        this.targetIdent = targetIdent;
     }
 
-    public String getName() {
-        return name;
+    public String sourceIdent() {
+        return sourceIdent;
     }
 
-    public String getTargetTable() {
-        return targetTable;
-    }
-
-    public void setTargetTable(String targetTable) {
-        this.targetTable = targetTable;
-    }
-
-    public String getCondition() {
-        return condition;
+    public String targetIdent() {
+        return targetIdent;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        IngestRule that = (IngestRule) o;
-        return name.equals(that.name);
+    public ActionRequestValidationException validate() {
+        return null;
     }
 
     @Override
-    public int hashCode() {
-        return name.hashCode();
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        sourceIdent = in.readString();
+        targetIdent = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeString(targetTable);
-        out.writeString(condition);
+        super.writeTo(out);
+        out.writeString(sourceIdent);
+        out.writeString(targetIdent);
     }
 }

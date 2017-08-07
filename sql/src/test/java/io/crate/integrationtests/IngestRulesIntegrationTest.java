@@ -42,6 +42,7 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
     @After
     public void dropTableAndIngestRule() {
         execute("drop table if exists t1");
+        execute("drop table if exists t2");
     }
 
     @Test
@@ -76,5 +77,14 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
         execute("drop table t1");
         execute("select * from information_schema.ingestion_rules where target_table='doc.t1'");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testRenameTableTransfersIngestRules() {
+        execute("alter table t1 rename to t2");
+
+        execute("select rule_name from information_schema.ingestion_rules where target_table = 'doc.t2'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is(INGEST_RULE_NAME));
     }
 }

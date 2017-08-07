@@ -98,7 +98,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         Set<IngestRule> allRulesForTable = new HashSet<>();
         sourceIngestRules.values().forEach(sourceIngestRules -> {
             for (IngestRule ingestRule : sourceIngestRules) {
-                if(ingestRule.getTargetTable().equals(targetTable)) {
+                if (ingestRule.getTargetTable().equals(targetTable)) {
                     allRulesForTable.add(ingestRule);
                 }
             }
@@ -146,6 +146,14 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
             }
         }
         return affectedRows;
+    }
+
+    public long transferRules(String sourceIdent, String targetIdent) {
+        Set<IngestRule> rulesForSource = getAllRulesForTargetTable(sourceIdent);
+        for (IngestRule ingestRule : rulesForSource) {
+            ingestRule.setTargetTable(targetIdent);
+        }
+        return rulesForSource.size();
     }
 
     @Override
