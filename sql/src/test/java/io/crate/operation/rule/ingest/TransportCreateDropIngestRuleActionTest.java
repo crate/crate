@@ -58,4 +58,18 @@ public class TransportCreateDropIngestRuleActionTest extends CrateUnitTest {
         IngestRulesMetaData updatedMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
         assertNotSame(inputMetaData, updatedMetaData);
     }
+
+    @Test
+    public void testDropIngestRulesForTableCreatesNewMetadataInstance() {
+        MetaData.Builder mdBuilder = MetaData.builder();
+        IngestRulesMetaData inputMetaData = new IngestRulesMetaData(Maps.newHashMap());
+        inputMetaData.createIngestRule("someSource", new IngestRule("ruleName", "table", "condition"));
+        mdBuilder.putCustom(IngestRulesMetaData.TYPE, inputMetaData);
+        DropIngestRulesForTableRequest dropIngestRulesForTableRequest = new DropIngestRulesForTableRequest("doc.table");
+
+        TransportDropIngestRulesForTableAction.dropIngestRulesForTable(mdBuilder, dropIngestRulesForTableRequest);
+
+        IngestRulesMetaData updatedMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
+        assertNotSame(inputMetaData, updatedMetaData);
+    }
 }
