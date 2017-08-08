@@ -48,7 +48,7 @@ public class SubqueryPlanner {
     private void planSubquery(SelectSymbol selectSymbol) {
         AnalyzedRelation relation = selectSymbol.relation();
         SelectAnalyzedStatement selectAnalyzedStatement = new SelectAnalyzedStatement(((QueriedRelation) relation));
-        Plan subPlan = plannerContext.planSingleRowSubselect(selectAnalyzedStatement);
+        Plan subPlan = plannerContext.planSubselect(selectAnalyzedStatement, selectSymbol);
         subQueries.put(subPlan, selectSymbol);
     }
 

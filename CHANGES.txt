@@ -29,6 +29,11 @@ Changes
 
  - Improved resiliency of drop, close and open table operations
 
+  - Introduce support for single column subselects in ANY, e.g.::
+
+      Select id from t where id = ANY(Select id from t2)
+
+
 
 Fixes
 =====
