@@ -28,6 +28,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.*;
+
 /**
  * Symbol representing a sub-query
  */
@@ -35,7 +37,15 @@ public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
     private final SingleColumnTableType type;
+
     private boolean isPlanned = false;
+
+    private ResultType resultType = SINGLE_COLUMN_MULTIPLE_VALUES;
+
+    public enum ResultType {
+        SINGLE_COLUMN_SINGLE_VALUE,
+        SINGLE_COLUMN_MULTIPLE_VALUES
+    }
 
     public SelectSymbol(AnalyzedRelation relation, SingleColumnTableType type) {
         this.relation = relation;
@@ -82,5 +92,13 @@ public class SelectSymbol extends Symbol {
 
     public void markAsPlanned() {
         isPlanned = true;
+    }
+
+    public void setResultType(ResultType type) {
+        resultType = type;
+    }
+
+    public ResultType getResultType() {
+        return resultType;
     }
 }

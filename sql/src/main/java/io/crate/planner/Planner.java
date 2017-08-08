@@ -51,6 +51,8 @@ import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.analyze.symbol.SelectSymbol.ResultType;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.exceptions.UnhandledServerException;
@@ -98,6 +100,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.*;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
@@ -179,10 +183,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return transactionContext;
         }
 
-        public Plan planSingleRowSubselect(AnalyzedStatement statement) {
+        Plan planSubselect(AnalyzedStatement statement, SelectSymbol selectSymbol) {
             UUID subJobId = UUID.randomUUID();
+            final int softLimit, fetchSize;
+            if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
+                softLimit = fetchSize = 2;
+            } else {
+                softLimit = this.softLimit;
+                fetchSize = this.fetchSize;
+            }
             return planner.process(statement, new Planner.Context(
-                planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, 2, 2));
+                planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
         }
 
         void applySoftLimit(QuerySpec querySpec) {
