@@ -46,7 +46,7 @@ import org.elasticsearch.transport.TransportService;
 public class TransportDropIngestRulesForTableAction
     extends TransportMasterNodeAction<DropIngestRulesForTableRequest, DropIngestRulesForTableResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/drop_ingest_rules_for_table";
+    private static final String ACTION_NAME = "crate/sql/ingest_rules/table/drop";
 
     @Inject
     public TransportDropIngestRulesForTableAction(Settings settings,
@@ -71,7 +71,7 @@ public class TransportDropIngestRulesForTableAction
 
     @Override
     protected void masterOperation(DropIngestRulesForTableRequest request, ClusterState state, ActionListener<DropIngestRulesForTableResponse> listener) throws Exception {
-        clusterService.submitStateUpdateTask("drop_ingest_rules_for_table", new AckedClusterStateUpdateTask<DropIngestRulesForTableResponse>(Priority.IMMEDIATE, request, listener) {
+        clusterService.submitStateUpdateTask("ingest_rules/table/drop", new AckedClusterStateUpdateTask<DropIngestRulesForTableResponse>(Priority.IMMEDIATE, request, listener) {
 
             private long affectedRows = 0L;
 
