@@ -20,6 +20,3 @@ Changes
 
 Fixes
 =====
-
- - Fixed user defined functions persistence. 
-
