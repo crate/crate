@@ -23,15 +23,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.rule.ingest.IngestRule;
-import io.crate.metadata.rule.ingest.IngestRulesMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
@@ -80,13 +74,7 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTargetTableRemovesAssociatedRules() {
         execute("drop table t1");
-
-        // TODO: replace this with a query on information schema when available
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        MetaData metaData = clusterService.state().metaData();
-        IngestRulesMetaData ingestRulesMetaData = (IngestRulesMetaData) metaData.getCustoms().get(IngestRulesMetaData.TYPE);
-        Set<IngestRule> allRules = ingestRulesMetaData.getAllRulesForTargetTable("doc.t1");
-        assertThat(allRules.isEmpty(), is(true));
-
+        execute("select * from information_schema.ingestion_rules where target_table='doc.t1'");
+        assertThat(response.rowCount(), is(0L));
     }
 }
