@@ -103,11 +103,7 @@ public abstract class AnyOperator extends Operator<Object> {
             return null;
         }
         Iterable<?> rightIterable;
-        try {
-            rightIterable = collectionValueToIterable(collectionReference);
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
+        rightIterable = collectionValueToIterable(collectionReference);
         return doEvaluate(value, rightIterable);
     }
 
