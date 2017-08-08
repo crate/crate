@@ -104,4 +104,10 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("42 = ANY([42])", isLiteral(true));
         assertNormalize("42 = ANY([41, 43, -42])", isLiteral(false));
     }
+
+    @Test
+    public void testExceptionForwarding() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        anyEq(1, "bar");
+    }
 }

@@ -281,7 +281,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("insert into t2 (id) values (1)");
         execute("refresh table t1, t2");
 
-        execute("select count(*) from t2 where id != any(select collect_set(id) from t1)");
+        execute("select count(*) from t2 where id != any(select id from t1)");
         assertThat(response.rows()[0][0], is(1L));
     }
 }

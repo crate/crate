@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.data.Input;
-import io.crate.exceptions.UnsupportedFeatureException;
 
 import java.util.Collection;
 import java.util.List;
