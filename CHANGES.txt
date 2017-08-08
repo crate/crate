@@ -18,50 +18,5 @@ Breaking Changes
 Changes
 =======
 
- - Enabled ``mapping.total_fields.limit`` setting for tables in order to be
-   able to increase maximum number of columns higher than the default
-   of ``1000``.
-
 Fixes
 =====
-
- - Fixed an issue where ``COPY FROM``, ``INSERT-BY-SUBQUERY`` or bulk ``INSERT``
-   statements could not be killed when high pressure is put on data node thread
-   pools.
-
- - Fixed the error message to be more descriptive when the condition in a
-   `CASE/WHEN` expression is not a boolean.
-
- - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
-   statement that uses the ``ANY (array_expression)`` operator.
-
- - Allow support of conditional expression with different return types that can
-   be converted to a single return type.
-
- - Fixed support for negate on null in conditional expression.
-
- - Fixed support for setting ``write.wait_for_active_shards`` on a partitioned
-   table.
-
- - Optimized the algorithm that determines the best ordering of the tables in
-   a ``JOIN``.
-
- - Fixed a regression causing incorrect results for queries with ``DISTINCT``
-   on scalar functions. E.g.::
-
-     SELECT DISTINCT upper(name) FROM t
-
- - Fixed a NPE when running ``select port from sys.nodes`` and
-   ``psql.enabled: false`` was set
-
- - Implemented ``NOT NULL`` constraint validation for nested object columns,
-   which was previously ignored. E.g.::
-
-     CREATE TABLE test (
-       stuff object(dynamic) AS (
-         level1 object(dynamic) AS (
-           level2 string not null
-         ) NOT NULL
-       ) NOT NULL
-     )
-
