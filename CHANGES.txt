@@ -36,6 +36,12 @@ Changes
  - Added empty tables `KEY_COLUMN_USAGE` and `REFERENTIAL_CONSTRAINTS` to
   `INFORMATION_SCHEMA` to be more compliant with the SQL99 standard.
 
+ - Introduce support for single column subselects in ANY, e.g.::
+
+     Select id from t where id = ANY(Select id from t2)
+
+
+
 Fixes
 =====
 
