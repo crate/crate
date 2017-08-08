@@ -31,7 +31,7 @@ import java.io.IOException;
 public class IngestRule implements Writeable {
 
     private final String name;
-    private String targetTable;
+    private final String targetTable;
     private final String condition;
 
     public IngestRule(String name, String targetTable, String condition) {
@@ -52,10 +52,6 @@ public class IngestRule implements Writeable {
 
     public String getTargetTable() {
         return targetTable;
-    }
-
-    public void setTargetTable(String targetTable) {
-        this.targetTable = targetTable;
     }
 
     public String getCondition() {

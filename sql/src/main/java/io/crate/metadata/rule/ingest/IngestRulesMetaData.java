@@ -37,6 +37,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -94,12 +95,19 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return sourceIngestRules;
     }
 
-    public Set<IngestRule> getAllRulesForTargetTable(String targetTable) {
-        Set<IngestRule> allRulesForTable = new HashSet<>();
-        sourceIngestRules.values().forEach(sourceIngestRules -> {
-            for (IngestRule ingestRule : sourceIngestRules) {
+    public Map<String, Set<IngestRule>> getAllRulesForTargetTable(String targetTable) {
+        Map<String, Set<IngestRule>> allRulesForTable = new HashMap<>();
+        sourceIngestRules.forEach((key, value) -> {
+            boolean foundFirstEntryForSource = false;
+            Set<IngestRule> tableRulesForSource = null;
+            for (IngestRule ingestRule : value) {
                 if (ingestRule.getTargetTable().equals(targetTable)) {
-                    allRulesForTable.add(ingestRule);
+                    if (foundFirstEntryForSource == false) {
+                        foundFirstEntryForSource = true;
+                        tableRulesForSource = new HashSet<>();
+                        allRulesForTable.put(key, tableRulesForSource);
+                    }
+                    tableRulesForSource.add(ingestRule);
                 }
             }
         });
@@ -149,11 +157,29 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
     }
 
     public long transferRules(String sourceIdent, String targetIdent) {
-        Set<IngestRule> rulesForSource = getAllRulesForTargetTable(sourceIdent);
-        for (IngestRule ingestRule : rulesForSource) {
-            ingestRule.setTargetTable(targetIdent);
+        Map<String, Set<IngestRule>> rulesForSourceTable = getAllRulesForTargetTable(sourceIdent);
+        long transferredCount = 0;
+        for (Map.Entry<String, Set<IngestRule>> entry : rulesForSourceTable.entrySet()) {
+            Set<IngestRule> ingestRulesForSource = entry.getValue();
+            for (IngestRule sourceTableRule : ingestRulesForSource) {
+                replaceRuleForSource(entry.getKey(),
+                    new IngestRule(sourceTableRule.getName(), targetIdent, sourceTableRule.getCondition()));
+                transferredCount++;
+            }
         }
-        return rulesForSource.size();
+        return transferredCount;
+    }
+
+    private void replaceRuleForSource(String source, IngestRule ingestRule) {
+        Set<IngestRule> ingestRulesForSource = sourceIngestRules.get(source);
+        if(ingestRulesForSource == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "IngestRule with name %s does not exist for source %s", ingestRule.getName(), source));
+        } else {
+            // this might look weird, but the identity of the IngestRule is based only on the rule name
+            ingestRulesForSource.remove(ingestRule);
+            ingestRulesForSource.add(ingestRule);
+        }
     }
 
     @Override

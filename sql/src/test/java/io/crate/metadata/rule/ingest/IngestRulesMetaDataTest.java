@@ -149,9 +149,9 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
         IngestRule newIngestRule = new IngestRule("newRule", "mqtt_table", "topic = 'test'");
         inputMetaData.createIngestRule("newSource", newIngestRule);
 
-        Set<IngestRule> allRules = inputMetaData.getAllRulesForTargetTable("mqtt_table");
-        assertThat(allRules.size(), is(1));
-        assertThat(allRules.iterator().next(), is(newIngestRule));
+        Map<String, Set<IngestRule>> rulesForTargetTable = inputMetaData.getAllRulesForTargetTable("mqtt_table");
+        assertThat(rulesForTargetTable.size(), is(1));
+        assertThat(rulesForTargetTable.get("newSource").iterator().next(), is(newIngestRule));
     }
 
     @Test
@@ -164,6 +164,8 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
     public void testTransferRules() {
         long affectedRulesCount = inputMetaData.transferRules("mqtt_raw", "mqtt_table");
         assertThat(affectedRulesCount, is(1L));
-        assertThat(inputMetaData.getIngestRules(SOURCE_NAME).iterator().next().getTargetTable(), is("mqtt_table"));
+        Set<IngestRule> ingestRules = inputMetaData.getIngestRules(SOURCE_NAME);
+        assertThat(ingestRules, notNullValue());
+        assertThat(ingestRules.iterator().next().getTargetTable(), is("mqtt_table"));
     }
 }
