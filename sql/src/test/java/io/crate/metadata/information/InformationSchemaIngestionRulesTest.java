@@ -40,13 +40,13 @@ public class InformationSchemaIngestionRulesTest extends CrateDummyClusterServic
             sourceRules.put("http", rules_http);
 
             IngestRulesMetaData inputMetaData = new IngestRulesMetaData(sourceRules);
-            
+
             ClusterState clusterState = ClusterState.builder(clusterService.state())
                 .metaData(MetaData.builder(clusterService.state().metaData())
                     .putCustom(IngestRulesMetaData.TYPE, inputMetaData)).build();
             ClusterServiceUtils.setState(clusterService, clusterState);
         }
-        ingestionRuleInfos = new IngestionRuleInfos(clusterService);
+        ingestionRuleInfos = new IngestionRuleInfos(clusterService.state().getMetaData());
     }
 
     @Test
