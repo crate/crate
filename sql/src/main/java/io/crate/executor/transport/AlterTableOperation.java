@@ -396,7 +396,7 @@ public class AlterTableOperation {
 
     private CompletableFuture<Long> transferIngestRules(String sourceIdent, String targetIdent) {
         FutureActionListener<TransferIngestRuleResponse, Long> listener =
-            new FutureActionListener<>(TransferIngestRuleResponse::affectedRows);
+            new FutureActionListener<>(r -> -1L);
         transportTransferIngestRulesAction.execute(new TransferIngestRulesRequest(sourceIdent, targetIdent), listener);
         return listener;
     }
