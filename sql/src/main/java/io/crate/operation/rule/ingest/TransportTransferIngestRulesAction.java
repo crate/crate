@@ -73,19 +73,21 @@ public class TransportTransferIngestRulesAction extends TransportMasterNodeActio
         clusterService.submitStateUpdateTask("transfer_ingest_rules",
             new AckedClusterStateUpdateTask<TransferIngestRuleResponse>(Priority.IMMEDIATE, request, listener) {
 
-            private long affectedRows = -1L;
-
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
                 MetaData currentMetaData = currentState.metaData();
                 Builder mdBuilder = MetaData.builder(currentMetaData);
-                affectedRows = transferIngestRules(mdBuilder, request);
-                return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                long affectedRows = transferIngestRules(mdBuilder, request);
+                if (affectedRows > 0) {
+                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                } else {
+                    return currentState;
+                }
             }
 
             @Override
             protected TransferIngestRuleResponse newResponse(boolean acknowledged) {
-                return new TransferIngestRuleResponse(acknowledged, affectedRows);
+                return new TransferIngestRuleResponse(acknowledged);
             }
         });
     }

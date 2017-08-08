@@ -30,31 +30,22 @@ import java.io.IOException;
 
 public class TransferIngestRuleResponse extends AcknowledgedResponse {
 
-    private long affectedRows;
-
     TransferIngestRuleResponse() {
     }
 
-    TransferIngestRuleResponse(boolean acknowledged, long affectedRows) {
+    TransferIngestRuleResponse(boolean acknowledged) {
         super(acknowledged);
-        this.affectedRows = affectedRows;
-    }
-
-    public long affectedRows() {
-        return affectedRows;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         readAcknowledged(in);
-        affectedRows = in.readLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         writeAcknowledged(out);
-        out.writeLong(affectedRows);
     }
 }
