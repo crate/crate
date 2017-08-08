@@ -80,7 +80,11 @@ public class TransportDropIngestRulesForTableAction
                 MetaData currentMetaData = currentState.metaData();
                 Builder mdBuilder = MetaData.builder(currentMetaData);
                 affectedRows = dropIngestRulesForTable(mdBuilder, request);
-                return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                if (affectedRows > 0) {
+                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                } else {
+                    return currentState;
+                }
             }
 
             @Override
