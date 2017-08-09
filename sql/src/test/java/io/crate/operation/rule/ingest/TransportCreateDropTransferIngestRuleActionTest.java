@@ -29,7 +29,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
 
-public class TransportCreateDropIngestRuleActionTest extends CrateUnitTest {
+public class TransportCreateDropTransferIngestRuleActionTest extends CrateUnitTest {
 
     @Test
     public void testCreateIngestRuleCreatesNewMetadataInstance() {
@@ -54,6 +54,34 @@ public class TransportCreateDropIngestRuleActionTest extends CrateUnitTest {
         DropIngestRuleRequest dropIngestRuleRequest = new DropIngestRuleRequest("ruleName", false);
 
         TransportDropIngestRuleAction.dropIngestRule(mdBuilder, dropIngestRuleRequest);
+
+        IngestRulesMetaData updatedMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
+        assertNotSame(inputMetaData, updatedMetaData);
+    }
+
+    @Test
+    public void testDropIngestRulesForTableCreatesNewMetadataInstance() {
+        MetaData.Builder mdBuilder = MetaData.builder();
+        IngestRulesMetaData inputMetaData = new IngestRulesMetaData(Maps.newHashMap());
+        inputMetaData.createIngestRule("someSource", new IngestRule("ruleName", "table", "condition"));
+        mdBuilder.putCustom(IngestRulesMetaData.TYPE, inputMetaData);
+        DropIngestRulesForTableRequest dropIngestRulesForTableRequest = new DropIngestRulesForTableRequest("doc.table");
+
+        TransportDropIngestRulesForTableAction.dropIngestRulesForTable(mdBuilder, dropIngestRulesForTableRequest);
+
+        IngestRulesMetaData updatedMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
+        assertNotSame(inputMetaData, updatedMetaData);
+    }
+
+    @Test
+    public void testTransferIngestRuleCreatesNewMetadataInstance() {
+        MetaData.Builder mdBuilder = MetaData.builder();
+        IngestRulesMetaData inputMetaData = new IngestRulesMetaData(Maps.newHashMap());
+        inputMetaData.createIngestRule("someSource", new IngestRule("ruleName", "table", "condition"));
+        mdBuilder.putCustom(IngestRulesMetaData.TYPE, inputMetaData);
+        TransferIngestRulesRequest transferIngestRulesRequest = new TransferIngestRulesRequest("table", "table2");
+
+        TransportTransferIngestRulesAction.transferIngestRules(mdBuilder, transferIngestRulesRequest);
 
         IngestRulesMetaData updatedMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
         assertNotSame(inputMetaData, updatedMetaData);

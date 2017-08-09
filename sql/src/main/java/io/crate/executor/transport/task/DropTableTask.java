@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task;
 
+import io.crate.action.FutureActionListener;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -29,6 +30,9 @@ import io.crate.executor.JobTask;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.rule.ingest.DropIngestRulesForTableRequest;
+import io.crate.operation.rule.ingest.DropIngestRulesForTableResponse;
+import io.crate.operation.rule.ingest.TransportDropIngestRulesForTableAction;
 import io.crate.operation.user.UserManager;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +50,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 public class DropTableTask extends JobTask {
 
@@ -57,18 +62,21 @@ public class DropTableTask extends JobTask {
     private final DocTableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
     private final TransportDeleteIndexAction deleteIndexAction;
+    private final TransportDropIngestRulesForTableAction dropIngestRulesForTableAction;
     private final UserManager userManager;
     private final boolean ifExists;
 
     public DropTableTask(DropTablePlan plan,
                          TransportDeleteIndexTemplateAction deleteTemplateAction,
                          TransportDeleteIndexAction deleteIndexAction,
+                         TransportDropIngestRulesForTableAction dropIngestRulesForTableAction,
                          UserManager userManager) {
         super(plan.jobId());
         this.ifExists = plan.ifExists();
         this.tableInfo = plan.tableInfo();
         this.deleteTemplateAction = deleteTemplateAction;
         this.deleteIndexAction = deleteIndexAction;
+        this.dropIngestRulesForTableAction = dropIngestRulesForTableAction;
         this.userManager = userManager;
     }
 
@@ -85,14 +93,12 @@ public class DropTableTask extends JobTask {
                     if (!tableInfo.partitions().isEmpty()) {
                         deleteESIndex(tableInfo.ident(), consumer);
                     } else {
-                        userManager.dropTablePrivileges(tableInfo.ident().fqn()).whenComplete((r, t) -> {
-                            if (t != null) {
-                                logger.warn(
-                                    String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableInfo.ident().fqn()),
-                                    t);
-                            }
-                            consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
-                        });
+                        CompletableFuture<Void> dropAttachedResourcesFuture =
+                            dropPrivilegesAndIngestRulesForTable(tableInfo.ident());
+
+                        dropAttachedResourcesFuture.whenComplete((r, t) ->
+                            consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null)
+                        );
                     }
                 }
 
@@ -123,14 +129,10 @@ public class DropTableTask extends JobTask {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }
-                userManager.dropTablePrivileges(tableIdent.fqn()).whenComplete((r, t) -> {
-                    if (t != null) {
-                        logger.warn(
-                            String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableIdent.fqn()),
-                            t);
-                    }
-                    consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
-                });
+                CompletableFuture<Void> dropAttachedResourcesFuture = dropPrivilegesAndIngestRulesForTable(tableIdent);
+                dropAttachedResourcesFuture.whenComplete((r, t) ->
+                    consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null)
+                );
             }
 
             @Override
@@ -149,6 +151,39 @@ public class DropTableTask extends JobTask {
                 }
             }
         });
+    }
+
+    private CompletableFuture<Void> dropPrivilegesAndIngestRulesForTable(TableIdent tableIdent) {
+        CompletableFuture<Long> dropPrivilegesFuture = dropUserPrivilegesFor(tableIdent);
+        CompletableFuture<Long> dropIngestRulesFuture = dropIngestRulesForTarget(tableIdent);
+        return CompletableFuture.allOf(dropPrivilegesFuture, dropIngestRulesFuture);
+    }
+
+    private CompletableFuture<Long> dropUserPrivilegesFor(TableIdent tableIdent) {
+        return userManager.dropTablePrivileges(tableIdent.fqn()).whenComplete((r, t) -> {
+            if (t != null) {
+                logger.warn(
+                    String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableIdent.fqn()),
+                    t);
+            }
+        });
+    }
+
+    private CompletableFuture<Long> dropIngestRulesForTarget(TableIdent tableIdent) {
+        return dropIngestRules(tableIdent).whenComplete((r, t) -> {
+            if (t != null) {
+                logger.warn(
+                    String.format(Locale.ENGLISH, "Unable to drop existing ingest rules for table %s.", tableIdent.fqn()),
+                    t);
+            }
+        });
+    }
+
+    private CompletableFuture<Long> dropIngestRules(TableIdent tableIdent) {
+        FutureActionListener<DropIngestRulesForTableResponse, Long> listener =
+            new FutureActionListener<>(r -> r.affectedRows());
+        dropIngestRulesForTableAction.execute(new DropIngestRulesForTableRequest(tableIdent.fqn()), listener);
+        return listener;
     }
 
     private void warnNotAcknowledged() {
