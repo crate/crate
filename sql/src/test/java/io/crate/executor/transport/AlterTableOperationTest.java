@@ -23,57 +23,16 @@
 package io.crate.executor.transport;
 
 import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 public class AlterTableOperationTest extends CrateUnitTest {
-
-    @Test
-    public void testPrepareRenameTemplateRequests() throws Exception {
-        TableIdent sourceIdent = new TableIdent(null, "users_old");
-        TableIdent targetIdent = new TableIdent(null, "users");
-
-        Settings settings = Settings.builder().put("some_setting", true).build();
-        MetaData metaData = MetaData.builder()
-            .put(IndexTemplateMetaData.builder(PartitionName.templateName(sourceIdent.schema(), sourceIdent.name()))
-                .template(PartitionName.templatePrefix(sourceIdent.schema(), sourceIdent.name()))
-                .putAlias(AliasMetaData.newAliasMetaDataBuilder(sourceIdent.name()))
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"default\":{\"foo\":\"bar\"}}")
-                .settings(settings)
-            ).build();
-
-        Tuple<PutIndexTemplateRequest, DeleteIndexTemplateRequest> requests =
-            AlterTableOperation.prepareRenameTemplateRequests(metaData, sourceIdent, targetIdent);
-
-        PutIndexTemplateRequest addRequest = requests.v1();
-        assertThat(addRequest.create(), is(true));
-        assertThat(addRequest.name(), is(PartitionName.templateName(targetIdent.schema(), targetIdent.name())));
-        assertThat(addRequest.template(), is(PartitionName.templatePrefix(targetIdent.schema(), targetIdent.name())));
-        assertThat(addRequest.settings(), is(settings));
-        assertThat(addRequest.mappings().get(Constants.DEFAULT_MAPPING_TYPE), is("{\"default\":{\"foo\":\"bar\"}}"));
-        List<String> aliases = addRequest.aliases().stream().map(Alias::name).collect(Collectors.toList());
-        assertThat(aliases, hasItem(targetIdent.name()));
-
-        assertThat(requests.v2().name(), is(PartitionName.templateName(sourceIdent.schema(), sourceIdent.name())));
-    }
 
     @Test
     public void testPrepareAlterTableMappingRequest() throws Exception {

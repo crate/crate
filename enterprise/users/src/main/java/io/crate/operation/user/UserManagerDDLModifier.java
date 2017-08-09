@@ -43,7 +43,20 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
         return ClusterState.builder(currentState).metaData(mdBuilder).build();
     }
 
-    private boolean dropPrivileges(MetaData.Builder mdBuilder, TableIdent tableIdent) {
+    @Override
+    public ClusterState onRenameTable(ClusterState currentState,
+                                      TableIdent sourceTableIdent,
+                                      TableIdent targetTableIdent,
+                                      boolean isPartitionedTable) {
+        MetaData currentMetaData = currentState.metaData();
+        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+        if (transferTablePrivileges(mdBuilder, sourceTableIdent, targetTableIdent)) {
+            return ClusterState.builder(currentState).metaData(mdBuilder).build();
+        }
+        return currentState;
+    }
+
+    private static boolean dropPrivileges(MetaData.Builder mdBuilder, TableIdent tableIdent) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
             (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
@@ -51,5 +64,24 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
         long affectedRows = newMetaData.dropTablePrivileges(tableIdent.fqn());
         mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
         return affectedRows > 0L;
+    }
+
+    private static boolean transferTablePrivileges(MetaData.Builder mdBuilder,
+                                                TableIdent sourceTableIdent,
+                                                TableIdent targetTableIdent) {
+        UsersPrivilegesMetaData oldMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
+        if (oldMetaData == null) {
+            return false;
+        }
+
+        // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
+        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.maybeCopyAndReplaceTableIdents(
+            oldMetaData, sourceTableIdent.fqn(), targetTableIdent.fqn());
+
+        if (newMetaData != null) {
+            mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
+            return true;
+        }
+        return false;
     }
 }

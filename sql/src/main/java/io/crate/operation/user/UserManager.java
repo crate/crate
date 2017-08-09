@@ -58,14 +58,6 @@ public interface UserManager extends UserLookup {
     CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
 
     /**
-     * Transfers the existing table privileges of the provided {@param sourceIdent} table to the table identified by
-     * {@param targetIdent}
-     *
-     * @return a future which returns the number of privileges which were successfully transferred
-     */
-    CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent);
-
-    /**
      * Look up a statement authorization validator for the given user.
      * All statements will be validated by this before planning/executing.
      */

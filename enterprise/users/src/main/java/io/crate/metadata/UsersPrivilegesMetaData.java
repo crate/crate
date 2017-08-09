@@ -25,7 +25,6 @@ import io.crate.analyze.user.PrivilegeIdent;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -62,14 +61,16 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
     }
 
     /**
-     * Returns a copy of the {@link UsersPrivilegesMetaData} including a copied list of privileges.
+     * Returns a copy of the {@link UsersPrivilegesMetaData} including a copied list of privileges if at least one
+     * privilege was replaced. Otherwise returns the NULL to indicate that nothing was changed.
      * Privileges of class {@link Privilege.Clazz#TABLE} whose idents are matching the given source ident are replaced
      * by a copy where the ident is changed to the given target ident.
      */
-    public static Tuple<UsersPrivilegesMetaData, Long> copyAndReplaceTableIdents(UsersPrivilegesMetaData oldMetaData,
-                                                                                 String sourceIdent,
-                                                                                 String targetIdent) {
-        long affectedPrivileges = 0L;
+    @Nullable
+    public static UsersPrivilegesMetaData maybeCopyAndReplaceTableIdents(UsersPrivilegesMetaData oldMetaData,
+                                                                         String sourceIdent,
+                                                                         String targetIdent) {
+        boolean privilegesChanged = false;
         Map<String, Set<Privilege>> userPrivileges = new HashMap<>(oldMetaData.usersPrivileges.size());
         for (Map.Entry<String, Set<Privilege>> entry : oldMetaData.usersPrivileges.entrySet()) {
             Set<Privilege> privileges = new HashSet<>(entry.getValue().size());
@@ -85,14 +86,18 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
                 if (ident.equals(sourceIdent)) {
                     privileges.add(new Privilege(privilege.state(), privilegeIdent.type(), privilegeIdent.clazz(),
                         targetIdent, privilege.grantor()));
-                    affectedPrivileges++;
+                    privilegesChanged = true;
                 } else {
                     privileges.add(privilege);
                 }
             }
             userPrivileges.put(entry.getKey(), privileges);
         }
-        return new Tuple<>(new UsersPrivilegesMetaData(userPrivileges), affectedPrivileges);
+
+        if (privilegesChanged) {
+            return new UsersPrivilegesMetaData(userPrivileges);
+        }
+        return null;
     }
 
     private final Map<String, Set<Privilege>> usersPrivileges;

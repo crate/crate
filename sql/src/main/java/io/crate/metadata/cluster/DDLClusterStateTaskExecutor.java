@@ -45,5 +45,5 @@ public abstract class DDLClusterStateTaskExecutor<Request> implements ClusterSta
         return builder.build(currentState);
     }
 
-    protected abstract ClusterState execute(ClusterState currentState, Request request);
+    protected abstract ClusterState execute(ClusterState currentState, Request request) throws Exception;
 }

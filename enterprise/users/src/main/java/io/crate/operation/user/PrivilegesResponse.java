@@ -23,17 +23,24 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.List;
 
 public class PrivilegesResponse extends AcknowledgedResponse {
 
+    private List<String> unknownUserNames;
     private long affectedRows;
 
     PrivilegesResponse() {
     }
 
-    PrivilegesResponse(boolean acknowledged, long affectedRows) {
+    PrivilegesResponse(boolean acknowledged, long affectedRows, List<String> unknownUserNames) {
         super(acknowledged);
+        this.unknownUserNames = unknownUserNames;
         this.affectedRows = affectedRows;
+    }
+
+    List<String> unknownUserNames() {
+        return unknownUserNames;
     }
 
     long affectedRows() {
@@ -45,6 +52,7 @@ public class PrivilegesResponse extends AcknowledgedResponse {
         super.readFrom(in);
         readAcknowledged(in);
         affectedRows = in.readLong();
+        unknownUserNames = in.readList(StreamInput::readString);
     }
 
     @Override
@@ -52,5 +60,6 @@ public class PrivilegesResponse extends AcknowledgedResponse {
         super.writeTo(out);
         writeAcknowledged(out);
         out.writeLong(affectedRows);
+        out.writeStringList(unknownUserNames);
     }
 }

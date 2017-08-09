@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.ClusterState;
  * Components can implement this interface to hook into DDL statement which are resulting in a changed cluster state.
  * Every implementation must register itself at {@link DDLClusterStateService#addModifier(DDLClusterStateModifier)}.
  *
+ * The passed in {@link ClusterState} is an already by the main DDL operation modified state.
  * An implementation should return the given {@link ClusterState} if nothing was modified.
  * Otherwise a new {@link ClusterState} object created by the {@link ClusterState.Builder} must be build and returned.
  */
@@ -67,6 +68,16 @@ public interface DDLClusterStateModifier {
      * Called while a table is dropped.
      */
     default ClusterState onDropTable(ClusterState currentState, TableIdent tableIdent) {
+        return currentState;
+    }
+
+    /**
+     * Called while a table is renamed
+     */
+    default ClusterState onRenameTable(ClusterState currentState,
+                                       TableIdent sourceTableIdent,
+                                       TableIdent targetTableIdent,
+                                       boolean isPartitionedTable) {
         return currentState;
     }
 }

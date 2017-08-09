@@ -62,7 +62,7 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
     }
 
     @Override
-    protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) {
+    protected ClusterState execute(ClusterState currentState, OpenCloseTableOrPartitionRequest request) throws Exception {
         Context context = prepare(currentState, request);
         Set<IndexMetaData> indicesToOpen = context.indicesMetaData();
         IndexTemplateMetaData templateMetaData = context.templateMetaData();
@@ -97,14 +97,17 @@ public class OpenTableClusterStateTaskExecutor extends AbstractOpenCloseTableClu
             mdBuilder.put(updateOpenCloseOnPartitionTemplate(templateMetaData, true));
         }
 
+        // The MetaData will always be overridden (and not merged!) when applying it on a cluster state builder.
+        // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
+        // Otherwise they would operate on the old MetaData and would just ignore any modifications.
+        ClusterState updatedState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
+
         // call possible registered modifiers
         if (context.partitionName() != null) {
-            currentState = ddlClusterStateService.onOpenTablePartition(currentState, context.partitionName());
+            updatedState = ddlClusterStateService.onOpenTablePartition(updatedState, context.partitionName());
         } else {
-            currentState = ddlClusterStateService.onOpenTable(currentState, request.tableIdent());
+            updatedState = ddlClusterStateService.onOpenTable(updatedState, request.tableIdent());
         }
-
-        ClusterState updatedState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
 
         RoutingTable.Builder rtBuilder = RoutingTable.builder(updatedState.routingTable());
         for (IndexMetaData index : indicesToOpen) {

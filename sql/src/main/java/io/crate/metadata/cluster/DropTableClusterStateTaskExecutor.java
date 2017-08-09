@@ -51,7 +51,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
     }
 
     @Override
-    protected ClusterState execute(ClusterState currentState, DropTableRequest request) {
+    protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
         TableIdent tableIdent = request.tableIdent();
         final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(
             currentState, IndicesOptions.lenientExpandOpen(), tableIdent.indexName())));

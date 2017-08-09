@@ -27,18 +27,18 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class ApplyPrivilegesResponseTest extends CrateUnitTest {
+public class PrivilegesResponseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
         List<String> unknownUsers = Lists.newArrayList("ford", "arthur");
         long affectedRows = 1L;
-        ApplyPrivilegesResponse r1 = new ApplyPrivilegesResponse(true, affectedRows, unknownUsers);
+        PrivilegesResponse r1 = new PrivilegesResponse(true, affectedRows, unknownUsers);
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
 
-        ApplyPrivilegesResponse r2 = new ApplyPrivilegesResponse();
+        PrivilegesResponse r2 = new PrivilegesResponse();
         r2.readFrom(out.bytes().streamInput());
 
         assertThat(r2.isAcknowledged(), is(true));

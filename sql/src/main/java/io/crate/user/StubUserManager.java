@@ -57,11 +57,6 @@ public class StubUserManager implements UserManager {
         );
     }
 
-    @Override
-    public CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
-        return CompletableFuture.completedFuture(-1L);
-    }
-
     @Nullable
     @Override
     public User findUser(String userName) {

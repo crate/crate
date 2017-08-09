@@ -50,8 +50,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
-import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
 import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
@@ -65,8 +63,6 @@ import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
@@ -77,7 +73,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -267,12 +262,8 @@ public class AlterTableOperation {
             ));
         }
         actions.add(new ChainableAction<>(
-            () -> renameTable(sourceIndices, targetIndices),
-            () -> renameTable(targetIndices, sourceIndices)
-        ));
-        actions.add(new ChainableAction<>(
-            () -> transferTablePrivileges(sourceTableIdent.fqn(), targetTableIdent.fqn()),
-            () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
+            () -> renameTable(sourceTableIdent, targetTableIdent, false),
+            () -> renameTable(targetTableIdent, sourceTableIdent, false)
         ));
         if (sourceTableInfo.isClosed() == false) {
             actions.add(new ChainableAction<>(
@@ -321,24 +312,9 @@ public class AlterTableOperation {
             }
         }
 
-        if (sourceIndices.length > 0 && targetIndices.length > 0) {
-            actions.add(new ChainableAction<>(
-                () -> changeAliases(sourceIndices, sourceTableIdent.indexName(), targetTableIdent.indexName()),
-                () -> changeAliases(targetIndices, targetTableIdent.indexName(), sourceTableIdent.indexName())
-            ));
-            actions.add(new ChainableAction<>(
-                () -> renameTable(sourceIndices, targetIndices),
-                () -> renameTable(targetIndices, sourceIndices)
-            ));
-        }
-
         actions.add(new ChainableAction<>(
-            () -> transferTablePrivileges(sourceTableIdent.fqn(), targetTableIdent.fqn()),
-            () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
-        ));
-        actions.add(new ChainableAction<>(
-            () -> renameTemplate(sourceTableIdent, targetTableIdent),
-            () -> renameTemplate(targetTableIdent, sourceTableIdent)
+            () -> renameTable(sourceTableIdent, targetTableIdent, true),
+            () -> renameTable(targetTableIdent, sourceTableIdent, true)
         ));
 
         if (completeTableIsClosed == false) {
@@ -358,78 +334,15 @@ public class AlterTableOperation {
         return ChainableActions.run(actions);
     }
 
-    private CompletableFuture<Long> renameTable(String[] sourceIndices, String[] targetIndices) {
-        RenameTableRequest request = new RenameTableRequest(sourceIndices, targetIndices);
+    private CompletableFuture<Long> renameTable(TableIdent sourceTableIdent,
+                                                TableIdent targetTableIdent,
+                                                boolean isPartitioned) {
+        RenameTableRequest request = new RenameTableRequest(sourceTableIdent, targetTableIdent, isPartitioned);
         FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportRenameTableAction.execute(request, listener);
         return listener;
     }
 
-    private CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
-        return userManager.transferTablePrivileges(sourceIdent, targetIdent);
-    }
-
-    private CompletableFuture<Long> changeAliases(String[] partitions, String oldAlias, String newAlias) {
-        IndicesAliasesRequest changeAliasRequest = new IndicesAliasesRequest();
-        changeAliasRequest.addAliasAction(IndicesAliasesRequest.AliasActions.remove()
-            .alias(oldAlias).indices(partitions));
-        changeAliasRequest.addAliasAction(IndicesAliasesRequest.AliasActions.add()
-            .alias(newAlias).indices(partitions));
-
-        FutureActionListener<IndicesAliasesResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportIndicesAliasesAction.execute(changeAliasRequest, listener);
-        return listener;
-    }
-
-    private CompletableFuture<Long> renameTemplate(TableIdent sourceIdent, TableIdent targetIdent) {
-        Tuple<PutIndexTemplateRequest, DeleteIndexTemplateRequest> requests = null;
-
-        try {
-            requests = prepareRenameTemplateRequests(clusterService.state().metaData(), sourceIdent, targetIdent);
-        } catch (Exception e) {
-            return CompletableFutures.failedFuture(e);
-        }
-
-        List<CompletableFuture<Long>> results = new ArrayList<>(2);
-        FutureActionListener<PutIndexTemplateResponse, Long> addListener = new FutureActionListener<>(r -> -1L);
-        transportPutIndexTemplateAction.execute(requests.v1(), addListener);
-        results.add(addListener);
-        FutureActionListener<DeleteIndexTemplateResponse, Long> deleteListener = new FutureActionListener<>(r -> -1L);
-        transportDeleteIndexTemplateAction.execute(requests.v2(), deleteListener);
-        results.add(deleteListener);
-
-        final CompletableFuture<Long> result = new CompletableFuture<>();
-        applyMultiFutureCallback(result, results);
-        return result;
-    }
-
-    @VisibleForTesting
-    static Tuple<PutIndexTemplateRequest, DeleteIndexTemplateRequest> prepareRenameTemplateRequests(MetaData metaData,
-                                                                                                    TableIdent sourceIdent,
-                                                                                                    TableIdent targetIdent) {
-        String sourceTemplate = PartitionName.templateName(sourceIdent.schema(), sourceIdent.name());
-        String targetTemplate = PartitionName.templateName(targetIdent.schema(), targetIdent.name());
-        String targetTemplatePrefix = PartitionName.templatePrefix(targetIdent.schema(), targetIdent.name());
-        IndexTemplateMetaData indexTemplateMetaData = metaData.templates().get(sourceTemplate);
-        if (indexTemplateMetaData == null) {
-            throw new RuntimeException("Template for partitioned table is missing");
-        }
-
-        PutIndexTemplateRequest addRequest = new PutIndexTemplateRequest(targetTemplate)
-            .create(true)
-            .mapping(Constants.DEFAULT_MAPPING_TYPE, mergeTemplateMapping(indexTemplateMetaData, Collections.emptyMap()))
-            .order(indexTemplateMetaData.order())
-            .settings(indexTemplateMetaData.settings())
-            .template(targetTemplatePrefix)
-            .alias(new Alias(targetIdent.indexName()));
-        for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
-            Alias alias = new Alias(container.key);
-            addRequest.alias(alias);
-        }
-        DeleteIndexTemplateRequest deleteRequest = new DeleteIndexTemplateRequest(sourceTemplate);
-
-        return new Tuple<>(addRequest, deleteRequest);
-    }
 
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
         return updateTemplate(tableParameter.mappings(), tableParameter.settings(), tableIdent);
@@ -449,7 +362,7 @@ public class AlterTableOperation {
         IndexTemplateMetaData indexTemplateMetaData =
             clusterService.state().metaData().templates().get(templateName);
         if (indexTemplateMetaData == null) {
-            return CompletableFutures.failedFuture(new RuntimeException("Template for partitioned table is missing"));
+            return CompletableFutures.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
         }
 
         // merge mappings
@@ -522,7 +435,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private static Map<String, Object> parseMapping(String mappingSource) throws IOException {
+    public static Map<String, Object> parseMapping(String mappingSource) throws IOException {
         try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(NamedXContentRegistry.EMPTY, mappingSource)) {
             return parser.map();
         } catch (IOException e) {

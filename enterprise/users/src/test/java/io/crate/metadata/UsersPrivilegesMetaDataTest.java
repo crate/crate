@@ -20,7 +20,6 @@ package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -43,6 +42,7 @@ import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -193,13 +193,13 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
     }
 
     @Test
-    public void testTablePrivilegesAreTransfered() throws Exception {
-        Tuple<UsersPrivilegesMetaData, Long> usersMetaDataAndAffectedRows = UsersPrivilegesMetaData.copyAndReplaceTableIdents(
+    public void testTablePrivilegesAreTransferred() throws Exception {
+        UsersPrivilegesMetaData usersMetaData = UsersPrivilegesMetaData.maybeCopyAndReplaceTableIdents(
             usersPrivilegesMetaData, GRANT_TABLE_DQL.ident().ident(), "testSchema.testing");
 
-        assertThat(usersMetaDataAndAffectedRows.v2(), is(1L));
+        assertThat(usersMetaData, notNullValue());
 
-        Set<Privilege> updatedPrivileges = usersMetaDataAndAffectedRows.v1().getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        Set<Privilege> updatedPrivileges = usersMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> targetPrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.testing"))
             .findAny();

@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport.ddl;
 
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,30 +34,36 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
-    private String[] sourceIndices;
-    private String[] targetIndices;
+    private TableIdent sourceTableIdent;
+    private TableIdent targetTableIdent;
+    private boolean isPartitioned;
 
     RenameTableRequest() {
     }
 
-    public RenameTableRequest(String[] sourceIndices, String[] targetIndices) {
-        this.sourceIndices = sourceIndices;
-        this.targetIndices = targetIndices;
+    public RenameTableRequest(TableIdent sourceTableIdent, TableIdent targetTableIdent, boolean isPartitioned) {
+        this.sourceTableIdent = sourceTableIdent;
+        this.targetTableIdent = targetTableIdent;
+        this.isPartitioned = isPartitioned;
     }
 
-    String[] sourceIndices() {
-        return sourceIndices;
+    public TableIdent sourceTableIdent() {
+        return sourceTableIdent;
     }
 
-    String[] targetIndices() {
-        return targetIndices;
+    public TableIdent targetTableIdent() {
+        return targetTableIdent;
+    }
+
+    public boolean isPartitioned() {
+        return isPartitioned;
     }
 
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (sourceIndices == null || targetIndices == null) {
-            validationException = addValidationError("source or target table name must not be null", null);
+        if (sourceTableIdent == null || targetTableIdent == null) {
+            validationException = addValidationError("source and target table ident must not be null", null);
         }
         return validationException;
     }
@@ -64,16 +71,18 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        sourceIndices = in.readStringArray();
-        targetIndices = in.readStringArray();
         readTimeout(in);
+        sourceTableIdent = new TableIdent(in);
+        targetTableIdent = new TableIdent(in);
+        isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArray(sourceIndices);
-        out.writeStringArray(targetIndices);
         writeTimeout(out);
+        sourceTableIdent.writeTo(out);
+        targetTableIdent.writeTo(out);
+        out.writeBoolean(isPartitioned);
     }
 }

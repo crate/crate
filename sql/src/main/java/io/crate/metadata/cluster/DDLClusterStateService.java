@@ -70,6 +70,14 @@ public class DDLClusterStateService {
             (modifier, clusterState) -> modifier.onDropTable(currentState, tableIdent));
     }
 
+    ClusterState onRenameTable(ClusterState currentState,
+                               TableIdent sourceTableIdent,
+                               TableIdent targetTableIdent,
+                               boolean isPartitioned) {
+        return applyOnAllModifiers(currentState,
+            (modifier, clusterState) -> modifier.onRenameTable(currentState, sourceTableIdent, targetTableIdent, isPartitioned));
+    }
+
     private ClusterState applyOnAllModifiers(ClusterState currentState,
                                              BiFunction<DDLClusterStateModifier, ClusterState, ClusterState> function) {
         for (DDLClusterStateModifier modifier : clusterStateModifiers) {

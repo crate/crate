@@ -44,7 +44,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Singleton
-public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, ApplyPrivilegesResponse> {
+public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
 
     private static final String ACTION_NAME = "crate/sql/grant_privileges";
 
@@ -65,8 +65,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected ApplyPrivilegesResponse newResponse() {
-        return new ApplyPrivilegesResponse();
+    protected PrivilegesResponse newResponse() {
+        return new PrivilegesResponse();
     }
 
     @Override
@@ -75,9 +75,9 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected void masterOperation(PrivilegesRequest request, ClusterState state, ActionListener<ApplyPrivilegesResponse> listener) throws Exception {
+    protected void masterOperation(PrivilegesRequest request, ClusterState state, ActionListener<PrivilegesResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("grant_privileges",
-            new AckedClusterStateUpdateTask<ApplyPrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
+            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
 
                 long affectedRows = -1;
                 List<String> unknownUserNames = null;
@@ -94,8 +94,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                 }
 
                 @Override
-                protected ApplyPrivilegesResponse newResponse(boolean acknowledged) {
-                    return new ApplyPrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
+                protected PrivilegesResponse newResponse(boolean acknowledged) {
+                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
                 }
             });
 
