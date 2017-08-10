@@ -559,4 +559,33 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from locations where position > (select max(position) from locations) - 2");
         assertThat(response.rows()[0][0], is(2L));
     }
+
+    @Test
+    public void testSubqueryExpressionWithInPredicateLeftFieldSymbol() throws Exception {
+        setup.setUpCharacters();
+        execute("select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id");
+        assertThat(response.rowCount(), is(3L));
+        assertThat(printedTable(response.rows()),
+            is( "1| Arthur\n" +
+                "2| Ford\n" +
+                "3| Trillian\n"));
+    }
+
+    @Test
+    public void testSubqueryExpressionWithInPredicateLeftValueSymbol() throws Exception {
+        execute("select 1 in (select col1 from unnest([1,2,3]))");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(printedTable(response.rows()), is("true\n"));
+    }
+
+    @Test
+    public void testSubqueryExpressionWithInPredicateEvaluatesToNull() throws Exception {
+        execute("select 1 in (select col1 from unnest([2, cast(null as long)]))");
+        assertThat(response.rowCount(), is(1L));
+        assertNull(response.rows()[0][0]);
+
+        execute("select NULL in (select col1 from unnest([1,2]))");
+        assertThat(response.rowCount(), is(1L));
+        assertNull(response.rows()[0][0]);
+    }
 }
