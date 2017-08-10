@@ -77,6 +77,7 @@ import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
+import io.crate.sql.tree.ArrayComparison;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
@@ -483,39 +484,49 @@ public class ExpressionAnalyzer {
             /*
              * convert where x IN (values)
              *
-             * where values = a list of expressions
+             * where values = a list of expressions or a subquery
              *
              * into
              *
              *      x = ANY(array(1, 2, 3, ...))
+             * or
+             *      x = ANY(select x from t)
              */
             Symbol left = ensureSingleValue(process(node.getValue(), context));
             DataType targetType = left.valueType();
 
             Expression valueList = node.getValueList();
-            if (!(valueList instanceof InListExpression)) {
+            if (valueList instanceof InListExpression) {
+                List<Expression> expressions = ((InListExpression) valueList).getValues();
+                List<Symbol> symbols = new ArrayList<>(expressions.size());
+
+                for (Expression expression : expressions) {
+                    Symbol symbol = process(expression, context);
+                    if (targetType == DataTypes.UNDEFINED) {
+                        targetType = symbol.valueType();
+                        left = castIfNeededOrFail(left, targetType);
+
+                        symbols.add(symbol);
+                    } else {
+                        symbols.add(castIfNeededOrFail(symbol, targetType));
+                    }
+                }
+                FunctionInfo functionInfo = ArrayFunction.createInfo(Symbols.typeView(symbols));
+                return context.allocateFunction(
+                    getBuiltinFunctionInfo(AnyEqOperator.NAME, Arrays.asList(targetType, functionInfo.returnType())),
+                    Arrays.asList(left, context.allocateFunction(functionInfo, symbols))
+                );
+            } else if (valueList instanceof SubqueryExpression) {
+                ArrayComparisonExpression arrayComparisonExpression =
+                    new ArrayComparisonExpression(ComparisonExpression.Type.EQUAL,
+                        ArrayComparison.Quantifier.ANY,
+                        node.getValue(),
+                        valueList);
+                return process(arrayComparisonExpression, context);
+            } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "Expression %s is not supported in IN", ExpressionFormatter.formatExpression(valueList)));
             }
-            List<Expression> expressions = ((InListExpression) valueList).getValues();
-            List<Symbol> symbols = new ArrayList<>(expressions.size());
-
-            for (Expression expression : expressions) {
-                Symbol symbol = ensureSingleValue(process(expression, context));
-                if (targetType == DataTypes.UNDEFINED) {
-                    targetType = symbol.valueType();
-                    left = castIfNeededOrFail(left, targetType);
-
-                    symbols.add(symbol);
-                } else {
-                    symbols.add(castIfNeededOrFail(symbol, targetType));
-                }
-            }
-            FunctionInfo functionInfo = ArrayFunction.createInfo(Symbols.typeView(symbols));
-            return context.allocateFunction(
-                getBuiltinFunctionInfo(AnyEqOperator.NAME, Arrays.asList(targetType, functionInfo.returnType())),
-                Arrays.asList(left, context.allocateFunction(functionInfo, symbols))
-            );
         }
 
         @Override

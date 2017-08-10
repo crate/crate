@@ -89,12 +89,6 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testSubselectInWhereIn() throws Exception {
-        expectedException.expectMessage(allOf(Matchers.startsWith("Expression"), Matchers.endsWith("is not supported in IN")));
-        e.analyze("select * from t1 where x in (select y from t2)");
-    }
-
-    @Test
     public void testMatchPredicateWithSingleRowSubselect() throws Exception {
         SelectAnalyzedStatement stmt = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
