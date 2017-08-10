@@ -26,6 +26,10 @@ Breaking Changes
 
 Changes
 =======
+ 
+ - Support single column subselects within the `IN` operator, e.g.::
+
+    select * from t1 where id IN (select id from t2)
 
  - Improved resiliency of the table rename operation.
 
