@@ -23,6 +23,7 @@
 package io.crate.metadata.rule.ingest;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -117,20 +118,15 @@ public class IngestRulesMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testDropTheOnlyExistingIngestRuleReturnsEmptyCollection() {
-        inputMetaData.dropIngestRule(RULE_NAME, false);
+        inputMetaData.dropIngestRule(RULE_NAME);
         assertThat(inputMetaData.getIngestRules(SOURCE_NAME), empty());
     }
 
     @Test
     public void testDropMissingIngestRuleThrowsIllegalArgumentException() {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ResourceNotFoundException.class);
         expectedException.expectMessage("Ingest rule missing_rule doesn't exist");
-        inputMetaData.dropIngestRule("missing_rule", false);
-    }
-
-    @Test
-    public void testDropMissingIngestRuleIfExistsDoesntThrowsException() {
-        inputMetaData.dropIngestRule("missing_rule", true);
+        inputMetaData.dropIngestRule("missing_rule");
     }
 
     @Test
