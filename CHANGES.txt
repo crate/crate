@@ -35,5 +35,8 @@ Changes
 Fixes
 =====
 
+ - Improved displaying of error messages if multiple errors are happening on
+   ``ALTER TABLE`` statements.
+
  - Fixed user defined functions persistence.
 

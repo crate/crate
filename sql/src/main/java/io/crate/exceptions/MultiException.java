@@ -24,6 +24,7 @@ package io.crate.exceptions;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.StringJoiner;
 
 /**
  * Collects multiple {@code Throwable}s into one exception.
@@ -55,5 +56,12 @@ public class MultiException extends RuntimeException {
         for (Throwable exception : exceptions) {
             exception.printStackTrace(s);
         }
+    }
+
+    @Override
+    public String getMessage() {
+        StringJoiner joiner = new StringJoiner("\n");
+        exceptions.forEach(e -> joiner.add(e.getMessage()));
+        return joiner.toString();
     }
 }
