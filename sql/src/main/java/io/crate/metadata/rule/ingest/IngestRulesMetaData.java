@@ -23,6 +23,7 @@
 package io.crate.metadata.rule.ingest;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -117,7 +118,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         ingestRules.add(ingestRule);
     }
 
-    public void dropIngestRule(String ruleName, boolean ifExists) {
+    public void dropIngestRule(String ruleName) {
         for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
             Iterator<IngestRule> iterator = ingestRules.iterator();
             while (iterator.hasNext()) {
@@ -128,9 +129,8 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
                 }
             }
         }
-        if (ifExists == false) {
-            throw new IllegalArgumentException("Ingest rule " + ruleName + " doesn't exist");
-        }
+
+        throw new ResourceNotFoundException("Ingest rule " + ruleName + " doesn't exist");
     }
 
     @Override
