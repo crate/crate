@@ -30,6 +30,7 @@ import io.crate.analyze.DropIngestionRuleAnalysedStatement;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.operation.rule.ingest.CreateIngestRuleRequest;
 import io.crate.operation.rule.ingest.DropIngestRuleRequest;
@@ -37,6 +38,7 @@ import io.crate.operation.rule.ingest.IngestRuleResponse;
 import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
 import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
 import io.crate.operation.user.UserManager;
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -98,7 +100,17 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         @Override
         public CompletableFuture<Long> visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, UserManager context) {
             FutureActionListener<IngestRuleResponse, Long> listener =
-                new FutureActionListener<>(r -> 1L);
+                new FutureActionListener<IngestRuleResponse, Long>(r -> 1L) {
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (analysis.ifExists() &&
+                            SQLExceptions.unwrap(e) instanceof ResourceNotFoundException) {
+                            complete(0L);
+                        } else {
+                            super.onFailure(e);
+                        }
+                    }
+                };
             transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName(), analysis.ifExists()), listener);
             return listener;
         }
