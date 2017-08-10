@@ -30,7 +30,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
-import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.apache.commons.math3.util.FastMath;
@@ -47,7 +46,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public static final String NAME = "geometric_mean";
 
     static {
-        DataTypes.register(GeometricMeanStateType.ID, GeometricMeanStateType.INSTANCE);
+        DataTypes.register(GeometricMeanStateType.ID, () -> GeometricMeanStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {
@@ -117,7 +116,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     public static class GeometricMeanStateType extends DataType<GeometricMeanState>
-        implements Streamer<GeometricMeanState>, FixedWidthType, DataTypeFactory {
+        implements Streamer<GeometricMeanState>, FixedWidthType {
 
         public static final GeometricMeanStateType INSTANCE = new GeometricMeanStateType();
         public static final int ID = 4096;
@@ -145,11 +144,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         @Override
         public int compareValueTo(GeometricMeanState val1, GeometricMeanState val2) {
             return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
         }
 
         @Override

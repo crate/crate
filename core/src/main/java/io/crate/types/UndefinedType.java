@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class UndefinedType extends DataType<Object> implements DataTypeFactory, Streamer<Object> {
+public class UndefinedType extends DataType<Object> implements Streamer<Object> {
 
     public static final int ID = 0;
 
@@ -64,11 +64,6 @@ public class UndefinedType extends DataType<Object> implements DataTypeFactory, 
     @Override
     public int compareValueTo(Object val1, Object val2) {
         return 0;
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

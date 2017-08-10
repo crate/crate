@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
-public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>>, DataTypeFactory {
+public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
@@ -97,11 +97,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
             default:
                 return Double.compare(shape1.getArea(JtsSpatialContext.GEO), shape2.getArea(JtsSpatialContext.GEO));
         }
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 public class
-LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataTypeFactory {
+LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
@@ -143,11 +143,6 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
         if (v != null) {
             out.writeLong(((Number) v).longValue());
         }
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

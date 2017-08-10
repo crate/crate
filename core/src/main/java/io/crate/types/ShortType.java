@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ShortType extends DataType<Short> implements DataTypeFactory, Streamer<Short>, FixedWidthType {
+public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
@@ -75,11 +75,6 @@ public class ShortType extends DataType<Short> implements DataTypeFactory, Strea
     @Override
     public int compareValueTo(Short val1, Short val2) {
         return nullSafeCompareValueTo(val1, val2, Short::compare);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

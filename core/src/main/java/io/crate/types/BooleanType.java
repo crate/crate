@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
-public class BooleanType extends DataType<Boolean> implements DataTypeFactory, Streamer<Boolean>, FixedWidthType {
+public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
@@ -99,11 +99,6 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
     @Override
     public int compareValueTo(Boolean val1, Boolean val2) {
         return nullSafeCompareValueTo(val1, val2, Boolean::compare);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

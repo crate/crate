@@ -30,7 +30,6 @@ import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.statistics.moment.Variance;
 import io.crate.types.DataType;
-import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -46,7 +45,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     public static final String NAME = "variance";
 
     static {
-        DataTypes.register(VarianceStateType.ID, VarianceStateType.INSTANCE);
+        DataTypes.register(VarianceStateType.ID, () -> VarianceStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {
@@ -84,7 +83,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     }
 
     public static class VarianceStateType extends DataType<VarianceState>
-        implements Streamer<VarianceState>, FixedWidthType, DataTypeFactory {
+        implements Streamer<VarianceState>, FixedWidthType {
 
         public static final VarianceStateType INSTANCE = new VarianceStateType();
         public static final int ID = 2048;
@@ -112,11 +111,6 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         @Override
         public int compareValueTo(VarianceState val1, VarianceState val2) {
             return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
         }
 
         @Override

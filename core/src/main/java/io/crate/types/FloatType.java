@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class FloatType extends DataType<Float> implements Streamer<Float>, DataTypeFactory, FixedWidthType {
+public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
@@ -75,11 +75,6 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, DataT
     @Override
     public int compareValueTo(Float val1, Float val2) {
         return nullSafeCompareValueTo(val1, val2, Float::compare);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

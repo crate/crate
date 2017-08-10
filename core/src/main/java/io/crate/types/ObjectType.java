@@ -33,8 +33,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import java.io.IOException;
 import java.util.Map;
 
-public class ObjectType extends DataType<Map<String, Object>>
-    implements Streamer<Map<String, Object>>, DataTypeFactory {
+public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final ObjectType INSTANCE = new ObjectType();
     public static final int ID = 12;
@@ -79,11 +78,6 @@ public class ObjectType extends DataType<Map<String, Object>>
     @Override
     public int compareValueTo(Map<String, Object> val1, Map<String, Object> val2) {
         return MapComparator.compareMaps(val1, val2);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     // TODO: require type info from each child and then use typed streamer for contents of the map

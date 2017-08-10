@@ -37,7 +37,7 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 
-public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, DataTypeFactory, FixedWidthType {
+public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, FixedWidthType {
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
@@ -141,11 +141,6 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             return latComp;
         }
         return Double.compare(val1[1], val2[1]);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override

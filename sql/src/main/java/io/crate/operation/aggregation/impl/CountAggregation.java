@@ -32,7 +32,6 @@ import io.crate.metadata.*;
 import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
-import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,7 +47,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     private final boolean hasArgs;
 
     static {
-        DataTypes.register(CountAggregation.LongStateType.ID, CountAggregation.LongStateType.INSTANCE);
+        DataTypes.register(CountAggregation.LongStateType.ID, () -> CountAggregation.LongStateType.INSTANCE);
     }
 
     public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
@@ -168,7 +167,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     }
 
     public static class LongStateType extends DataType<LongState>
-        implements FixedWidthType, Streamer<LongState>, DataTypeFactory {
+        implements FixedWidthType, Streamer<LongState> {
 
         public static final int ID = 16384;
         public static final LongStateType INSTANCE = new LongStateType();
@@ -211,11 +210,6 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         public void writeValueTo(StreamOutput out, Object v) throws IOException {
             LongState longState = (LongState) v;
             out.writeVLong(longState.value);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
         }
 
         @Override

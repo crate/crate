@@ -30,7 +30,6 @@ import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.statistics.moment.StandardDeviation;
 import io.crate.types.DataType;
-import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -45,7 +44,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     public static final String NAME = "stddev";
 
     static {
-        DataTypes.register(StdDevStateType.ID, StdDevStateType.INSTANCE);
+        DataTypes.register(StdDevStateType.ID, () -> StdDevStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {
@@ -83,7 +82,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     public static class StdDevStateType extends DataType<StdDevState>
-        implements Streamer<StdDevState>, FixedWidthType, DataTypeFactory {
+        implements Streamer<StdDevState>, FixedWidthType {
 
         public static final StdDevStateType INSTANCE = new StdDevStateType();
         public static final int ID = 8192;
@@ -111,11 +110,6 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         @Override
         public int compareValueTo(StdDevState val1, StdDevState val2) {
             return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
         }
 
         @Override

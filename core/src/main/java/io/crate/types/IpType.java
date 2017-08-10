@@ -76,11 +76,6 @@ public class IpType extends StringType {
         return "ip";
     }
 
-    @Override
-    public DataType<?> create() {
-        return IpType.INSTANCE;
-    }
-
     static boolean isValid(BytesRef ip) {
         if (ip.length < 7 || ip.length > 15) { // min/max length of a valid ip address
             return false;

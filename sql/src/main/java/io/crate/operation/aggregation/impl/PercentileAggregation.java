@@ -38,7 +38,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     private static final String NAME = "percentile";
 
     static {
-        DataTypes.register(TDigestStateType.ID, TDigestStateType.INSTANCE);
+        DataTypes.register(TDigestStateType.ID, () -> TDigestStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {

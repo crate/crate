@@ -36,7 +36,7 @@ public class TDigestStateTest {
         TDigestState digestState1 = new TDigestState(250, new double[]{0.5, 0.8});
         BytesStreamOutput out = new BytesStreamOutput();
         TDigestStateType digestStateType = TDigestStateType.INSTANCE;
-        Streamer streamer = digestStateType.create().streamer();
+        Streamer streamer = digestStateType.streamer();
         streamer.writeValueTo(out, digestState1);
         StreamInput in = out.bytes().streamInput();
         TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);

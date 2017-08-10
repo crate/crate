@@ -25,7 +25,7 @@ import io.crate.Streamer;
 import io.crate.TimestampFormat;
 import org.apache.lucene.util.BytesRef;
 
-public class TimestampType extends LongType implements Streamer<Long>, DataTypeFactory {
+public class TimestampType extends LongType implements Streamer<Long> {
 
     public static final TimestampType INSTANCE = new TimestampType();
     public static final int ID = 11;
@@ -74,10 +74,5 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
         } catch (NumberFormatException e) {
             return TimestampFormat.parseTimestampString(s);
         }
-    }
-
-    @Override
-    public DataType<?> create() {
-        return TimestampType.INSTANCE;
     }
 }

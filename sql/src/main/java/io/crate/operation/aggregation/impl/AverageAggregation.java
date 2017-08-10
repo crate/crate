@@ -29,7 +29,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
-import io.crate.types.DataTypeFactory;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -44,7 +43,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     private final FunctionInfo info;
 
     static {
-        DataTypes.register(AverageStateType.ID, AverageStateType.INSTANCE);
+        DataTypes.register(AverageStateType.ID, () -> AverageStateType.INSTANCE);
     }
 
     /**
@@ -96,7 +95,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     public static class AverageStateType extends DataType<AverageState>
-        implements FixedWidthType, Streamer<AverageState>, DataTypeFactory {
+        implements FixedWidthType, Streamer<AverageState> {
 
         public static final int ID = 1024;
         private static final AverageStateType INSTANCE = new AverageStateType();
@@ -140,11 +139,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             AverageState averageState = (AverageState) v;
             out.writeDouble(averageState.sum);
             out.writeVLong(averageState.count);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
         }
 
         @Override

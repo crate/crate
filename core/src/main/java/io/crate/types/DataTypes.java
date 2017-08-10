@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public final class DataTypes {
 
@@ -99,22 +100,22 @@ public final class DataTypes {
     /**
      * Type registry mapping type ids to the according data type instance.
      */
-    private static final Map<Integer, DataTypeFactory> TYPE_REGISTRY = new MapBuilder<Integer, DataTypeFactory>()
-        .put(UndefinedType.ID, UNDEFINED)
-        .put(NotSupportedType.ID, NOT_SUPPORTED)
-        .put(ByteType.ID, BYTE)
-        .put(BooleanType.ID, BOOLEAN)
-        .put(StringType.ID, STRING)
-        .put(IpType.ID, IP)
-        .put(DoubleType.ID, DOUBLE)
-        .put(FloatType.ID, FLOAT)
-        .put(ShortType.ID, SHORT)
-        .put(IntegerType.ID, INTEGER)
-        .put(LongType.ID, LONG)
-        .put(TimestampType.ID, TIMESTAMP)
-        .put(ObjectType.ID, OBJECT)
-        .put(GeoPointType.ID, GEO_POINT)
-        .put(GeoShapeType.ID, GEO_SHAPE)
+    private static final Map<Integer, Supplier<DataType>> TYPE_REGISTRY = new MapBuilder<Integer, Supplier<DataType>>()
+        .put(UndefinedType.ID, () -> UNDEFINED)
+        .put(NotSupportedType.ID, () -> NOT_SUPPORTED)
+        .put(ByteType.ID, () -> BYTE)
+        .put(BooleanType.ID, () -> BOOLEAN)
+        .put(StringType.ID, () -> STRING)
+        .put(IpType.ID, () -> IP)
+        .put(DoubleType.ID, () -> DOUBLE)
+        .put(FloatType.ID, () -> FLOAT)
+        .put(ShortType.ID, () -> SHORT)
+        .put(IntegerType.ID, () -> INTEGER)
+        .put(LongType.ID, () -> LONG)
+        .put(TimestampType.ID, () -> TIMESTAMP)
+        .put(ObjectType.ID, () -> OBJECT)
+        .put(GeoPointType.ID, () -> GEO_POINT)
+        .put(GeoShapeType.ID, () -> GEO_SHAPE)
         .put(ArrayType.ID, ArrayType::new)
         .put(SetType.ID, SetType::new)
         .put(SingleColumnTableType.ID, SingleColumnTableType::new)
@@ -160,7 +161,7 @@ public final class DataTypes {
     public static DataType fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
         try {
-            DataType type = TYPE_REGISTRY.get(i).create();
+            DataType type = TYPE_REGISTRY.get(i).get();
             type.readFrom(in);
             return type;
         } catch (NullPointerException e) {
@@ -287,8 +288,8 @@ public final class DataTypes {
      * Otherwise it might not be registered on all nodes.
      * </p>
      */
-    public static void register(int id, DataTypeFactory dataTypeFactory) {
-        if (TYPE_REGISTRY.put(id, dataTypeFactory) != null) {
+    public static void register(int id, Supplier<DataType> dataType) {
+        if (TYPE_REGISTRY.put(id, dataType) != null) {
             throw new IllegalArgumentException("Already got a dataType with id " + id);
         }
     }
@@ -311,7 +312,7 @@ public final class DataTypes {
     }
 
     public static DataType fromId(Integer id) {
-        return TYPE_REGISTRY.get(id).create();
+        return TYPE_REGISTRY.get(id).get();
     }
 
 }

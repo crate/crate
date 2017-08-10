@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
-public class StringType extends DataType<BytesRef> implements DataTypeFactory, Streamer<BytesRef> {
+public class StringType extends DataType<BytesRef> implements Streamer<BytesRef> {
 
     public static final int ID = 4;
     public static final StringType INSTANCE = new StringType();
@@ -88,11 +88,6 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
     @Override
     public int compareValueTo(BytesRef val1, BytesRef val2) {
         return Ordering.natural().nullsFirst().compare(val1, val2);
-    }
-
-    @Override
-    public DataType<?> create() {
-        return INSTANCE;
     }
 
     @Override
