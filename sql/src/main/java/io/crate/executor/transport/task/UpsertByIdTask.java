@@ -43,9 +43,8 @@ import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
@@ -77,7 +76,6 @@ public class UpsertByIdTask extends JobTask {
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
-    private final AutoCreateIndex autoCreateIndex;
     private final ShardUpsertRequest.Builder reqBuilder;
     private final TransportBulkCreateIndicesAction createIndicesAction;
     private final List<UpsertById.Item> items;
@@ -87,11 +85,11 @@ public class UpsertByIdTask extends JobTask {
     private final List<Integer> bulkIndices;
     private final boolean isUpdate;
     private final boolean isDebugEnabled;
+    private final boolean isPartitioned;
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
                           ScheduledExecutorService scheduler,
-                          IndexNameExpressionResolver indexNameExpressionResolver,
                           Settings settings,
                           BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
                           TransportBulkCreateIndicesAction transportBulkCreateIndicesAction) {
@@ -104,9 +102,8 @@ public class UpsertByIdTask extends JobTask {
         this.bulkIndices = upsertById.bulkIndices();
         this.numBulkResponses = upsertById.numBulkResponses();
         this.isUpdate = upsertById.insertColumns() == null;
-        this.autoCreateIndex = new AutoCreateIndex(settings, clusterService.getClusterSettings(),
-            indexNameExpressionResolver);
         this.isDebugEnabled = LOGGER.isDebugEnabled();
+        this.isPartitioned = upsertById.isPartitioned();
 
         reqBuilder = new ShardUpsertRequest.Builder(
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
@@ -185,11 +182,11 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private CompletableFuture<BitSet> doExecute() {
-        ClusterState state = clusterService.state();
+        MetaData metaData = clusterService.state().getMetaData();
         List<String> indicesToCreate = new ArrayList<>();
         for (UpsertById.Item item : items) {
             String index = item.index();
-            if (autoCreateIndex.shouldAutoCreate(index, state)) {
+            if (isPartitioned && metaData.hasIndex(index) == false) {
                 indicesToCreate.add(index);
             }
         }

@@ -94,6 +94,7 @@ public class UpsertById extends UnnestablePlan {
 
     private final UUID jobId;
     private final int numBulkResponses;
+    private final boolean isPartitioned;
     private final List<Item> items;
     private final List<Integer> bulkIndices;
 
@@ -104,19 +105,24 @@ public class UpsertById extends UnnestablePlan {
 
     public UpsertById(UUID jobId,
                       int numBulkResponses,
+                      boolean isPartitioned,
                       List<Integer> bulkIndices,
                       @Nullable String[] updateColumns,
                       @Nullable Reference[] insertColumns) {
         this.jobId = jobId;
         this.numBulkResponses = numBulkResponses;
+        this.isPartitioned = isPartitioned;
         this.bulkIndices = bulkIndices;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
     }
 
-    public static UpsertById forUpdate(UUID jobId, int numBulkResponses, @Nullable String[] updateColumns) {
-        return new UpsertById(jobId, numBulkResponses, new ArrayList<>(), updateColumns, null);
+    public static UpsertById forUpdate(UUID jobId,
+                                       int numBulkResponses,
+                                       boolean isPartitioned,
+                                       @Nullable String[] updateColumns) {
+        return new UpsertById(jobId, numBulkResponses, isPartitioned, new ArrayList<>(), updateColumns, null);
     }
 
     @Nullable
@@ -131,6 +137,10 @@ public class UpsertById extends UnnestablePlan {
 
     public int numBulkResponses() {
         return numBulkResponses;
+    }
+
+    public boolean isPartitioned() {
+        return isPartitioned;
     }
 
     public List<Integer> bulkIndices() {
