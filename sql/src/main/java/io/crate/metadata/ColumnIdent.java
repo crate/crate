@@ -267,7 +267,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
      * returns true if this is a system column
      */
     public boolean isSystemColumn() {
-        return name.startsWith("_");
+        return UNDERSCORE_PATTERN.matcher(name).matches();
     }
 
     /**

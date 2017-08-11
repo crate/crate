@@ -85,6 +85,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
+                "__quote_info int, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
                 ") clustered by (id) into 3 shards with (number_of_replicas=0)");
 
@@ -98,10 +99,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("id", response.rows()[0][3]);
 
         execute("select * from information_schema.columns where table_name='quotes'");
-        assertEquals(2L, response.rowCount());
-
+        assertEquals(3L, response.rowCount());
 
         execute("select * from information_schema.table_constraints where table_schema='doc' and table_name='quotes'");
+        assertEquals(1L, response.rowCount());
+
+        execute("select table_name from information_schema.columns where table_schema='doc' and table_name='quotes' " +
+                "and column_name='__quote_info'");
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
