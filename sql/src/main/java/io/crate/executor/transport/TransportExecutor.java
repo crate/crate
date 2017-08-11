@@ -78,7 +78,6 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -97,8 +96,8 @@ import java.util.concurrent.CompletableFuture;
 public class TransportExecutor implements Executor {
 
     private static final Logger LOGGER = Loggers.getLogger(TransportExecutor.class);
+    private static final BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
 
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final ThreadPool threadPool;
     private final Functions functions;
     private final TaskCollectingVisitor plan2TaskVisitor;
@@ -115,14 +114,11 @@ public class TransportExecutor implements Executor {
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
     private final MultiPhaseExecutor multiPhaseExecutor = new MultiPhaseExecutor();
 
-    private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
-
     @Inject
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
                              ContextPreparer contextPreparer,
                              TransportActionProvider transportActionProvider,
-                             IndexNameExpressionResolver indexNameExpressionResolver,
                              ThreadPool threadPool,
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
@@ -135,7 +131,6 @@ public class TransportExecutor implements Executor {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
@@ -271,7 +266,6 @@ public class TransportExecutor implements Executor {
                 plan,
                 clusterService,
                 threadPool.scheduler(),
-                indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
                 transportActionProvider.transportShardUpsertAction()::execute,
                 transportActionProvider.transportBulkCreateIndicesAction());

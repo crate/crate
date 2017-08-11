@@ -404,14 +404,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
+        DocTableInfo tableInfo = analysis.tableInfo();
         UpsertById upsertById = new UpsertById(
             context.jobId(),
             analysis.numBulkResponses(),
+            tableInfo.isPartitioned(),
             analysis.bulkIndices(),
             onDuplicateKeyAssignmentsColumns,
             analysis.columns().toArray(new Reference[analysis.columns().size()])
         );
-        if (analysis.tableInfo().isPartitioned()) {
+        if (tableInfo.isPartitioned()) {
             List<String> partitions = analysis.generatePartitions();
             String[] indices = partitions.toArray(new String[partitions.size()]);
             for (int i = 0; i < indices.length; i++) {
@@ -434,7 +436,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertById.add(
-                    analysis.tableInfo().ident().indexName(),
+                    tableInfo.ident().indexName(),
                     analysis.ids().get(i),
                     analysis.routingValues().get(i),
                     onDuplicateKeyAssignments,

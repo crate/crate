@@ -111,7 +111,8 @@ public final class UpdatePlanner {
                             // disable bulk logic for 1 bulk item
                             numBulkResponses = 0;
                         }
-                        upsertById = UpsertById.forUpdate(plannerContext.jobId(), numBulkResponses, assignments.v1());
+                        upsertById = UpsertById.forUpdate(plannerContext.jobId(), numBulkResponses,
+                            tableInfo.isPartitioned(), assignments.v1());
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertById, bulkIdx++);
                 } else {
