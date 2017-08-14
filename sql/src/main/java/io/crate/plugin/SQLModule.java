@@ -25,6 +25,7 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.transport.TransportSchemaUpdateAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.rule.ingest.IngestionService;
 import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
 import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
