@@ -173,6 +173,8 @@ public class TestStatementBuilder {
 
         printStatement("set some_setting TO 1, 2, 3");
         printStatement("set some_setting TO ON");
+
+        printStatement("set session characteristics as transaction isolation level read uncommitted");
     }
 
     @Test

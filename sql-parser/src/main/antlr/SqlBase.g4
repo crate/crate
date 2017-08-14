@@ -52,6 +52,7 @@ statement
     | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
     | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
+    | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
@@ -589,7 +590,7 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
-    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME 
+    | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA
     ;
 
@@ -726,6 +727,7 @@ CAST: 'CAST';
 TRY_CAST: 'TRY_CAST';
 SHOW: 'SHOW';
 TRANSACTION: 'TRANSACTION';
+CHARACTERISTICS: 'CHARACTERISTICS';
 ISOLATION: 'ISOLATION';
 LEVEL: 'LEVEL';
 TABLES: 'TABLES';
@@ -788,8 +790,6 @@ MATCH: 'MATCH';
 
 GENERATED: 'GENERATED';
 ALWAYS: 'ALWAYS';
-
-READ: 'READ';
 
 USER: 'USER';
 GRANT: 'GRANT';

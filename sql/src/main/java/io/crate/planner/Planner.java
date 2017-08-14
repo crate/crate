@@ -80,7 +80,6 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.SetStatement;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -367,23 +366,30 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement setStatement, Context context) {
-        if (SetStatement.Scope.LOCAL.equals(setStatement.scope())) {
-            LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
-            return new NoopPlan(context.jobId());
-        } else if (SetStatement.Scope.SESSION.equals(setStatement.scope())) {
-            return new SetSessionPlan(
-                context.jobId(),
-                setStatement.settings(),
-                context.transactionContext().sessionContext()
-            );
-        } else if (setStatement.isPersistent()) {
-            return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
-        } else {
-            return new ESClusterUpdateSettingsPlan(
-                context.jobId(),
-                Collections.<String, List<Expression>>emptyMap(),
-                setStatement.settings()
-            );
+        switch (setStatement.scope()) {
+            case LOCAL:
+                LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
+                return new NoopPlan(context.jobId());
+            case SESSION_TRANSACTION_MODE:
+                LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
+                return new NoopPlan(context.jobId());
+            case SESSION:
+                return new SetSessionPlan(
+                    context.jobId(),
+                    setStatement.settings(),
+                    context.transactionContext().sessionContext()
+                );
+            case GLOBAL:
+            default:
+                if (setStatement.isPersistent()) {
+                    return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
+                } else {
+                    return new ESClusterUpdateSettingsPlan(
+                        context.jobId(),
+                        Collections.<String, List<Expression>>emptyMap(),
+                        setStatement.settings()
+                    );
+                }
         }
     }
 

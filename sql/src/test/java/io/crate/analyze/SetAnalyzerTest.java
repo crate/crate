@@ -95,6 +95,13 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSetSessionTransactionMode() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION_TRANSACTION_MODE));
+        assertThat(analysis.settings().get("transaction_mode").size(), is(4));
+    }
+
+    @Test
     public void testSetSession() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET SESSION something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));

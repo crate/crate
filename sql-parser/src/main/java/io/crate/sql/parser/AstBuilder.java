@@ -468,6 +468,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitSetSessionTransactionMode(SqlBaseParser.SetSessionTransactionModeContext ctx) {
+        Assignment assignment = new Assignment(
+            new StringLiteral("transaction_mode"),
+            visit(ctx.setExpr(), Expression.class));
+        return new SetStatement(SetStatement.Scope.SESSION_TRANSACTION_MODE, assignment);
+    }
+
+    @Override
     public Node visitResetGlobal(SqlBaseParser.ResetGlobalContext context) {
         return new ResetStatement(visit(context.primaryExpression(), Expression.class));
     }

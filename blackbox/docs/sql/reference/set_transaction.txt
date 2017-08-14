@@ -1,0 +1,22 @@
+.. highlight:: psql
+.. _ref-set-transation:
+
+===============
+SET TRANSACTION
+===============
+
+Sets the characteristics of the current transaction.
+
+Synopsis
+========
+
+::
+
+    SET SESSION CHARACTERISTICS AS TRANSACTION transaction_mode [, ...]
+
+Description
+===========
+
+The command sets the characteristics of the current transaction. As CrateDB does
+not support transactions, this command has no effect and will be ignored. The
+support was added for compatibility reasons.

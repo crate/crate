@@ -42,6 +42,7 @@ CrateDB.
     reference/revoke
     reference/select
     reference/set
+    reference/set_transaction
     reference/show_columns
     reference/show_create_table
     reference/show_schemas

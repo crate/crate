@@ -55,6 +55,12 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSetSessionTransactionModeIsNoopPlan() throws Exception {
+        Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ");
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    @Test
     public void testIndices() throws Exception {
         TableIdent custom = new TableIdent("custom", "table");
         String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
