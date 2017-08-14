@@ -53,8 +53,8 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     @Inject
     public IngestionService(Settings settings,
                             Schemas schemas,
-                            ClusterService clusterService, 
-			    DDLClusterStateService ddlClusterStateService) {
+                            ClusterService clusterService,
+                            DDLClusterStateService ddlClusterStateService) {
         super(settings);
         this.schemas = schemas;
         this.clusterService = clusterService;
@@ -64,7 +64,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     /**
      * Register the provided @param implementation for ingest rule changes belonging to the provided @param sourceIdent.
      */
-    void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
+    public void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
         List<IngestionImplementation> implementationsForSource = implementations.computeIfAbsent(sourceIdent, k -> new ArrayList<>());
         implementationsForSource.add(implementation);
         implementation.applyRules(getIngestionRules(clusterService.state().metaData()).get(sourceIdent));
