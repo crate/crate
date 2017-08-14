@@ -70,14 +70,17 @@ public class CrateSettingsPreparer {
             }
         }
 
+        // we put back settings from command line to override the ones from configuration file
+        builder.put(esEnvironment.settings());
+
+        // we put back the path.logs so we can use it in the logging configuration file
+        builder.put(
+            Environment.PATH_LOGS_SETTING.getKey(),
+            cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
+
         validateKnownSettings(builder);
         applyCrateDefaults(builder);
 
-        // we put back the path.logs so we can use it in the logging configuration file
-        builder.put(Environment.PATH_LOGS_SETTING.getKey(), cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
-
-        // we put back settings from command line to override the ones from configuration file
-        builder.put(esEnvironment.settings());
         return new Environment(builder.build());
     }
 

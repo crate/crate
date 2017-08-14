@@ -39,6 +39,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused ``cluster.name`` setting in ``crate.yml`` file
+   to be ignored.
+
  - Fixed a single insert only related memory leak.
 
  - Improved displaying of error messages if multiple errors are happening on
