@@ -104,6 +104,38 @@ public class CrateSettingsPreparerTest {
         assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
         // Value kept from crate.yml
         assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
+        assertThat(finalSettings.get("cluster.name", null), is("testCluster"));
+    }
+
+    @Test
+    public void testClusterNameFromCommandLineArgsOverridesSettingFromConfigFile() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put("path.home", ".");
+        builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
+        builder.put("cluster.name", "clusterNameOverridden");
+        Environment environment = new Environment(builder.build());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        // Overriding value from crate.yml
+        assertThat(finalSettings.get("cluster.name", null), is("clusterNameOverridden"));
+    }
+
+    @Test
+    public void testClusterNameMissingFromConfigFile() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put("path.home", ".");
+        builder.put("cluster.name", "clusterName");
+        Environment environment = new Environment(builder.build());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        assertThat(finalSettings.get("cluster.name", null), is("clusterName"));
+    }
+
+    @Test
+    public void testClusterNameMissingFromBothConfigFileAndCommandLineArgs() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        builder.put("path.home", ".");
+        Environment environment = new Environment(builder.build());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        assertThat(finalSettings.get("cluster.name", null), is("crate"));
     }
 
     @Test
