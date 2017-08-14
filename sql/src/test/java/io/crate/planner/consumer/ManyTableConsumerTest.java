@@ -127,6 +127,20 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(root.left().querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
     }
 
+    /**
+     * Tests that we can resolve a field from the last joined table.
+     */
+    @Test
+    public void testOutputExtension() throws Exception {
+        MultiSourceSelect mss = analyze("select t3.z from t1 " +
+                                        "join t2 on t1.a = t2.b " +
+                                        "join t3 on t2.b = t3.c");
+        TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
+
+        assertThat(root.fields().size(), is(1));
+        assertThat(root.fields().get(0).path().outputName(), is("doc.t3['z']"));
+    }
+
     @Test
     public void testGetNamesFromOrderBy() {
         JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);

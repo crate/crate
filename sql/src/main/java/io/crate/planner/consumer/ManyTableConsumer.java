@@ -264,9 +264,9 @@ public class ManyTableConsumer implements Consumer {
 
     @VisibleForTesting
     static Collection<QualifiedName> getOrderedRelationNames(
-        MultiSourceSelect statement,
-        Set<? extends Set<QualifiedName>> explicitJoinConditions,
-        Set<? extends Set<QualifiedName>> implicitJoinConditions) {
+            MultiSourceSelect statement,
+            Set<? extends Set<QualifiedName>> explicitJoinConditions,
+            Set<? extends Set<QualifiedName>> implicitJoinConditions) {
 
         Collection<QualifiedName> orderedRelations = ImmutableList.of();
         Optional<OrderBy> orderBy = statement.querySpec().orderBy();
@@ -317,16 +317,16 @@ public class ManyTableConsumer implements Consumer {
      * </code>
      */
     static TwoTableJoin buildTwoTableJoinTree(MultiSourceSelect mss) {
-        Map<Set<QualifiedName>, Symbol> splitQuery = ImmutableMap.of();
+        Map<Set<QualifiedName>, Symbol> splittedWhereQuery = ImmutableMap.of();
         if (mss.querySpec().where().hasQuery()) {
-            splitQuery = QuerySplitter.split(mss.querySpec().where().query());
+            splittedWhereQuery = QuerySplitter.split(mss.querySpec().where().query());
             mss.querySpec().where(WhereClause.MATCH_ALL);
         }
 
         List<JoinPair> joinPairs = mss.joinPairs();
-        Map<Set<QualifiedName>, Symbol> joinConditionsMap = buildJoinConditionsMap(joinPairs);
+        Map<Set<QualifiedName>, Symbol> splittedJoinConditions = buildJoinConditionsMap(joinPairs);
         Collection<QualifiedName> orderedRelationNames =
-            getOrderedRelationNames(mss, joinConditionsMap.keySet(), splitQuery.keySet());
+            getOrderedRelationNames(mss, splittedJoinConditions.keySet(), splittedWhereQuery.keySet());
         Iterator<QualifiedName> it = orderedRelationNames.iterator();
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("relations={} orderedRelations={}", mss.sources().keySet(), orderedRelationNames);
@@ -351,11 +351,15 @@ public class ManyTableConsumer implements Consumer {
             Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
             Predicate<Symbol> predicate = new SubSetOfQualifiedNamesPredicate(names);
             QuerySpec newQuerySpec = rootQuerySpec.subset(predicate, it.hasNext());
-            if (splitQuery.containsKey(names)) {
-                Symbol symbol = splitQuery.remove(names);
+            if (splittedWhereQuery.containsKey(names)) {
+                Symbol symbol = splittedWhereQuery.remove(names);
                 newQuerySpec.where(new WhereClause(symbol));
             }
-            extendQSOutputs(splitQuery, it, leftName, rightName, newQuerySpec);
+
+            if (it.hasNext()) {
+                extendQSOutputs(splittedWhereQuery, leftName, rightName, newQuerySpec);
+                extendQSOutputs(splittedJoinConditions, leftName, rightName, newQuerySpec);
+            }
 
             Optional<OrderBy> remainingOrderByToApply = Optional.empty();
             if (remainingOrderBy.isPresent() && remainingOrderBy.get().validForRelations(names)) {
@@ -366,11 +370,11 @@ public class ManyTableConsumer implements Consumer {
             // get explicit join definition
             JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs, true);
 
-            // Search the joinConditionsMap to find if a join condition
+            // Search the splittedJoinConditions to find if a join condition
             // can be applied at the current status of the join tree
             List<Symbol> joinConditions = new ArrayList<>();
             for (Iterator<Map.Entry<Set<QualifiedName>, Symbol>> joinConditionEntryIterator =
-                 joinConditionsMap.entrySet().iterator(); joinConditionEntryIterator.hasNext();) {
+                 splittedJoinConditions.entrySet().iterator(); joinConditionEntryIterator.hasNext();) {
 
                 Map.Entry<Set<QualifiedName>, Symbol> entry = joinConditionEntryIterator.next();
                 if (currentTreeRelationNames.containsAll(entry.getKey())) {
@@ -378,7 +382,7 @@ public class ManyTableConsumer implements Consumer {
                     joinConditionEntryIterator.remove();
                 }
             }
-            joinPair.condition(joinConditions.isEmpty()? null : AndOperator.join(joinConditions));
+            joinPair.condition(joinConditions.isEmpty() ? null : AndOperator.join(joinConditions));
 
             JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightRelation.querySpec(), joinPair);
 
@@ -421,20 +425,20 @@ public class ManyTableConsumer implements Consumer {
                     return f;
                 });
 
-                splitQuery =
-                    rewriteSplitQueryNames(splitQuery, leftName, rightName, join.getQualifiedName(), replaceFunction);
+                splittedWhereQuery =
+                    rewriteSplitQueryNames(splittedWhereQuery, leftName, rightName, join.getQualifiedName(), replaceFunction);
                 JoinPairs.rewriteNames(leftName, rightName, join.getQualifiedName(), replaceFunction, joinPairs);
                 rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.getQualifiedName(), replaceFunction);
                 rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
-                rewriteJoinConditionNames(joinConditionsMap, replaceFunction);
+                rewriteJoinConditionNames(splittedJoinConditions, replaceFunction);
             }
             leftRelation = join;
             leftName = join.getQualifiedName();
             twoTableJoinList.add(join);
         }
         TwoTableJoin join = (TwoTableJoin) leftRelation;
-        if (!splitQuery.isEmpty()) {
-            join.querySpec().where(new WhereClause(AndOperator.join(splitQuery.values())));
+        if (!splittedWhereQuery.isEmpty()) {
+            join.querySpec().where(new WhereClause(AndOperator.join(splittedWhereQuery.values())));
         }
 
         // Find the last join pair that contains a filtering
@@ -472,27 +476,24 @@ public class ManyTableConsumer implements Consumer {
      *             t1   t2
      */
     private static void extendQSOutputs(Map<Set<QualifiedName>, Symbol> splitQuery,
-                                        Iterator<QualifiedName> it,
                                         final QualifiedName leftName,
                                         final QualifiedName rightName,
                                         QuerySpec newQuerySpec) {
-        if (it.hasNext()) {
-            Set<Symbol> fields = new LinkedHashSet<>(newQuerySpec.outputs());
-            for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
-                Set<QualifiedName> relations = entry.getKey();
-                Symbol joinCondition = entry.getValue();
-                if (relations.contains(leftName) || relations.contains(rightName)) {
-                    FieldsVisitor.visitFields(joinCondition,
-                                              f -> {
-                                                if (f.relation().getQualifiedName().equals(leftName) ||
+        Set<Symbol> fields = new LinkedHashSet<>(newQuerySpec.outputs());
+        for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
+            Set<QualifiedName> relations = entry.getKey();
+            Symbol joinCondition = entry.getValue();
+            if (relations.contains(leftName) || relations.contains(rightName)) {
+                FieldsVisitor.visitFields(joinCondition,
+                                          f -> {
+                                            if (f.relation().getQualifiedName().equals(leftName) ||
                                                     f.relation().getQualifiedName().equals(rightName)) {
-                                                    fields.add(f);
-                                                }
-                                              });
-                }
+                                                fields.add(f);
+                                            }
+                                          });
             }
-            newQuerySpec.outputs(new ArrayList<>(fields));
         }
+        newQuerySpec.outputs(new ArrayList<>(fields));
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
