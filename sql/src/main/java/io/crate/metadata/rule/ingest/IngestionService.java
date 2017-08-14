@@ -29,9 +29,12 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,16 +44,18 @@ import java.util.Map;
 import java.util.Set;
 
 @Singleton
-public class IngestionService implements ClusterStateListener {
+public class IngestionService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
     private final Map<String, List<IngestionImplementation>> implementations = new HashMap<>();
     private final Schemas schemas;
 
     @Inject
-    public IngestionService(Schemas schemas,
-                            ClusterService clusterService,
-                            DDLClusterStateService ddlClusterStateService) {
+    public IngestionService(Settings settings,
+                            Schemas schemas,
+                            ClusterService clusterService, 
+			    DDLClusterStateService ddlClusterStateService) {
+        super(settings);
         this.schemas = schemas;
         this.clusterService = clusterService;
         ddlClusterStateService.addModifier(new IngestionDDLClusterStateModifier());
@@ -104,5 +109,20 @@ public class IngestionService implements ClusterStateListener {
         } else {
             return Collections.emptyMap();
         }
+    }
+
+    @Override
+    protected void doStart() {
+        clusterService.addListener(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.removeListener(this);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+
     }
 }

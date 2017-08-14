@@ -38,6 +38,7 @@ import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
+import io.crate.metadata.rule.ingest.IngestionService;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -162,7 +163,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             PostgresNetty.class,
             JobContextService.class,
             Schemas.class,
-            ArrayMapperService.class);
+            ArrayMapperService.class,
+            IngestionService.class);
     }
 
     @Override
