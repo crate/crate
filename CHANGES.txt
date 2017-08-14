@@ -20,6 +20,3 @@ Changes
 
 Fixes
 =====
-
- - Fixed an issue that caused ``cluster.name`` setting in ``crate.yml`` file
-   to be ignored.
