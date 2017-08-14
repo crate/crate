@@ -604,16 +604,17 @@ The table schema is the following:
 Example query::
 
   cr> select id, node_id, description from sys.node_checks order by id, node_id;
-  +----+---------...-+--------------------------------------------------------------...-+
-  | id | node_id     | description                                                      |
-  +----+---------...-+--------------------------------------------------------------...-+
-  |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
-  |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |  3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
-  |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
-  |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
-  +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 5 rows in set (... sec)
+  +-...-+---------...-+--------------------------------------------------------------...-+
+  |  id | node_id     | description                                                      |
+  +-...-+---------...-+--------------------------------------------------------------...-+
+  |   1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
+  |   2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
+  |   3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
+  |   5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
+  |   6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
+  ...
+  +-...-+---------...-+--------------------------------------------------------------...-+
+  SELECT ... rows in set (... sec)
 
 .. _sys-node-checks-ack:
 
