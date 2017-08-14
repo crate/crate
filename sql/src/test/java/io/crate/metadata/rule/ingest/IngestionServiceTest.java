@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupIngestionServiceAndIngestRulesMetaData() {
         schemas = mock(Schemas.class);
-        ingestionService = new IngestionService(schemas, clusterService, new DDLClusterStateService());
+        ingestionService = new IngestionService(Settings.EMPTY, schemas, clusterService, new DDLClusterStateService());
         ImmutableOpenMap.Builder<String, MetaData.Custom> customsBuilder = ImmutableOpenMap.builder();
         ingestRulesMetaData = new IngestRulesMetaData(new HashMap<>());
         customsBuilder.put(IngestRulesMetaData.TYPE, ingestRulesMetaData);
