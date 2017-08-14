@@ -27,6 +27,8 @@ Breaking Changes
 Changes
 =======
 
+ - Added node cluster check for cluster-name folder in data path directory.
+
  - Update Crash to ``0.22.1`` which includes the following changes:
 
     - Added a status toolbar that prints the current session info.

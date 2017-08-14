@@ -45,7 +45,6 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         return nodePlugins;
     }
 
-
     /**
      * Test that basic information from cluster state is used if a sys node
      * request is timing out
@@ -76,5 +75,17 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
             internalCluster().clearDisruptionScheme(true);
             waitNoPendingTasksOnAll();
         }
+    }
+
+    /**
+     * Test cluster name check, when path.data does not contain cluster
+     * name as a folder.
+     * <p>
+     * TODO-ES6: Remove this when ES >= 6.0
+     */
+    @Test
+    public void testClusterNameInPathCheckDoesNotFailWithDefaultConfig() throws Exception {
+        execute("select description, passed from sys.node_checks where not passed and id=1000");
+        assertThat(response.rowCount(), is(0L));
     }
 }

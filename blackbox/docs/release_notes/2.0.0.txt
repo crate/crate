@@ -138,6 +138,9 @@ Breaking Changes
  - Thread pool settings prefix have been changed from ``threadpool`` to
    ``thread_pool``. E.g.: ``thread_pool.<name>.type``.
 
+ - The ``cluster name`` is not part of the effective path where data is stored
+   anymore.
+
 Changes
 -------
 
@@ -301,3 +304,17 @@ sets both the minimum and maximum memory to allocate, and should be set to
 whatever your previous ``CRATE_MAX_MEM`` was set to.
 
 .. _enterprise edition: https://crate.io/enterprise-edition/
+
+Cluster name in path data
+-------------------------
+
+The computation of the effective data directory path has changed in a way that
+the cluster name is not part of the path anymore. In previous versions it was
+``$PATH_DATA_DIR/$CLUSTER_NAME/nodes/`` and now it is
+``$PATH_DATA_DIR/nodes/``. There's a fallback that still accepts the old data
+structure, which will be removed in future versions of CrateDB.
+It will be required that the data directory is either moved to the new location
+or the ``path.data`` setting gets changed to point to the old location by
+appending the clustername to it (e.g ``/data/`` becomes
+``/data/yourclustername``). Therefore it's not possible anymore for multiple
+clusters to share the exact same ``path.data`` directory.

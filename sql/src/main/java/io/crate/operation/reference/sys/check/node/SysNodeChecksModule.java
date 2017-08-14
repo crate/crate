@@ -33,10 +33,14 @@ public class SysNodeChecksModule extends AbstractModule {
 
         MapBinder<Integer, SysNodeCheck> b = MapBinder.newMapBinder(binder(), Integer.class, SysNodeCheck.class);
 
-        b.addBinding(HighDiskWatermarkNodesSysCheck.ID).to(HighDiskWatermarkNodesSysCheck.class);
-        b.addBinding(LowDiskWatermarkNodesSysCheck.ID).to(LowDiskWatermarkNodesSysCheck.class);
+        // Node checks ordered by ID. New ID must be max ID + 1 and must not be reused.
+        b.addBinding(RecoveryExpectedNodesSysCheck.ID).to(RecoveryExpectedNodesSysCheck.class);
         b.addBinding(RecoveryAfterNodesSysCheck.ID).to(RecoveryAfterNodesSysCheck.class);
         b.addBinding(RecoveryAfterTimeSysCheck.ID).to(RecoveryAfterTimeSysCheck.class);
-        b.addBinding(RecoveryExpectedNodesSysCheck.ID).to(RecoveryExpectedNodesSysCheck.class);
+        b.addBinding(HighDiskWatermarkNodesSysCheck.ID).to(HighDiskWatermarkNodesSysCheck.class);
+        b.addBinding(LowDiskWatermarkNodesSysCheck.ID).to(LowDiskWatermarkNodesSysCheck.class);
+
+        // Checks that are intentionally declared as temporary should have an ID > 999.
+        b.addBinding(ClusterNameInPathDataNodesSysCheck.ID).to(ClusterNameInPathDataNodesSysCheck.class);
     }
 }
