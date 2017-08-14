@@ -5,7 +5,7 @@
 SET TRANSACTION
 ===============
 
-Sets the characteristics of the current transaction.
+Sets the characteristics of transactions.
 
 Synopsis
 ========
@@ -17,6 +17,9 @@ Synopsis
 Description
 ===========
 
-The command sets the characteristics of the current transaction. As CrateDB does
-not support transactions, this command has no effect and will be ignored. The
-support was added for compatibility reasons.
+``SET SESSION CHARACTERISTICS`` sets the default transaction characteristics for
+subsequent transactions of a session.
+
+As CrateDB does not support transactions, this command has no effect and will be
+ignored. The support was added for compatibility reasons.
+
