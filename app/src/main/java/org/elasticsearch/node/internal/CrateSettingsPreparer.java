@@ -71,7 +71,14 @@ public class CrateSettingsPreparer {
         }
 
         // we put back settings from command line to override the ones from configuration file
+        // but we avoid overriding the cluster name with the default ES cluster name.
+        String clusterNameKey = ClusterName.CLUSTER_NAME_SETTING.getKey();
+        String currentClusterName = builder.get(clusterNameKey);
+        String esClusterName = esEnvironment.settings().get(clusterNameKey);
         builder.put(esEnvironment.settings());
+        if (esClusterName.equals(ClusterName.DEFAULT.value()) && currentClusterName != null) {
+            builder.put(clusterNameKey, currentClusterName);
+        }
 
         // we put back the path.logs so we can use it in the logging configuration file
         builder.put(
