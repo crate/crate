@@ -76,7 +76,7 @@ public class CrateSettingsPreparer {
         String currentClusterName = builder.get(clusterNameKey);
         String esClusterName = esEnvironment.settings().get(clusterNameKey);
         builder.put(esEnvironment.settings());
-        if (esClusterName.equals(ClusterName.DEFAULT.value()) && currentClusterName != null) {
+        if ((esClusterName == null || esClusterName.equals(ClusterName.DEFAULT.value())) && currentClusterName != null) {
             builder.put(clusterNameKey, currentClusterName);
         }
 
