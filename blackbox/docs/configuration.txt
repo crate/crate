@@ -889,14 +889,13 @@ unicast hosts for node discovery.
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see `Cluster Meta Data`).
 
-**disovery.type**
+**discovery.type**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
   | *Allowed Values:*  ``zen``, ``ec2``
 
-
 **discovery.zen.hosts_provider**
-  | *Default:*   ``not set```
+  | *Default:*   ``not set``
   | *Runtime:*   ``no``
   | *Allowed Values:* ``srv``, ``azure``
 
