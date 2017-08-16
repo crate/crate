@@ -75,6 +75,13 @@ if "%CRATE_CLASSPATH%" == "" (
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
     EXIT /B 1
 )
+
+if "%CRATE_HEAP_SIZE%" == "" (
+    for /f %%a in ('"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% -cp "%CRATE_CLASSPATH%" "io.crate.CrateJavaInfo" -m') do set "MAX_HEAP_SIZE=%%a"
+    echo "WARNING: No CRATE_HEAP_SIZE environment variable was set, using default maximum value %MAX_HEAP_SIZE% as minimum and maximum java HEAP size"
+    set JAVA_OPTS="%JAVA_OPTS% -Xms%MAX_HEAP_SIZE% -Xmx%MAX_HEAP_SIZE%"
+)
+
 set CRATE_PARAMS=-Epath.home="%CRATE_HOME%"
 
 setlocal enabledelayedexpansion
