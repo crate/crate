@@ -113,11 +113,13 @@ launch_service()
     pidpath=$1
     daemonized=$2
     javaProperties=$3
-    if [[ $4 == *"-Cpath.home="* ]]; then
-        props="$4"
-    else
-        props="-Cpath.home=$CRATE_HOME $4"
-    fi
+
+    case "$4" in
+        *"-Cpath.home="*)
+            props="$4" ;;
+        *               )
+            props="-Cpath.home=$CRATE_HOME $4" ;;
+    esac
 
     if [ "x$pidpath" != "x" ]; then
         props="-Cpidfile=$pidpath $props"

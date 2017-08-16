@@ -38,3 +38,6 @@ Changes
 
 Fixes
 =====
+
+ - Changed ``crate`` unix/linux startup script to use standard ``sh`` syntax
+   instead of ``bash`` specific syntax.
