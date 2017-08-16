@@ -66,7 +66,6 @@ import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.ExtractFunctions;
-import io.crate.operation.scalar.SingleValueFunction;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
@@ -126,7 +125,6 @@ import io.crate.types.UndefinedType;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -195,7 +193,7 @@ public class ExpressionAnalyzer {
      * </p>
      */
     public Symbol convert(Expression expression, ExpressionAnalysisContext expressionAnalysisContext) {
-        return ensureSingleValue(innerAnalyzer.process(expression, expressionAnalysisContext));
+        return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
     public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
@@ -326,22 +324,6 @@ public class ExpressionAnalyzer {
         }
     }
 
-    private Symbol ensureSingleValue(Symbol symbol) {
-        if (!(symbol instanceof SelectSymbol)) {
-            return symbol;
-        }
-        SelectSymbol selectSymbol = (SelectSymbol) symbol;
-        selectSymbol.setResultType(SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE);
-        // A SubQuery can return more than one row. We don't allow multiple rows,
-        // except in ANY or IN expressions. Thus, we wrap the result into a function
-        // which extracts the first element and checks if there are more than one element.
-        List<DataType> inputTypes = Collections.singletonList(symbol.valueType());
-        FunctionInfo singleValueFunction = getBuiltinFunctionInfo(SingleValueFunction.NAME, inputTypes);
-        // needs to be a mutable list as Crate manipulates symbols in-place...
-        List<Symbol> arguments = Arrays.asList(symbol);
-        return new Function(singleValueFunction, arguments);
-    }
-
     private class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         @Override
@@ -452,7 +434,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
             DataType returnType = DataTypeAnalyzer.convert(node.getType());
-            return cast(ensureSingleValue(process(node.getExpression(), context)), returnType, false);
+            return cast(process(node.getExpression(), context), returnType, false);
         }
 
         @Override
@@ -461,7 +443,7 @@ public class ExpressionAnalyzer {
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
-                    return cast(ensureSingleValue(process(node.getExpression(), context)), returnType, true);
+                    return cast(process(node.getExpression(), context), returnType, true);
                 } catch (ConversionException e) {
                     return Literal.NULL;
                 }
@@ -472,9 +454,9 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
-            Symbol expression = ensureSingleValue(process(node.getExpression(), context));
+            Symbol expression = process(node.getExpression(), context);
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
-            Symbol field = castIfNeededOrFail(ensureSingleValue(process(node.getField(), context)), DataTypes.STRING);
+            Symbol field = castIfNeededOrFail(process(node.getField(), context), DataTypes.STRING);
             return context.allocateFunction(
                 ExtractFunctions.GENERIC_INFO, Arrays.asList(field, expression));
         }
@@ -492,7 +474,7 @@ public class ExpressionAnalyzer {
              * or
              *      x = ANY(select x from t)
              */
-            Symbol left = ensureSingleValue(process(node.getValue(), context));
+            Symbol left = process(node.getValue(), context);
             DataType targetType = left.valueType();
 
             Expression valueList = node.getValueList();
@@ -531,7 +513,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, ExpressionAnalysisContext context) {
-            Symbol argument = ensureSingleValue(process(node.getValue(), context));
+            Symbol argument = process(node.getValue(), context);
             FunctionInfo isNullInfo =
                 getBuiltinFunctionInfo(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(argument.valueType()));
             return context.allocateFunction(
@@ -598,22 +580,22 @@ public class ExpressionAnalyzer {
                         "Unsupported logical binary expression " + node.getType().name());
             }
             List<Symbol> arguments = new ArrayList<>(2);
-            arguments.add(ensureSingleValue(process(node.getLeft(), context)));
-            arguments.add(ensureSingleValue(process(node.getRight(), context)));
+            arguments.add(process(node.getLeft(), context));
+            arguments.add(process(node.getRight(), context));
             return context.allocateFunction(functionInfo, arguments);
         }
 
         @Override
         protected Symbol visitNotExpression(NotExpression node, ExpressionAnalysisContext context) {
-            Symbol argument = ensureSingleValue(process(node.getValue(), context));
+            Symbol argument = process(node.getValue(), context);
             return context.allocateFunction(
                 getBuiltinFunctionInfo(NotPredicate.NAME, Arrays.asList(argument.valueType())), Arrays.asList(argument));
         }
 
         @Override
         protected Symbol visitComparisonExpression(ComparisonExpression node, ExpressionAnalysisContext context) {
-            Symbol left = ensureSingleValue(process(node.getLeft(), context));
-            Symbol right = ensureSingleValue(process(node.getRight(), context));
+            Symbol left = process(node.getLeft(), context);
+            Symbol right = process(node.getRight(), context);
 
             Comparison comparison = new Comparison(node.getType(), left, right);
             comparison.normalize(context);
@@ -627,7 +609,9 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol leftSymbol = ensureSingleValue(process(node.getLeft(), context));
+            context.registerArrayComparisonChild(node.getRight());
+
+            Symbol leftSymbol = process(node.getLeft(), context);
             Symbol arraySymbol = process(node.getRight(), context);
 
             DataType rightType = arraySymbol.valueType();
@@ -667,8 +651,8 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = ensureSingleValue(process(node.getValue(), context));
-            Symbol leftSymbol = ensureSingleValue(process(node.getPattern(), context));
+            Symbol rightSymbol = process(node.getValue(), context);
+            Symbol leftSymbol = process(node.getPattern(), context);
             DataType rightType = rightSymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -688,9 +672,9 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol expression = ensureSingleValue(process(node.getValue(), context));
+            Symbol expression = process(node.getValue(), context);
             expression = castIfNeededOrFail(expression, DataTypes.STRING);
-            Symbol pattern = castIfNeededOrFail(ensureSingleValue(process(node.getPattern(), context)), DataTypes.STRING);
+            Symbol pattern = castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING);
             return context.allocateFunction(
                 getBuiltinFunctionInfo(LikeOperator.NAME, Arrays.asList(expression.valueType(), pattern.valueType())),
                 Arrays.asList(expression, pattern));
@@ -698,7 +682,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitIsNullPredicate(IsNullPredicate node, ExpressionAnalysisContext context) {
-            Symbol value = ensureSingleValue(process(node.getValue(), context));
+            Symbol value = process(node.getValue(), context);
 
             return context.allocateFunction(
                 getBuiltinFunctionInfo(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(value.valueType())),
@@ -710,13 +694,13 @@ public class ExpressionAnalyzer {
             // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
             // is just wrapped inside a negativeExpression
             // the visitor here swaps it to getBuiltin -1 in a (symbol)LiteralInteger
-            return NEGATIVE_LITERAL_VISITOR.process(ensureSingleValue(process(node.getValue(), context)), null);
+            return NEGATIVE_LITERAL_VISITOR.process(process(node.getValue(), context), null);
         }
 
         @Override
         protected Symbol visitArithmeticExpression(ArithmeticExpression node, ExpressionAnalysisContext context) {
-            Symbol left = ensureSingleValue(process(node.getLeft(), context));
-            Symbol right = ensureSingleValue(process(node.getRight(), context));
+            Symbol left = process(node.getLeft(), context);
+            Symbol right = process(node.getRight(), context);
 
             return context.allocateFunction(
                 getBuiltinFunctionInfo(
@@ -733,7 +717,7 @@ public class ExpressionAnalyzer {
                 if (sessionContext.options().contains(Option.ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
-                        return ensureSingleValue(process(SqlParser.createExpression(quotedSubscriptLiteral), context));
+                        return process(SqlParser.createExpression(quotedSubscriptLiteral), context);
                     } else {
                         throw exception;
                     }
@@ -776,7 +760,7 @@ public class ExpressionAnalyzer {
             } else {
                 List<Symbol> arguments = new ArrayList<>(values.size());
                 for (Expression value : values) {
-                    arguments.add(ensureSingleValue(process(value, context)));
+                    arguments.add(process(value, context));
                 }
                 return context
                     .allocateFunction(getBuiltinFunctionInfo(ArrayFunction.NAME, Symbols.typeView(arguments)), arguments);
@@ -792,7 +776,7 @@ public class ExpressionAnalyzer {
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
             for (Map.Entry<String, Expression> entry : values.entries()) {
                 arguments.add(Literal.of(entry.getKey()));
-                arguments.add(ensureSingleValue(process(entry.getValue(), context)));
+                arguments.add(process(entry.getValue(), context));
             }
             return context
                 .allocateFunction(getBuiltinFunctionInfo(MapFunction.NAME, Symbols.typeView(arguments)), arguments);
@@ -807,9 +791,9 @@ public class ExpressionAnalyzer {
         protected Symbol visitBetweenPredicate(BetweenPredicate node, ExpressionAnalysisContext context) {
             // <value> between <min> and <max>
             // -> <value> >= <min> and <value> <= max
-            Symbol value = ensureSingleValue(process(node.getValue(), context));
-            Symbol min = ensureSingleValue(process(node.getMin(), context));
-            Symbol max = ensureSingleValue(process(node.getMax(), context));
+            Symbol value = process(node.getValue(), context);
+            Symbol min = process(node.getMin(), context);
+            Symbol max = process(node.getMax(), context);
 
             Comparison gte = new Comparison(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             FunctionIdent gteIdent = gte.normalize(context).toFunctionIdent();
@@ -829,26 +813,26 @@ public class ExpressionAnalyzer {
             Map<Field, Symbol> identBoostMap = new HashMap<>(node.idents().size());
             DataType columnType = null;
             for (MatchPredicateColumnIdent ident : node.idents()) {
-                Symbol column = ensureSingleValue(process(ident.columnIdent(), context));
+                Symbol column = process(ident.columnIdent(), context);
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
                 Preconditions.checkArgument(
                     column instanceof Field,
                     SymbolFormatter.format("can only MATCH on columns, not on %s", column));
-                Symbol boost = ensureSingleValue(process(ident.boost(), context));
+                Symbol boost = process(ident.boost(), context);
                 identBoostMap.put(((Field) column), boost);
             }
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
-            Symbol queryTerm = castIfNeededOrFail(ensureSingleValue(process(node.value(), context)), columnType);
+            Symbol queryTerm = castIfNeededOrFail(process(node.value(), context), columnType);
             String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
             for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
                 mapArgs.add(Literal.of(e.getKey()));
-                mapArgs.add(ensureSingleValue(process(e.getValue(), context)));
+                mapArgs.add(process(e.getValue(), context));
             }
             Function options = context.allocateFunction(MapFunction.createInfo(Symbols.typeView(mapArgs)), mapArgs);
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
@@ -875,9 +859,15 @@ public class ExpressionAnalyzer {
              *
              * However, we support a single column RowType through the SingleColumnTableType.
              */
-            Field field = fields.get(0);
-            SingleColumnTableType singleColumnTableType = new SingleColumnTableType(field.valueType());
-            return new SelectSymbol(relation, singleColumnTableType);
+            DataType innerType = fields.get(0).valueType();
+            SingleColumnTableType dataType = new SingleColumnTableType(innerType);
+            final SelectSymbol.ResultType resultType;
+            if (context.isArrayComparisonChild(node)) {
+                resultType = SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
+            } else {
+                resultType = SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+            }
+            return new SelectSymbol(relation, dataType, resultType);
         }
 
     }

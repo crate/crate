@@ -23,12 +23,11 @@
 package io.crate.analyze.symbol;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.types.DataType;
 import io.crate.types.SingleColumnTableType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-
-import static io.crate.analyze.symbol.SelectSymbol.ResultType.*;
 
 /**
  * Symbol representing a sub-query
@@ -36,20 +35,20 @@ import static io.crate.analyze.symbol.SelectSymbol.ResultType.*;
 public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
-    private final SingleColumnTableType type;
+    private final SingleColumnTableType dataType;
+    private final ResultType resultType;
 
     private boolean isPlanned = false;
-
-    private ResultType resultType = SINGLE_COLUMN_MULTIPLE_VALUES;
 
     public enum ResultType {
         SINGLE_COLUMN_SINGLE_VALUE,
         SINGLE_COLUMN_MULTIPLE_VALUES
     }
 
-    public SelectSymbol(AnalyzedRelation relation, SingleColumnTableType type) {
+    public SelectSymbol(AnalyzedRelation relation, SingleColumnTableType dataType, ResultType resultType) {
         this.relation = relation;
-        this.type = type;
+        this.dataType = dataType;
+        this.resultType = resultType;
     }
 
     public AnalyzedRelation relation() {
@@ -72,13 +71,16 @@ public class SelectSymbol extends Symbol {
     }
 
     @Override
-    public SingleColumnTableType valueType() {
-        return type;
+    public DataType valueType() {
+        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
+            return dataType.innerType();
+        }
+        return dataType;
     }
 
     @Override
     public String toString() {
-        return "SelectSymbol{" + type.toString() + "}";
+        return "SelectSymbol{" + dataType.toString() + "}";
     }
 
     @Override
@@ -92,10 +94,6 @@ public class SelectSymbol extends Symbol {
 
     public void markAsPlanned() {
         isPlanned = true;
-    }
-
-    public void setResultType(ResultType type) {
-        resultType = type;
     }
 
     public ResultType getResultType() {
