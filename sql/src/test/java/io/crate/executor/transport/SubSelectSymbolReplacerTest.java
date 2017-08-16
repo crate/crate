@@ -23,9 +23,7 @@
 package io.crate.executor.transport;
 
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.Plan;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -33,9 +31,8 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.contains;
 
 public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -50,13 +47,11 @@ public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectSymbolsAreReplacedInSelectListOfPrimaryKeyLookups() throws Exception {
         MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
         ESGet esGet = (ESGet) plan.rootPlan();
-        Map<Plan, SelectSymbol> dependencies = plan.dependencies();
-        SelectSymbol selectSymbol = dependencies.values().iterator().next();
+        SelectSymbol subSelect = (SelectSymbol) esGet.outputs().get(0);
 
-        SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(esGet, selectSymbol);
-        replacer.onSuccess(new BytesRef[] {new BytesRef("foo")});
+        SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(esGet, subSelect);
+        replacer.onSuccess(new BytesRef("foo"));
 
-        Symbol output = esGet.outputs().get(0);
-        assertThat(output.toString(), is("single_value(['foo'])"));
+        assertThat(esGet.outputs(), contains(isLiteral("foo")));
     }
 }

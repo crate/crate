@@ -35,7 +35,7 @@ public class SingleColumnTableType extends CollectionType {
         super(innerType);
     }
 
-    public SingleColumnTableType() {
+    SingleColumnTableType() {
         super();
     }
 

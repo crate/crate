@@ -85,7 +85,6 @@ public class ScalarFunctionModule extends AbstractModule {
         SubstrFunction.register(this);
         MatchesFunction.register(this);
         ReplaceFunction.register(this);
-        SingleValueFunction.register(this);
 
         ArithmeticFunctions.register(this);
 

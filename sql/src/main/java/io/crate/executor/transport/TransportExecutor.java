@@ -87,10 +87,12 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 @Singleton
 public class TransportExecutor implements Executor {
@@ -329,9 +331,20 @@ public class TransportExecutor implements Executor {
             Plan rootPlan = multiPhasePlan.rootPlan();
             for (Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
                 Plan plan = entry.getKey();
+                SelectSymbol selectSymbol = entry.getValue();
+                SelectSymbol.ResultType resultType = selectSymbol.getResultType();
 
-                CollectingBatchConsumer<Collection<Object>, Object[]> consumer =
-                    FirstColumnConsumer.createConsumer();
+                final CollectingBatchConsumer<?, ?> consumer;
+                if (resultType == SINGLE_COLUMN_SINGLE_VALUE) {
+                    consumer = FirstColumnConsumers.createSingleRowConsumer();
+                } else if (resultType == SINGLE_COLUMN_MULTIPLE_VALUES) {
+                    consumer = FirstColumnConsumers.createAllRowsConsumer();
+                } else {
+                    throw new IllegalStateException("Can't create consumer: Unknown ResultType");
+                }
+
+                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
+                dependencyFutures.add(consumer.resultFuture().thenAccept(replacer::onSuccess));
 
                 CompletableFuture<Plan> planFuture = process(plan, context);
                 planFuture.whenComplete((p, e) -> {
@@ -344,8 +357,6 @@ public class TransportExecutor implements Executor {
                         consumer.accept(null, e);
                     }
                 });
-                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
-                dependencyFutures.add(consumer.resultFuture().thenAccept(replacer::onSuccess));
             }
             CompletableFuture[] cfs = dependencyFutures.toArray(new CompletableFuture[0]);
             return CompletableFuture.allOf(cfs).thenCompose(x -> process(rootPlan, context));
