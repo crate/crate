@@ -31,6 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
@@ -46,11 +47,11 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @After
-    public void dropTableAndIngestRule() {
+    public void dropAllIngestRule() {
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
         MetaData metaData = clusterService.state().metaData();
         IngestRulesMetaData ingestRulesMetaData = (IngestRulesMetaData) metaData.getCustoms().get(IngestRulesMetaData.TYPE);
-        Set<IngestRule> allRules = ingestRulesMetaData.getAllRulesForTargetTable("doc.t1");
+        Set<IngestRule> allRules = getAllRules(ingestRulesMetaData);
         for (IngestRule rule : allRules) {
             execute("drop ingest rule if exists " + rule.getName());
         }
@@ -87,5 +88,21 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropMissingRuleIfExistsReturnsZeroAffectedRowsCount() {
         execute("drop ingest rule if exists somerule");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testRenameTableTransfersIngestRules() {
+        execute("alter table t1 rename to t2");
+
+        execute("select target_table from information_schema.ingestion_rules where rule_name = ?",
+            new Object[]{INGEST_RULE_NAME});
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("doc.t2"));
+    }
+
+    private static Set<IngestRule> getAllRules(IngestRulesMetaData ingestRulesMetaData) {
+        Set<IngestRule> allRulesForTable = new HashSet<>();
+        ingestRulesMetaData.getIngestRules().values().forEach(allRulesForTable::addAll);
+        return allRulesForTable;
     }
 }

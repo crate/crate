@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class IngestRule implements Writeable {
 
@@ -62,14 +63,15 @@ public class IngestRule implements Writeable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        IngestRule that = (IngestRule) o;
-        return name.equals(that.name);
+        IngestRule rule = (IngestRule) o;
+        return Objects.equals(name, rule.name) &&
+               Objects.equals(targetTable, rule.targetTable) &&
+               Objects.equals(condition, rule.condition);
     }
 
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hash(name, targetTable, condition);
     }
 
     @Override
