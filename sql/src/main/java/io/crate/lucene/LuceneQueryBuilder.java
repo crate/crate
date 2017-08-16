@@ -123,6 +123,7 @@ import org.elasticsearch.index.mapper.LatLonPointFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Uid;
+import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
@@ -607,7 +608,7 @@ public class LuceneQueryBuilder {
                         return null;
                     }
                     if (reference.isNullable()) {
-                        builder.add(fieldType.rangeQuery(null, null, true, true, context.queryShardContext), BooleanClause.Occur.MUST);
+                        builder.add(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName), BooleanClause.Occur.MUST);
                     }
                 }
                 if (ctx.hasStrictThreeValuedLogicFunction) {
@@ -633,18 +634,8 @@ public class LuceneQueryBuilder {
                     return null;
                 }
                 Reference reference = (Reference) arg;
-
                 String columnName = reference.ident().columnIdent().fqn();
-                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-                if (fieldType == null) {
-                    if (CollectionType.unnest(reference.valueType()).equals(DataTypes.OBJECT)) {
-                        // object column has no mappedFieldType, but may exist. Need to use generic fallback
-                        return null;
-                    }
-                    // is null on an unknown column is always true
-                    return Queries.newMatchAllQuery();
-                }
-                return Queries.not(fieldType.rangeQuery(null, null, true, true, context.queryShardContext));
+                return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName));
             }
         }
 

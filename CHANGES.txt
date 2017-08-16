@@ -39,5 +39,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL` on
+   columns of type ``geo_point`` to fail.
+
  - Changed ``crate`` unix/linux startup script to use standard ``sh`` syntax
    instead of ``bash`` specific syntax.
+
