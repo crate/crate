@@ -21,14 +21,19 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
+import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import java.util.function.Supplier;
+
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
@@ -283,5 +288,23 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
         execute("select count(*) from t2 where id != any(select collect_set(id) from t1)");
         assertThat(response.rows()[0][0], is(1L));
+    }
+
+
+    @Test
+    public void testNullOperators() throws Exception {
+        DataType<?> type = randomType();
+        execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
+        Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
+
+        Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});
+        execute("insert into t1 (c) values (?)", bulkArgs);
+        execute("refresh table t1");
+
+        execute("select count(*) from t1 where c is null");
+        assertThat(printedTable(response.rows()), is("1\n"));
+
+        execute("select count(*) from t1 where c is not null");
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 }

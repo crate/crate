@@ -39,7 +39,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.queries.TermsQuery;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -53,6 +53,7 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
@@ -64,6 +65,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
@@ -71,10 +73,12 @@ import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.MapperPlugin;
+import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Before;
 import org.junit.Rule;
@@ -106,6 +110,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    private QueryShardContext queryShardContext;
 
     @Before
     public void prepare() throws Exception {
@@ -174,6 +179,20 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
         when(geoFieldData.getFieldName()).thenReturn("point");
         when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
+
+        queryShardContext = new QueryShardContext(
+            0,
+            idxSettings,
+            new BitsetFilterCache(idxSettings, mock(BitsetFilterCache.Listener.class)),
+            indexFieldDataService,
+            mapperService,
+            new SimilarityService(idxSettings, Collections.emptyMap()),
+            mock(ScriptService.class),
+            xContentRegistry(),
+            mock(Client.class),
+            mock(IndexReader.class),
+            System::currentTimeMillis
+        );
     }
 
     private MapperService createMapperService(IndexSettings indexSettings, IndexAnalyzers indexAnalyzers) {
@@ -205,7 +224,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause, mapperService, null, indexFieldDataService, indexCache).query;
+        return builder.convert(clause, mapperService, queryShardContext, indexFieldDataService, indexCache).query;
     }
 
     private Query convert(String expression) {
@@ -513,7 +532,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testIsNullOnObjectArray() throws Exception {
         Query query = convert("o_array IS NULL");
-        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        assertThat(query.toString(), is("+*:* -ConstantScore(_field_names:o_array)"));
         query = convert("o_array IS NOT NULL");
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
@@ -559,5 +578,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("unknown function: op_>(object, object)");
         convert("_doc > {\"name\"='foo'}");
+    }
+
+    @Test
+    public void testIsNullOnGeoPoint() throws Exception {
+        Query query = convert("point is null");
+        assertThat(query.toString(), is("+*:* -ConstantScore(_field_names:point)"));
     }
 }
