@@ -45,6 +45,7 @@ public class NestedLoopBatchIteratorTest {
     private ArrayList<Object[]> leftJoinResult;
     private ArrayList<Object[]> rightJoinResult;
     private ArrayList<Object[]> fullJoinResult;
+    private ArrayList<Object[]> semiJoinResult;
 
     private Function<Columns, BooleanSupplier> getCol0EqCol1JoinCondition() {
         return columns -> new BooleanSupplier() {
@@ -88,6 +89,11 @@ public class NestedLoopBatchIteratorTest {
         fullJoinResult.add(new Object[] { 3, 3, });
         fullJoinResult.add(new Object[] { null, 4 });
         fullJoinResult.add(new Object[] { null, 5 });
+
+        semiJoinResult = new ArrayList<>();
+        semiJoinResult.add(new Object[] { 2 });
+        semiJoinResult.add(new Object[] { 3 });
+        semiJoinResult.add(new Object[] { 4 });
     }
 
     @Test
@@ -210,5 +216,51 @@ public class NestedLoopBatchIteratorTest {
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
+    }
+
+    @Test
+    public void testSemiJoin() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
+            TestingBatchIterators.range(0, 5),
+            TestingBatchIterators.range(2, 6),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(semiJoinResult);
+    }
+
+    @Test
+    public void testSemiJoinBatchedSource() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
+            new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 2, null),
+            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(semiJoinResult);
+    }
+
+    @Test
+    public void testSemiJoinLeftEmpty() throws Exception {
+        BatchIterator iterator = NestedLoopBatchIterator.semiJoin(
+            RowsBatchIterator.empty(1),
+            TestingBatchIterators.range(0, 5),
+            getCol0EqCol1JoinCondition()
+        );
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testSemiJoinRightEmpty() throws Exception {
+        BatchIterator iterator = NestedLoopBatchIterator.semiJoin(
+            TestingBatchIterators.range(0, 5),
+            RowsBatchIterator.empty(1),
+            getCol0EqCol1JoinCondition()
+        );
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
     }
 }

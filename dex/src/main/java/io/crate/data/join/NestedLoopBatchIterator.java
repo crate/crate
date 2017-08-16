@@ -37,6 +37,7 @@ import java.util.function.Function;
  * - {@link #leftJoin(BatchIterator, BatchIterator, Function)}
  * - {@link #rightJoin(BatchIterator, BatchIterator, Function)}
  * - {@link #fullOuterJoin(BatchIterator, BatchIterator, Function)}
+ * - {@link #semiJoin(BatchIterator, BatchIterator, Function)}
  */
 public class NestedLoopBatchIterator implements BatchIterator {
 
@@ -73,6 +74,15 @@ public class NestedLoopBatchIterator implements BatchIterator {
                                           BatchIterator right,
                                           Function<Columns, BooleanSupplier> joinCondition) {
         return new RightJoinBatchIterator(left, right, joinCondition);
+    }
+
+    /**
+     * Create a BatchIterator that creates the semi-join result of {@code left} and {@code right}.
+     */
+    public static BatchIterator semiJoin(BatchIterator left,
+                                         BatchIterator right,
+                                         Function<Columns, BooleanSupplier> joinCondition) {
+        return new SemiJoinBatchIterator(left, right, joinCondition);
     }
 
     final CombinedColumn rowData;
