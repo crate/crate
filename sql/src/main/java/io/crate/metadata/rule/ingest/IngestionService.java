@@ -24,6 +24,7 @@ package io.crate.metadata.rule.ingest;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -48,22 +49,18 @@ public class IngestionService implements ClusterStateListener {
 
     @Inject
     public IngestionService(Schemas schemas,
-                            ClusterService clusterService) {
+                            ClusterService clusterService,
+                            DDLClusterStateService ddlClusterStateService) {
         this.schemas = schemas;
         this.clusterService = clusterService;
+        ddlClusterStateService.addModifier(new IngestionDDLClusterStateModifier());
     }
 
     /**
      * Register the provided @param implementation for ingest rule changes belonging to the provided @param sourceIdent.
-     *
-     * @return a set containing the current ingest rules for the @param sourceIdent
      */
-    public void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
-        List<IngestionImplementation> implementationsForSource = implementations.get(sourceIdent);
-        if (implementationsForSource == null) {
-            implementationsForSource = new ArrayList<>();
-            implementations.put(sourceIdent, implementationsForSource);
-        }
+    void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
+        List<IngestionImplementation> implementationsForSource = implementations.computeIfAbsent(sourceIdent, k -> new ArrayList<>());
         implementationsForSource.add(implementation);
         implementation.applyRules(getIngestionRules(clusterService.state().metaData()).get(sourceIdent));
     }
@@ -88,6 +85,7 @@ public class IngestionService implements ClusterStateListener {
     private void filterOutInvalidRules(Map<String, Set<IngestRule>> ingestionRules) {
         for (Set<IngestRule> sourceIngestRules : ingestionRules.values()) {
             Iterator<IngestRule> rulesIterator = sourceIngestRules.iterator();
+            //noinspection Java8CollectionRemoveIf - would result in a lambda instance for every iteration
             while (rulesIterator.hasNext()) {
                 IngestRule ingestRule = rulesIterator.next();
                 if (schemas.tableExists(TableIdent.fromIndexName(ingestRule.getTargetTable())) == false) {
