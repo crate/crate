@@ -60,6 +60,38 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return new IngestRulesMetaData(copyIngestRules);
     }
 
+    /**
+     * Returns a copy of the {@link IngestRulesMetaData} including a copied list of rules if at least one
+     * privilege was replaced. Otherwise returns NULL to indicate that nothing was changed.
+     * Rules whose target table idents are matching the given source ident are replaced by a copy where the ident
+     * is changed to the given target ident.
+     */
+    @Nullable
+    static IngestRulesMetaData maybeCopyAndReplaceTargetTableIdents(IngestRulesMetaData oldMetaData,
+                                                                    String sourceIdent,
+                                                                    String targetIdent) {
+        boolean rulesChanged = false;
+        Map<String, Set<IngestRule>> sourceIngestRules = new HashMap<>(oldMetaData.sourceIngestRules.size());
+        for (Map.Entry<String, Set<IngestRule>> entry : oldMetaData.sourceIngestRules.entrySet()) {
+            Set<IngestRule> ingestRules = new HashSet<>(entry.getValue().size());
+            for (IngestRule rule : entry.getValue()) {
+                if (rule.getTargetTable().equals(sourceIdent)) {
+                    IngestRule newRule = new IngestRule(rule.getName(), targetIdent, rule.getCondition());
+                    ingestRules.add(newRule);
+                    rulesChanged = true;
+                } else {
+                    ingestRules.add(rule);
+                }
+            }
+            sourceIngestRules.put(entry.getKey(), ingestRules);
+        }
+
+        if (rulesChanged) {
+            return new IngestRulesMetaData(sourceIngestRules);
+        }
+        return null;
+    }
+
     private final Map<String, Set<IngestRule>> sourceIngestRules;
 
     private IngestRulesMetaData() {
@@ -95,23 +127,13 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
         return sourceIngestRules;
     }
 
-    public Set<IngestRule> getAllRulesForTargetTable(String targetTable) {
-        Set<IngestRule> allRulesForTable = new HashSet<>();
-        sourceIngestRules.values().forEach(sourceIngestRules -> {
-            for (IngestRule ingestRule : sourceIngestRules) {
-                if(ingestRule.getTargetTable().equals(targetTable)) {
-                    allRulesForTable.add(ingestRule);
-                }
-            }
-        });
-        return allRulesForTable;
-    }
-
     public void createIngestRule(String sourceIdent, IngestRule ingestRule) throws IllegalArgumentException {
         for (Set<IngestRule> ingestRules : sourceIngestRules.values()) {
-            if (ingestRules.contains(ingestRule)) {
-                throw new IllegalArgumentException("Ingest rule with name " + ingestRule.getName() + " already exists");
-            }
+            ingestRules.forEach(r -> {
+                if (r.getName().equals(ingestRule.getName())) {
+                    throw new IllegalArgumentException("Ingest rule with name " + ingestRule.getName() + " already exists");
+                }
+            });
         }
 
         Set<IngestRule> ingestRules = sourceIngestRules.computeIfAbsent(sourceIdent, k -> new HashSet<>());
