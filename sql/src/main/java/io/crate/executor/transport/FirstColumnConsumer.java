@@ -36,36 +36,96 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * Collector to retrieve all values of the first column of each row.
+ * Collectors to retrieve either {@link AllValues} or a {@link SingleValue} of the first column of each row.
  */
-class FirstColumnConsumer implements Collector<Row, Collection<Object>, Object[]> {
+class FirstColumnConsumers {
 
-    @Override
-    public Supplier<Collection<Object>> supplier() {
-        return () -> new ArrayList<>(1);
+    private static class AllValues implements Collector<Row, Collection<Object>, Object[]> {
+
+        private static final AllValues INSTANCE = new AllValues();
+
+        private AllValues() {}
+
+        @Override
+        public Supplier<Collection<Object>> supplier() {
+            return () -> new ArrayList<>(1);
+        }
+
+        @Override
+        public BiConsumer<Collection<Object>, Row> accumulator() {
+            return (agg, row) -> {
+                agg.add(row.get(0));
+            };
+        }
+
+        @Override
+        public BinaryOperator<Collection<Object>> combiner() {
+            throw new IllegalStateException("Combine is not implemented on this collector");
+        }
+
+        @Override
+        public Function<Collection<Object>, Object[]> finisher() {
+            return Collection::toArray;
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Collections.emptySet();
+        }
+
     }
 
-    @Override
-    public BiConsumer<Collection<Object>, Row> accumulator() {
-        return (agg, row) -> agg.add(row.get(0));
+    private static class SingleValue implements Collector<Row, Object[], Object> {
+
+        private static final SingleValue INSTANCE = new SingleValue();
+
+        /* We need this Object to differentiate null values */
+        private static final Object SENTINEL = new Object();
+
+        private SingleValue() {}
+
+        @Override
+        public Supplier<Object[]> supplier() {
+            return () -> new Object[] { SENTINEL };
+        }
+
+        @Override
+        public BiConsumer<Object[], Row> accumulator() {
+            return (agg, row) -> {
+                if (agg[0] != SENTINEL) {
+                    throw new UnsupportedOperationException("Subquery returned more than 1 row when it shouldn't.");
+                }
+                agg[0] = row.get(0);
+            };
+        }
+
+        @Override
+        public BinaryOperator<Object[]> combiner() {
+            throw new IllegalStateException("Combine is not implemented on this collector");
+        }
+
+        @Override
+        public Function<Object[], Object> finisher() {
+            return agg -> {
+                if (agg[0] == SENTINEL) {
+                    return null;
+                }
+                return agg[0];
+            };
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return Collections.emptySet();
+        }
+
     }
 
-    @Override
-    public BinaryOperator<Collection<Object>> combiner() {
-        throw new IllegalStateException("Combine is not implemented on this collector");
+    static CollectingBatchConsumer<Object[], Object> createSingleRowConsumer() {
+        return new CollectingBatchConsumer<>(SingleValue.INSTANCE);
     }
 
-    @Override
-    public Function<Collection<Object>, Object[]> finisher() {
-        return Collection::toArray;
-    }
-
-    @Override
-    public Set<Characteristics> characteristics() {
-        return Collections.emptySet();
-    }
-
-    static CollectingBatchConsumer<Collection<Object>, Object[]> createConsumer() {
-        return new CollectingBatchConsumer<>(new FirstColumnConsumer());
+    static CollectingBatchConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
+        return new CollectingBatchConsumer<>(AllValues.INSTANCE);
     }
 }

@@ -24,10 +24,16 @@ package io.crate.analyze.expressions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
+import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.Expression;
 
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ExpressionAnalysisContext {
+
+    private final Map<Expression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
     public boolean hasAggregates = false;
 
@@ -36,4 +42,23 @@ public class ExpressionAnalysisContext {
         hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
         return newFunction;
     }
+
+    /**
+     * Registers the given expression as the child of an ArrayComparisonExpression.
+     * Can be used by downstream operators to check if an expression is part of an
+     * {@link ArrayComparisonExpression}.
+     * @param arrayExpressionChild the expression to register
+     */
+    void registerArrayComparisonChild(Expression arrayExpressionChild) {
+        arrayExpressionsChildren.put(arrayExpressionChild, null);
+    }
+
+    /**
+     * Checks if the given Expression is part of an {@link ArrayComparisonExpression}.
+     * @return True if the given expression has previously been registered.
+     */
+    boolean isArrayComparisonChild(Expression expression) {
+        return arrayExpressionsChildren.containsKey(expression);
+    }
+
 }
