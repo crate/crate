@@ -39,6 +39,12 @@ Changes
 Fixes
 =====
 
+ - Fixed column name in output by removing new lines when select list contains
+   subquery. E.g.::
+
+     SELECT 1 =
+         (SELECT 1)
+
  - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
 
  - Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL` on

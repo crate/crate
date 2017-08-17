@@ -1880,4 +1880,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Cannot use relation \"grandparent\" in subquery. Correlated subqueries are not supported");
         analyze("select (select (select 1 from t1 where grandparent.x = t1.x) from t1 as parent) from t1 as grandparent");
     }
+
+    @Test
+    public void testColumnOutputWithSingleRowSubselect() {
+        SelectAnalyzedStatement statement = analyze("select 1 = \n (select \n 2\n)\n");
+        assertThat(statement.relation().fields(), isSQL("doc.empty_row.(1 = (SELECT 2))"));
+    }
 }
