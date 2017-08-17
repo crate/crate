@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -47,6 +48,7 @@ public class NestedLoopBatchIteratorTest {
     private ArrayList<Object[]> rightJoinResult;
     private ArrayList<Object[]> fullJoinResult;
     private ArrayList<Object[]> semiJoinResult;
+    private ArrayList<Object[]> antiJoinResult;
 
     private Function<Columns, BooleanSupplier> getCol0EqCol1JoinCondition() {
         return columns -> new BooleanSupplier() {
@@ -95,6 +97,11 @@ public class NestedLoopBatchIteratorTest {
         semiJoinResult.add(new Object[] { 2 });
         semiJoinResult.add(new Object[] { 3 });
         semiJoinResult.add(new Object[] { 4 });
+
+        antiJoinResult = new ArrayList<>();
+        antiJoinResult.add(new Object[] { 0 });
+        antiJoinResult.add(new Object[] { 1 });
+        antiJoinResult.add(new Object[] { 4 });
     }
 
     @Test
@@ -281,5 +288,53 @@ public class NestedLoopBatchIteratorTest {
         TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testAntiJoin() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+            TestingBatchIterators.range(0, 5),
+            TestingBatchIterators.range(2, 4),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(antiJoinResult);
+    }
+
+    @Test
+    public void testAntiJoinBatchedSource() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+            new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 2, null),
+            new BatchSimulatingIterator(TestingBatchIterators.range(2, 4), 2, 2, null),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(antiJoinResult);
+    }
+
+    @Test
+    public void testAntiJoinLeftEmpty() throws Exception {
+        BatchIterator iterator = NestedLoopBatchIterator.antiJoin(
+            RowsBatchIterator.empty(1),
+            TestingBatchIterators.range(0, 5),
+            getCol0EqCol1JoinCondition()
+        );
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        consumer.accept(iterator, null);
+        assertThat(consumer.getResult(), Matchers.empty());
+    }
+
+    @Test
+    public void testAntiJoinRightEmpty() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+            new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null),
+            RowsBatchIterator.empty(1),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(Arrays.asList(
+            new Object[] { 0 },
+            new Object[] { 1 },
+            new Object[] { 2 }));
     }
 }

@@ -85,6 +85,15 @@ public class NestedLoopBatchIterator implements BatchIterator {
         return new SemiJoinBatchIterator(left, right, joinCondition);
     }
 
+    /**
+     * Create a BatchIterator that creates the anti-join result of {@code left} and {@code right}.
+     */
+    public static BatchIterator antiJoin(BatchIterator left,
+                                         BatchIterator right,
+                                         Function<Columns, BooleanSupplier> joinCondition) {
+        return new AntiJoinBatchIterator(left, right, joinCondition);
+    }
+
     final CombinedColumn rowData;
     final BatchIterator left;
     final BatchIterator right;
