@@ -79,6 +79,9 @@ public class NestedLoopOperation implements CompletionListenable {
 
             case FULL:
                 return NestedLoopBatchIterator.fullOuterJoin(left, right, getJoinCondition(joinCondition));
+
+            case SEMI:
+                return NestedLoopBatchIterator.semiJoin(left, right, getJoinCondition(joinCondition));
         }
         throw new AssertionError("Invalid joinType: " + joinType);
     }
