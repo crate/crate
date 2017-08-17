@@ -128,7 +128,7 @@ class NestedLoopConsumer implements Consumer {
                             (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
             boolean broadcastLeftTable = false;
             if (isDistributed) {
-                broadcastLeftTable = isLeftSmallerThanRight(left, right);
+                broadcastLeftTable = joinType != JoinType.SEMI && isLeftSmallerThanRight(left, right);
                 if (broadcastLeftTable) {
                     Plan tmpPlan = leftPlan;
                     leftPlan = rightPlan;

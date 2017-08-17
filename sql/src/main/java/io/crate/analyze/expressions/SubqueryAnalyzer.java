@@ -22,7 +22,7 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.sql.tree.Query;
@@ -37,7 +37,8 @@ public class SubqueryAnalyzer {
         this.statementAnalysisContext = statementAnalysisContext;
     }
 
-    public AnalyzedRelation analyze(Query query) {
-        return relationAnalyzer.analyze(query, statementAnalysisContext);
+    public QueriedRelation analyze(Query query) {
+        // The only non-queried relations are base tables - which cannot occur as part of a subquery. so this cast is safe.
+        return (QueriedRelation) relationAnalyzer.analyze(query, statementAnalysisContext);
     }
 }

@@ -33,8 +33,8 @@ import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -56,6 +56,7 @@ import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.LikeOperator;
+import io.crate.operation.operator.Operator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.operation.operator.RegexpMatchOperator;
@@ -826,7 +827,7 @@ public class ExpressionAnalyzer {
             /* note: This does not support analysis columns in the subquery which belong to the parent relation
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
-            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            QueriedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
             List<Field> fields = relation.fields();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
@@ -879,7 +880,7 @@ public class ExpressionAnalyzer {
         private Comparison(ComparisonExpression.Type comparisonExpressionType,
                            Symbol left,
                            Symbol right) {
-            this.operatorName = "op_" + comparisonExpressionType.getValue();
+            this.operatorName = Operator.PREFIX + comparisonExpressionType.getValue();
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
             this.right = right;
@@ -908,7 +909,7 @@ public class ExpressionAnalyzer {
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);
             if (type != null) {
                 comparisonExpressionType = type;
-                operatorName = "op_" + type.getValue();
+                operatorName = Operator.PREFIX + type.getValue();
             }
             Symbol tmp = left;
             DataType tmpType = leftType;
