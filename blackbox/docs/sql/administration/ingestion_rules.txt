@@ -20,10 +20,11 @@ Suppose we have installed an ingestion implementation for an ``mqtt`` broker,
 and we would like to filter temperature data streams by topic and store them to
 ``temp_data.raw``::
 
-    CREATE INGEST RULE temperature
-    ON mqtt
-    WHERE topic like 'temperature/%'
-    INTO temp_data.raw;
+    cr> CREATE INGEST RULE temperature
+    ... ON mqtt
+    ... WHERE topic like 'temperature/%'
+    ... INTO temp_data.raw;
+    CREATE OK, 1 row affected (... sec)
 
 It is possible to create and drop ingestion rules even if the corresponding
 ingestion implementation is not available. However, the target table
@@ -34,16 +35,18 @@ implementation's data structure.
 Multiple rules can be created for the same ingestion source, for example, to
 store the humidity data streams in ``humidity_data.raw``::
 
-    CREATE INGEST RULE humidity
-    ON mqtt
-    WHERE topic like 'humidity/%'
-    INTO humidity_data.raw;
+    cr> CREATE INGEST RULE humidity
+    ... ON mqtt
+    ... WHERE topic like 'humidity/%'
+    ... INTO humidity_data.raw;
+    CREATE OK, 1 row affected (... sec)
 
 See :ref:`create-ingest-rule` for more information on ingestion rule creation.
 
 To drop the ``temperature`` ingestion rule created above::
 
-	DROP INGEST RULE temperature;
+	cr> DROP INGEST RULE temperature;
+    DROP OK, 1 row affected (... sec)
 
 See :ref:`drop-ingest-rule` for more information on deleting ingestion rules.
 
