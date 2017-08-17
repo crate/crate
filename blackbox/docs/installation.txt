@@ -63,17 +63,13 @@ Install Using Docker
 ====================
 
 `Docker`_ is a lightweigt runtime to run distributed applications in a
-sandboxed container. We provide a Docker image for CrateDB for easy
+sandboxed container. We provide a `Docker image`_ for CrateDB for easy
 installation::
 
     sh$ docker pull crate
     sh$ docker run -d -p 4200:4200 -p 4300:4300 crate \
           crate -Ccluster.name=my_cluster \
                 -Cnetwork.host=_site_
-
-The images are hosted on the `Docker Hub Registry`_. There is additional
-information on how to run CrateDB in a Docker container on the `docker-crate`_
-Github repository.
 
 .. _install_production:
 
@@ -103,8 +99,7 @@ additional packages if we see enough interest.
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
 .. _Download: https://crate.io/download/
 .. _Docker: https://www.docker.com/
-.. _`Docker Hub Registry`: https://registry.hub.docker.com/u/crate/crate/
-.. _`docker-crate`: https://github.com/crate/docker-crate/
+.. _`Docker image`: https://hub.docker.com/r/_/crate/
 .. _`Multi Node Setup`: https://crate.io/docs/scale/multi_node_setup/
 .. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _Hello CrateDB: https://crate.io/docs/crate/guide/tutorials/hello.html
