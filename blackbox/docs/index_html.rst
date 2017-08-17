@@ -20,7 +20,7 @@ Contents
    cli
    sql/index
    blob
-   ingestion
+   ingestion/index
    plugins
    discovery
    udc

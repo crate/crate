@@ -1,0 +1,120 @@
+.. highlight:: psql
+.. _ingest_mqtt:
+
+=============================
+MQTT Ingestion Implementation
+=============================
+
+The MQTT_ ingestion implementation allows CrateDB_ to function as an MQTT broker
+for data ingestion. It is built upon Netty_ 4.1 and Moquette_ 0.10.
+This implementation is only available within the `Enterprise Edition`_ of CrateDB_.
+
+Please see also the documentation about the general :ref:`ingestion`.
+
+.. _ingest_mqtt_config:
+
+Configuration
+=============
+
+This implementation provides a few additional node settings which affects only
+the node it is running on.
+
+The settings can be provided in the ``crate.yml`` or as command line parameters
+using the ``-C`` prefix.
+
+Node Settings
+-------------
+
+**mqtt.port**
+  | *Default:*   ``1883``
+  | *Runtime:*  ``no``
+
+  TCP port on which the broker is exposed. Can either be a number, or a string
+  defining a possible port range. The first free port of this range is used.
+
+**mqtt.timeout**
+  | *Default:*   ``10s``
+  | *Runtime:*  ``no``
+
+  The default keep-alive timeout for establised connections. This timeout is
+  used if the client does not specify a ``keepAlive`` option when sending the
+  ``CONNECT`` message.
+
+.. _ingest_mqtt_usage:
+
+Usage
+=====
+
+Quality of Service (QoS)
+------------------------
+
+It implements solely Quality of Service level 1, meaning that it is guaranteed
+that a message will be delivered at least once to the broker and stored in the
+database. Any other QoS levels are not supported and messages sent with those
+levels are discared and an error is logged.
+
+MQTT data ingestion
+-------------------
+
+As every CrateDB_ ingestion implementation, the ingestion of data is controlled by
+defining :ref:`administration-ingestion-rules`. Without any defined valid rule,
+no data will be ingested at all.
+
+The ``source_ident`` of this implementation is: **mqtt**
+
+When creating new rules, one must be familar of the :ref:`structure of the data
+<ingest_mqtt_data_structure>` arriving at MQTT_.
+Any ``condition`` of the rules may only contain columns defined by this implementation.
+Also all columns will be inserted into the defined ``target_table`` of the rules,
+these tables must be created **before** creating any rules.
+
+Example for creating a target table and a simple ingestion rule:
+
+::
+
+    cr> CREATE TABLE mqtt.temp_data (
+    ...  "client_id" STRING,
+    ...  "packet_id" INTEGER,
+    ...  "topic" STRING,
+    ...  "ts" TIMESTAMP,
+    ...  "payload" OBJECT(IGNORED),
+    ...  PRIMARY KEY ("client_id", "packet_id")
+    ... )
+    CREATE OK, 1 row affected (... sec)
+
+    cr> CREATE INGEST RULE temperature ON mqtt
+    ...  WHERE topic like 'temperature/%'
+    ...  INTO mqtt.temp_data;
+    CREATE OK, 1 row affected (... sec)
+
+.. NOTE::
+
+   When the ``target_table`` is dropped, all related rules are invalidated.
+
+.. _ingest_mqtt_data_structure:
+
+MQTT data structure
+-------------------
+
++------------+------------+-------------------------------------------------+
+| Name       | Type       | Description                                     |
++============+============+=================================================+
+| client_id  | STRING     | ID of the client that sent the MQTT message.    |
++------------+------------+-------------------------------------------------+
+| packet_id  | STRING     | ``packet_id`` of the ``PUBLISH`` message.       |
++------------+------------+-------------------------------------------------+
+| topic      | STRING     | ``topic`` of the ``PUBLISH`` message.           |
++------------+------------+-------------------------------------------------+
+| ts         | TIMESTAMP  | Insert timestamp (``CURRENT_TIMESTAP``).        |
++------------+------------+-------------------------------------------------+
+| payload    | OBJECT     | ``payload`` of the ``PUBLISH`` message.         |
+|            |            | **Must be a valid JSON string!**                |
++------------+------------+-------------------------------------------------+
+
+
+
+.. _MQTT: http://mqtt.org/
+.. _CrateDB: https://crate.io
+.. _Netty: https://netty.io
+.. _Moquette: https://github.com/andsel/moquette
+.. _`Enterprise Edition`: https://crate.io/enterprise-edition/

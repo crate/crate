@@ -37,9 +37,6 @@ custom implementations, available as builtin components or as
   specific. This could be an MQTT_ endpoint, a component listening to
   HTTP-POSTs or a module listening for Kernel events.
 
-.. _MQTT: http://mqtt.org/
-
-
 .. SEEALSO::
 
     :ref:`administration-ingestion-rules` for more details on ingestion rules.
@@ -49,4 +46,16 @@ custom implementations, available as builtin components or as
     :ref:`create-ingest-rule` for more details on creating ingestion rules.
 
     :ref:`drop-ingest-rule` for more details on deleting ingestion rules.
+
+Built-in ingestion implementation
+=================================
+
+.. toctree::
+   :maxdepth: 2
+
+   mqtt
+
+
+.. _MQTT: http://mqtt.org/
+.. _`Enterprise Edition`: https://crate.io/enterprise/
 
