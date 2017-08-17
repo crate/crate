@@ -24,7 +24,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -182,8 +182,8 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public CrateCollector getCollector(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
-            return RowsCollector.empty(consumer, collectPhase.toCollect().size());
+        public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, JobCollectContext jobCollectContext) {
+            return RowsCollector.empty(consumer);
         }
     }
 }

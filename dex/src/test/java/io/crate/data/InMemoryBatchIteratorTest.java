@@ -33,12 +33,12 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class RowsBatchIteratorTest {
+public class InMemoryBatchIteratorTest {
 
     @Test
     public void testCollectRows() throws Exception {
         List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
-        Supplier<BatchIterator> batchIteratorSupplier = () -> RowsBatchIterator.newInstance(rows, 1);
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL);
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         List<Object[]> expectedResult = Arrays.asList(new Object[]{10}, new Object[]{20});
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -47,9 +47,9 @@ public class RowsBatchIteratorTest {
     @Test
     public void testCollectRowsWithSimulatedBatches() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 50);
-        Supplier<BatchIterator> batchIteratorSupplier = () -> new CloseAssertingBatchIterator(
-            new BatchSimulatingIterator(
-                RowsBatchIterator.newInstance(rows, 1),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new CloseAssertingBatchIterator<>(
+            new BatchSimulatingIterator<>(
+                InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL),
                 10,
                 5,
                 null

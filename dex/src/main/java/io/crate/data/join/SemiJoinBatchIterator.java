@@ -23,11 +23,10 @@
 package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * <pre>
@@ -40,15 +39,36 @@ import java.util.function.Function;
  *     }
  * </pre>
  */
-class SemiJoinBatchIterator extends NestedLoopBatchIterator {
+class SemiJoinBatchIterator<L, R, C> implements BatchIterator<L> {
 
-    protected final BooleanSupplier joinCondition;
+    final BatchIterator<L> left;
+    final BatchIterator<R> right;
+    final ElementCombiner<L, R, C> combiner;
+    final Predicate<C> joinCondition;
 
-    SemiJoinBatchIterator(BatchIterator left,
-                          BatchIterator right,
-                          Function<Columns, BooleanSupplier> joinCondition) {
-        super(left, right);
-        this.joinCondition = joinCondition.apply(rowData);
+    BatchIterator<?> activeIt;
+
+    SemiJoinBatchIterator(BatchIterator<L> left,
+                          BatchIterator<R> right,
+                          ElementCombiner<L, R, C> combiner,
+                          Predicate<C> joinCondition) {
+        this.left = left;
+        this.right = right;
+        this.combiner = combiner;
+        this.joinCondition = joinCondition;
+        this.activeIt = left;
+    }
+
+    @Override
+    public L currentElement() {
+        return left.currentElement();
+    }
+
+    @Override
+    public void moveToStart() {
+        left.moveToStart();
+        right.moveToStart();
+        activeIt = left;
     }
 
     @Override
@@ -62,24 +82,28 @@ class SemiJoinBatchIterator extends NestedLoopBatchIterator {
             if (rightAdvanced != null) {
                 return rightAdvanced;
             }
-            activeIt = left;
         }
     }
 
     @Override
-    public CompletionStage<?> loadNextBatch() {
-        return super.loadNextBatch();
+    public void close() {
+        left.close();
+        right.close();
     }
 
-    // We only need the data from the left iterator
     @Override
-    public Columns rowData() {
-        return left.rowData();
+    public CompletionStage<?> loadNextBatch() {
+        return activeIt.loadNextBatch();
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return activeIt.allLoaded();
     }
 
     private boolean moveLeftSide() {
-        activeIt = right;
-        while (left.moveNext()) {
+        while (tryMoveLeft()) {
+            activeIt = right;
             Boolean rightAdvanced = tryAdvanceRight();
             if (rightAdvanced != null) {
                 return rightAdvanced;
@@ -97,9 +121,10 @@ class SemiJoinBatchIterator extends NestedLoopBatchIterator {
      * null  -> reached it's end and moved back to start -> left side needs to continue
      */
     protected Boolean tryAdvanceRight() {
-        while (right.moveNext()) {
-            if (joinCondition.getAsBoolean()) {
+        while (tryMoveRight()) {
+            if (joinCondition.test(combiner.currentElement())) {
                 right.moveToStart();
+                combiner.setRight(right.currentElement());
                 activeIt = left;
                 return true;
             }
@@ -108,7 +133,30 @@ class SemiJoinBatchIterator extends NestedLoopBatchIterator {
             return false;
         }
         right.moveToStart();
+        combiner.setRight(right.currentElement());
         activeIt = left;
         return null;
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        left.kill(throwable);
+        right.kill(throwable);
+    }
+
+    private boolean tryMoveLeft() {
+        if (left.moveNext()) {
+            combiner.setLeft(left.currentElement());
+            return true;
+        }
+        return false;
+    }
+
+    boolean tryMoveRight() {
+        if (right.moveNext()) {
+            combiner.setRight(right.currentElement());
+            return true;
+        }
+        return false;
     }
 }

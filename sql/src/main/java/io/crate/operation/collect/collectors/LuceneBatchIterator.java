@@ -26,9 +26,10 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
+import io.crate.operation.InputRow;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
@@ -55,7 +56,7 @@ import java.util.concurrent.CompletionStage;
  * <p>
  * Row data depends on {@code inputs} and {@code expressions}. The data is unordered.
  */
-public class LuceneBatchIterator implements BatchIterator {
+public class LuceneBatchIterator implements BatchIterator<Row> {
 
     private final IndexSearcher indexSearcher;
     private final Query query;
@@ -64,8 +65,8 @@ public class LuceneBatchIterator implements BatchIterator {
     private final boolean doScores;
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
+    private final InputRow row;
     private Weight weight;
-    private final Columns inputs;
     private final CollectorFieldsVisitor visitor;
     private final Float minScore;
 
@@ -91,15 +92,15 @@ public class LuceneBatchIterator implements BatchIterator {
         this.collectorContext = collectorContext;
         this.visitor = collectorContext.visitor();
         this.ramAccountingContext = ramAccountingContext;
-        this.inputs = Columns.wrap(inputs);
+        this.row = new InputRow(inputs);
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         leaves = indexSearcher.getTopReaderContext().leaves();
         leavesIt = leaves.iterator();
     }
 
     @Override
-    public Columns rowData() {
-        return inputs;
+    public Row currentElement() {
+        return row;
     }
 
     @Override

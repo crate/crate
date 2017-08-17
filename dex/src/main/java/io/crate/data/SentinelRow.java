@@ -22,51 +22,24 @@
 
 package io.crate.data;
 
-/**
- * Columns implementation that is backed by a underlying {@link Row} instance.
- *
- * The Row instance pointer can be changed using {@link #updateRef(Row)}
- */
-public class RowColumns implements Columns {
+public final class SentinelRow {
 
-    private final int numColumns;
-    private final ProxyInput[] inputs;
+    private SentinelRow() {}
 
-    private Row currentRow = RowBridging.OFF_ROW;
-
-    public RowColumns(int numColumns) {
-        this.numColumns = numColumns;
-        this.inputs = new ProxyInput[numColumns];
-        for (int i = 0; i < numColumns; i++) {
-            inputs[i] = new ProxyInput(i);
-        }
-    }
-
-    @Override
-    public Input<?> get(int index) {
-        return inputs[index];
-    }
-
-    @Override
-    public int size() {
-        return numColumns;
-    }
-
-    public void updateRef(Row row) {
-        currentRow = row;
-    }
-
-    private class ProxyInput implements Input<Object> {
-
-        private final int columnIdx;
-
-        ProxyInput(int columnIdx) {
-            this.columnIdx = columnIdx;
+    public static final Row SENTINEL = new Row() {
+        @Override
+        public int numColumns() {
+            throw new IllegalStateException("Iterator is not on a row");
         }
 
         @Override
-        public Object value() {
-            return currentRow.get(columnIdx);
+        public Object get(int index) {
+            throw new IllegalStateException("Iterator is not on a row");
         }
-    }
+
+        @Override
+        public Object[] materialize() {
+            throw new IllegalStateException("Iterator is not on a row");
+        }
+    };
 }

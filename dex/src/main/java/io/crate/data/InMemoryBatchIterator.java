@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
@@ -33,50 +34,55 @@ import java.util.concurrent.CompletionStage;
 /**
  * BatchIterator implementation that is backed by {@link Iterable<Row>}.
  */
-public class RowsBatchIterator implements BatchIterator {
+public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
-    private final RowColumns rowData;
-    private final Iterable<? extends Row> rows;
+    private final Iterable<? extends T> items;
+    private final T sentinel;
 
-    private Iterator<? extends Row> it;
+    private Iterator<? extends T> it;
+    private T current;
 
-    public static BatchIterator empty(int numCols) {
-        return newInstance(Collections.emptyList(), numCols);
+    public static <T> BatchIterator<T> empty(@Nullable T sentinel) {
+        return of(Collections.emptyList(), sentinel);
     }
 
-    public static BatchIterator newInstance(Row row) {
-        return newInstance(Collections.singletonList(row), row.numColumns());
+    public static <T> BatchIterator<T> of(T item, @Nullable T sentinel) {
+        return of(Collections.singletonList(item), sentinel);
     }
 
-    public static BatchIterator newInstance(Iterable<? extends Row> rows, int numCols) {
-        return new CloseAssertingBatchIterator(new RowsBatchIterator(rows, numCols));
+    /**
+     * @param sentinel the value for {@link #currentElement()} if un-positioned
+     */
+    public static <T> BatchIterator<T> of(Iterable<? extends T> items, @Nullable T sentinel) {
+        return new CloseAssertingBatchIterator<>(new InMemoryBatchIterator<>(items, sentinel));
     }
 
     @VisibleForTesting
-    RowsBatchIterator(Iterable<? extends Row> rows, int numCols) {
-        rowData = new RowColumns(numCols);
-        this.rows = rows;
-        this.it = rows.iterator();
+    InMemoryBatchIterator(Iterable<? extends T> items, T sentinel) {
+        this.items = items;
+        this.it = items.iterator();
+        this.current = sentinel;
+        this.sentinel = sentinel;
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public T currentElement() {
+        return current;
     }
 
     @Override
     public void moveToStart() {
-        it = rows.iterator();
-        rowData.updateRef(RowBridging.OFF_ROW);
+        it = items.iterator();
+        current = sentinel;
     }
 
     @Override
     public boolean moveNext() {
         if (it.hasNext()) {
-            rowData.updateRef(it.next());
+            current = it.next();
             return true;
         }
-        rowData.updateRef(RowBridging.OFF_ROW);
+        current = sentinel;
         return false;
     }
 

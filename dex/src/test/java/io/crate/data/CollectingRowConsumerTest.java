@@ -36,7 +36,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class CollectingBatchConsumerTest {
+public class CollectingRowConsumerTest {
 
     @Test
     public void testBatchedIteratorConsumption() throws Exception {
@@ -50,8 +50,8 @@ public class CollectingBatchConsumerTest {
                 5,
                 null);
 
-        CollectingBatchConsumer<?, List<Object[]>> batchConsumer =
-            new CollectingBatchConsumer(Collectors.mapping(Row::materialize, Collectors.toList()));
+        CollectingRowConsumer<?, List<Object[]>> batchConsumer =
+            new CollectingRowConsumer(Collectors.mapping(Row::materialize, Collectors.toList()));
 
         batchConsumer.accept(batchSimulatingIterator, null);
 

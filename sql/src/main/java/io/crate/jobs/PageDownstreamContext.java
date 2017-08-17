@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
@@ -55,7 +55,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final PagingIterator<Integer, Row> pagingIterator;
     private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
     private final IntObjectHashMap<Bucket> bucketsByIdx;
-    private final BatchConsumer consumer;
+    private final RowConsumer consumer;
     private final BatchPagingIterator<Integer> batchPagingIterator;
 
     private Throwable lastThrowable = null;
@@ -65,7 +65,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                                  String nodeName,
                                  int id,
                                  String name,
-                                 BatchConsumer batchConsumer,
+                                 RowConsumer rowConsumer,
                                  PagingIterator<Integer, Row> pagingIterator,
                                  Streamer<?>[] streamers,
                                  RamAccountingContext ramAccountingContext,
@@ -85,10 +85,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             pagingIterator,
             this::fetchMore,
             this::allUpstreamsExhausted,
-            () -> releaseListenersAndCloseContext(null),
-            streamers.length
+            () -> releaseListenersAndCloseContext(null)
         );
-        this.consumer = batchConsumer;
+        this.consumer = rowConsumer;
     }
 
     private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {

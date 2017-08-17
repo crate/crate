@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -63,7 +63,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).readerIndices(), notNullValue());
 
-        TestingBatchConsumer consumer = execute(plan);
+        TestingRowConsumer consumer = execute(plan);
 
         List<Object[]> result = consumer.getResult();
         assertThat(result.size(), is(2));

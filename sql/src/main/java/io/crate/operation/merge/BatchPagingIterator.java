@@ -24,10 +24,7 @@ package io.crate.operation.merge;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
 import io.crate.data.Row;
-import io.crate.data.RowBridging;
-import io.crate.data.RowColumns;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
@@ -50,43 +47,41 @@ import java.util.function.Function;
  *  - {@link #completeLoad(Throwable)}  (used by the upstream to inform the
  *                                       BatchPagingIterator that the pagingIterator has been filled)
  */
-public class BatchPagingIterator<Key> implements BatchIterator {
+public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     private final PagingIterator<Key, Row> pagingIterator;
     private final Function<Key, Boolean> tryFetchMore;
     private final BooleanSupplier isUpstreamExhausted;
     private final Runnable closeCallback;
-    private final RowColumns rowData;
 
     private Iterator<Row> it;
     private CompletableFuture<Void> currentlyLoading;
 
     private boolean closed = false;
     private volatile Throwable killed;
+    private Row current;
 
     public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
                                Function<Key, Boolean> tryFetchMore,
                                BooleanSupplier isUpstreamExhausted,
-                               Runnable closeCallback,
-                               int numCols) {
+                               Runnable closeCallback) {
         this.pagingIterator = pagingIterator;
         this.it = pagingIterator;
         this.tryFetchMore = tryFetchMore;
         this.isUpstreamExhausted = isUpstreamExhausted;
         this.closeCallback = closeCallback;
-        this.rowData = new RowColumns(numCols);
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public Row currentElement() {
+        return current;
     }
 
     @Override
     public void moveToStart() {
         raiseIfClosedOrKilled();
         this.it = pagingIterator.repeat().iterator();
-        rowData.updateRef(RowBridging.OFF_ROW);
+        current = null;
     }
 
     @Override
@@ -94,13 +89,10 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         raiseIfClosedOrKilled();
 
         if (it.hasNext()) {
-            Row currentRow = it.next();
-            assert currentRow.numColumns() >= rowData.size() :
-                "size of row: " + currentRow.numColumns() + " is smaller than rowData: " + rowData().size();
-            rowData.updateRef(currentRow);
+            current = it.next();
             return true;
         }
-        rowData.updateRef(RowBridging.OFF_ROW);
+        current = null;
         return false;
     }
 

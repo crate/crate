@@ -24,7 +24,7 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
@@ -84,7 +84,7 @@ public class AsyncCompositeBatchIteratorTest {
                 batchSimulatingItSupplier.get()
             );
 
-            TestingBatchConsumer consumer = new TestingBatchConsumer();
+            TestingRowConsumer consumer = new TestingRowConsumer();
             consumer.accept(batchIterator, null);
             fail("The AsyncBatchIterator should not handle the case when the executor rejects new tasks");
         } catch (RejectedExecutionException ignored) {

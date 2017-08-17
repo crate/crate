@@ -32,7 +32,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
@@ -49,7 +49,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.<CollectExpression<Row, ?>>of(INPUT);
     private static final Ordering<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, null);
 
-    private TestingBatchConsumer consumer = new TestingBatchConsumer();
+    private TestingRowConsumer consumer = new TestingRowConsumer();
 
     private Projector getProjector(int numOutputs, int limit, int offset, Ordering<Object[]> ordering) {
         return new SortingTopNProjector(

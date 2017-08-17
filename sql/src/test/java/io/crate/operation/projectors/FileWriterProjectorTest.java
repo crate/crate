@@ -24,14 +24,14 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.data.BatchIterator;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowGenerator;
-import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,6 +49,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.core.Is.is;
 
 public class FileWriterProjectorTest extends CrateUnitTest {
@@ -58,10 +59,10 @@ public class FileWriterProjectorTest extends CrateUnitTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private Supplier<BatchIterator> sourceSupplier = () -> RowsBatchIterator.newInstance(RowGenerator.fromSingleColValues(
+    private Supplier<BatchIterator> sourceSupplier = () -> InMemoryBatchIterator.of(RowGenerator.fromSingleColValues(
         IntStream.range(0, 5)
             .mapToObj(i -> new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i)))
-            .collect(Collectors.toList())), 1);
+            .collect(Collectors.toList())), SENTINEL);
 
     @Test
     public void testToNestedStringObjectMap() throws Exception {
@@ -82,7 +83,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new TestingBatchConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
         assertEquals("input line 00\n" +
                      "input line 01\n" +
@@ -102,7 +103,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new TestingBatchConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
 
     @Test
@@ -116,6 +117,6 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new TestingBatchConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
     }
 }

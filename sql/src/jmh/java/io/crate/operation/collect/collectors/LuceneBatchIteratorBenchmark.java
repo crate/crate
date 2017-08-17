@@ -23,7 +23,6 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Input;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -96,9 +95,8 @@ public class LuceneBatchIteratorBenchmark {
             columnRefs
         );
 
-        Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(it.currentElement().get(0));
         }
     }
 }

@@ -48,7 +48,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * Collector implementation which uses {@link Aggregator}s and {@code keyInputs}
+ * Collector implementation which uses {@link AggregateMode}s and {@code keyInputs}
  * to group rows by key and aggregate the grouped values.
  *
  * @param <K> type of the key

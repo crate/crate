@@ -60,7 +60,7 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
@@ -404,9 +404,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return new PlanForNode(plan, nodeName);
     }
 
-    public TestingBatchConsumer execute(PlanForNode planForNode) {
+    public TestingRowConsumer execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        TestingBatchConsumer downstream = new TestingBatchConsumer();
+        TestingRowConsumer downstream = new TestingRowConsumer();
         transportExecutor.execute(planForNode.plan, downstream, Row.EMPTY);
         return downstream;
     }

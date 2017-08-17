@@ -22,28 +22,27 @@
 
 package io.crate.data;
 
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
-public class FilteringBatchIterator extends ForwardingBatchIterator {
+public class FilteringBatchIterator<T> extends ForwardingBatchIterator<T> {
 
-    private final BatchIterator delegate;
-    private final BooleanSupplier filter;
+    private final BatchIterator<T> delegate;
+    private final Predicate<T> filter;
 
-    public FilteringBatchIterator(BatchIterator delegate, Function<Columns, BooleanSupplier> filterGenerator) {
+    public FilteringBatchIterator(BatchIterator<T> delegate, Predicate<T> filter) {
         this.delegate = delegate;
-        this.filter = filterGenerator.apply(delegate.rowData());
+        this.filter = filter;
     }
 
     @Override
-    protected BatchIterator delegate() {
+    protected BatchIterator<T> delegate() {
         return delegate;
     }
 
     @Override
     public boolean moveNext() {
         while (delegate.moveNext()) {
-            if (filter.getAsBoolean()) {
+            if (filter.test(delegate.currentElement())) {
                 return true;
             }
         }

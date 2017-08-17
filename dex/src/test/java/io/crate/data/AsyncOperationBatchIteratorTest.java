@@ -43,15 +43,14 @@ public class AsyncOperationBatchIteratorTest {
 
     @Test
     public void testAsyncOperationBatchIteratorWithBatchedSource() throws Exception {
-        runTest(() -> new BatchSimulatingIterator(TestingBatchIterators.range(0, 10), 3, 4, null));
+        runTest(() -> new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 3, 4, null));
     }
 
-    private void runTest(Supplier<BatchIterator> sourceSupplier) throws Exception {
-        Supplier<BatchIterator> biSupplier = () -> {
-            BatchIterator source = sourceSupplier.get();
-            Input<?> input = source.rowData().get(0);
-            BatchAccumulator<Row, Iterator<? extends Row>> accumulator = new DummyBatchAccumulator(input);
-            return new AsyncOperationBatchIterator(source, 1, accumulator);
+    private void runTest(Supplier<BatchIterator<Row>> sourceSupplier) throws Exception {
+        Supplier<BatchIterator<Row>> biSupplier = () -> {
+            BatchIterator<Row> source = sourceSupplier.get();
+            BatchAccumulator<Row, Iterator<? extends Row>> accumulator = new DummyBatchAccumulator();
+            return new AsyncOperationBatchIterator<>(source, accumulator);
         };
 
         List<Object[]> expectedResult = new ArrayList<>();
@@ -64,16 +63,14 @@ public class AsyncOperationBatchIteratorTest {
 
     private static class DummyBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
-        private final Input<?> input;
         private final List<Integer> items = new ArrayList<>();
 
-        DummyBatchAccumulator(Input<?> input) {
-            this.input = input;
+        DummyBatchAccumulator() {
         }
 
         @Override
         public void onItem(Row item) {
-            items.add((Integer) input.value() * 3);
+            items.add((Integer) item.get(0) * 3);
         }
 
         @Override

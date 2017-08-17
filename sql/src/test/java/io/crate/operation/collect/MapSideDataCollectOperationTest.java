@@ -30,7 +30,7 @@ import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.junit.Rule;
 import org.junit.Test;
@@ -90,7 +90,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         );
         String threadPoolName = JobCollectContext.threadPoolName(collectNode);
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         CrateCollector collectors = collectOperation.createCollector(collectNode, consumer, jobCollectContext);
         collectOperation.launchCollector(collectors, threadPoolName);

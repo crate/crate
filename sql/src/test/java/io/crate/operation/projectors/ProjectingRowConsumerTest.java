@@ -29,9 +29,10 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -43,7 +44,7 @@ import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -64,11 +65,12 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class ProjectingBatchConsumerTest extends CrateUnitTest {
+public class ProjectingRowConsumerTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -106,16 +108,16 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 
-    private static class DummyBatchConsumer implements BatchConsumer {
+    private static class DummyRowConsumer implements RowConsumer {
 
         private final boolean requiresScroll;
 
-        DummyBatchConsumer(boolean requiresScroll) {
+        DummyRowConsumer(boolean requiresScroll) {
             this.requiresScroll = requiresScroll;
         }
 
         @Override
-        public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         }
 
         @Override
@@ -133,9 +135,9 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
         FilterProjection filterProjection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 
-        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
+        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
 
-        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+        RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
             Collections.singletonList(filterProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(true));
@@ -146,9 +148,9 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
         GroupProjection groupProjection = new GroupProjection(
             new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
 
-        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
+        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
 
-        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+        RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
             Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(false));
@@ -158,9 +160,9 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
     public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
         GroupProjection groupProjection = new GroupProjection(
             new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
-        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(false);
+        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);
 
-        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+        RowConsumer projectingConsumer = ProjectingRowConsumer.create(delegateConsumerRequiresScroll,
             Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(false));
@@ -176,8 +178,8 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
             Collections.emptyList(),
             WriterProjection.OutputFormat.JSON_OBJECT);
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
-        BatchConsumer batchConsumer = ProjectingBatchConsumer.create(
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        RowConsumer rowConsumer = ProjectingRowConsumer.create(
             consumer,
             Collections.singletonList(writerProjection),
             UUID.randomUUID(),
@@ -185,7 +187,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
             projectorFactory
         );
 
-        batchConsumer.accept(RowsBatchIterator.empty(1), null);
+        rowConsumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
 
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Failed to open output");

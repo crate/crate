@@ -38,9 +38,9 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
-import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
@@ -63,7 +63,7 @@ import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.distribution.DistributionType;
@@ -175,7 +175,7 @@ public class ContextPreparer extends AbstractComponent {
 
     public List<CompletableFuture<Bucket>> prepareOnHandler(Collection<? extends NodeOperation> nodeOperations,
                                                             JobExecutionContext.Builder contextBuilder,
-                                                            List<Tuple<ExecutionPhase, BatchConsumer>> handlerPhases,
+                                                            List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
                                                             SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
             clusterService.localNode().getId(),
@@ -184,7 +184,7 @@ public class ContextPreparer extends AbstractComponent {
             distributingDownstreamFactory,
             nodeOperations,
             sharedShardContexts);
-        for (Tuple<ExecutionPhase, BatchConsumer> handlerPhase : handlerPhases) {
+        for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
             preparerContext.registerLeaf(handlerPhase.v1(), handlerPhase.v2());
         }
         registerContextPhases(nodeOperations, preparerContext);
@@ -192,7 +192,7 @@ public class ContextPreparer extends AbstractComponent {
             nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
 
         IntHashSet leafs = new IntHashSet();
-        for (Tuple<ExecutionPhase, BatchConsumer> handlerPhase : handlerPhases) {
+        for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
             ExecutionPhase phase = handlerPhase.v1();
             createContexts(phase, preparerContext);
             leafs.add(phase.phaseId());
@@ -397,9 +397,9 @@ public class ContextPreparer extends AbstractComponent {
         /**
          * from toKey(phaseId, inputId) to BatchConsumer.
          */
-        private final LongObjectMap<BatchConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
+        private final LongObjectMap<RowConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
         private final LongObjectMap<RamAccountingContext> ramAccountingContextByPhaseInputId = new LongObjectHashMap<>();
-        private final IntObjectMap<BatchConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
+        private final IntObjectMap<RowConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
 
         private final SharedShardContexts sharedShardContexts;
 
@@ -429,24 +429,24 @@ public class ContextPreparer extends AbstractComponent {
         /**
          * Retrieve the rowReceiver of the downstream of phase
          */
-        BatchConsumer getBatchConsumer(UpstreamPhase phase, int pageSize) {
+        RowConsumer getRowConsumer(UpstreamPhase phase, int pageSize) {
             NodeOperation nodeOperation = opCtx.nodeOperationByPhaseId.get(phase.phaseId());
             if (nodeOperation == null) {
                 return handlerPhaseConsumer(phase.phaseId());
             }
 
             long phaseIdKey = toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId());
-            BatchConsumer batchConsumer = consumersByPhaseInputId.get(phaseIdKey);
-            if (batchConsumer != null) {
+            RowConsumer rowConsumer = consumersByPhaseInputId.get(phaseIdKey);
+            if (rowConsumer != null) {
                 // targetBatchConsumer is available because of same node optimization or direct result;
-                return batchConsumer;
+                return rowConsumer;
             }
 
             DistributionType distributionType = phase.distributionInfo().distributionType();
             switch (distributionType) {
                 case BROADCAST:
                 case MODULO:
-                    BatchConsumer consumer = distributingDownstreamFactory.create(
+                    RowConsumer consumer = distributingDownstreamFactory.create(
                         nodeOperation, phase.distributionInfo(), jobId(), pageSize);
                     traceGetBatchConsumer(phase, distributionType.toString(), nodeOperation, consumer);
                     return consumer;
@@ -460,7 +460,7 @@ public class ContextPreparer extends AbstractComponent {
         private void traceGetBatchConsumer(UpstreamPhase phase,
                                            String distributionTypeName,
                                            NodeOperation nodeOperation,
-                                           BatchConsumer consumer) {
+                                           RowConsumer consumer) {
             logger.trace("action=getRowReceiver, distributionType={}, phase={}, targetConsumer={}, target={}/{},",
                 distributionTypeName,
                 phase.phaseId(),
@@ -476,8 +476,8 @@ public class ContextPreparer extends AbstractComponent {
          * <p>
          * Retrieve it
          */
-        private BatchConsumer handlerPhaseConsumer(int phaseId) {
-            BatchConsumer consumer = handlerConsumersByPhaseId.get(phaseId);
+        private RowConsumer handlerPhaseConsumer(int phaseId) {
+            RowConsumer consumer = handlerConsumersByPhaseId.get(phaseId);
             if (logger.isTraceEnabled()) {
                 logger.trace("Using BatchConsumer {} for phase {}, this is a leaf/handlerPhase", consumer, phaseId);
             }
@@ -485,7 +485,7 @@ public class ContextPreparer extends AbstractComponent {
             return consumer;
         }
 
-        void registerBatchConsumer(int phaseId, BatchConsumer consumer) {
+        void registerBatchConsumer(int phaseId, RowConsumer consumer) {
             consumersByPhaseInputId.put(toKey(phaseId, (byte) 0), consumer);
         }
 
@@ -509,7 +509,7 @@ public class ContextPreparer extends AbstractComponent {
             contextBuilder.addSubContext(subContext);
         }
 
-        void registerLeaf(ExecutionPhase phase, BatchConsumer consumer) {
+        void registerLeaf(ExecutionPhase phase, RowConsumer consumer) {
             handlerConsumersByPhaseId.put(phase.phaseId(), consumer);
             leafs.add(phase);
         }
@@ -526,7 +526,7 @@ public class ContextPreparer extends AbstractComponent {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
 
-            BatchConsumer consumer = context.getBatchConsumer(phase, 0);
+            RowConsumer consumer = context.getRowConsumer(phase, 0);
             context.registerSubContext(new CountContext(
                 phase.phaseId(),
                 countOperation,
@@ -543,9 +543,9 @@ public class ContextPreparer extends AbstractComponent {
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
 
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
-            BatchConsumer consumer = context.getBatchConsumer(phase, pageSize);
+            RowConsumer consumer = context.getRowConsumer(phase, pageSize);
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            consumer = ProjectingBatchConsumer.create(
+            consumer = ProjectingRowConsumer.create(
                 consumer,
                 phase.projections(),
                 phase.jobId(),
@@ -582,7 +582,7 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final PreparerContext context) {
-            BatchConsumer consumer = context.getBatchConsumer(phase,
+            RowConsumer consumer = context.getRowConsumer(phase,
                 MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
 
             RamAccountingContext ramAccountingContext = context.getRamAccountingContext(phase);
@@ -603,7 +603,7 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitCollectPhase(CollectPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            BatchConsumer consumer = context.getBatchConsumer(phase, Paging.PAGE_SIZE);
+            RowConsumer consumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
             context.registerSubContext(new JobCollectContext(
                 phase,
                 collectOperation,
@@ -645,13 +645,15 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            BatchConsumer lastConsumer = context.getBatchConsumer(phase, Paging.PAGE_SIZE);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
 
-            BatchConsumer firstConsumer = ProjectingBatchConsumer.create(
+            RowConsumer firstConsumer = ProjectingRowConsumer.create(
                 lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
             Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
+                phase.numLeftOutputs(),
+                phase.numRightOutputs(),
                 firstConsumer,
                 joinCondition,
                 phase.joinType()
@@ -692,17 +694,17 @@ public class ContextPreparer extends AbstractComponent {
                                                                          PreparerContext ctx,
                                                                          byte inputId,
                                                                          @Nullable MergePhase mergePhase,
-                                                                         BatchConsumer batchConsumer,
+                                                                         RowConsumer rowConsumer,
                                                                          RamAccountingContext ramAccountingContext) {
             if (mergePhase == null) {
-                ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), batchConsumer);
+                ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), rowConsumer);
                 return null;
             }
 
             // In case of join on virtual table the left or right merge phase of the nl might have projections (TopN)
             if (mergePhase.hasProjections()) {
-                batchConsumer = ProjectingBatchConsumer.create(
-                    batchConsumer,
+                rowConsumer = ProjectingRowConsumer.create(
+                    rowConsumer,
                     mergePhase.projections(),
                     mergePhase.jobId(),
                     ramAccountingContext,
@@ -714,7 +716,7 @@ public class ContextPreparer extends AbstractComponent {
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
-                batchConsumer,
+                rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),
                     true,

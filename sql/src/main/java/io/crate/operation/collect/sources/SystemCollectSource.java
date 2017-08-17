@@ -25,9 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
@@ -59,6 +59,8 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -118,7 +120,7 @@ public class SystemCollectSource implements CollectSource {
 
     @Override
     public CrateCollector getCollector(CollectPhase phase,
-                                       BatchConsumer consumer,
+                                       RowConsumer consumer,
                                        JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
@@ -135,11 +137,11 @@ public class SystemCollectSource implements CollectSource {
 
         return BatchIteratorCollectorBridge.newInstance(
             () -> tableDefinition.getIterable(routedCollectPhase.user()).get().thenApply(dataIterable ->
-                RowsBatchIterator.newInstance(
+                InMemoryBatchIterator.of(
                     dataIterableToRowsIterable(routedCollectPhase,
                         tableDefinition.getReferenceResolver(),
                         requiresScroll, dataIterable),
-                    collectPhase.toCollect().size()
+                    SENTINEL
                 )),
             consumer
         );

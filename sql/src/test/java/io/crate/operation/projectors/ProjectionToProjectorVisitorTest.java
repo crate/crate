@@ -33,8 +33,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -51,8 +52,8 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -75,6 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -133,7 +135,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(projector.apply(TestingBatchIterators.range(0, 20)), null);
 
         List<Object[]> result = consumer.getResult();
@@ -182,13 +184,14 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         assertThat(projector, instanceOf(AggregationPipe.class));
 
 
-        BatchIterator batchIterator = projector.apply(RowsBatchIterator.newInstance(
+        BatchIterator<Row> batchIterator = projector.apply(InMemoryBatchIterator.of(
             new CollectionBucket(Arrays.asList(
                 $("foo", 10),
                 $("bar", 20)
-            )), 2
+            )),
+            SENTINEL
         ));
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
         assertThat(rows.size(), is(1));
@@ -238,9 +241,9 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         rows.add($(vogon, 48, male));
         rows.add($(human, 34, male));
 
-        BatchIterator batchIterator = topNProjector.apply(projector.apply(
-            RowsBatchIterator.newInstance(new CollectionBucket(rows), 3)));
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        BatchIterator<Row> batchIterator = topNProjector.apply(projector.apply(
+            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL)));
+        TestingRowConsumer consumer = new TestingRowConsumer();
 
         consumer.accept(batchIterator, null);
 
@@ -268,8 +271,9 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         rows.add($("human", 2));
         rows.add($("vogon", 1));
 
-        BatchIterator filteredBI = projector.apply(RowsBatchIterator.newInstance(new CollectionBucket(rows), 2));
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        BatchIterator<Row> filteredBI = projector.apply(
+            InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL));
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(filteredBI, null);
         Bucket bucket = consumer.getBucket();
         assertThat(bucket.size(), is(1));

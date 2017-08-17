@@ -31,7 +31,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 
 public class SortingProjectorTest extends CrateUnitTest {
 
-    private TestingBatchConsumer consumer = new TestingBatchConsumer();
+    private TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SortingProjector createProjector(int numOutputs, int offset) {
         InputCollectExpression input = new InputCollectExpression(0);

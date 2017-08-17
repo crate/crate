@@ -28,19 +28,19 @@ import io.crate.exceptions.Exceptions;
 import javax.annotation.Nonnull;
 import java.util.concurrent.CompletionStage;
 
-public class CloseAssertingBatchIterator implements BatchIterator {
+public class CloseAssertingBatchIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<T> delegate;
     private boolean closed = false;
     private volatile Throwable killed = null;
 
-    public CloseAssertingBatchIterator(BatchIterator delegate) {
+    public CloseAssertingBatchIterator(BatchIterator<T> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public Columns rowData() {
-        return delegate.rowData();
+    public T currentElement() {
+        return delegate.currentElement();
     }
 
     @Override

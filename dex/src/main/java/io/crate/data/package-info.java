@@ -26,12 +26,12 @@
  * The main components are:
  *
  *  - {@link io.crate.data.BatchIterator} which provides access to data
- *  - {@link io.crate.data.BatchConsumer} consumes data from a BatchIterator
+ *  - {@link io.crate.data.RowConsumer} consumes data from a BatchIterator
  *
  * BatchIterators come in different forms:
  *
  *  - "Source" BatchIterators: These expose data from either in-memory, disk or network
- *    (Examples are LuceneBatchIterator, {@link io.crate.data.RowsBatchIterator} (Iterable backed))
+ *    (Examples are LuceneBatchIterator, {@link io.crate.data.InMemoryBatchIterator} (Iterable backed))
  *
  *  - "Projecting" BatchIterators: These wrap another BatchIterator and transform their data.
  *    There are multiple sub-types:

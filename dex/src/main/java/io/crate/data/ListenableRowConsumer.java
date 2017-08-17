@@ -22,23 +22,41 @@
 
 package io.crate.data;
 
-import java.util.List;
+import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
-class ListBackedColumns implements Columns {
+public class ListenableRowConsumer implements RowConsumer {
 
-    private final List<? extends Input<?>> inputs;
+    private final RowConsumer delegate;
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
-    ListBackedColumns(List<? extends Input<?>> inputs) {
-        this.inputs = inputs;
+    public ListenableRowConsumer(RowConsumer delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    public Input<?> get(int index) {
-        return inputs.get(index);
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        if (failure == null) {
+            delegate.accept(new ListenableBatchIterator<>(iterator, completionFuture), null);
+        } else {
+            delegate.accept(null, failure);
+            completionFuture.completeExceptionally(failure);
+        }
     }
 
     @Override
-    public int size() {
-        return inputs.size();
+    public boolean requiresScroll() {
+        return delegate.requiresScroll();
+    }
+
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
+    }
+
+    @Override
+    public String toString() {
+        return "ListenableBatchConsumer{" +
+               "delegate=" + delegate +
+               '}';
     }
 }

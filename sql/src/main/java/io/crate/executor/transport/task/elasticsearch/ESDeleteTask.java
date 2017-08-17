@@ -23,10 +23,10 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardResponse;
@@ -41,6 +41,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class ESDeleteTask extends JobTask {
 
@@ -100,7 +102,7 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public void execute(final BatchConsumer consumer, Row parameters) {
+    public void execute(final RowConsumer consumer, Row parameters) {
         CompletableFuture<Long> result = results.get(0);
         try {
             sendRequests();
@@ -110,7 +112,7 @@ public class ESDeleteTask extends JobTask {
         }
         result.whenComplete((Long futureResult, Throwable t) -> {
             if (t == null) {
-                consumer.accept(RowsBatchIterator.newInstance(new Row1(futureResult)), null);
+                consumer.accept(InMemoryBatchIterator.of(new Row1(futureResult), SENTINEL), null);
             } else {
                 consumer.accept(null, t);
             }

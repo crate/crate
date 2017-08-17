@@ -26,8 +26,9 @@ import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
-import io.crate.data.Columns;
 import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.operation.InputRow;
 import io.crate.operation.reference.file.LineContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchParseException;
@@ -56,12 +57,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
-public class FileReadingIterator implements BatchIterator {
+public class FileReadingIterator implements BatchIterator<Row> {
 
     private static final Logger LOGGER = Loggers.getLogger(FileReadingIterator.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
@@ -83,7 +83,7 @@ public class FileReadingIterator implements BatchIterator {
     private BufferedReader currentReader = null;
     private long currentLineNumber;
     private LineContext lineContext;
-    private final Columns inputs;
+    private final Row row;
 
     private FileReadingIterator(Collection<String> fileUris,
                                 List<? extends Input<?>> inputs,
@@ -94,7 +94,18 @@ public class FileReadingIterator implements BatchIterator {
                                 int numReaders,
                                 int readerNumber) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.inputs = Columns.wrap(inputs.stream().map(ExceptionHandlingInputProxy::new).collect(Collectors.toList()));
+        this.row = new InputRow(inputs) {
+            @Override
+            public Object get(int index) {
+                try {
+                    return inputs.get(index).value();
+                } catch (ElasticsearchParseException e) {
+                    throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
+                        "Failed to parse JSON in line: %d in file: \"%s\"%n" +
+                        "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
+                }
+            }
+        };
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
@@ -105,8 +116,8 @@ public class FileReadingIterator implements BatchIterator {
     }
 
     @Override
-    public Columns rowData() {
-        return inputs;
+    public Row currentElement() {
+        return row;
     }
 
     @Override
@@ -114,35 +125,15 @@ public class FileReadingIterator implements BatchIterator {
         // handled by CloseAssertingBatchIterator
     }
 
-    private final class ExceptionHandlingInputProxy<T> implements Input<T> {
-
-        private final Input<T> input;
-
-        ExceptionHandlingInputProxy(Input<T> input) {
-            this.input = input;
-        }
-
-        @Override
-        public T value() {
-            try {
-                return this.input.value();
-            } catch (ElasticsearchParseException e) {
-                throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
-                    "Failed to parse JSON in line: %d in file: \"%s\"%n" +
-                    "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
-            }
-        }
-    }
-
-    public static BatchIterator newInstance(Collection<String> fileUris,
-                                            List<Input<?>> inputs,
-                                            Iterable<LineCollectorExpression<?>> collectorExpressions,
-                                            String compression,
-                                            Map<String, FileInputFactory> fileInputFactories,
-                                            Boolean shared,
-                                            int numReaders,
-                                            int readerNumber) {
-        return new CloseAssertingBatchIterator(new FileReadingIterator(fileUris, inputs, collectorExpressions,
+    public static BatchIterator<Row> newInstance(Collection<String> fileUris,
+                                                 List<Input<?>> inputs,
+                                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
+                                                 String compression,
+                                                 Map<String, FileInputFactory> fileInputFactories,
+                                                 Boolean shared,
+                                                 int numReaders,
+                                                 int readerNumber) {
+        return new CloseAssertingBatchIterator<>(new FileReadingIterator(fileUris, inputs, collectorExpressions,
             compression, fileInputFactories, shared, numReaders, readerNumber));
     }
 

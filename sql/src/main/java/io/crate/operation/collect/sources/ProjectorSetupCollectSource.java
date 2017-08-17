@@ -21,10 +21,10 @@
 
 package io.crate.operation.collect.sources;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.node.dql.CollectPhase;
 
@@ -39,10 +39,10 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase collectPhase, RowConsumer consumer, JobCollectContext jobCollectContext) {
         return sourceDelegate.getCollector(
             collectPhase,
-            ProjectingBatchConsumer.create(
+            ProjectingRowConsumer.create(
                 consumer,
                 collectPhase.projections(),
                 collectPhase.jobId(),

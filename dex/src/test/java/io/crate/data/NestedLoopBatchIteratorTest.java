@@ -22,11 +22,12 @@
 
 package io.crate.data;
 
+import io.crate.data.join.CombinedRow;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,10 +35,10 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -50,17 +51,8 @@ public class NestedLoopBatchIteratorTest {
     private ArrayList<Object[]> semiJoinResult;
     private ArrayList<Object[]> antiJoinResult;
 
-    private Function<Columns, BooleanSupplier> getCol0EqCol1JoinCondition() {
-        return columns -> new BooleanSupplier() {
-
-            Input<?> col1 = columns.get(0);
-            Input<?> col2 = columns.get(1);
-
-            @Override
-            public boolean getAsBoolean() {
-                return Objects.equals(col1.value(), col2.value());
-            }
-        };
+    private Predicate<Row> getCol0EqCol1JoinCondition() {
+        return row -> Objects.equals(row.get(0), row.get(1));
     }
 
     @Before
@@ -109,7 +101,8 @@ public class NestedLoopBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> NestedLoopBatchIterator.crossJoin(
                 TestingBatchIterators.range(0, 3),
-                TestingBatchIterators.range(0, 3)
+                TestingBatchIterators.range(0, 3),
+                new CombinedRow(1, 1)
             )
         );
         tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
@@ -119,8 +112,9 @@ public class NestedLoopBatchIteratorTest {
     public void testNestedLoopWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> NestedLoopBatchIterator.crossJoin(
-                new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null),
-                new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null)
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
+                new CombinedRow(1, 1)
             )
         );
         tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
@@ -128,33 +122,36 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testNestedLoopLeftAndRightEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
-            RowsBatchIterator.empty(1),
-            RowsBatchIterator.empty(1)
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.crossJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(0, 0)
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
 
     @Test
     public void testNestedLoopLeftEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
-            RowsBatchIterator.empty(1),
-            TestingBatchIterators.range(0, 5)
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.crossJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
+            TestingBatchIterators.range(0, 5),
+            new CombinedRow(0, 1)
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
 
     @Test
     public void testNestedLoopRightEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.crossJoin(
             TestingBatchIterators.range(0, 5),
-            RowsBatchIterator.empty(1)
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(1, 0)
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
@@ -162,9 +159,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testLeftJoin() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.leftJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.leftJoin(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -173,9 +171,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testLeftJoinBatchedSource() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.leftJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 4), 2, 2, null),
-            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.leftJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -184,9 +183,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testRightJoin() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -195,9 +195,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testRightJoinBatchedSource() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 4), 2, 2, null),
-            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -206,9 +207,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testFullOuterJoin() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
             TestingBatchIterators.range(0, 4),
             TestingBatchIterators.range(2, 6),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -217,9 +219,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testFullOuterJoinBatchedSource() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 4), 2, 2, null),
-            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 4), 2, 2, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -228,27 +231,29 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testMoveToStartWhileRightSideIsActive() throws Exception {
-        BatchIterator batchIterator = NestedLoopBatchIterator.crossJoin(
+        BatchIterator<Row> batchIterator = NestedLoopBatchIterator.crossJoin(
             TestingBatchIterators.range(0, 3),
-            TestingBatchIterators.range(10, 20)
+            TestingBatchIterators.range(10, 20),
+            new CombinedRow(1, 1)
         );
 
         assertThat(batchIterator.moveNext(), is(true));
-        assertThat(batchIterator.rowData().get(0).value(), is(0));
-        assertThat(batchIterator.rowData().get(1).value(), is(10));
+        assertThat(batchIterator.currentElement().get(0), is(0));
+        assertThat(batchIterator.currentElement().get(1), is(10));
 
         batchIterator.moveToStart();
 
         assertThat(batchIterator.moveNext(), is(true));
-        assertThat(batchIterator.rowData().get(0).value(), is(0));
-        assertThat(batchIterator.rowData().get(1).value(), is(10));
+        assertThat(batchIterator.currentElement().get(0), is(0));
+        assertThat(batchIterator.currentElement().get(1), is(10));
     }
 
     @Test
     public void testSemiJoin() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
             TestingBatchIterators.range(0, 5),
             TestingBatchIterators.range(2, 6),
+            new CombinedRow(1, 0),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -257,9 +262,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testSemiJoinBatchedSource() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 2, null),
-            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.semiJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -268,33 +274,36 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testSemiJoinLeftEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.semiJoin(
-            RowsBatchIterator.empty(1),
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.semiJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
             TestingBatchIterators.range(0, 5),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
 
     @Test
     public void testSemiJoinRightEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.semiJoin(
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.semiJoin(
             TestingBatchIterators.range(0, 5),
-            RowsBatchIterator.empty(1),
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
 
     @Test
     public void testAntiJoin() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
             TestingBatchIterators.range(0, 5),
             TestingBatchIterators.range(2, 4),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -303,9 +312,10 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testAntiJoinBatchedSource() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 2, null),
-            new BatchSimulatingIterator(TestingBatchIterators.range(2, 4), 2, 2, null),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 4), 2, 2, null),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
@@ -314,21 +324,23 @@ public class NestedLoopBatchIteratorTest {
 
     @Test
     public void testAntiJoinLeftEmpty() throws Exception {
-        BatchIterator iterator = NestedLoopBatchIterator.antiJoin(
-            RowsBatchIterator.empty(1),
+        BatchIterator<Row> iterator = NestedLoopBatchIterator.antiJoin(
+            InMemoryBatchIterator.empty(SENTINEL),
             TestingBatchIterators.range(0, 5),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
 
     @Test
     public void testAntiJoinRightEmpty() throws Exception {
-        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null),
-            RowsBatchIterator.empty(1),
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> NestedLoopBatchIterator.antiJoin(
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
+            InMemoryBatchIterator.empty(SENTINEL),
+            new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);

@@ -26,7 +26,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
@@ -52,7 +52,7 @@ public class CountContextTest extends CrateUnitTest {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
         future.complete(1L);
@@ -64,7 +64,7 @@ public class CountContextTest extends CrateUnitTest {
         future = new CompletableFuture<>();
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
-        countContext = new CountContext(2, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
+        countContext = new CountContext(2, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
@@ -78,7 +78,7 @@ public class CountContextTest extends CrateUnitTest {
         CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
-        CountContext countContext = new CountContext(1, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
+        CountContext countContext = new CountContext(1, countOperation, new TestingRowConsumer(), null, WhereClause.MATCH_ALL);
 
         countContext.prepare();
         countContext.start();

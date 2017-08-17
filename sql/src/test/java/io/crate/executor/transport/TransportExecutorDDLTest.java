@@ -33,7 +33,7 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
@@ -153,7 +153,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         executor.execute(plan, consumer, Row.EMPTY);
         Bucket objects = consumer.getBucket();
         assertThat(objects, contains(isRow(-1L)));
@@ -182,7 +182,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         executor.execute(plan, consumer, Row.EMPTY);
         Bucket bucket = consumer.getBucket();
         assertThat(bucket, contains(isRow(-1L)));
@@ -241,7 +241,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket executePlan(Plan plan) throws Exception {
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         executor.execute(plan, consumer, Row.EMPTY);
         return consumer.getBucket();
     }
