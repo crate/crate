@@ -1,0 +1,45 @@
+apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+
+archivesBaseName = 'mqtt'
+group = 'io.crate'
+description = 'MQTT ingestion implementation'
+
+configurations {
+    dependency
+    compile.extendsFrom dependency
+    requiredLibs.transitive = true
+}
+
+dependencies {
+    compile project(':sql')
+    compile ('io.moquette:moquette-broker:0.10') {
+        exclude group: 'org.mapdb'
+        exclude group: 'org.hdrhistogram'
+        exclude group: 'com.hazelcast'
+        exclude group: 'commons-codec'
+        exclude group: 'org.slf4j'
+        exclude group: 'com.google.guava'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'io.dropwizard.metrics'
+    }
+
+    requiredLibs('io.moquette:moquette-broker:0.10') {
+        exclude group: 'org.mapdb'
+        exclude group: 'org.hdrhistogram'
+        exclude group: 'com.hazelcast'
+        exclude group: 'commons-codec'
+        exclude group: 'org.slf4j'
+        exclude group: 'com.google.guava'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'io.dropwizard.metrics'
+    }
+
+    testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}
