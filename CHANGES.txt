@@ -39,6 +39,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
+
  - Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL` on
    columns of type ``geo_point`` to fail.
 
