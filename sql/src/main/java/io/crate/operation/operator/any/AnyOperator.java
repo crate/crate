@@ -48,6 +48,15 @@ public abstract class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
 
+    /*
+     * Rewrite `op ANY` to `op` using the actual function names.
+     *
+     * E.g. `any_=` becomes `op_=`
+     */
+    public static String nameToNonAny(String functionName) {
+        return Operator.PREFIX + functionName.substring(OPERATOR_PREFIX.length());
+    }
+
     /**
      * called inside {@link #normalizeSymbol(Function, TransactionContext)}
      * in order to interpret the result of compareTo

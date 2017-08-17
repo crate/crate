@@ -17,6 +17,7 @@ import java.util.Locale;
 public abstract class Operator<I> extends Scalar<Boolean, I> implements OperatorFormatSpec {
 
     public static final io.crate.types.DataType RETURN_TYPE = DataTypes.BOOLEAN;
+    public static final String PREFIX = "op_";
 
     @Override
     public String operator(Function function) {

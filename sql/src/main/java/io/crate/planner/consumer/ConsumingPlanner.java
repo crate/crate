@@ -27,7 +27,11 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
-import io.crate.planner.*;
+import io.crate.planner.MultiPhasePlan;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.TableStats;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -40,8 +44,12 @@ import java.util.Map;
 public class ConsumingPlanner {
 
     private final List<Consumer> consumers = new ArrayList<>();
+    private final OptimizingRewriter optimizer;
 
-    public ConsumingPlanner(ClusterService clusterService, Functions functions, TableStats tableStats) {
+    public ConsumingPlanner(ClusterService clusterService,
+                            Functions functions,
+                            TableStats tableStats) {
+        optimizer = new OptimizingRewriter(functions);
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
         consumers.add(new NonDistributedGroupByConsumer(projectionBuilder));
         consumers.add(new ReduceOnCollectorGroupByConsumer(projectionBuilder));
@@ -64,6 +72,8 @@ public class ConsumingPlanner {
 
     @Nullable
     public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        relation = optimizer.optimize(relation,  consumerContext.plannerContext().transactionContext());
+
         Map<Plan, SelectSymbol> subQueries = getSubQueries(relation, consumerContext);
         for (Consumer consumer : consumers) {
             Plan plan = consumer.consume(relation, consumerContext);

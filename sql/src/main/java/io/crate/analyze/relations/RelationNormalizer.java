@@ -42,7 +42,7 @@ public final class RelationNormalizer {
 
     private final NormalizerVisitor visitor;
 
-    RelationNormalizer(Functions functions) {
+    public RelationNormalizer(Functions functions) {
         visitor =  new NormalizerVisitor(functions);
     }
 

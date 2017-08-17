@@ -103,7 +103,8 @@ public class Rewriter {
         assert rightName.equals(joinPair.right()) : "This JoinPair has a different left Qualified name: " + joinPair.right();
 
         JoinType joinType = joinPair.joinType();
-        if (!joinType.isOuter()) {
+        // SEMI JOINS *can* be re-written to inner join if the RHS results are unique - but we don't optimize this yet
+        if (!joinType.isOuter() || joinType == JoinType.SEMI) {
             return;
         }
         tryRewrite(normalizer, mss, where, left, right, joinPair, joinType);
