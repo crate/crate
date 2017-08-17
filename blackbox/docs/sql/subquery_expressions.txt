@@ -30,10 +30,19 @@ Returns ``false`` otherwise (including the case where the subquery returns no
 rows)::
 
     cr> select name, surname, sex from employees
-    ... where dept_id in (select id from departments where name = 'Austria')
+    ... where dept_id in (select id from departments where name = 'Marketing')
     ... order by name, surname;
+    +--------+----------+-----+
+    | name   | surname  | sex |
+    +--------+----------+-----+
+    | David  | Bowe     | M   |
+    | David  | Limb     | M   |
+    | Sarrah | Mcmillan | F   |
+    | Smith  | Clark    | M   |
+    +--------+----------+-----+
+    SELECT 4 rows in set (... sec)
 
-The result of the ``IN`` construct yields to ``null`` if ...:
+The result of the ``IN`` construct yields to ``null`` if ...
 
 - the left-hand expression evaluates to ``null``.
 
@@ -63,10 +72,21 @@ for any of the values in the column that is returned by the subquery. It returns
 subquery returns no rows::
 
     cr> select name, population from countries
-    ... where population > any (select information['population'] from locations)
+    ... where population > any (select * from unnest([8000000, 22000000, null]))
     ... order by population, name;
+    +--------------+------------+
+    | name         | population |
+    +--------------+------------+
+    | Austria      |    8747000 |
+    | South Africa |   55910000 |
+    | France       |   66900000 |
+    | Turkey       |   79510000 |
+    | Germany      |   82670000 |
+    +--------------+------------+
+    SELECT 5 rows in set (... sec)
 
-The result of the ``ANY`` construct yields ``null`` if ...:
+
+The result of the ``ANY`` construct yields ``null`` if ...
 
 - either the expression or the array is ``null``
 
