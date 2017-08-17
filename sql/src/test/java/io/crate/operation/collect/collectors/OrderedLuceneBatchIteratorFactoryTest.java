@@ -111,7 +111,6 @@ public class OrderedLuceneBatchIteratorFactoryTest {
                 LuceneOrderedDocCollector collector2 = createOrderedCollector(searcher2, 2);
                 return OrderedLuceneBatchIteratorFactory.newInstance(
                     Arrays.asList(collector1, collector2),
-                    1,
                     OrderingByPosition.rowOrdering(new int[] { 0 }, reverseFlags, nullsFirst),
                     MoreExecutors.directExecutor(),
                     true

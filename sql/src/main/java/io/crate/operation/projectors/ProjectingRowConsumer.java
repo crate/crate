@@ -23,9 +23,10 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
@@ -49,28 +50,28 @@ import java.util.UUID;
  *  finalConsumer receives limitingBI
  * </pre>
  */
-public class ProjectingBatchConsumer implements BatchConsumer {
+public class ProjectingRowConsumer implements RowConsumer {
 
-    private final BatchConsumer consumer;
+    private final RowConsumer consumer;
     private final List<Projector> projectors;
     private boolean requiresScroll;
 
-    public static BatchConsumer create(BatchConsumer lastConsumer,
-                                       Collection<? extends Projection> projections,
-                                       UUID jobId,
-                                       RamAccountingContext ramAccountingContext,
-                                       ProjectorFactory projectorFactory) {
+    public static RowConsumer create(RowConsumer lastConsumer,
+                                     Collection<? extends Projection> projections,
+                                     UUID jobId,
+                                     RamAccountingContext ramAccountingContext,
+                                     ProjectorFactory projectorFactory) {
         if (projections.isEmpty()) {
             return lastConsumer;
         }
-        return new ProjectingBatchConsumer(lastConsumer, projections, jobId, ramAccountingContext, projectorFactory);
+        return new ProjectingRowConsumer(lastConsumer, projections, jobId, ramAccountingContext, projectorFactory);
     }
 
-    private ProjectingBatchConsumer(BatchConsumer consumer,
-                                    Collection<? extends Projection> projections,
-                                    UUID jobId,
-                                    RamAccountingContext ramAccountingContext,
-                                    ProjectorFactory projectorFactory) {
+    private ProjectingRowConsumer(RowConsumer consumer,
+                                  Collection<? extends Projection> projections,
+                                  UUID jobId,
+                                  RamAccountingContext ramAccountingContext,
+                                  ProjectorFactory projectorFactory) {
         this.consumer = consumer;
         projectors = new ArrayList<>(projections.size());
 
@@ -91,7 +92,7 @@ public class ProjectingBatchConsumer implements BatchConsumer {
     }
 
     @Override
-    public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
             for (Projector projector : projectors) {
                 try {

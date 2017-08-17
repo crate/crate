@@ -27,8 +27,8 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.data.BatchConsumer;
-import io.crate.data.CollectingBatchConsumer;
+import io.crate.data.RowConsumer;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
@@ -156,7 +156,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, BatchConsumer consumer, Row parameters) {
+    public void execute(Plan plan, RowConsumer consumer, Row parameters) {
         CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
         planFuture
             .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(consumer, parameters))
@@ -336,7 +336,7 @@ public class TransportExecutor implements Executor {
                 SelectSymbol selectSymbol = entry.getValue();
                 SelectSymbol.ResultType resultType = selectSymbol.getResultType();
 
-                final CollectingBatchConsumer<?, ?> consumer;
+                final CollectingRowConsumer<?, ?> consumer;
                 if (resultType == SINGLE_COLUMN_SINGLE_VALUE) {
                     consumer = FirstColumnConsumers.createSingleRowConsumer();
                 } else if (resultType == SINGLE_COLUMN_MULTIPLE_VALUES) {

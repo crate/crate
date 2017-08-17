@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.BatchConsumerToResultReceiver;
+import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
@@ -62,7 +62,7 @@ public class SimplePortal extends AbstractPortal {
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
     private ResultReceiver resultReceiver;
-    private BatchConsumerToResultReceiver consumer = null;
+    private RowConsumerToResultReceiver consumer = null;
     private int maxRows = 0;
     private int defaultLimit;
     private Row rowParams;
@@ -173,7 +173,7 @@ public class SimplePortal extends AbstractPortal {
         CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(jobsLogsUpdateListener);
 
         if (!resumeIfSuspended()) {
-            consumer = new BatchConsumerToResultReceiver(resultReceiver, maxRows);
+            consumer = new RowConsumerToResultReceiver(resultReceiver, maxRows);
             portalContext.getExecutor().execute(plan, consumer, this.rowParams);
         }
         synced = true;

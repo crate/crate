@@ -26,7 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
@@ -61,12 +61,12 @@ public class TableFunctionCollectSource implements CollectSource {
 
     @Override
     public CrateCollector getCollector(CollectPhase collectPhase,
-                                       BatchConsumer consumer,
+                                       RowConsumer consumer,
                                        JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         WhereClause whereClause = phase.whereClause();
         if (whereClause.noMatch()) {
-            return RowsCollector.empty(consumer, collectPhase.toCollect().size());
+            return RowsCollector.empty(consumer);
         }
 
         TableFunctionImplementation functionImplementation = phase.functionImplementation();
@@ -94,6 +94,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return RowsCollector.forRows(rows, phase.toCollect().size(), consumer);
+        return RowsCollector.forRows(rows, consumer);
     }
 }

@@ -24,11 +24,10 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
-import io.crate.data.RowBridging;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -51,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Every time requests to the downstreams are made consumption of the source BatchIterator is stopped until a response
  * from all downstreams is received.
  */
-public class DistributingConsumer implements BatchConsumer {
+public class DistributingConsumer implements RowConsumer {
 
     private final Logger logger;
     private final Executor responseExecutor;
@@ -101,7 +100,7 @@ public class DistributingConsumer implements BatchConsumer {
     }
 
     @Override
-    public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
             consumeIt(iterator);
         } else {
@@ -109,12 +108,11 @@ public class DistributingConsumer implements BatchConsumer {
         }
     }
 
-    private void consumeIt(BatchIterator it) {
-        Row row = RowBridging.toRow(it.rowData());
+    private void consumeIt(BatchIterator<Row> it) {
         boolean allLoaded;
         try {
             while (it.moveNext()) {
-                multiBucketBuilder.add(row);
+                multiBucketBuilder.add(it.currentElement());
                 if (multiBucketBuilder.size() >= pageSize) {
                     forwardResults(it, false);
                     return;
@@ -180,7 +178,7 @@ public class DistributingConsumer implements BatchConsumer {
         }
     }
 
-    private void forwardResults(BatchIterator it, boolean isLast) {
+    private void forwardResults(BatchIterator<Row> it, boolean isLast) {
         multiBucketBuilder.build(buckets);
 
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
@@ -216,7 +214,7 @@ public class DistributingConsumer implements BatchConsumer {
         }
     }
 
-    private void countdownAndMaybeContinue(BatchIterator it, AtomicInteger numActiveRequests, boolean sameExecutor) {
+    private void countdownAndMaybeContinue(BatchIterator<Row> it, AtomicInteger numActiveRequests, boolean sameExecutor) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (downstreams.stream().anyMatch(Downstream::needsMoreData)) {
                 if (failure == null) {

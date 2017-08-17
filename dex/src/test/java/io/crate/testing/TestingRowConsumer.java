@@ -22,7 +22,13 @@
 
 package io.crate.testing;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Killable;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nullable;
@@ -33,18 +39,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class TestingBatchConsumer implements BatchConsumer, Killable {
+public class TestingRowConsumer implements RowConsumer, Killable {
 
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
-    static CompletionStage<?> moveToEnd(BatchIterator it) {
-        return BatchRowVisitor.visitRows(it, Collectors.counting());
+    static CompletionStage<?> moveToEnd(BatchIterator<Row> it) {
+        return BatchIterators.collect(it, Collectors.counting());
     }
 
     @Override
-    public void accept(BatchIterator it, Throwable failure) {
+    public void accept(BatchIterator<Row> it, Throwable failure) {
         if (failure == null) {
-            BatchRowVisitor.visitRows(it, Collectors.mapping(Row::materialize, Collectors.toList()))
+            BatchIterators.collect(it, Collectors.mapping(Row::materialize, Collectors.toList()))
                 .whenComplete((r, t) -> {
                     if (t == null) {
                         result.complete(r);

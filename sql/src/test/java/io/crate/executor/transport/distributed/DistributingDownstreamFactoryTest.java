@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
@@ -64,7 +64,7 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
         );
     }
 
-    private BatchConsumer createDownstream(Set<String> downstreamExecutionNodes) {
+    private RowConsumer createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
             TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
@@ -99,14 +99,14 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        BatchConsumer downstream = createDownstream(ImmutableSet.of("downstream_node"));
+        RowConsumer downstream = createDownstream(ImmutableSet.of("downstream_node"));
         assertThat(downstream, instanceOf(DistributingConsumer.class));
         assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        BatchConsumer downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
+        RowConsumer downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
         assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }

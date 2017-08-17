@@ -24,18 +24,18 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ListenableBatchIterator extends ForwardingBatchIterator {
+public class ListenableBatchIterator<T> extends ForwardingBatchIterator<T> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<T> delegate;
     private final CompletableFuture<Void> completeOnClose;
 
-    public ListenableBatchIterator(BatchIterator delegate, CompletableFuture<Void> completeOnClose) {
+    public ListenableBatchIterator(BatchIterator<T> delegate, CompletableFuture<Void> completeOnClose) {
         this.delegate = delegate;
         this.completeOnClose = completeOnClose;
     }
 
     @Override
-    protected BatchIterator delegate() {
+    protected BatchIterator<T> delegate() {
         return delegate;
     }
 

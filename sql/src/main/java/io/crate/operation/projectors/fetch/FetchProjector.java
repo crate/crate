@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
+import io.crate.data.Row;
 import io.crate.metadata.Functions;
 
 import java.util.List;
@@ -51,10 +52,9 @@ public class FetchProjector implements Projector {
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return new AsyncOperationBatchIterator(
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        return new AsyncOperationBatchIterator<>(
             batchIterator,
-            outputSymbols.size(),
             new FetchBatchAccumulator(
                 fetchOperation,
                 functions,

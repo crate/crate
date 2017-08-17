@@ -23,10 +23,10 @@ package io.crate.executor.transport.task;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
@@ -68,7 +68,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.crate.concurrent.CompletableFutures.failedFuture;
-import static java.util.Collections.singletonList;
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class UpsertByIdTask extends JobTask {
 
@@ -117,10 +117,10 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public void execute(final BatchConsumer consumer, Row parameters) {
+    public void execute(final RowConsumer consumer, Row parameters) {
         doExecute().whenComplete((r, f) -> {
             if (f == null) {
-                consumer.accept(RowsBatchIterator.newInstance(singletonList(new Row1((long) r.cardinality())), 1), null);
+                consumer.accept(InMemoryBatchIterator.of(new Row1((long) r.cardinality()), SENTINEL), null);
             } else {
                 consumer.accept(null, f);
             }

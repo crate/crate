@@ -24,9 +24,9 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
@@ -34,7 +34,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
-import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.reference.ReferenceResolver;
@@ -112,7 +112,7 @@ public abstract class ShardCollectorProvider {
      * Create a CrateCollector.Builder to collect rows from a shard.
      * <p>
      * This also creates all shard-level projectors.
-     * The BatchConsumer that is used for {@link CrateCollector.Builder#build(BatchConsumer)}
+     * The BatchConsumer that is used for {@link CrateCollector.Builder#build(RowConsumer)}
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
@@ -124,7 +124,7 @@ public abstract class ShardCollectorProvider {
 
         final CrateCollector.Builder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            builder = RowsCollector.emptyBuilder(collectPhase.toCollect().size());
+            builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
             builder = getBuilder(normalizedCollectNode, requiresScroll, jobCollectContext);
@@ -136,13 +136,13 @@ public abstract class ShardCollectorProvider {
         } else {
             return new CrateCollector.Builder() {
                 @Override
-                public CrateCollector build(BatchConsumer batchConsumer) {
-                    return builder.build(batchConsumer);
+                public CrateCollector build(RowConsumer rowConsumer) {
+                    return builder.build(rowConsumer);
                 }
 
                 @Override
-                public BatchConsumer applyProjections(BatchConsumer consumer) {
-                    return ProjectingBatchConsumer.create(
+                public RowConsumer applyProjections(RowConsumer consumer) {
+                    return ProjectingRowConsumer.create(
                         consumer,
                         shardProjections,
                         normalizedCollectNode.jobId(),

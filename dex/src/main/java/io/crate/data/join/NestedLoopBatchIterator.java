@@ -23,96 +23,101 @@
 package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
 
 import javax.annotation.Nonnull;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * NestedLoop BatchIterator implementations
  *
- * - {@link #crossJoin(BatchIterator, BatchIterator)}
- * - {@link #leftJoin(BatchIterator, BatchIterator, Function)}
- * - {@link #rightJoin(BatchIterator, BatchIterator, Function)}
- * - {@link #fullOuterJoin(BatchIterator, BatchIterator, Function)}
- * - {@link #semiJoin(BatchIterator, BatchIterator, Function)}
+ * - {@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner)}
+ * - {@link #leftJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
+ * - {@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
+ * - {@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
+ * - {@link #semiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
  */
-public class NestedLoopBatchIterator implements BatchIterator {
+public class NestedLoopBatchIterator<L, R, C> implements BatchIterator<C> {
 
 
     /**
      * Create a BatchIterator that creates a full-outer-join of {@code left} and {@code right}.
      */
-    public static BatchIterator fullOuterJoin(BatchIterator left,
-                                              BatchIterator right,
-                                              Function<Columns, BooleanSupplier> joinCondition) {
-        return new FullOuterJoinBatchIterator(left, right, joinCondition);
+    public static <L, R, C> BatchIterator<C> fullOuterJoin(BatchIterator<L> left,
+                                                           BatchIterator<R> right,
+                                                           ElementCombiner<L, R, C> combiner,
+                                                           Predicate<C> joinCondition) {
+        return new FullOuterJoinBatchIterator<>(left, right, combiner, joinCondition);
     }
 
     /**
      * Create a BatchIterator that creates a cross-join of {@code left} and {@code right}.
      */
-    public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
-        return new NestedLoopBatchIterator(left, right);
+    public static <L, R, C> BatchIterator<C> crossJoin(BatchIterator<L> left,
+                                                       BatchIterator<R> right,
+                                                       ElementCombiner<L, R, C> combiner) {
+        return new NestedLoopBatchIterator<>(left, right, combiner);
     }
 
     /**
      * Create a BatchIterator that creates the left-outer-join result of {@code left} and {@code right}.
      */
-    public static BatchIterator leftJoin(BatchIterator left,
-                                         BatchIterator right,
-                                         Function<Columns, BooleanSupplier> joinCondition) {
-        return new LeftJoinBatchIterator(left, right, joinCondition);
+    public static <L, R, C> BatchIterator<C> leftJoin(BatchIterator<L> left,
+                                                      BatchIterator<R> right,
+                                                      ElementCombiner<L, R, C> combiner,
+                                                      Predicate<C> joinCondition) {
+        return new LeftJoinBatchIterator<>(left, right, combiner, joinCondition);
     }
 
     /**
      * Create a BatchIterator that creates the right-outer-join result of {@code left} and {@code right}.
      */
-    public static BatchIterator rightJoin(BatchIterator left,
-                                          BatchIterator right,
-                                          Function<Columns, BooleanSupplier> joinCondition) {
-        return new RightJoinBatchIterator(left, right, joinCondition);
+    public static <L, R, C> BatchIterator<C> rightJoin(BatchIterator<L> left,
+                                                       BatchIterator<R> right,
+                                                       ElementCombiner<L, R, C> combiner,
+                                                       Predicate<C> joinCondition) {
+        return new RightJoinBatchIterator<>(left, right, combiner, joinCondition);
     }
 
     /**
      * Create a BatchIterator that creates the semi-join result of {@code left} and {@code right}.
      */
-    public static BatchIterator semiJoin(BatchIterator left,
-                                         BatchIterator right,
-                                         Function<Columns, BooleanSupplier> joinCondition) {
-        return new SemiJoinBatchIterator(left, right, joinCondition);
+    public static <L, R, C> BatchIterator<L> semiJoin(BatchIterator<L> left,
+                                                      BatchIterator<R> right,
+                                                      ElementCombiner<L, R, C> combiner,
+                                                      Predicate<C> joinCondition) {
+        return new SemiJoinBatchIterator<>(left, right, combiner, joinCondition);
     }
 
     /**
      * Create a BatchIterator that creates the anti-join result of {@code left} and {@code right}.
      */
-    public static BatchIterator antiJoin(BatchIterator left,
-                                         BatchIterator right,
-                                         Function<Columns, BooleanSupplier> joinCondition) {
-        return new AntiJoinBatchIterator(left, right, joinCondition);
+    public static <L, R, C> BatchIterator<L> antiJoin(BatchIterator<L> left,
+                                                      BatchIterator<R> right,
+                                                      ElementCombiner<L, R, C> combiner,
+                                                      Predicate<C> joinCondition) {
+        return new AntiJoinBatchIterator<>(left, right, combiner, joinCondition);
     }
 
-    final CombinedColumn rowData;
-    final BatchIterator left;
-    final BatchIterator right;
+    final ElementCombiner<L, R, C> combiner;
+    final BatchIterator<L> left;
+    final BatchIterator<R> right;
 
     /**
      * points to the batchIterator which will be used on the next {@link #moveNext()} call
      */
     BatchIterator activeIt;
 
-    NestedLoopBatchIterator(BatchIterator left, BatchIterator right) {
+    NestedLoopBatchIterator(BatchIterator<L> left, BatchIterator<R> right, ElementCombiner<L, R, C> combiner) {
         this.left = left;
         this.right = right;
         this.activeIt = left;
-        this.rowData = new CombinedColumn(left.rowData(), right.rowData());
+        this.combiner = combiner;
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public C currentElement() {
+        return combiner.currentElement();
     }
 
     @Override
@@ -132,7 +137,7 @@ public class NestedLoopBatchIterator implements BatchIterator {
     }
 
     private boolean tryAdvanceRight() {
-        if (right.moveNext()) {
+        if (tryMoveRight()) {
             return true;
         }
         if (right.allLoaded() == false) {
@@ -141,8 +146,8 @@ public class NestedLoopBatchIterator implements BatchIterator {
 
         // new outer loop iteration
         right.moveToStart();
-        if (left.moveNext()) {
-            return right.moveNext();
+        if (tryMoveLeft()) {
+            return tryMoveRight();
         }
         // left is either out of rows or needs to load more data - whatever the case,
         // next moveNext must operate on left
@@ -150,10 +155,26 @@ public class NestedLoopBatchIterator implements BatchIterator {
         return false;
     }
 
+    boolean tryMoveLeft() {
+        if (left.moveNext()) {
+            combiner.setLeft(left.currentElement());
+            return true;
+        }
+        return false;
+    }
+
+    boolean tryMoveRight() {
+        if (right.moveNext()) {
+            combiner.setRight(right.currentElement());
+            return true;
+        }
+        return false;
+    }
+
     private boolean tryAdvanceLeftAndRight() {
-        while (left.moveNext()) {
+        while (tryMoveLeft()) {
             activeIt = right;
-            if (right.moveNext()) {
+            if (tryMoveRight()) {
                 return true;
             }
             if (right.allLoaded() == false) {

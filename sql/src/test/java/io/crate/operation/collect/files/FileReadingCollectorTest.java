@@ -28,11 +28,11 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -43,8 +43,8 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -141,7 +141,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void testCollectFromS3Uri() throws Throwable {
         // this test just verifies the s3 schema detection and bucketName / prefix extraction from the uri.
         // real s3 interaction is mocked completely.
-        TestingBatchConsumer projector = getObjects("s3://fakebucket/foo");
+        TestingRowConsumer projector = getObjects("s3://fakebucket/foo");
         projector.getResult();
     }
 
@@ -154,39 +154,39 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testRelativeImport() throws Throwable {
-        TestingBatchConsumer projector = getObjects("xy");
+        TestingRowConsumer projector = getObjects("xy");
         assertCorrectResult(projector.getBucket());
     }
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        TestingBatchConsumer projector = getObjects(
+        TestingRowConsumer projector = getObjects(
             Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
         assertCorrectResult(projector.getBucket());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        TestingBatchConsumer projector = getObjects(
+        TestingRowConsumer projector = getObjects(
             Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
         assertCorrectResult(projector.getBucket());
     }
 
     @Test
     public void testDoCollectRaw() throws Throwable {
-        TestingBatchConsumer consumer = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
+        TestingRowConsumer consumer = getObjects(Paths.get(tmpFile.toURI()).toUri().toString());
         assertCorrectResult(consumer.getBucket());
     }
 
     @Test
     public void testDoCollectRawFromCompressed() throws Throwable {
-        TestingBatchConsumer consumer = getObjects(Collections.singletonList(Paths.get(tmpFileGz.toURI()).toUri().toString()), "gzip");
+        TestingRowConsumer consumer = getObjects(Collections.singletonList(Paths.get(tmpFileGz.toURI()).toUri().toString()), "gzip");
         assertCorrectResult(consumer.getBucket());
     }
 
     @Test
     public void testCollectWithEmptyLine() throws Throwable {
-        TestingBatchConsumer consumer = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
+        TestingRowConsumer consumer = getObjects(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         assertCorrectResult(consumer.getBucket());
     }
 
@@ -202,7 +202,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             .thenReturn(-1);
 
 
-        TestingBatchConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream);
+        TestingRowConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream);
         Bucket rows = consumer.getBucket();
         assertThat(rows.size(), is(2));
         assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
@@ -220,7 +220,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         List<String> fileUris = new ArrayList<>();
         fileUris.add(Paths.get(tmpFile.toURI()).toUri().toString());
         fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
-        TestingBatchConsumer consumer = getObjects(fileUris, null);
+        TestingRowConsumer consumer = getObjects(fileUris, null);
         Iterator<Row> it = consumer.getBucket().iterator();
         assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
         assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
@@ -234,23 +234,23 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         assertThat(it.next(), isRow("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
     }
 
-    private TestingBatchConsumer getObjects(String fileUri) throws Throwable {
+    private TestingRowConsumer getObjects(String fileUri) throws Throwable {
         return getObjects(Collections.singletonList(fileUri), null);
     }
 
-    private TestingBatchConsumer getObjects(Collection<String> fileUris, String compression) throws Throwable {
+    private TestingRowConsumer getObjects(Collection<String> fileUris, String compression) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
         when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
         return getObjects(fileUris, compression, inputStream);
     }
 
-    private TestingBatchConsumer getObjects(Collection<String> fileUris, String compression, S3ObjectInputStream s3InputStream) throws Throwable {
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+    private TestingRowConsumer getObjects(Collection<String> fileUris, String compression, S3ObjectInputStream s3InputStream) throws Throwable {
+        TestingRowConsumer consumer = new TestingRowConsumer();
         getObjects(fileUris, compression, s3InputStream, consumer);
         return consumer;
     }
 
-    private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, BatchConsumer consumer) throws Throwable {
+    private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowConsumer consumer) throws Throwable {
         BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream);
         BatchIteratorCollectorBridge.newInstance(iterator, consumer).doCollect();
     }

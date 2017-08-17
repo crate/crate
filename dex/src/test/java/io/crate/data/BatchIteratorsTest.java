@@ -22,36 +22,21 @@
 
 package io.crate.data;
 
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.FailingBatchIterator;
 import org.junit.Test;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
-import static org.junit.Assert.fail;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class ListenableBatchConsumerTest {
+public class BatchIteratorsTest {
 
     @Test
-    public void testErrorCaseHandling() throws Exception {
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
-        ListenableBatchConsumer listenableBatchConsumer = new ListenableBatchConsumer(consumer);
-
-        listenableBatchConsumer.accept(null, new IllegalStateException("dummy"));
-
-        // both the delegate consumer must receive the error and also the listenableBatchConsumers future must trigger
-        try {
-            consumer.getResult();
-            fail("should have raised an exception");
-        } catch (IllegalStateException e) {
-            // expected
-        }
-
-        try {
-            listenableBatchConsumer.completionFuture().get(10, TimeUnit.SECONDS);
-            fail("should have raised an exception");
-        } catch (ExecutionException e) {
-            // expected
-        }
+    public void testExceptionOnAllLoadedIsSetOntoFuture() throws Exception {
+        CompletableFuture<Long> future = BatchIterators.collect(
+            FailingBatchIterator.failOnAllLoaded(), Collectors.counting());
+        assertThat(future.isCompletedExceptionally(), is(true));
     }
 }

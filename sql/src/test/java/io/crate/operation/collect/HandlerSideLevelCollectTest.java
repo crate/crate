@@ -47,7 +47,7 @@ import io.crate.operation.reference.sys.cluster.ClusterNameExpression;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -114,7 +114,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(JobCollectContext.class));
         operation.launchCollector(collector, JobCollectContext.threadPoolName(collectPhase));
         return new CollectionBucket(consumer.getResult());

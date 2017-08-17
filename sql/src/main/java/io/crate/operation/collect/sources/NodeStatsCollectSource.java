@@ -27,8 +27,8 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
@@ -73,16 +73,16 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public CrateCollector getCollector(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase, RowConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (collectPhase.whereClause().noMatch()) {
-            return RowsCollector.empty(consumer, phase.toCollect().size());
+            return RowsCollector.empty(consumer);
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return RowsCollector.empty(consumer, phase.toCollect().size());
+            return RowsCollector.empty(consumer);
         }
         BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
             nodeStatsAction,

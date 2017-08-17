@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 
 public interface CrateCollector {
 
@@ -30,13 +30,13 @@ public interface CrateCollector {
         /**
          * Create a CrateCollector
          *
-         * @param batchConsumer consumer which will receive a BatchIterator to consume data after
+         * @param rowConsumer consumer which will receive a BatchIterator to consume data after
          *                      {@link #doCollect()} has been called.
          *                      (May be async)
          */
-        CrateCollector build(BatchConsumer batchConsumer);
+        CrateCollector build(RowConsumer rowConsumer);
 
-        default BatchConsumer applyProjections(BatchConsumer consumer) {
+        default RowConsumer applyProjections(RowConsumer consumer) {
             return consumer;
         }
     }

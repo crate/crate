@@ -21,35 +21,32 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 
-import java.util.Collections;
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public final class RowsCollector {
 
-    public static CrateCollector empty(BatchConsumer consumer, int numColumns) {
-        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(numColumns), consumer);
+    public static CrateCollector empty(RowConsumer consumer) {
+        return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.empty(SENTINEL), consumer);
     }
 
-    public static CrateCollector single(Row row, BatchConsumer consumer) {
-        return BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.newInstance(Collections.singletonList(row), row.numColumns()),
-            consumer
-        );
+    public static CrateCollector single(Row row, RowConsumer consumer) {
+        return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.of(row, SENTINEL), consumer);
     }
 
-    public static CrateCollector forRows(Iterable<Row> rows, int numCols, BatchConsumer consumer) {
-        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.newInstance(rows, numCols), consumer);
+    public static CrateCollector forRows(Iterable<Row> rows, RowConsumer consumer) {
+        return BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.of(rows, SENTINEL), consumer);
     }
 
-    static CrateCollector.Builder emptyBuilder(int numColumns) {
-        return consumer -> BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(numColumns), consumer);
+    static CrateCollector.Builder emptyBuilder() {
+        return consumer -> BatchIteratorCollectorBridge.newInstance(InMemoryBatchIterator.empty(SENTINEL), consumer);
     }
 
-    public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
+    public static CrateCollector.Builder builder(final Iterable<Row> rows) {
         return batchConsumer -> BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.newInstance(rows, numCols), batchConsumer);
+            InMemoryBatchIterator.of(rows, SENTINEL), batchConsumer);
     }
 }

@@ -23,17 +23,18 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchRowVisitor;
+import io.crate.data.BatchIterators;
 import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.StreamBucketCollector;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 
-public class SingleBucketBuilder implements BatchConsumer, CompletionListenable {
+public class SingleBucketBuilder implements RowConsumer, CompletionListenable {
 
     private final Streamer<?>[] streamers;
     private final CompletableFuture<Bucket> bucketFuture = new CompletableFuture<>();
@@ -48,11 +49,11 @@ public class SingleBucketBuilder implements BatchConsumer, CompletionListenable 
     }
 
     @Override
-    public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
             bucketFuture.whenComplete((ignored, t) -> iterator.close());
             StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers);
-            BatchRowVisitor.visitRows(iterator, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
+            BatchIterators.collect(iterator, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
         } else {
             if (iterator != null) {
                 iterator.close();

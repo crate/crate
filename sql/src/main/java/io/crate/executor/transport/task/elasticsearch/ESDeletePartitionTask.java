@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
@@ -42,7 +42,7 @@ public class ESDeletePartitionTask extends JobTask {
     private final DeleteIndexRequest request;
 
     @Override
-    public void execute(BatchConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer, Row parameters) {
         OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW);
         transport.execute(request, actionListener);
     }

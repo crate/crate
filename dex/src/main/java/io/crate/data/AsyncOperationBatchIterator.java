@@ -55,35 +55,30 @@ import java.util.concurrent.CompletionStage;
  *
  * </pre>
  */
-public class AsyncOperationBatchIterator implements BatchIterator {
+public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator source;
+    private final BatchIterator<T> source;
     private final int batchSize;
-    private final BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator;
-    private final RowColumns rowData;
-    private final Row sourceRow;
+    private final BatchAccumulator<T, Iterator<? extends T>> batchAccumulator;
 
-    private Iterator<? extends Row> it;
+    private Iterator<? extends T> it;
     private int idxWithinBatch = 0;
     private boolean sourceExhausted = false;
     private boolean closed = false;
     private volatile Throwable killed = null;
+    private T current = null;
 
-    public AsyncOperationBatchIterator(BatchIterator source,
-                                       int numColumns,
-                                       BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator) {
+    public AsyncOperationBatchIterator(BatchIterator<T> source,
+                                       BatchAccumulator<T, Iterator<? extends T>> batchAccumulator) {
         this.source = source;
         this.batchSize = batchAccumulator.batchSize();
         this.batchAccumulator = batchAccumulator;
         this.it = Collections.emptyIterator();
-
-        this.rowData = new RowColumns(numColumns);
-        this.sourceRow = RowBridging.toRow(source.rowData());
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public T currentElement() {
+        return current;
     }
 
     @Override
@@ -94,7 +89,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         batchAccumulator.reset();
         sourceExhausted = false;
         it = Collections.emptyIterator();
-        rowData.updateRef(RowBridging.OFF_ROW);
+        current = null;
     }
 
     @Override
@@ -102,10 +97,10 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         raiseIfClosedOrKilled();
 
         if (it.hasNext()) {
-            rowData.updateRef(it.next());
+            current = it.next();
             return true;
         }
-        rowData.updateRef(RowBridging.OFF_ROW);
+        current = null;
         return false;
     }
 
@@ -116,7 +111,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         closed = true;
     }
 
-    private void concatRows(Iterator<? extends Row> rows) {
+    private void concatRows(Iterator<? extends T> rows) {
         idxWithinBatch = 0;
         it = Iterators.concat(it, rows);
     }
@@ -151,7 +146,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         try {
             while (source.moveNext()) {
                 idxWithinBatch++;
-                batchAccumulator.onItem(sourceRow);
+                batchAccumulator.onItem(source.currentElement());
                 if (batchSize > 0 && idxWithinBatch == batchSize) {
                     return processBatch(false);
                 }
@@ -168,7 +163,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
             .thenAccept(this::concatRows);
     }
 
-    private Iterator<? extends Row> maybeRaiseKilled(Throwable throwable) {
+    private Iterator<? extends T> maybeRaiseKilled(Throwable throwable) {
         if (killed == null) {
             Exceptions.rethrowUnchecked(throwable);
         } else {

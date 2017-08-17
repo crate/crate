@@ -21,8 +21,8 @@
 
 package io.crate.executor;
 
-import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -34,7 +34,7 @@ public interface Task {
      * <p>
      * The consumer will receive a BatchIterator containing the result.
      */
-    void execute(BatchConsumer consumer, Row parameters);
+    void execute(RowConsumer consumer, Row parameters);
 
     /**
      * execute the task if it represents a bulk operation.

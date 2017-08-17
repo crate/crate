@@ -22,7 +22,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.data.CollectingBatchConsumer;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 
 import java.util.ArrayList;
@@ -121,11 +121,11 @@ class FirstColumnConsumers {
 
     }
 
-    static CollectingBatchConsumer<Object[], Object> createSingleRowConsumer() {
-        return new CollectingBatchConsumer<>(SingleValue.INSTANCE);
+    static CollectingRowConsumer<Object[], Object> createSingleRowConsumer() {
+        return new CollectingRowConsumer<>(SingleValue.INSTANCE);
     }
 
-    static CollectingBatchConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
-        return new CollectingBatchConsumer<>(AllValues.INSTANCE);
+    static CollectingRowConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
+        return new CollectingRowConsumer<>(AllValues.INSTANCE);
     }
 }

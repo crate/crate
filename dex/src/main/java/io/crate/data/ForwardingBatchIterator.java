@@ -28,16 +28,16 @@ import java.util.concurrent.CompletionStage;
 /**
  * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
  */
-public abstract class ForwardingBatchIterator implements BatchIterator {
+public abstract class ForwardingBatchIterator<T> implements BatchIterator<T> {
 
     protected ForwardingBatchIterator() {
     }
 
-    protected abstract BatchIterator delegate();
+    protected abstract BatchIterator<T> delegate();
 
     @Override
-    public Columns rowData() {
-        return delegate().rowData();
+    public T currentElement() {
+        return delegate().currentElement();
     }
 
     @Override
