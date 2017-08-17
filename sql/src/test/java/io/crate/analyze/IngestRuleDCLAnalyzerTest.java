@@ -2,15 +2,22 @@ package io.crate.analyze;
 
 
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 
 public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void initExecutor() throws Exception {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testDropRuleSimple() {
