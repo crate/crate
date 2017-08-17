@@ -81,6 +81,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONL
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Objects.requireNonNull;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -226,7 +227,7 @@ public class SQLExecutor {
     }
 
     public static Builder builder(ClusterService clusterService) {
-        return new Builder(clusterService);
+        return new Builder(requireNonNull(clusterService, "clusterService is required for SQLExecutor"));
     }
 
     private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner) {

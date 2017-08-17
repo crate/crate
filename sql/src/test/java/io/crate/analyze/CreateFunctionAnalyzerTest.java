@@ -35,6 +35,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -44,7 +45,12 @@ import static org.hamcrest.Matchers.is;
 
 public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(clusterService).build();
+    private SQLExecutor e;
+
+    @Before
+    public void initExecutor() throws Exception {
+        e = SQLExecutor.builder(clusterService).build();
+    }
 
     @Test
     public void testCreateFunctionSimple() {
