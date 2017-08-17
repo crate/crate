@@ -26,10 +26,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.*;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.FailingBatchIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -49,7 +54,10 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class DistributingConsumerTest extends CrateUnitTest {
 
@@ -60,13 +68,13 @@ public class DistributingConsumerTest extends CrateUnitTest {
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         try {
             Streamer<?>[] streamers = {DataTypes.INTEGER.streamer()};
-            TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
+            TestingRowConsumer collectingConsumer = new TestingRowConsumer();
             PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
             TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
             DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
 
-            BatchSimulatingIterator batchSimulatingIterator =
-                new BatchSimulatingIterator(TestingBatchIterators.range(0, 5),
+            BatchSimulatingIterator<Row> batchSimulatingIterator =
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5),
                     2,
                     3,
                     executorService);
@@ -91,7 +99,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
     @Test
     public void testDistributingConsumerForwardsFailure() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
-        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
+        TestingRowConsumer collectingConsumer = new TestingRowConsumer();
         PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
@@ -106,7 +114,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
     @Test
     public void testFailureOnAllLoadedIsForwarded() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
-        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
+        TestingRowConsumer collectingConsumer = new TestingRowConsumer();
         PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
@@ -133,7 +141,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
         );
     }
 
-    private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, TestingBatchConsumer collectingConsumer) {
+    private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, TestingRowConsumer collectingConsumer) {
         return new PageDownstreamContext(
                 logger,
                 "n1",

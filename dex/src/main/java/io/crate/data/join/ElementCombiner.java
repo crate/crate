@@ -20,42 +20,17 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.data.join;
 
-public class CompositeColumns implements Columns {
+public interface ElementCombiner<L, R, C> {
 
-    private final int numColumns;
-    private final BatchIterator[] iterators;
+    C currentElement();
 
-    private ProxyInput[] inputs;
+    void nullLeft();
 
-    public CompositeColumns(BatchIterator[] iterators) {
-        this.iterators = iterators;
-        numColumns = iterators[0].rowData().size();
-        inputs = new ProxyInput[numColumns];
-        for (int i = 0; i < inputs.length; i++) {
-            inputs[i] = new ProxyInput();
-        }
-        updateInputs(0);
-    }
+    void nullRight();
 
-    void updateInputs(int idx) {
-        if (idx >= iterators.length) {
-            return;
-        }
-        Columns columns = iterators[idx].rowData();
-        for (int i = 0; i < numColumns; i++) {
-            inputs[i].input = columns.get(i);
-        }
-    }
+    void setRight(R o);
 
-    @Override
-    public Input<?> get(int index) {
-        return inputs[index];
-    }
-
-    @Override
-    public int size() {
-        return numColumns;
-    }
+    void setLeft(L o);
 }

@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -67,7 +67,7 @@ public class MapSideDataCollectOperation {
      * </p>
      */
     public CrateCollector createCollector(CollectPhase collectPhase,
-                                          BatchConsumer consumer,
+                                          RowConsumer consumer,
                                           final JobCollectContext jobCollectContext) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
         return service.getCollector(collectPhase, consumer, jobCollectContext);

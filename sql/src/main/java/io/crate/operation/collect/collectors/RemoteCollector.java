@@ -27,7 +27,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
@@ -60,7 +60,7 @@ public class RemoteCollector implements CrateCollector {
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
-    private final BatchConsumer consumer;
+    private final RowConsumer consumer;
     private final RoutedCollectPhase collectPhase;
 
     private final Object killLock = new Object();
@@ -75,7 +75,7 @@ public class RemoteCollector implements CrateCollector {
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
                            JobContextService jobContextService,
                            RamAccountingContext ramAccountingContext,
-                           BatchConsumer consumer,
+                           RowConsumer consumer,
                            RoutedCollectPhase collectPhase) {
         this.jobId = jobId;
         this.localNode = localNode;

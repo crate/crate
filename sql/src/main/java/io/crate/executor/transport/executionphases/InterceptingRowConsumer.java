@@ -22,8 +22,9 @@
 
 package io.crate.executor.transport.executionphases;
 
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
@@ -38,23 +39,23 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class InterceptingBatchConsumer implements BatchConsumer {
+class InterceptingRowConsumer implements RowConsumer {
 
-    private final static Logger LOGGER = Loggers.getLogger(InterceptingBatchConsumer.class);
+    private static final Logger LOGGER = Loggers.getLogger(InterceptingRowConsumer.class);
 
     private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;
-    private final BatchConsumer consumer;
+    private final RowConsumer consumer;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final AtomicBoolean consumerAccepted = new AtomicBoolean(false);
 
     private Throwable failure = null;
-    private BatchIterator iterator = null;
+    private BatchIterator<Row> iterator = null;
 
-    InterceptingBatchConsumer(UUID jobId,
-                              BatchConsumer consumer,
-                              InitializationTracker jobsInitialized,
-                              TransportKillJobsNodeAction transportKillJobsNodeAction) {
+    InterceptingRowConsumer(UUID jobId,
+                            RowConsumer consumer,
+                            InitializationTracker jobsInitialized,
+                            TransportKillJobsNodeAction transportKillJobsNodeAction) {
         this.jobId = jobId;
         this.consumer = consumer;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
@@ -62,7 +63,7 @@ class InterceptingBatchConsumer implements BatchConsumer {
     }
 
     @Override
-    public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (consumerAccepted.compareAndSet(false, true)) {
             this.iterator = iterator;
             tryForwardResult(failure);

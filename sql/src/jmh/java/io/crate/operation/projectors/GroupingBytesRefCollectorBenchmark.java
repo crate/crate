@@ -24,7 +24,12 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -36,7 +41,13 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
@@ -44,6 +55,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -54,7 +67,7 @@ public class GroupingBytesRefCollectorBenchmark {
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupingCollector groupByMinCollector;
-    private BatchIterator rowsIterator;
+    private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
 
     @Setup
@@ -96,7 +109,7 @@ public class GroupingBytesRefCollectorBenchmark {
 
     @Benchmark
     public void measureGroupByMinBytesRef(Blackhole blackhole) throws Exception {
-        rowsIterator = RowsBatchIterator.newInstance(rows, 1);
-        blackhole.consume(BatchRowVisitor.visitRows(rowsIterator, groupByMinCollector).get());
+        rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
+        blackhole.consume(BatchIterators.collect(rowsIterator, groupByMinCollector).get());
     }
 }

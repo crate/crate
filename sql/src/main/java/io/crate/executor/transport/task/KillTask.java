@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
@@ -51,7 +51,7 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void execute(BatchConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer, Row parameters) {
         nodeAction.broadcast(new KillAllRequest(),
             new OneRowActionListener<>(consumer, KILL_RESPONSE_TO_ROW_FUNCTION));
     }

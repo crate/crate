@@ -30,18 +30,17 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class AggregationPipe implements Projector {
 
     private final AggregateCollector collector;
-    private final int numAggregations;
 
     public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
                            AggregateMode aggregateMode,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
-        numAggregations = aggregations.length;
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
         for (int i = 0; i < aggregations.length; i++) {
@@ -59,12 +58,14 @@ public class AggregationPipe implements Projector {
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator,
-            Collectors.collectingAndThen(
-                collector,
-                cells -> Collections.singletonList(new RowN(cells))),
-            numAggregations);
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        Collector<Row, ?, Iterable<Row>> collectAndConvertToRows = Collectors.collectingAndThen(
+            collector,
+            cells -> {
+                Row row = new RowN(cells);
+                return Collections.singletonList(row);
+            });
+        return CollectingBatchIterator.newInstance(batchIterator, collectAndConvertToRows);
     }
 
     @Override

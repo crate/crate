@@ -22,19 +22,19 @@
 
 package io.crate.data;
 
-public class SkippingBatchIterator extends ForwardingBatchIterator {
+public class SkippingBatchIterator<T> extends ForwardingBatchIterator<T> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<T> delegate;
     private final int offset;
     private int skipped = 0;
 
-    public SkippingBatchIterator(BatchIterator delegate, int offset) {
+    public SkippingBatchIterator(BatchIterator<T> delegate, int offset) {
         this.delegate = delegate;
         this.offset = offset;
     }
 
     @Override
-    protected BatchIterator delegate() {
+    protected BatchIterator<T> delegate() {
         return delegate;
     }
 

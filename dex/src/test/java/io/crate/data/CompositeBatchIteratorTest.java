@@ -44,22 +44,21 @@ public class CompositeBatchIteratorTest {
 
     @Test
     public void testDataRowInputsCanBeRetrievedEagerly() throws Exception {
-        CompositeBatchIterator iterator = new CompositeBatchIterator(
+        CompositeBatchIterator<Row> iterator = new CompositeBatchIterator<>(
             TestingBatchIterators.range(0, 1),
             TestingBatchIterators.range(1, 2)
         );
-        Input<?> input = iterator.rowData().get(0);
         assertThat(iterator.moveNext(), is(true));
-        assertThat(input.value(), is(0));
+        assertThat(iterator.currentElement().get(0), is(0));
 
         assertThat(iterator.moveNext(), is(true));
-        assertThat(input.value(), is(1));
+        assertThat(iterator.currentElement().get(0), is(1));
     }
 
     @Test
     public void testCompositeBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new CompositeBatchIterator(
+            () -> new CompositeBatchIterator<>(
                 TestingBatchIterators.range(0, 5),
                 TestingBatchIterators.range(5, 10))
         );
@@ -81,9 +80,9 @@ public class CompositeBatchIteratorTest {
         expectedResult.add(new Object[] { 3 });
         expectedResult.add(new Object[] { 4 });
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new CompositeBatchIterator(
-                new CloseAssertingBatchIterator(
-                    new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 6, null)),
+            () -> new CompositeBatchIterator<>(
+                new CloseAssertingBatchIterator<>(
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null)),
                 TestingBatchIterators.range(5, 10)
             )
         );

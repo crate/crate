@@ -35,28 +35,28 @@ import java.util.concurrent.CompletionStage;
  * It will consume each iterator to it's end before consuming the next iterator in order to make sure that repeated
  * consumption via {@link #moveToStart()} always returns the same result.
  */
-public class CompositeBatchIterator implements BatchIterator {
+public class CompositeBatchIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator[] iterators;
-    private final CompositeColumns columns;
+    private final BatchIterator<T>[] iterators;
     private int idx = 0;
 
     /**
      * @param iterators underlying iterators to use; order of consumption may change if some of them are unloaded
      *                  to prefer loaded iterators over unloaded.
      */
-    public CompositeBatchIterator(BatchIterator... iterators) {
+    @SafeVarargs
+    public CompositeBatchIterator(BatchIterator<T>... iterators) {
         assert iterators.length > 0 : "Must have at least 1 iterator";
 
         // prefer loaded iterators over unloaded to improve performance in case only a subset of data is consumed
-        Arrays.sort(iterators, Comparator.comparing(BatchIterator::allLoaded).reversed());
+        Comparator<BatchIterator<T>> comparing = Comparator.comparing(BatchIterator::allLoaded);
+        Arrays.sort(iterators, comparing.reversed());
         this.iterators = iterators;
-        this.columns = new CompositeColumns(iterators);
     }
 
     @Override
-    public Columns rowData() {
-        return columns;
+    public T currentElement() {
+        return iterators[idx].currentElement();
     }
 
     @Override
@@ -64,12 +64,7 @@ public class CompositeBatchIterator implements BatchIterator {
         for (BatchIterator iterator : iterators) {
             iterator.moveToStart();
         }
-        resetIndex();
-    }
-
-    private void resetIndex() {
         idx = 0;
-        columns.updateInputs(idx);
     }
 
     @Override
@@ -83,9 +78,8 @@ public class CompositeBatchIterator implements BatchIterator {
                 return false;
             }
             idx++;
-            columns.updateInputs(idx);
         }
-        resetIndex();
+        idx = 0;
         return false;
     }
 

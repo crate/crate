@@ -72,7 +72,7 @@ import java.util.function.Supplier;
 import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
 public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements Function<BatchIterator, CompletableFuture<? extends Iterable<Row>>> {
+    implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<Row>>> {
 
     public static final CrateSetting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
         "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),

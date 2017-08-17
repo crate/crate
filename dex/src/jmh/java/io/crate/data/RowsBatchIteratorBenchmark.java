@@ -22,18 +22,25 @@
 
 package io.crate.data;
 
+import io.crate.data.join.CombinedRow;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.testing.RowGenerator;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -53,64 +60,52 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
-        BatchIterator it = new RowsBatchIterator(rows, 1);
-        final Input<?> input = it.rowData().get(0);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         while (it.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(it.currentElement().get(0));
         }
     }
 
     @Benchmark
     public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
-        BatchIterator it = new RowsBatchIterator(rows, 1);
-        BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
-        final Input<?> input = itCloseAsserting.rowData().get(0);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> itCloseAsserting = new CloseAssertingBatchIterator<>(it);
         while (itCloseAsserting.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(itCloseAsserting.currentElement().get(0));
         }
     }
 
     @Benchmark
     public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
-        BatchIterator it = new RowsBatchIterator(rows, 1);
-        BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
-        final Input<?> input = skippingIt.rowData().get(0);
+        BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
+        BatchIterator<Row> skippingIt = new SkippingBatchIterator<>(it, 100);
         while (skippingIt.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(skippingIt.currentElement().get(0));
         }
     }
 
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
-        BatchIterator crossJoin = NestedLoopBatchIterator.crossJoin(
-            RowsBatchIterator.newInstance(oneThousandRows, 1),
-            RowsBatchIterator.newInstance(tenThousandRows, 1)
+        BatchIterator<Row> crossJoin = NestedLoopBatchIterator.crossJoin(
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new CombinedRow(1, 1)
         );
-        final Input<?> input = crossJoin.rowData().get(0);
         while (crossJoin.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(crossJoin.currentElement().get(0));
         }
     }
 
     @Benchmark
     public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
-        BatchIterator leftJoin = NestedLoopBatchIterator.leftJoin(
-            RowsBatchIterator.newInstance(oneThousandRows, 1),
-            RowsBatchIterator.newInstance(tenThousandRows, 1),
-            columns -> new BooleanSupplier() {
-
-                Input<?> col1 = columns.get(0);
-                Input<?> col2 = columns.get(1);
-
-                @Override
-                public boolean getAsBoolean() {
-                    return Objects.equals(col1.value(), col2.value());
-                }
-            }
+        BatchIterator<Row> leftJoin = NestedLoopBatchIterator.leftJoin(
+            InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1))
         );
-        final Input<?> input = leftJoin.rowData().get(0);
         while (leftJoin.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(leftJoin.currentElement().get(0));
         }
         leftJoin.moveToStart();
     }

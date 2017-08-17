@@ -22,33 +22,40 @@
 package io.crate.operation.join;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.FilteringBatchIterator;
+import io.crate.data.ListenableBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.data.join.CombinedRow;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 
 public class NestedLoopOperation implements CompletionListenable {
 
-    private final CompletableFuture<BatchIterator> leftBatchIterator = new CompletableFuture<>();
-    private final CompletableFuture<BatchIterator> rightBatchIterator = new CompletableFuture<>();
+    private final CompletableFuture<BatchIterator<Row>> leftBatchIterator = new CompletableFuture<>();
+    private final CompletableFuture<BatchIterator<Row>> rightBatchIterator = new CompletableFuture<>();
     private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
-    public NestedLoopOperation(BatchConsumer nlResultConsumer,
+    public NestedLoopOperation(int numLeftCols,
+                               int numRightCols,
+                               RowConsumer nlResultConsumer,
                                Predicate<Row> joinPredicate,
                                JoinType joinType) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
                 if (failure == null) {
-                    BatchIterator nlIterator = new ListenableBatchIterator(createNestedLoopIterator(
+                    BatchIterator<Row> nlIterator = new ListenableBatchIterator<>(createNestedLoopIterator(
                         leftBatchIterator.join(),
+                        numLeftCols,
                         rightBatchIterator.join(),
+                        numRightCols,
                         joinType,
                         joinPredicate
                     ), completionFuture);
@@ -59,49 +66,47 @@ public class NestedLoopOperation implements CompletionListenable {
             });
     }
 
-    private static BatchIterator createNestedLoopIterator(BatchIterator left,
-                                                          BatchIterator right,
-                                                          JoinType joinType,
-                                                          Predicate<Row> joinCondition) {
+    private static BatchIterator<Row> createNestedLoopIterator(BatchIterator<Row> left,
+                                                               int leftNumCols,
+                                                               BatchIterator<Row> right,
+                                                               int rightNumCols,
+                                                               JoinType joinType,
+                                                               Predicate<Row> joinCondition) {
+        CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         switch (joinType) {
             case CROSS:
-                return NestedLoopBatchIterator.crossJoin(left, right);
+                return NestedLoopBatchIterator.crossJoin(left, right, combiner);
 
             case INNER:
-                return new FilteringBatchIterator(
-                    NestedLoopBatchIterator.crossJoin(left, right), getJoinCondition(joinCondition));
+                return new FilteringBatchIterator<>(
+                    NestedLoopBatchIterator.crossJoin(left, right, combiner), joinCondition);
 
             case LEFT:
-                return NestedLoopBatchIterator.leftJoin(left, right, getJoinCondition(joinCondition));
+                return NestedLoopBatchIterator.leftJoin(left, right, combiner, joinCondition);
 
             case RIGHT:
-                return NestedLoopBatchIterator.rightJoin(left, right, getJoinCondition(joinCondition));
+                return NestedLoopBatchIterator.rightJoin(left, right, combiner, joinCondition);
 
             case FULL:
-                return NestedLoopBatchIterator.fullOuterJoin(left, right, getJoinCondition(joinCondition));
+                return NestedLoopBatchIterator.fullOuterJoin(left, right, combiner, joinCondition);
+
+            default:
+                throw new AssertionError("Invalid joinType: " + joinType);
         }
-        throw new AssertionError("Invalid joinType: " + joinType);
     }
 
-    private static Function<Columns, BooleanSupplier> getJoinCondition(Predicate<Row> joinCondition) {
-        return columns -> {
-            final Row row = RowBridging.toRow(columns);
-            return () -> joinCondition.test(row);
-        };
-    }
-
-    public BatchConsumer leftConsumer() {
+    public RowConsumer leftConsumer() {
         return getBatchConsumer(leftBatchIterator, false);
     }
 
-    public BatchConsumer rightConsumer() {
+    public RowConsumer rightConsumer() {
         return getBatchConsumer(rightBatchIterator, true);
     }
 
-    private BatchConsumer getBatchConsumer(CompletableFuture<BatchIterator> future, boolean requiresRepeat) {
-        return new BatchConsumer() {
+    private RowConsumer getBatchConsumer(CompletableFuture<BatchIterator<Row>> future, boolean requiresRepeat) {
+        return new RowConsumer() {
             @Override
-            public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
                 if (failure == null) {
                     future.complete(iterator);
                 } else {

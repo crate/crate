@@ -49,8 +49,7 @@ public class BatchPagingIteratorTest {
                 exhaustedIt -> false,
                 () -> true,
                 () -> {
-                },
-                1
+                }
             );
         });
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -64,8 +63,7 @@ public class BatchPagingIteratorTest {
             exhaustedIt -> false,
             () -> true,
             () -> {
-            },
-            1
+            }
         );
         // must not throw an exception
         iterator.completeLoad(new IllegalStateException("Dummy"));

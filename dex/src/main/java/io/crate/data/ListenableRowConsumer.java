@@ -22,51 +22,41 @@
 
 package io.crate.data;
 
-/**
- * Columns implementation that is backed by a underlying {@link Row} instance.
- *
- * The Row instance pointer can be changed using {@link #updateRef(Row)}
- */
-public class RowColumns implements Columns {
+import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
-    private final int numColumns;
-    private final ProxyInput[] inputs;
+public class ListenableRowConsumer implements RowConsumer {
 
-    private Row currentRow = RowBridging.OFF_ROW;
+    private final RowConsumer delegate;
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
-    public RowColumns(int numColumns) {
-        this.numColumns = numColumns;
-        this.inputs = new ProxyInput[numColumns];
-        for (int i = 0; i < numColumns; i++) {
-            inputs[i] = new ProxyInput(i);
+    public ListenableRowConsumer(RowConsumer delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        if (failure == null) {
+            delegate.accept(new ListenableBatchIterator<>(iterator, completionFuture), null);
+        } else {
+            delegate.accept(null, failure);
+            completionFuture.completeExceptionally(failure);
         }
     }
 
     @Override
-    public Input<?> get(int index) {
-        return inputs[index];
+    public boolean requiresScroll() {
+        return delegate.requiresScroll();
+    }
+
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
     }
 
     @Override
-    public int size() {
-        return numColumns;
-    }
-
-    public void updateRef(Row row) {
-        currentRow = row;
-    }
-
-    private class ProxyInput implements Input<Object> {
-
-        private final int columnIdx;
-
-        ProxyInput(int columnIdx) {
-            this.columnIdx = columnIdx;
-        }
-
-        @Override
-        public Object value() {
-            return currentRow.get(columnIdx);
-        }
+    public String toString() {
+        return "ListenableBatchConsumer{" +
+               "delegate=" + delegate +
+               '}';
     }
 }

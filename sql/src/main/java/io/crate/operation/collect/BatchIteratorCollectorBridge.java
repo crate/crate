@@ -22,7 +22,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
 
 import java.util.concurrent.CompletableFuture;
@@ -31,27 +31,27 @@ import java.util.function.Supplier;
 
 /**
  * Collector adapter to a BatchIterator.
- * {@link CrateCollector#doCollect()} results in a {@link BatchConsumer#accept(BatchIterator, Throwable)} call on the consumer.
+ * {@link CrateCollector#doCollect()} results in a {@link RowConsumer#accept(BatchIterator, Throwable)} call on the consumer.
  */
 public final class BatchIteratorCollectorBridge {
 
-    public static CrateCollector newInstance(BatchIterator batchIterator, BatchConsumer consumer) {
+    public static CrateCollector newInstance(BatchIterator batchIterator, RowConsumer consumer) {
         return new SyncBatchItCollector(batchIterator, consumer);
     }
 
     public static CrateCollector newInstance(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
-                                             BatchConsumer consumer) {
+                                             RowConsumer consumer) {
         return new AsyncBatchItCollector(batchIteratorFuture, consumer);
     }
 
     private static class SyncBatchItCollector implements CrateCollector {
 
         private final BatchIterator batchIterator;
-        private final BatchConsumer consumer;
+        private final RowConsumer consumer;
 
         private final AtomicBoolean running = new AtomicBoolean(false);
 
-        SyncBatchItCollector(BatchIterator batchIterator, BatchConsumer consumer) {
+        SyncBatchItCollector(BatchIterator batchIterator, RowConsumer consumer) {
             this.batchIterator = batchIterator;
             this.consumer = consumer;
         }
@@ -79,14 +79,14 @@ public final class BatchIteratorCollectorBridge {
     private static class AsyncBatchItCollector implements CrateCollector {
 
         private final Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier;
-        private final BatchConsumer consumer;
+        private final RowConsumer consumer;
 
         private BatchIterator batchIterator;
         private Throwable killed = null;
 
 
         AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier,
-                              BatchConsumer consumer) {
+                              RowConsumer consumer) {
             this.batchIteratorSupplier = batchIteratorSupplier;
             this.consumer = consumer;
         }

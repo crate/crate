@@ -22,6 +22,17 @@
 
 package io.crate.data;
 
+/**
+ * Represents a row.
+ *
+ * Row instances are typically shared to avoid allocations.
+ * This means the same row instance might return different values on subsequent {@link #get(int)} calls
+ * if the underlying source changed positions.
+ * (Ex. if a {@link BatchIterator} provided the row and {@link BatchIterator#moveNext()} is called again.
+ *
+ * If data from a Row must be buffered, it's therefore necessary to use {@link #materialize()}
+ * or access the column values directly via {@link #get(int)}
+ */
 public interface Row {
 
     Row EMPTY = new Row() {

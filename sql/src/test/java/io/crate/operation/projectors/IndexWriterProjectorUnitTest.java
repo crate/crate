@@ -24,9 +24,9 @@ package io.crate.operation.projectors;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -36,8 +36,8 @@ import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
+import static io.crate.data.SentinelRow.SENTINEL;
 import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorUnitTest extends CrateUnitTest {
@@ -95,10 +96,10 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             UUID.randomUUID());
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
-        BatchIterator batchIterator = RowsBatchIterator.newInstance(Collections.singletonList(rowN), rowN.numColumns());
+        BatchIterator<Row> batchIterator = InMemoryBatchIterator.of(Collections.singletonList(rowN), SENTINEL);
         batchIterator = indexWriter.apply(batchIterator);
 
-        TestingBatchConsumer testingBatchConsumer = new TestingBatchConsumer();
+        TestingRowConsumer testingBatchConsumer = new TestingRowConsumer();
         testingBatchConsumer.accept(batchIterator, null);
 
         expectedException.expect(IllegalArgumentException.class);

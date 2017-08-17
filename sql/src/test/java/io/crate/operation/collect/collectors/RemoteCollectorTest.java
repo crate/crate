@@ -37,7 +37,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
@@ -60,7 +60,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
     private RemoteCollector remoteCollector;
-    private TestingBatchConsumer consumer;
+    private TestingRowConsumer consumer;
 
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
@@ -83,7 +83,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         );
         transportJobAction = mock(TransportJobAction.class);
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
-        consumer = new TestingBatchConsumer();
+        consumer = new TestingRowConsumer();
 
         JobContextService jobContextService = new JobContextService(
             Settings.EMPTY,

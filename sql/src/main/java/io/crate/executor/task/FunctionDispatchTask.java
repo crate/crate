@@ -22,7 +22,7 @@
 package io.crate.executor.task;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
@@ -50,7 +50,7 @@ public class FunctionDispatchTask extends JobTask {
     }
 
     @Override
-    public void execute(final BatchConsumer consumer, Row parameters) {
+    public void execute(final RowConsumer consumer, Row parameters) {
         CompletableFuture<Long> rowCount = function.apply(statement, parameters);
         rowCount.whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }

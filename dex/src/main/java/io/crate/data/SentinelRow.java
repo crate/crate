@@ -22,12 +22,11 @@
 
 package io.crate.data;
 
-/**
- * Helper functions to migrate between {@link Columns} based and {@link Row} based components.
- */
-public class RowBridging {
+public final class SentinelRow {
 
-    public static final Row OFF_ROW = new Row() {
+    private SentinelRow() {}
+
+    public static final Row SENTINEL = new Row() {
         @Override
         public int numColumns() {
             throw new IllegalStateException("Iterator is not on a row");
@@ -43,33 +42,4 @@ public class RowBridging {
             throw new IllegalStateException("Iterator is not on a row");
         }
     };
-
-    public static Object[] materialize(Columns inputs){
-        assert inputs != null: "inputs must not be null";
-        Object[] res = new Object[inputs.size()];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = inputs.get(i).value();
-        }
-        return res;
-    }
-
-    public static Row toRow(Columns inputs){
-        assert inputs != null: "inputs must not be null";
-        return new Row() {
-            @Override
-            public int numColumns() {
-                return inputs.size();
-            }
-
-            @Override
-            public Object get(int index) {
-                return inputs.get(index).value();
-            }
-
-            @Override
-            public Object[] materialize() {
-                return Buckets.materialize(this);
-            }
-        };
-    }
 }

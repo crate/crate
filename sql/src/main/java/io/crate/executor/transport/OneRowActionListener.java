@@ -22,28 +22,30 @@
 
 package io.crate.executor.transport;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
 public class OneRowActionListener<Response> implements ActionListener<Response>, BiConsumer<Response, Throwable> {
 
-    private final BatchConsumer consumer;
+    private final RowConsumer consumer;
     private final Function<? super Response, ? extends Row> toRowFunction;
 
-    public OneRowActionListener(BatchConsumer consumer, Function<? super Response, ? extends Row> toRowFunction) {
+    public OneRowActionListener(RowConsumer consumer, Function<? super Response, ? extends Row> toRowFunction) {
         this.consumer = consumer;
         this.toRowFunction = toRowFunction;
     }
 
     @Override
     public void onResponse(Response response) {
-        consumer.accept(RowsBatchIterator.newInstance(toRowFunction.apply(response)), null);
+        consumer.accept(InMemoryBatchIterator.of(toRowFunction.apply(response), SENTINEL), null);
     }
 
     @Override

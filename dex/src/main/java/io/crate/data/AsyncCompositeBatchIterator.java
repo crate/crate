@@ -44,25 +44,24 @@ import java.util.function.Supplier;
  * execution or other strategies).
  * This iterator does not handle rejected tasks in any way.
  */
-public class AsyncCompositeBatchIterator implements BatchIterator {
+public class AsyncCompositeBatchIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator[] iterators;
-    private final CompositeColumns columns;
+    private final BatchIterator<T>[] iterators;
     private final Executor executor;
 
     private int idx = 0;
 
-    public AsyncCompositeBatchIterator(Executor executor, BatchIterator... iterators) {
+    @SafeVarargs
+    public AsyncCompositeBatchIterator(Executor executor, BatchIterator<T>... iterators) {
         assert iterators.length > 0 : "Must have at least 1 iterator";
 
         this.executor = executor;
         this.iterators = iterators;
-        this.columns = new CompositeColumns(iterators);
     }
 
     @Override
-    public Columns rowData() {
-        return columns;
+    public T currentElement() {
+        return iterators[idx].currentElement();
     }
 
     @Override
@@ -75,7 +74,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
 
     private void resetIndex() {
         idx = 0;
-        columns.updateInputs(idx);
     }
 
     @Override
@@ -86,7 +84,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
                 return true;
             }
             idx++;
-            columns.updateInputs(idx);
         }
         resetIndex();
         return false;

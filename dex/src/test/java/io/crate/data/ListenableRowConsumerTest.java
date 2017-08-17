@@ -22,21 +22,36 @@
 
 package io.crate.data;
 
-import io.crate.testing.FailingBatchIterator;
+import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-public class BatchRowVisitorTest {
+public class ListenableRowConsumerTest {
 
     @Test
-    public void testExceptionOnAllLoadedIsSetOntoFuture() throws Exception {
-        CompletableFuture<Long> future = BatchRowVisitor.visitRows(
-            FailingBatchIterator.failOnAllLoaded(), Collectors.counting());
-        assertThat(future.isCompletedExceptionally(), is(true));
+    public void testErrorCaseHandling() throws Exception {
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        ListenableRowConsumer listenableBatchConsumer = new ListenableRowConsumer(consumer);
+
+        listenableBatchConsumer.accept(null, new IllegalStateException("dummy"));
+
+        // both the delegate consumer must receive the error and also the listenableBatchConsumers future must trigger
+        try {
+            consumer.getResult();
+            fail("should have raised an exception");
+        } catch (IllegalStateException e) {
+            // expected
+        }
+
+        try {
+            listenableBatchConsumer.completionFuture().get(10, TimeUnit.SECONDS);
+            fail("should have raised an exception");
+        } catch (ExecutionException e) {
+            // expected
+        }
     }
 }

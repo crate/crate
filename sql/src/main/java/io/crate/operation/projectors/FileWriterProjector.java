@@ -70,7 +70,7 @@ public class FileWriterProjector implements Projector {
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
         return CollectingBatchIterator.newInstance(
             batchIterator,
             new FileWriterCountCollector(
@@ -82,8 +82,7 @@ public class FileWriterProjector implements Projector {
                 overwrites,
                 outputNames,
                 outputFormat
-            ),
-            1
+            )
         );
     }
 

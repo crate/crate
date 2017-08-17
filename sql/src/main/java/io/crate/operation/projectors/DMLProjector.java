@@ -22,7 +22,11 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.*;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Projector;
+import io.crate.data.Row;
 
 class DMLProjector implements Projector {
 
@@ -33,8 +37,8 @@ class DMLProjector implements Projector {
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator, 1);
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator);
     }
 
     @Override

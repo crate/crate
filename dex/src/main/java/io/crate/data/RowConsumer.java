@@ -41,7 +41,7 @@ import java.util.function.BiConsumer;
  *     Multiple calls to {@link #accept(BatchIterator, Throwable)} are not allowed.
  * </p>
  */
-public interface BatchConsumer extends BiConsumer<BatchIterator, Throwable> {
+public interface RowConsumer extends BiConsumer<BatchIterator<Row>, Throwable> {
 
     /**
      * Start consumption of the given {@link BatchIterator}.
@@ -57,7 +57,7 @@ public interface BatchConsumer extends BiConsumer<BatchIterator, Throwable> {
      *
      */
     @Override
-    void accept(BatchIterator iterator, @Nullable Throwable failure);
+    void accept(BatchIterator<Row> iterator, @Nullable Throwable failure);
 
     /**
      * @return true if the consumer wants to scroll backwards by using {@link BatchIterator#moveToStart}

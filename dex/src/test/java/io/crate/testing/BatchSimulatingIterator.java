@@ -24,7 +24,6 @@ package io.crate.testing;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,9 +38,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * An BatchIterator implementation which delegates to another one, but adds "fake" batches.
  */
-public class BatchSimulatingIterator implements BatchIterator {
+public class BatchSimulatingIterator<T> implements BatchIterator<T> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<T> delegate;
     private final int batchSize;
     private final Executor executor;
     private final PrimitiveIterator.OfLong loadNextDelays;
@@ -56,7 +55,7 @@ public class BatchSimulatingIterator implements BatchIterator {
      * @param maxAdditionalFakeBatches how many {@link #loadNextBatch()} calls are allowed after {@code delegate.allLoaded()} is true.
      *                   (This is an upper limit, if a consumer calls moveNext correctly, the actual number may be lower)
      */
-    public BatchSimulatingIterator(BatchIterator delegate,
+    public BatchSimulatingIterator(BatchIterator<T> delegate,
                                    int batchSize,
                                    int maxAdditionalFakeBatches,
                                    @Nullable Executor executor) {
@@ -73,8 +72,8 @@ public class BatchSimulatingIterator implements BatchIterator {
     }
 
     @Override
-    public Columns rowData() {
-        return delegate.rowData();
+    public T currentElement() {
+        return delegate.currentElement();
     }
 
     @Override

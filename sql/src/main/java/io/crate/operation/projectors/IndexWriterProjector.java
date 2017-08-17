@@ -119,8 +119,8 @@ public class IndexWriterProjector implements Projector {
 
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor, 1);
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        return CollectingBatchIterator.<Row>newInstance(batchIterator, shardingUpsertExecutor);
     }
 
     @Override

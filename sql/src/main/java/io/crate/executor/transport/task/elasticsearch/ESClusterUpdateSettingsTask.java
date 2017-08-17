@@ -23,7 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
@@ -55,7 +55,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public void execute(BatchConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer, Row parameters) {
         ClusterUpdateSettingsRequest request = buildESUpdateClusterSettingRequest(
             buildSettingsFrom(plan.persistentSettings(), parameters),
             buildSettingsFrom(plan.transientSettings(), parameters)

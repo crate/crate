@@ -31,12 +31,12 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.AsyncCompositeBatchIterator;
-import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
 import io.crate.data.CompositeBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -61,7 +61,7 @@ import io.crate.operation.collect.ShardCollectorProvider;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedLuceneBatchIteratorFactory;
-import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -103,13 +103,14 @@ import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
+import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * Factory to create a collector which collects data from 1 or more shards.
  * <p>
  * <p>
  * A Collector is a component which can be used to "launch" a collect operation.
- * Once launched, a {@link BatchConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
+ * Once launched, a {@link RowConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
  * </p>
  * <p>
  * <p>
@@ -124,8 +125,8 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
  * For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
  * if there are multiple shards.
  * <p>
- * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, BatchConsumer, JobCollectContext)}
- * and there is only a single {@link BatchConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
+ * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, RowConsumer, JobCollectContext)}
+ * and there is only a single {@link RowConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
  * the following pattern is used:
  * <p>
  * <pre>
@@ -298,7 +299,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     @Override
     public CrateCollector getCollector(CollectPhase phase,
-                                       BatchConsumer lastConsumer,
+                                       RowConsumer lastConsumer,
                                        JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
@@ -306,7 +307,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         String localNodeId = clusterService.localNode().getId();
 
 
-        BatchConsumer firstConsumer = ProjectingBatchConsumer.create(
+        RowConsumer firstConsumer = ProjectingRowConsumer.create(
             lastConsumer,
             Projections.nodeProjections(normalizedPhase.projections()),
             collectPhase.jobId(),
@@ -343,7 +344,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         switch (builders.size()) {
             case 0:
-                return RowsCollector.empty(firstConsumer, phase.toCollect().size());
+                return RowsCollector.empty(firstConsumer);
             case 1:
                 CrateCollector.Builder collectorBuilder = builders.iterator().next();
                 return collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer));
@@ -354,7 +355,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     return new CompositeCollector(
                         builders,
                         firstConsumer,
-                        iterators -> new AsyncCompositeBatchIterator(executor, iterators)
+                        iterators -> new AsyncCompositeBatchIterator<>(executor, iterators)
                     );
                 } else {
                     return new CompositeCollector(builders, firstConsumer, CompositeBatchIterator::new);
@@ -363,7 +364,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                             BatchConsumer consumer,
+                                                             RowConsumer consumer,
                                                              JobCollectContext jobCollectContext,
                                                              String localNodeId) {
 
@@ -404,7 +405,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return BatchIteratorCollectorBridge.newInstance(
             OrderedLuceneBatchIteratorFactory.newInstance(
                 orderedDocCollectors,
-                collectPhase.toCollect().size(),
                 OrderingByPosition.rowOrdering(
                     OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
                     orderBy.reverseFlags(),
@@ -486,7 +486,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
                                               RoutedCollectPhase normalizedPhase,
                                               String localNodeId,
-                                              BatchConsumer consumer) {
+                                              RowConsumer consumer) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -541,8 +541,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
         return BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.newInstance(
-                Iterables.transform(rows, Buckets.arrayToRowFunction()), collectPhase.toCollect().size()),
+            InMemoryBatchIterator.of(Iterables.transform(rows, Buckets.arrayToRowFunction()), SENTINEL),
             consumer
         );
     }

@@ -27,7 +27,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -61,7 +61,7 @@ public class JobCollectContextTest extends RandomizedTest {
             collectPhase,
             mock(MapSideDataCollectOperation.class),
             ramAccountingContext,
-            new TestingBatchConsumer(),
+            new TestingRowConsumer(),
             mock(SharedShardContexts.class));
     }
 
@@ -104,7 +104,7 @@ public class JobCollectContextTest extends RandomizedTest {
             collectPhase,
             collectOperationMock,
             ramAccountingContext,
-            new TestingBatchConsumer(),
+            new TestingRowConsumer(),
             mock(SharedShardContexts.class));
 
         jobCtx.addSearcher(1, mock1);

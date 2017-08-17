@@ -58,7 +58,7 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -87,7 +87,16 @@ import org.junit.rules.Timeout;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -328,9 +337,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return new PlanForNode(plan, nodeName);
     }
 
-    public TestingBatchConsumer execute(PlanForNode planForNode) {
+    public TestingRowConsumer execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        TestingBatchConsumer downstream = new TestingBatchConsumer();
+        TestingRowConsumer downstream = new TestingRowConsumer();
         transportExecutor.execute(planForNode.plan, downstream, Row.EMPTY);
         return downstream;
     }

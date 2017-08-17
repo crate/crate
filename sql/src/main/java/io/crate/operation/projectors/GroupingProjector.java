@@ -35,7 +35,6 @@ import java.util.List;
 public class GroupingProjector implements Projector {
 
     private final GroupingCollector<Object> collector;
-    private final int numCols;
 
 
     public GroupingProjector(List<? extends DataType> keyTypes,
@@ -77,7 +76,6 @@ public class GroupingProjector implements Projector {
                 keyTypes
             );
         }
-        numCols = keyInputs.size() + functions.length;
     }
 
     private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
@@ -85,8 +83,8 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, collector, numCols);
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        return CollectingBatchIterator.newInstance(batchIterator, collector);
     }
 
     @Override

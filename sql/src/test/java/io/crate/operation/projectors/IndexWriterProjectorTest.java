@@ -25,9 +25,9 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.data.RowsBatchIterator;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
@@ -40,7 +40,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -56,6 +56,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -98,11 +99,11 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             UUID.randomUUID()
         );
 
-        BatchIterator rowsIterator = RowsBatchIterator.newInstance(IntStream.range(0, 100)
+        BatchIterator rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)
             .mapToObj(i -> new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}))
-            .collect(Collectors.toList()), 2);
+            .collect(Collectors.toList()), SENTINEL);
 
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(writerProjector.apply(rowsIterator), null);
         Bucket objects = consumer.getBucket();
 

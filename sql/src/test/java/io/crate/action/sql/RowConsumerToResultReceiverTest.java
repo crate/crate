@@ -38,7 +38,7 @@ import java.util.stream.IntStream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class BatchConsumerToResultReceiverTest {
+public class RowConsumerToResultReceiverTest {
 
     @Test
     public void testBatchedIteratorConsumption() throws Exception {
@@ -60,8 +60,8 @@ public class BatchConsumerToResultReceiverTest {
                 collectedRows.add(row.materialize());
             }
         };
-        BatchConsumerToResultReceiver batchConsumer =
-            new BatchConsumerToResultReceiver(resultReceiver, 0);
+        RowConsumerToResultReceiver batchConsumer =
+            new RowConsumerToResultReceiver(resultReceiver, 0);
 
         batchConsumer.accept(batchSimulatingIterator, null);
         resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
@@ -73,7 +73,7 @@ public class BatchConsumerToResultReceiverTest {
     @Test
     public void testExceptionOnAllLoadedCallIsForwardedToResultReceiver() throws Exception {
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
-        BatchConsumerToResultReceiver consumer = new BatchConsumerToResultReceiver(resultReceiver, 0);
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
         assertThat(resultReceiver.completionFuture().isCompletedExceptionally(), is(true));

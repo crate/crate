@@ -21,10 +21,10 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -46,6 +46,8 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.util.Locale;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class DropTableTask extends JobTask {
 
@@ -73,7 +75,7 @@ public class DropTableTask extends JobTask {
     }
 
     @Override
-    public void execute(final BatchConsumer consumer, Row parameters) {
+    public void execute(final RowConsumer consumer, Row parameters) {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
@@ -91,7 +93,7 @@ public class DropTableTask extends JobTask {
                                     String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableInfo.ident().fqn()),
                                     t);
                             }
-                            consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
+                            consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
                         });
                     }
                 }
@@ -112,7 +114,7 @@ public class DropTableTask extends JobTask {
         }
     }
 
-    private void deleteESIndex(TableIdent tableIdent, final BatchConsumer consumer) {
+    private void deleteESIndex(TableIdent tableIdent, final RowConsumer consumer) {
         DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(tableIdent.indexName());
         if (tableInfo.isPartitioned()) {
             deleteIndexRequest.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -129,7 +131,7 @@ public class DropTableTask extends JobTask {
                             String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableIdent.fqn()),
                             t);
                     }
-                    consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
+                    consumer.accept(InMemoryBatchIterator.of(ROW_ONE, SENTINEL), null);
                 });
             }
 
@@ -143,7 +145,7 @@ public class DropTableTask extends JobTask {
                         e);
                 }
                 if (ifExists && e instanceof IndexNotFoundException) {
-                    consumer.accept(RowsBatchIterator.newInstance(ROW_ZERO), null);
+                    consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
                 } else {
                     consumer.accept(null, e);
                 }

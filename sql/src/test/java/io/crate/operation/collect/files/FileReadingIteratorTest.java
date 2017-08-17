@@ -25,7 +25,12 @@ package io.crate.operation.collect.files;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
-import io.crate.metadata.*;
+import io.crate.data.Row;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.InputFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
@@ -72,7 +77,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
     @Test
     public void testIteratorContract() throws Exception {
         String fileUri = tempFilePath.toUri().toString();
-        Supplier<BatchIterator> batchIteratorSupplier = () -> createBatchIterator(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), null
         );
 
@@ -86,7 +91,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
-    private BatchIterator createBatchIterator(Collection<String> fileUris, String compression) {
+    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris, String compression) {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);

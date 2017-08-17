@@ -68,11 +68,11 @@ class SortingProjector implements Projector {
 
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
         Collector<Row, ?, Bucket> collector = Collectors.mapping(
             this::getCells,
             Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
-        return CollectingBatchIterator.newInstance(batchIterator, collector, numOutputs);
+        return CollectingBatchIterator.newInstance(batchIterator, collector);
     }
 
     @Override

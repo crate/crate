@@ -23,9 +23,9 @@
 package io.crate.executor.task;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.data.BatchConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.metadata.settings.session.SessionSettingApplier;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -36,6 +36,8 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class SetSessionTask extends JobTask {
 
@@ -51,7 +53,7 @@ public class SetSessionTask extends JobTask {
     }
 
     @Override
-    public void execute(BatchConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer, Row parameters) {
         for (Map.Entry<String, List<Expression>> setting : settings.entrySet()) {
             SessionSettingApplier applier = SessionSettingRegistry.getApplier(setting.getKey());
             if (applier != null) {
@@ -64,7 +66,7 @@ public class SetSessionTask extends JobTask {
                 LOGGER.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", setting);
             }
         }
-        consumer.accept(RowsBatchIterator.empty(0), null);
+        consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 }
 

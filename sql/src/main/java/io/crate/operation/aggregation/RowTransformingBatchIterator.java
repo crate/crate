@@ -22,7 +22,11 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.ForwardingBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
@@ -45,29 +49,27 @@ import java.util.List;
  * This is similar to the `map` function (from the stream API), except that the transformation happens using a
  * shared object via stateful inputs/expressions.
  */
-public class RowTransformingBatchIterator extends ForwardingBatchIterator {
+public class RowTransformingBatchIterator extends ForwardingBatchIterator<Row> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<Row> delegate;
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
-    private final Row sourceRow;
-    private final Columns rowData;
+    private final Row rowData;
 
-    public RowTransformingBatchIterator(BatchIterator delegate,
+    public RowTransformingBatchIterator(BatchIterator<Row> delegate,
                                         List<? extends Input<?>> inputs,
                                         Iterable<? extends CollectExpression<Row, ?>> expressions) {
         this.delegate = delegate;
         this.expressions = expressions;
-        this.sourceRow = RowBridging.toRow(delegate.rowData());
-        this.rowData = Columns.wrap(inputs);
+        this.rowData = new InputRow(inputs);
     }
 
     @Override
-    public Columns rowData() {
+    public Row currentElement() {
         return rowData;
     }
 
     @Override
-    protected BatchIterator delegate() {
+    protected BatchIterator<Row> delegate() {
         return delegate;
     }
 
@@ -75,7 +77,7 @@ public class RowTransformingBatchIterator extends ForwardingBatchIterator {
     public boolean moveNext() {
         if (delegate.moveNext()) {
             for (CollectExpression<Row, ?> expression : expressions) {
-                expression.setNextRow(sourceRow);
+                expression.setNextRow(delegate.currentElement());
             }
             return true;
         }

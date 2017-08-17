@@ -24,20 +24,20 @@ package io.crate.testing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.ForwardingBatchIterator;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.Exceptions;
 
-public class FailingBatchIterator extends ForwardingBatchIterator {
+public class FailingBatchIterator<T> extends ForwardingBatchIterator<T> {
 
-    private final BatchIterator delegate;
+    private final BatchIterator<T> delegate;
     private final int failAfter;
     private int moveNextCalls = 0;
 
-    public static BatchIterator failOnAllLoaded() {
-        BatchIterator delegate = RowsBatchIterator.empty(1);
-        return new ForwardingBatchIterator() {
+    public static <T> BatchIterator<T> failOnAllLoaded() {
+        BatchIterator<T> delegate = InMemoryBatchIterator.empty(null);
+        return new ForwardingBatchIterator<T>() {
             @Override
-            protected BatchIterator delegate() {
+            protected BatchIterator<T> delegate() {
                 return delegate;
             }
 
@@ -49,7 +49,7 @@ public class FailingBatchIterator extends ForwardingBatchIterator {
         };
     }
 
-    public FailingBatchIterator(BatchIterator delegate, int failAfter) {
+    public FailingBatchIterator(BatchIterator<T> delegate, int failAfter) {
         this.delegate = delegate;
         this.failAfter = failAfter;
     }
@@ -71,7 +71,7 @@ public class FailingBatchIterator extends ForwardingBatchIterator {
     }
 
     @Override
-    protected BatchIterator delegate() {
+    protected BatchIterator<T> delegate() {
         return delegate;
     }
 }

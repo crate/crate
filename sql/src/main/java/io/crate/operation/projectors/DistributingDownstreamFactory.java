@@ -24,8 +24,12 @@ package io.crate.operation.projectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.data.BatchConsumer;
-import io.crate.executor.transport.distributed.*;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.distributed.BroadcastingBucketBuilder;
+import io.crate.executor.transport.distributed.DistributingConsumer;
+import io.crate.executor.transport.distributed.ModuloBucketBuilder;
+import io.crate.executor.transport.distributed.MultiBucketBuilder;
+import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
@@ -67,10 +71,10 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         distributingDownstreamLogger = Loggers.getLogger(DistributingConsumer.class, settings);
     }
 
-    public BatchConsumer create(NodeOperation nodeOperation,
-                                DistributionInfo distributionInfo,
-                                UUID jobId,
-                                int pageSize) {
+    public RowConsumer create(NodeOperation nodeOperation,
+                              DistributionInfo distributionInfo,
+                              UUID jobId,
+                              int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";

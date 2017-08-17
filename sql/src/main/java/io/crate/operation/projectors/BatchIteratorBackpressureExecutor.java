@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.data.RowBridging;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
 
@@ -50,7 +49,7 @@ import java.util.function.Supplier;
  */
 public class BatchIteratorBackpressureExecutor<R> {
 
-    private final BatchIterator batchIterator;
+    private final BatchIterator<Row> batchIterator;
     private final Supplier<CompletableFuture<R>> executeFunction;
     private final Consumer<Row> onRowConsumer;
     private final ScheduledExecutorService scheduler;
@@ -65,7 +64,7 @@ public class BatchIteratorBackpressureExecutor<R> {
     private int indexInBulk = 0;
     private volatile boolean consumptionFinished = false;
 
-    public BatchIteratorBackpressureExecutor(BatchIterator batchIterator,
+    public BatchIteratorBackpressureExecutor(BatchIterator<Row> batchIterator,
                                              ScheduledExecutorService scheduler,
                                              Consumer<Row> onRowConsumer,
                                              Supplier<CompletableFuture<R>> executeFunction,
@@ -126,11 +125,10 @@ public class BatchIteratorBackpressureExecutor<R> {
         if (semaphore.tryAcquire() == false) {
             return;
         }
-        Row row = RowBridging.toRow(batchIterator.rowData());
         try {
             while (batchIterator.moveNext()) {
                 indexInBulk++;
-                onRowConsumer.accept(row);
+                onRowConsumer.accept(batchIterator.currentElement());
 
                 if (indexInBulk == bulkSize) {
                     if (pauseConsumption.getAsBoolean()) {

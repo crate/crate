@@ -22,7 +22,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.data.CollectingBatchConsumer;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 
 import java.util.stream.Collector;
@@ -54,7 +54,7 @@ class SingleRowSingleValueConsumer {
         }
     );
 
-    public static CollectingBatchConsumer<Object[], Object> create() {
-        return new CollectingBatchConsumer<>(SINGLE_VALUE_COLLECTOR);
+    public static CollectingRowConsumer<Object[], Object> create() {
+        return new CollectingRowConsumer<>(SINGLE_VALUE_COLLECTOR);
     }
 }

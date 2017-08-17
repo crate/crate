@@ -25,11 +25,12 @@ package io.crate.operation.projectors;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Projector;
+import io.crate.data.Row;
 
 public class MergeCountProjector implements Projector {
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
         return CollectingBatchIterator.summingLong(batchIterator);
     }
 

@@ -25,7 +25,7 @@ package io.crate.operation.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -109,9 +109,8 @@ public class OrderedLuceneBatchIteratorBenchmark {
 
     @Benchmark
     public void measureLoadAndConsumeOrderedLuceneBatchIterator(Blackhole blackhole) {
-        BatchIterator it = OrderedLuceneBatchIteratorFactory.newInstance(
+        BatchIterator<Row> it = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(createOrderedCollector(indexSearcher, columnName)),
-            1,
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
             MoreExecutors.directExecutor(),
             false
@@ -119,9 +118,8 @@ public class OrderedLuceneBatchIteratorBenchmark {
         while (!it.allLoaded()) {
             it.loadNextBatch().toCompletableFuture().join();
         }
-        Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
-            blackhole.consume(input.value());
+            blackhole.consume(it.currentElement().get(0));
         }
     }
 

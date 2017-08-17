@@ -23,13 +23,9 @@
 package io.crate.testing;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchRowVisitor;
-import io.crate.data.Columns;
-import io.crate.data.Input;
+import io.crate.data.BatchIterators;
 import io.crate.data.Row;
-import io.crate.data.RowBridging;
 import io.crate.exceptions.Exceptions;
-import junit.framework.TestCase;
 import org.hamcrest.Matchers;
 
 import java.util.List;
@@ -40,15 +36,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 
 /**
@@ -57,43 +50,10 @@ import static org.junit.Assert.fail;
  */
 public class BatchIteratorTester {
 
-    private final Supplier<BatchIterator> it;
+    private final Supplier<BatchIterator<Row>> it;
 
-    public BatchIteratorTester(Supplier<BatchIterator> it) {
+    public BatchIteratorTester(Supplier<BatchIterator<Row>> it) {
         this.it = it;
-    }
-
-    private static void assertIndexOutOfBounds(Columns inputs, int index) {
-        try {
-            inputs.get(index);
-            TestCase.fail("expected a IndexOutOfBoundsException but call did not fail");
-        } catch (Throwable ex) {
-            assertThat(ex, instanceOf(IndexOutOfBoundsException.class));
-        }
-    }
-
-    private static Columns assertValidRowData(BatchIterator it) {
-        return assertValidColumns(it::rowData);
-    }
-
-    private static Columns assertValidColumns(Supplier<Columns> supplier) {
-        Columns first = supplier.get();
-        assertThat(first, notNullValue());
-        Columns second = supplier.get();
-        assertThat(first, sameInstance(second));
-
-        List<Input<?>> inputs = IntStream.range(0, first.size()).mapToObj(first::get).collect(Collectors.toList());
-        int pos = -1;
-        for (Input<?> input : first) {
-            pos++;
-            assertThat(input, sameInstance(inputs.get(pos)));
-            assertThat(first.get(pos), sameInstance(inputs.get(pos)));
-            assertThat(second.get(pos), sameInstance(inputs.get(pos)));
-        }
-        assertThat(pos, is(first.size() - 1));
-        assertIndexOutOfBounds(first, pos + 1);
-        assertIndexOutOfBounds(first, -1);
-        return first;
     }
 
     public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult) throws Exception {
@@ -103,12 +63,11 @@ public class BatchIteratorTester {
         testIllegalNextBatchCall(it.get());
         testMoveNextAfterMoveNextReturnedFalse(it.get());
         testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(it.get());
-        testColumnsBehaviour(it.get());
         testAllLoadedNeverRaises(it);
     }
 
-    private void testAllLoadedNeverRaises(Supplier<BatchIterator> batchIterator) {
-        BatchIterator bi = batchIterator.get();
+    private void testAllLoadedNeverRaises(Supplier<BatchIterator<Row>> batchIterator) {
+        BatchIterator<Row> bi = batchIterator.get();
         bi.allLoaded();
         bi.close();
         bi.allLoaded();
@@ -118,25 +77,25 @@ public class BatchIteratorTester {
         bi.allLoaded();
     }
 
-    private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator it) throws Exception {
-        List<Object[]> firstResult = BatchRowVisitor.visitRows(
+    private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator<Row> it) throws Exception {
+        List<Object[]> firstResult = BatchIterators.collect(
             it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
 
         it.moveToStart();
 
-        List<Object[]> secondResult = BatchRowVisitor.visitRows(
+        List<Object[]> secondResult = BatchIterators.collect(
             it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
         it.close();
         checkResult(firstResult, secondResult);
     }
 
-    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator it) throws Exception {
-        TestingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
+    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<Row> it) throws Exception {
+        TestingRowConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
         assertThat(it.moveNext(), is(false));
         it.close();
     }
 
-    private void testIllegalNextBatchCall(BatchIterator it) throws Exception {
+    private void testIllegalNextBatchCall(BatchIterator<Row> it) throws Exception {
         while (!it.allLoaded()) {
             it.loadNextBatch().toCompletableFuture().get(10, TimeUnit.SECONDS);
         }
@@ -145,21 +104,22 @@ public class BatchIteratorTester {
         it.close();
     }
 
-    private void testIteratorAccessFromDifferentThreads(BatchIterator it, List<Object[]> expectedResult) throws Exception {
+    private void testIteratorAccessFromDifferentThreads(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
         if (expectedResult.size() < 2) {
             it.close();
             return;
         }
         ExecutorService executor = Executors.newFixedThreadPool(3);
-        final Columns inputs = it.rowData();
         try {
             CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
-                assertThat("it should have at least two rows, first missing", getBatchAwareMoveNext(it), is(true));
-                return RowBridging.materialize(inputs);
+                Row firstElement = getFirstElement(it);
+                assertThat("it should have at least two rows, first missing", firstElement, Matchers.notNullValue());
+                return firstElement.materialize();
             }, executor);
             CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
-                assertThat("it should have at least two rows", getBatchAwareMoveNext(it), is(true));
-                return RowBridging.materialize(inputs);
+                Row firstElement = getFirstElement(it);
+                assertThat("it should have at least two rows", firstElement, Matchers.notNullValue());
+                return firstElement.materialize();
             }, executor);
 
             assertThat(firstRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(0)));
@@ -171,49 +131,38 @@ public class BatchIteratorTester {
         }
     }
 
-    private static boolean getBatchAwareMoveNext(BatchIterator it) {
+    private static <T> T getFirstElement(BatchIterator<T> it) {
         try {
-            return batchAwareMoveNext(it).get(10, TimeUnit.SECONDS);
+            return getFirstElementFuture(it).get(10, TimeUnit.SECONDS);
         } catch (Exception e) {
             Exceptions.rethrowUnchecked(e);
-            return false;
+            return null;
         }
     }
 
-    private static CompletableFuture<Boolean> batchAwareMoveNext(BatchIterator it) {
+    private static <T> CompletableFuture<T> getFirstElementFuture(BatchIterator<T> it) {
         if (it.moveNext()) {
-            return CompletableFuture.completedFuture(true);
+            return CompletableFuture.completedFuture(it.currentElement());
         }
         if (it.allLoaded()) {
-            return CompletableFuture.completedFuture(false);
+            return failedFuture(new IllegalStateException("Iterator is exhausted"));
         }
         return it.loadNextBatch()
-            .thenCompose(r -> batchAwareMoveNext(it))
+            .thenCompose(r -> getFirstElementFuture(it))
             .toCompletableFuture();
     }
 
-    private void testColumnsBehaviour(BatchIterator it) {
-        Columns inputs = assertValidRowData(it);
-        assertThat(it.rowData(), sameInstance(inputs));
-        it.moveNext();
-        assertThat(it.rowData(), sameInstance(inputs));
-        it.close();
-        assertThat(it.rowData(), sameInstance(inputs));
-    }
 
-    private void testBehaviourAfterClose(BatchIterator it) {
-        Columns inputs = it.rowData();
-        assertThat(inputs.size(), greaterThan(-1));
+    private void testBehaviourAfterClose(BatchIterator<Row> it) {
         it.close();
-        // after close the rowData call is still valid
-        assertThat(it.rowData().size(), greaterThan(-1));
+        assertThat("currentElement is not affected by close", it.currentElement(), is(it.currentElement()));
 
         expectFailure(it::moveNext, IllegalStateException.class, "moveNext must fail after close");
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
     }
 
-    private void testProperConsumption(BatchIterator it, List<Object[]> expectedResult) throws Exception {
-        TestingBatchConsumer consumer = new TestingBatchConsumer();
+    private void testProperConsumption(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
+        TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
 
         List<Object[]> result = consumer.getResult();

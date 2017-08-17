@@ -31,10 +31,10 @@ import java.util.concurrent.CompletionStage;
  * via the {@link #loadNextBatch()} method.
  *
  * The loaded data can be accessed by moving the iterator via the movement methods {@link #moveNext()} and
- * {@link #moveToStart()} and then using the {@link Columns} object returned by {@link #rowData()} to access the data
+ * {@link #moveToStart()} and then using the object returned by {@link #currentElement()} to access the data
  * at the current position.
  *
- * Once all loaded data has been consumed more data can be loaded with {@link #loadNextBatch()} unless {@link
+ * Once all loaded data has been consumed, more data can be loaded with {@link #loadNextBatch()} unless {@link
  * #allLoaded()} is true in which case the iterator is exhausted.
  *
  * A BatchIterator starts either *before* the first row or in an unloaded state.
@@ -42,7 +42,7 @@ import java.util.concurrent.CompletionStage;
  *
  * <pre>
  *     while (it.moveNext()) {
- *         // do something with the row
+ *         // do something with it.currentElement()
  *     }
  *     if (it.allLoaded()) {
  *          // iterator is exhausted
@@ -58,22 +58,14 @@ import java.util.concurrent.CompletionStage;
  *
  * Concurrent usage of a BatchIterator is not supported.
  */
-public interface BatchIterator extends Killable {
+public interface BatchIterator<T> extends Killable {
 
     /**
-     * This method returns a columns object which can be used to access the underlying data of the current iterator
-     * position.
+     * This method returns the item that is at the current position of the BatchIterator.
      *
-     * Note that it is only valid to call {@link Input#value()} on any of the returned columns if the iterator is
-     * positioned on a valid row, which is only the case if the last call to {@link #moveNext()} returned true.
-     *
-     * This method is valid to be called over the whole lifetime of the iterator, regardless of the state of the
-     * iterator or its position. However it is good practice for consumers of this iterator to gather the columns
-     * before iterating. This method is required to always return the same object on every call.
-     *
-     * @return a columns object
+     * The behaviour of this method if the BatchIterator is "not on a position" is undefined.
      */
-    Columns rowData();
+    T currentElement();
 
     /**
      * Moves the Iterator back to the starting position.

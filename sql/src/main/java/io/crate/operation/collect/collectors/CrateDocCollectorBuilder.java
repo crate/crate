@@ -23,7 +23,7 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchConsumer;
+import io.crate.data.RowConsumer;
 import io.crate.data.Input;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
@@ -65,7 +65,7 @@ public class CrateDocCollectorBuilder implements CrateCollector.Builder {
     }
 
     @Override
-    public CrateCollector build(BatchConsumer consumer) {
+    public CrateCollector build(RowConsumer consumer) {
         LuceneBatchIterator batchIterator = new LuceneBatchIterator(
             indexSearcher,
             query,

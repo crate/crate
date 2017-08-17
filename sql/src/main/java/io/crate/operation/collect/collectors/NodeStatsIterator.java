@@ -27,9 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
-import io.crate.data.Columns;
 import io.crate.data.Row;
-import io.crate.data.RowColumns;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
@@ -60,13 +58,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.crate.data.RowBridging.OFF_ROW;
 
 /**
  * BatchIterator implementation that exposes the provided {@link RoutedCollectPhase} stats
  * of the given collection of nodes.
  */
-public class NodeStatsIterator implements BatchIterator {
+public class NodeStatsIterator implements BatchIterator<Row> {
 
     private final TransportNodeStatsAction transportStatTablesAction;
     private final RoutedCollectPhase collectPhase;
@@ -75,7 +72,7 @@ public class NodeStatsIterator implements BatchIterator {
     private CompletableFuture<Iterable<Row>> loading;
     private Iterable<Row> rows = Collections.emptyList();
     private Iterator<Row> it = rows.iterator();
-    private final RowColumns rowData;
+    private Row current;
 
     private NodeStatsIterator(TransportNodeStatsAction transportStatTablesAction,
                               RoutedCollectPhase collectPhase,
@@ -85,15 +82,14 @@ public class NodeStatsIterator implements BatchIterator {
         this.collectPhase = collectPhase;
         this.nodes = nodes;
         this.inputFactory = inputFactory;
-        rowData = new RowColumns(collectPhase.toCollect().size());
     }
 
-    public static BatchIterator newInstance(TransportNodeStatsAction transportStatTablesAction,
-                                            RoutedCollectPhase collectPhase,
-                                            Collection<DiscoveryNode> nodes,
-                                            InputFactory inputFactory) {
+    public static BatchIterator<Row> newInstance(TransportNodeStatsAction transportStatTablesAction,
+                                                 RoutedCollectPhase collectPhase,
+                                                 Collection<DiscoveryNode> nodes,
+                                                 InputFactory inputFactory) {
         NodeStatsIterator delegate = new NodeStatsIterator(transportStatTablesAction, collectPhase, nodes, inputFactory);
-        return new CloseAssertingBatchIterator(delegate);
+        return new CloseAssertingBatchIterator<>(delegate);
     }
 
     private CompletableFuture<List<NodeStatsContext>> getNodeStatsContexts() {
@@ -172,23 +168,23 @@ public class NodeStatsIterator implements BatchIterator {
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public Row currentElement() {
+        return current;
     }
 
     @Override
     public void moveToStart() {
         it = rows.iterator();
-        rowData.updateRef(OFF_ROW);
+        current = null;
     }
 
     @Override
     public boolean moveNext() {
         if (it.hasNext()) {
-            rowData.updateRef(it.next());
+            current = it.next();
             return true;
         }
-        rowData.updateRef(OFF_ROW);
+        current = null;
         return false;
     }
 
