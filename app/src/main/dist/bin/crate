@@ -150,6 +150,13 @@ fi
 # Parse any command line options.
 eval set -- "`getopt vdhp:D:X:C: $args`"
 
+if [ "x$CRATE_HEAP_SIZE" == "x" ]; then
+    MAX_HEAP_SIZE=$("$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Dcrate.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
+            io.crate.CrateJavaInfo -m)
+    echo "WARNING: No CRATE_HEAP_SIZE environment variable was set, using default maximum value ${MAX_HEAP_SIZE} as minimum and maximum java HEAP size"
+    JAVA_OPTS="$JAVA_OPTS -Xms${MAX_HEAP_SIZE} -Xmx${MAX_HEAP_SIZE}"
+fi
+
 while true; do
     case $1 in
         -v)

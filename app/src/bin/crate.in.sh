@@ -11,21 +11,12 @@ fi
 
 CRATE_CLASSPATH=$CRATE_HOME/lib/*:$CRATE_HOME/lib/enterprise/*:$CRATE_HOME/lib/sigar/*
 
-if [ "x$CRATE_MIN_MEM" = "x" ]; then
-    CRATE_MIN_MEM=256m
-fi
-if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
-    CRATE_MIN_MEM=$CRATE_HEAP_SIZE
-    CRATE_MAX_MEM=$CRATE_HEAP_SIZE
-fi
-
 # min and max heap sizes should be set to the same value to avoid
 # stop-the-world GC pauses during resize, and so that we can lock the
 # heap in memory on startup to prevent any of it from being swapped
 # out.
-JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
-if [ "x$CRATE_MAX_MEM" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
+if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_HEAP_SIZE} -Xmx${CRATE_HEAP_SIZE}"
 fi
 
 # new generation
