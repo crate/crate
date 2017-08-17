@@ -62,7 +62,7 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
 
     /**
      * Returns a copy of the {@link IngestRulesMetaData} including a copied list of rules if at least one
-     * privilege was replaced. Otherwise returns NULL to indicate that nothing was changed.
+     * rule was replaced. Otherwise returns NULL to indicate that nothing was changed.
      * Rules whose target table idents are matching the given source ident are replaced by a copy where the ident
      * is changed to the given target ident.
      */
