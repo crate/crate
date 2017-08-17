@@ -474,41 +474,20 @@ public class ExpressionAnalyzer {
              * or
              *      x = ANY(select x from t)
              */
-            Symbol left = process(node.getValue(), context);
-            DataType targetType = left.valueType();
-
+            final Expression arrayExpression;
             Expression valueList = node.getValueList();
             if (valueList instanceof InListExpression) {
                 List<Expression> expressions = ((InListExpression) valueList).getValues();
-                List<Symbol> symbols = new ArrayList<>(expressions.size());
-
-                for (Expression expression : expressions) {
-                    Symbol symbol = process(expression, context);
-                    if (targetType == DataTypes.UNDEFINED) {
-                        targetType = symbol.valueType();
-                        left = castIfNeededOrFail(left, targetType);
-
-                        symbols.add(symbol);
-                    } else {
-                        symbols.add(castIfNeededOrFail(symbol, targetType));
-                    }
-                }
-                FunctionInfo functionInfo = ArrayFunction.createInfo(Symbols.typeView(symbols));
-                return context.allocateFunction(
-                    getBuiltinFunctionInfo(AnyEqOperator.NAME, Arrays.asList(targetType, functionInfo.returnType())),
-                    Arrays.asList(left, context.allocateFunction(functionInfo, symbols))
-                );
-            } else if (valueList instanceof SubqueryExpression) {
-                ArrayComparisonExpression arrayComparisonExpression =
-                    new ArrayComparisonExpression(ComparisonExpression.Type.EQUAL,
-                        ArrayComparison.Quantifier.ANY,
-                        node.getValue(),
-                        valueList);
-                return process(arrayComparisonExpression, context);
+                arrayExpression = new ArrayLiteral(expressions);
             } else {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Expression %s is not supported in IN", ExpressionFormatter.formatExpression(valueList)));
+                arrayExpression = node.getValueList();
             }
+            ArrayComparisonExpression arrayComparisonExpression =
+                new ArrayComparisonExpression(ComparisonExpression.Type.EQUAL,
+                    ArrayComparison.Quantifier.ANY,
+                    node.getValue(),
+                    arrayExpression);
+            return process(arrayComparisonExpression, context);
         }
 
         @Override
@@ -632,7 +611,8 @@ public class ExpressionAnalyzer {
             // x = ANY([null])              -> must not result in to-null casts
             // int_col = ANY([1, 2, 3])     -> must cast to int instead of long (otherwise lucene query would be slow)
             // null = ANY([1, 2])           -> must not cast to null
-            if (SymbolVisitors.any(symbol -> symbol instanceof Field, leftSymbol) || rightInnerType == DataTypes.UNDEFINED) {
+            if (leftSymbol.valueType() != DataTypes.UNDEFINED &&
+                    (SymbolVisitors.any(symbol -> symbol instanceof Field, leftSymbol) || rightInnerType == DataTypes.UNDEFINED)) {
                 arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
             } else {
                 leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);

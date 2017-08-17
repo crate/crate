@@ -106,7 +106,7 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testArgumentIsNotAnArrayExpression() throws Exception {
+    public void testExceptionForwardingForIllegalInput() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast bar to Iterable");
         anyEq(1, "bar");

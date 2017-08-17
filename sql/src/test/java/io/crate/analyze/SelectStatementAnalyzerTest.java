@@ -456,29 +456,29 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testWhereInSelectValueIsNull() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select 'found' from users where null in (1.2, 2)");
+        SelectAnalyzedStatement analysis = analyze("select 'found' from users where null in (1, 2)");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(false));
         assertThat(analysis.relation().querySpec().where().noMatch(), is(true));
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1 in (1.2, 2)");
-        assertThat(analysis.relation().querySpec().where().hasQuery(), is(false)); // already normalized from 1 in (1, 2) --> true
-        assertThat(analysis.relation().querySpec().where().noMatch(), is(false));
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _array(double, long)");
+        analyze("select 'found' from users where 1 in (1.2, 2)");
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(false)); // already normalized from 1.2 in (1.0, 2.0) --> false
-        assertThat(analysis.relation().querySpec().where().noMatch(), is(true));
+        assertThat(analysis.relation().querySpec().where().noMatch(), is(false));
     }
 
     @Test
-    public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type long");
+    public void testWhereInSelectDifferentDataTypeValueIncompatibleDataTypes() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _array(long, string, long)");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 

@@ -26,8 +26,21 @@ Breaking Changes
 
 Changes
 =======
- 
- - Introduce support for single column subselects in `ANY` and `IN`, e.g.::
+
+ - Change semantics of ``IN`` operator to behave like ``= ANY``. The argument
+   list for ``IN`` now has to be comprised of the same type. For example,
+   this is now an illegal ``IN`` query because the list mixes integer and
+   double type::
+
+     Select * from t1 where id IN (1, 1.2, 2)
+
+   This would get translated into the following and throw an error::
+
+     Select * from t1 where id = ANY([1, 1.2, 3])
+
+ - Support single column subselects within the `IN` operator, e.g.::
+
+- Introduce support for single column subselects in `ANY` and `IN`, e.g.::
 
     select id from t where id IN (select id from t2)
 

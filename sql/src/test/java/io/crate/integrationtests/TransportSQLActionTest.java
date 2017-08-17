@@ -885,7 +885,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereNonExistingColumnWhereIn() throws Exception {
         nonExistingColumnSetup();
-        execute("select * from quotes where o['something'] IN(1,2,3)");
+        execute("select * from quotes where o['something'] IN (1,2,3)");
         assertEquals(0L, response.rowCount());
     }
 
