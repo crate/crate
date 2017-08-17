@@ -25,6 +25,7 @@ import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 
 import java.util.List;
@@ -59,6 +60,11 @@ public class OutputNameFormatter {
                    node.getType().getValue() + ' ' +
                    node.quantifier().name() + '(' +
                    process(node.getRight(), null) + ')';
+        }
+
+        @Override
+        protected String visitSubqueryExpression(SubqueryExpression node, Void context) {
+            return super.visitSubqueryExpression(node, context).replace("\n", "");
         }
     }
 }
