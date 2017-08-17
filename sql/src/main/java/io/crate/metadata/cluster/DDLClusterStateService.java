@@ -47,27 +47,27 @@ public class DDLClusterStateService {
 
     ClusterState onCloseTable(ClusterState currentState, TableIdent tableIdent) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onCloseTable(currentState, tableIdent));
+            (modifier, clusterState) -> modifier.onCloseTable(clusterState, tableIdent));
     }
 
     ClusterState onCloseTablePartition(ClusterState currentState, PartitionName partitionName) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onCloseTablePartition(currentState, partitionName));
+            (modifier, clusterState) -> modifier.onCloseTablePartition(clusterState, partitionName));
     }
 
     ClusterState onOpenTable(ClusterState currentState, TableIdent tableIdent) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onOpenTable(currentState, tableIdent));
+            (modifier, clusterState) -> modifier.onOpenTable(clusterState, tableIdent));
     }
 
     ClusterState onOpenTablePartition(ClusterState currentState, PartitionName partitionName) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onOpenTablePartition(currentState, partitionName));
+            (modifier, clusterState) -> modifier.onOpenTablePartition(clusterState, partitionName));
     }
 
     ClusterState onDropTable(ClusterState currentState, TableIdent tableIdent) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onDropTable(currentState, tableIdent));
+            (modifier, clusterState) -> modifier.onDropTable(clusterState, tableIdent));
     }
 
     ClusterState onRenameTable(ClusterState currentState,
@@ -75,7 +75,7 @@ public class DDLClusterStateService {
                                TableIdent targetTableIdent,
                                boolean isPartitioned) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onRenameTable(currentState, sourceTableIdent, targetTableIdent, isPartitioned));
+            (modifier, clusterState) -> modifier.onRenameTable(clusterState, sourceTableIdent, targetTableIdent, isPartitioned));
     }
 
     private ClusterState applyOnAllModifiers(ClusterState currentState,
