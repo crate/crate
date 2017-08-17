@@ -25,4 +25,5 @@ include 'es',
         'enterprise:lang-js',
         'enterprise:users',
         'enterprise:ssl-impl',
+        'enterprise:mqtt',
         'http'
