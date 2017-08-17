@@ -42,6 +42,8 @@ public class CastFunctionResolver {
 
     public static final String TRY_CAST_PREFIX = "try_";
 
+    private static final String TO_PREFIX = "to_";
+
     public static class FunctionNames {
         public static final String TO_STRING = "to_string";
         public static final String TO_INTEGER = "to_int";
@@ -147,6 +149,11 @@ public class CastFunctionResolver {
         DataType sourceType = sourceSymbol.valueType();
         FunctionInfo functionInfo = functionInfo(sourceType, targetType, tryCast);
         return new io.crate.analyze.symbol.Function(functionInfo, ImmutableList.of(sourceSymbol));
+    }
+
+    public static boolean isCastFunction(Symbol symbol) {
+        return symbol instanceof io.crate.analyze.symbol.Function
+               && ((io.crate.analyze.symbol.Function) symbol).info().ident().name().startsWith(TO_PREFIX);
     }
 
     /**

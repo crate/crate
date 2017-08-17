@@ -26,6 +26,8 @@ import io.crate.metadata.Reference;
 
 import java.util.function.Function;
 
+import static java.util.Objects.requireNonNull;
+
 public final class RefReplacer extends FunctionCopyVisitor<Function<? super Reference, ? extends Symbol>> {
 
     private final static RefReplacer REPLACER = new RefReplacer();
@@ -34,12 +36,27 @@ public final class RefReplacer extends FunctionCopyVisitor<Function<? super Refe
         super();
     }
 
-    public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> replaceFunc) {
-        return REPLACER.process(tree, replaceFunc);
+    /**
+     * Create a function that applies {@code mapper} on any Reference within a function-symbol-tree.
+     */
+    public static Function<? super Symbol, ? extends Symbol> replaceRefs(Function<? super Reference, ? extends Symbol> mapper) {
+        return st -> replaceRefs(st, mapper);
+    }
+
+    /**
+     * Applies {@code mapper} on all {@link Reference} instances within {@code tree}
+     */
+    public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> mapper) {
+        return REPLACER.process(tree, mapper);
+    }
+
+    public static io.crate.analyze.symbol.Function replaceRefs(io.crate.analyze.symbol.Function func,
+                                                               Function<? super Reference, ? extends Symbol> mapper) {
+        return (io.crate.analyze.symbol.Function) REPLACER.process(func, mapper);
     }
 
     @Override
-    public Symbol visitReference(Reference ref, Function<? super Reference, ? extends Symbol> replaceFunc) {
-        return replaceFunc.apply(ref);
+    public Symbol visitReference(Reference ref, Function<? super Reference, ? extends Symbol> mapper) {
+        return requireNonNull(mapper.apply(ref), "mapper function used in RefReplacer must not return null values");
     }
 }

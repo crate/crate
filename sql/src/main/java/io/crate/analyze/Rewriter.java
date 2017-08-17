@@ -24,14 +24,30 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.JoinPairs;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.QuerySplitter;
+import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 public class Rewriter {
@@ -89,7 +105,8 @@ public class Rewriter {
         assert rightName.equals(joinPair.right()) : "This JoinPair has a different left Qualified name: " + joinPair.right();
 
         JoinType joinType = joinPair.joinType();
-        if (!joinType.isOuter()) {
+        // SEMI JOINS *can* be re-written to inner join if the RHS results are unique - but we don't optimize this yet
+        if (!joinType.isOuter() || joinType == JoinType.SEMI) {
             return;
         }
         tryRewrite(normalizer, mss, where, left, right, joinPair, joinType);

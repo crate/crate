@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -103,5 +104,12 @@ public class QualifiedName {
     @Override
     public int hashCode() {
         return parts.hashCode();
+    }
+
+    public QualifiedName withPrefix(String prefix) {
+        ArrayList<String> newParts = new ArrayList<>(parts.size() + 1);
+        newParts.add(prefix);
+        newParts.addAll(parts);
+        return new QualifiedName(newParts);
     }
 }

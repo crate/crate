@@ -78,6 +78,11 @@ public class JoinPair {
     }
 
     @Override
+    public String toString() {
+        return "Join{" + joinType + " " + left + " ⇔ " + right + '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

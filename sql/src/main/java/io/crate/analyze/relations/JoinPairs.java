@@ -90,7 +90,7 @@ public final class JoinPairs {
         // check if relations were switched due to some optimization
         if (checkReversePair) {
             for (JoinPair joinPair : joinPairs) {
-                if (joinPair.equalsNames(right, left)) {
+                if (joinPair.joinType() != JoinType.SEMI && joinPair.equalsNames(right, left)) {
                     JoinPair reverseJoinPair = JoinPair.of(
                         joinPair.right(),
                         joinPair.left(),
