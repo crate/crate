@@ -18,4 +18,5 @@ comparisons.
   arithmetic
   table_functions
   operators
+  array_comparisons
   subquery_expressions
