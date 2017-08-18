@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.rule.ingest.IngestionService;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -41,7 +40,6 @@ public class MetaDataModule extends AbstractModule {
         bindSchemas();
 
         bind(DDLClusterStateService.class).asEagerSingleton();
-        bind(IngestionService.class).asEagerSingleton();
     }
 
     protected void bindReferences() {

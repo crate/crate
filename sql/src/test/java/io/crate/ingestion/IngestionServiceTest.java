@@ -20,11 +20,13 @@
  * agreement.
  */
 
-package io.crate.metadata.rule.ingest;
+package io.crate.ingestion;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.rule.ingest.IngestRule;
+import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
