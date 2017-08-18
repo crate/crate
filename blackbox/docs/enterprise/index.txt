@@ -10,15 +10,15 @@ in production you need to purchase a `enterprise license`_.
 
 Current features:
 
-- :ref:`jmx_monitoring_plugin`: monitor your query stats with JMX
+- :ref:`administration_user_management`: manage multiple database users
+- :ref:`administration-privileges`: configure user privileges
 - :doc:`/administration/index`: manage your database with authentication, and
   more
+- System information functions: :ref:`CURRENT_USER <current_user>`,
+  :ref:`USER <user>`, :ref:`SESSION_USER <session_user>`
 - :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
   functions in JavaScript
-- System Information Functions: 
-    - :ref:`Current user function <current_user>`
-    - :ref:`User function <user>`
-    - :ref:`Session user function <session_user>`
+- :ref:`jmx_monitoring_plugin`: monitor your query stats with JMX
 
 .. _`enterprise edition`: https://crate.io/enterprise-edition/
 .. _`enterprise license`: https://crate.io/enterprise-edition/
