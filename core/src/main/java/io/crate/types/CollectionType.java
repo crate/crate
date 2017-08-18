@@ -80,6 +80,12 @@ public abstract class CollectionType extends DataType {
         return innerType;
     }
 
+    /**
+     * Returns a new instance of this CollectionType with a given inner type.
+     * @param innerType The inner type of the new CollectionType.
+     */
+    public abstract CollectionType newInstance(DataType innerType);
+
     @Override
     public int compareTo(Object o) {
         if (!(o instanceof CollectionType)) return -1;

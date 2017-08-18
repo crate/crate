@@ -130,4 +130,9 @@ public class SetType extends CollectionType {
             out.writeBoolean(containsNull);
         }
     }
+
+    @Override
+    public CollectionType newInstance(DataType innerType) {
+        return new SetType(innerType);
+    }
 }

@@ -33,6 +33,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import io.crate.types.SingleColumnTableType;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -122,11 +123,24 @@ public class CastFunctionResolver {
         .put(new SetType(DataTypes.IP), FunctionNames.TO_IP_SET)
         .build();
 
+    private static final ImmutableMap<DataType, String> TABLE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
+        .put(new SingleColumnTableType(DataTypes.STRING), FunctionNames.TO_STRING_SET)
+        .put(new SingleColumnTableType(DataTypes.LONG), FunctionNames.TO_LONG_SET)
+        .put(new SingleColumnTableType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_SET)
+        .put(new SingleColumnTableType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_SET)
+        .put(new SingleColumnTableType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_SET)
+        .put(new SingleColumnTableType(DataTypes.BYTE), FunctionNames.TO_BYTE_SET)
+        .put(new SingleColumnTableType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_SET)
+        .put(new SingleColumnTableType(DataTypes.SHORT), FunctionNames.TO_SHORT_SET)
+        .put(new SingleColumnTableType(DataTypes.IP), FunctionNames.TO_IP_SET)
+        .build();
+
     static final ImmutableMap<DataType, String> FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
         .putAll(PRIMITIVE_FUNCTION_MAP)
         .putAll(GEO_FUNCTION_MAP)
         .putAll(ARRAY_FUNCTION_MAP)
         .putAll(SET_FUNCTION_MAP)
+        .putAll(TABLE_FUNCTION_MAP)
         .put(DataTypes.OBJECT, FunctionNames.TO_OBJECT)
         .build();
 

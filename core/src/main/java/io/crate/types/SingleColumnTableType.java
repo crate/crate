@@ -59,4 +59,9 @@ public class SingleColumnTableType extends CollectionType {
         }
         return (Object[]) value;
     }
+
+    @Override
+    public CollectionType newInstance(DataType innerType) {
+        return new SingleColumnTableType(innerType);
+    }
 }

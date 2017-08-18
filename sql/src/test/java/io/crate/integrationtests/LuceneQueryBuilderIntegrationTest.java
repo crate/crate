@@ -37,11 +37,11 @@ import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, randomDynamicTemplates = false, transportClientRatio = 0)
 @UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
+    private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

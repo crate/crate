@@ -593,14 +593,14 @@ public class ExpressionAnalyzer {
             Symbol leftSymbol = process(node.getLeft(), context);
             Symbol arraySymbol = process(node.getRight(), context);
 
-            DataType rightType = arraySymbol.valueType();
+            DataType arraySymbolType = arraySymbol.valueType();
 
-            if (!DataTypes.isCollectionType(rightType)) {
+            if (!DataTypes.isCollectionType(arraySymbolType)) {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("invalid array expression: '%s'", arraySymbol));
             }
 
-            DataType rightInnerType = ((CollectionType) rightType).innerType();
+            DataType rightInnerType = ((CollectionType) arraySymbolType).innerType();
             if (rightInnerType.equals(DataTypes.OBJECT)) {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
@@ -613,7 +613,8 @@ public class ExpressionAnalyzer {
             // null = ANY([1, 2])           -> must not cast to null
             if (leftSymbol.valueType() != DataTypes.UNDEFINED &&
                     (SymbolVisitors.any(symbol -> symbol instanceof Field, leftSymbol) || rightInnerType == DataTypes.UNDEFINED)) {
-                arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
+                arraySymbolType = ((CollectionType) arraySymbolType).newInstance(leftSymbol.valueType());
+                arraySymbol = castIfNeededOrFail(arraySymbol, arraySymbolType);
             } else {
                 leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);
             }
@@ -622,7 +623,7 @@ public class ExpressionAnalyzer {
             String operatorName;
             operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
             return context.allocateFunction(
-                getBuiltinFunctionInfo(operatorName, Arrays.asList(leftSymbol.valueType(), arraySymbol.valueType())),
+                getBuiltinFunctionInfo(operatorName, Arrays.asList(leftSymbol.valueType(), arraySymbolType)),
                 Arrays.asList(leftSymbol, arraySymbol));
         }
 
@@ -639,7 +640,8 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
-            rightSymbol = castIfNeededOrFail(rightSymbol, new ArrayType(DataTypes.STRING));
+            rightType = ((CollectionType) rightType).newInstance(leftSymbol.valueType());
+            rightSymbol = castIfNeededOrFail(rightSymbol, rightType);
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
             return context.allocateFunction(

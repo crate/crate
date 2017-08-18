@@ -73,4 +73,9 @@ public class ArrayType extends CollectionType {
         }
         return result;
     }
+
+    @Override
+    public CollectionType newInstance(DataType innerType) {
+        return new ArrayType(innerType);
+    }
 }

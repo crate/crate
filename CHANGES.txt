@@ -44,11 +44,10 @@ Changes
 
      Select * from t1 where id = ANY([1, 1.2, 3])
 
- - Support single column subselects within the `IN` operator, e.g.::
+ - Introduce support for single column subselects in `ANY` and `IN`, e.g.::
 
-- Introduce support for single column subselects in `ANY` and `IN`, e.g.::
-
-    select id from t where id IN (select id from t2)
+     Select * from t1 where id = ANY(select id from t2)
+     Select * from t1 where id IN (select id from t2)
 
  - Improved resiliency of the table rename operation.
 
