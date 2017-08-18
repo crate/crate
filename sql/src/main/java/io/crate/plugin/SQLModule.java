@@ -24,8 +24,8 @@ package io.crate.plugin;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.transport.TransportSchemaUpdateAction;
+import io.crate.ingestion.IngestionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.rule.ingest.IngestionService;
 import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
 import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
@@ -59,5 +59,6 @@ public class SQLModule extends AbstractModule {
         bind(RestSQLAction.class).asEagerSingleton();
         bind(TransportCreateIngestRuleAction.class).asEagerSingleton();
         bind(TransportDropIngestRuleAction.class).asEagerSingleton();
+        bind(IngestionService.class).asEagerSingleton();
     }
 }

@@ -20,7 +20,9 @@
  * agreement.
  */
 
-package io.crate.metadata.rule.ingest;
+package io.crate.ingestion;
+
+import io.crate.metadata.rule.ingest.IngestRule;
 
 import java.util.Set;
 
