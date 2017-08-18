@@ -67,9 +67,9 @@ public class IngestRulesMetaData extends AbstractNamedDiffable<MetaData.Custom> 
      * is changed to the given target ident.
      */
     @Nullable
-    static IngestRulesMetaData maybeCopyAndReplaceTargetTableIdents(IngestRulesMetaData oldMetaData,
-                                                                    String sourceIdent,
-                                                                    String targetIdent) {
+    public static IngestRulesMetaData maybeCopyAndReplaceTargetTableIdents(IngestRulesMetaData oldMetaData,
+                                                                           String sourceIdent,
+                                                                           String targetIdent) {
         boolean rulesChanged = false;
         Map<String, Set<IngestRule>> sourceIngestRules = new HashMap<>(oldMetaData.sourceIngestRules.size());
         for (Map.Entry<String, Set<IngestRule>> entry : oldMetaData.sourceIngestRules.entrySet()) {
