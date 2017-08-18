@@ -4,6 +4,14 @@
 Authentication Methods
 ======================
 
+There are multiple ways to authenticate against CrateDB.
+
+.. NOTE::
+
+   CrateDB will never leak information about whether a user exists or not in
+   the case of failed authentication. If you're receiving an error trying to
+   authenticate, first make sure that the user exists.
+
 .. _auth_trust:
 
 Trust Method
