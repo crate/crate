@@ -26,9 +26,19 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.ParentRelations;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
@@ -36,6 +46,7 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -44,6 +55,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
@@ -51,6 +63,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
@@ -81,7 +94,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONL
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static java.util.Objects.requireNonNull;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -96,11 +108,12 @@ public class SQLExecutor {
     private final Functions functions;
     public final Analyzer analyzer;
     public final Planner planner;
+    private final RelationAnalyzer relAnalyzer;
 
     public static class Builder {
 
         private final ClusterService clusterService;
-        private final Map<String, SchemaInfo> schemas = new HashMap<>();
+        private final Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
@@ -109,8 +122,8 @@ public class SQLExecutor {
 
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
-            schemas.put("sys", new SysSchemaInfo(clusterService));
-            schemas.put("information_schema", new InformationSchemaInfo(clusterService));
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
+            schemaInfoByName.put("information_schema", new InformationSchemaInfo(clusterService));
             functions = getFunctions();
         }
 
@@ -143,20 +156,21 @@ public class SQLExecutor {
 
         public SQLExecutor build() {
             UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
+            schemaInfoByName.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
-                schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
+                schemaInfoByName.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
             File tempDir = createTempDir();
+            Schemas schemas = new Schemas(
+                Settings.EMPTY,
+                schemaInfoByName,
+                clusterService,
+                new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
+            );
             return new SQLExecutor(
                 functions,
                 new Analyzer(
-                    new Schemas(
-                        Settings.EMPTY,
-                        schemas,
-                        clusterService,
-                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
-                    ),
+                    schemas,
                     functions,
                     clusterService,
                     new AnalysisRegistry(
@@ -182,7 +196,8 @@ public class SQLExecutor {
                     clusterService,
                     functions,
                     tableStats
-                )
+                ),
+                new RelationAnalyzer(clusterService, functions, schemas)
             );
         }
 
@@ -202,7 +217,7 @@ public class SQLExecutor {
         }
 
         public Builder addSchema(SchemaInfo schema) {
-            schemas.put(schema.name(), schema);
+            schemaInfoByName.put(schema.name(), schema);
             return this;
         }
 
@@ -227,13 +242,14 @@ public class SQLExecutor {
     }
 
     public static Builder builder(ClusterService clusterService) {
-        return new Builder(requireNonNull(clusterService, "clusterService is required for SQLExecutor"));
+        return new Builder(clusterService);
     }
 
-    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner) {
+    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, RelationAnalyzer relAnalyzer) {
         this.functions = functions;
         this.analyzer = analyzer;
         this.planner = planner;
+        this.relAnalyzer = relAnalyzer;
     }
 
     public Functions functions() {
@@ -262,6 +278,29 @@ public class SQLExecutor {
     public <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
         return analyze(statement, new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
     }
+
+    /**
+     * Convert a expression to a symbol
+     *
+     * @param sources The relations which are accessible in the expression.
+     *                Think of this as the FROM clause.
+     *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
+     */
+    public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
+        SessionContext sessionContext = SessionContext.SYSTEM_SESSION;
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            sessionContext,
+            ParamTypeHints.EMPTY,
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
+            new SubqueryAnalyzer(
+                relAnalyzer,
+                new StatementAnalysisContext(sessionContext, ParamTypeHints.EMPTY, Operation.READ, new TransactionContext(sessionContext))
+            )
+        );
+        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
+    }
+
 
     public <T extends Plan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(

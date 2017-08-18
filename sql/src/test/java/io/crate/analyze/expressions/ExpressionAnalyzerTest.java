@@ -30,8 +30,6 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
-import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -44,12 +42,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -59,10 +52,10 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DummyRelation;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,6 +84,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
     private Functions functions;
+    private SQLExecutor executor;
 
     @Before
     public void prepare() throws Exception {
@@ -99,6 +93,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
+        executor = SQLExecutor.builder(clusterService)
+            .addDocTable(T3.T1_INFO)
+            .addDocTable(T3.T2_INFO)
+            .build();
     }
 
     @Test
@@ -248,39 +246,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInPredicateWithSubqueryIsRewrittenToAnyEq() {
-        TestingDocTableInfoFactory docTableInfoFactory = new TestingDocTableInfoFactory(
-            ImmutableMap.of(
-                T3.T1_INFO.ident(), T3.T1_INFO,
-                T3.T2_INFO.ident(), T3.T2_INFO
-            )
-        );
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
-            new QualifiedName("t1"), T3.TR_1,
-            new QualifiedName("t2"), T3.TR_2
-        );
-        StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            SessionContext.SYSTEM_SESSION,
-            paramTypeHints,
-            Operation.READ,
-            null
-        );
-        Schemas schemas = new Schemas(
-            Settings.EMPTY,
-            ImmutableMap.of(
-                Schemas.DEFAULT_SCHEMA_NAME,
-                new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, null, docTableInfoFactory)),
-            clusterService,
-            new DocSchemaInfoFactory(docTableInfoFactory, functions, null)
-        );
-        RelationAnalyzer analyzer = new RelationAnalyzer(clusterService, functions, schemas);
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
-            SessionContext.SYSTEM_SESSION,
-            paramTypeHints,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
-            new SubqueryAnalyzer(analyzer, statementAnalysisContext)
-        );
-        Symbol symbol = expressionAnalyzer.convert(SqlParser.createExpression("t1.x in (select t2.y from t2)"), context);
+        Symbol symbol = executor.asSymbol(T3.SOURCES, "t1.x in (select t2.y from t2)");
         assertThat(symbol, isSQL("(doc.t1.x = ANY(to_int_array(SelectSymbol{integer_table})))"));
     }
 }
