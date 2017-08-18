@@ -21,15 +21,28 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.FieldResolver;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.arithmetic.MapFunction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,19 +102,10 @@ public class EvaluatingNormalizer {
         }
     }
 
-    private static class Context {
 
-        @Nullable
-        private final TransactionContext transactionContext;
-
-        public Context(@Nullable TransactionContext transactionContext) {
-            this.transactionContext = transactionContext;
-        }
-    }
-
-    private abstract class BaseVisitor extends SymbolVisitor<Context, Symbol> {
+    private abstract class BaseVisitor extends SymbolVisitor<TransactionContext, Symbol> {
         @Override
-        public Symbol visitField(Field field, Context context) {
+        public Symbol visitField(Field field, TransactionContext context) {
             if (fieldResolver != null) {
                 Symbol resolved = fieldResolver.resolveField(field);
                 if (resolved != null) {
@@ -112,7 +116,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TransactionContext context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
                 Map<Field, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
@@ -143,14 +147,14 @@ public class EvaluatingNormalizer {
 
 
         @SuppressWarnings("unchecked")
-        Symbol normalizeFunctionSymbol(Function function, Context context) {
+        Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
             FunctionIdent ident = function.info().ident();
             FunctionImplementation impl = functions.getQualified(ident);
-            return impl.normalizeSymbol(function, context.transactionContext);
+            return impl.normalizeSymbol(function, context);
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Context context) {
+        public Symbol visitReference(Reference symbol, TransactionContext context) {
             if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
@@ -167,14 +171,14 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, Context context) {
+        protected Symbol visitSymbol(Symbol symbol, TransactionContext context) {
             return symbol;
         }
     }
 
     private class CopyingVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, Context context) {
+        public Symbol visitFunction(Function function, TransactionContext context) {
             List<Symbol> newArgs = normalize(function.arguments(), context);
             if (newArgs != function.arguments()) {
                 function = new Function(function.info(), newArgs);
@@ -185,7 +189,7 @@ public class EvaluatingNormalizer {
 
     private class InPlaceVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, Context context) {
+        public Symbol visitFunction(Function function, TransactionContext context) {
             normalizeInplace(function.arguments(), context);
             return normalizeFunctionSymbol(function, context);
         }
@@ -197,12 +201,7 @@ public class EvaluatingNormalizer {
      * @param symbols the list to be normalized
      * @return a list with normalized symbols
      */
-    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext transactionContext) {
-        Context context = new Context(transactionContext);
-        return normalize(symbols, context);
-    }
-
-    private List<Symbol> normalize(List<Symbol> symbols, Context context) {
+    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext context) {
         if (symbols.size() > 0) {
             boolean changed = false;
             Symbol[] newArgs = new Symbol[symbols.size()];
@@ -224,28 +223,16 @@ public class EvaluatingNormalizer {
      *
      * @param symbols the list to be normalized
      */
-    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable TransactionContext transactionContext) {
-        Context context = new Context(transactionContext);
-        normalizeInplace(symbols, context);
-    }
-
-    private void normalizeInplace(@Nullable List<Symbol> symbols, Context context) {
-        if (symbols != null) {
-            for (int i = 0; i < symbols.size(); i++) {
-                symbols.set(i, normalize(symbols.get(i), context));
-            }
+    public void normalizeInplace(@Nonnull List<Symbol> symbols, @Nullable TransactionContext context) {
+        for (int i = 0; i < symbols.size(); i++) {
+            symbols.set(i, normalize(symbols.get(i), context));
         }
     }
 
     public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext transactionContext) {
-        return normalize(symbol, new Context(transactionContext));
-    }
-
-    private Symbol normalize(@Nullable Symbol symbol, Context context) {
         if (symbol == null) {
             return null;
         }
-        return visitor.process(symbol, context);
+        return visitor.process(symbol, transactionContext);
     }
-
 }
