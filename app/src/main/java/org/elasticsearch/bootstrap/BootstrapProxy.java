@@ -35,7 +35,6 @@ import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.PidFile;
 import org.elasticsearch.common.SuppressForbidden;
@@ -51,7 +50,6 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,7 +58,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -211,14 +208,6 @@ public class BootstrapProxy {
 
     }
 
-    private static Environment initialEnvironment(boolean foreground, Path pidFile, Environment env) {
-        Settings.Builder builder = Settings.builder();
-        if (pidFile != null) {
-            builder.put(Environment.PIDFILE_SETTING.getKey(), pidFile);
-        }
-        return CrateSettingsPreparer.prepareEnvironment(builder.build(), env);
-    }
-
     private void start() throws NodeValidationException {
         node.start();
         keepAliveThread.start();
@@ -244,9 +233,8 @@ public class BootstrapProxy {
      * to startup elasticsearch.
      */
     public static void init(final boolean foreground,
-                            final Path pidFile,
                             final boolean quiet,
-                            final Environment env) throws BootstrapException, NodeValidationException, UserException {
+                            Environment environment) throws BootstrapException, NodeValidationException, UserException {
         // Set the system property before anything has a chance to trigger its use
         initLoggerPrefix();
 
@@ -256,7 +244,6 @@ public class BootstrapProxy {
 
         INSTANCE = new BootstrapProxy();
 
-        Environment environment = initialEnvironment(foreground, pidFile, env);
         try {
             LogConfigurator.configure(environment);
         } catch (IOException e) {

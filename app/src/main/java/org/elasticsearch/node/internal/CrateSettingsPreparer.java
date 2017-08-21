@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.elasticsearch.common.Strings.cleanPath;
@@ -54,10 +55,10 @@ import static org.elasticsearch.transport.TransportSettings.PORT;
 
 public class CrateSettingsPreparer {
 
-    public static Environment prepareEnvironment(Settings input, Environment esEnvironment) {
+    public static Environment prepareEnvironment(Settings settings, Map<String, String> cmdLineSettings) {
         Settings.Builder builder = Settings.builder();
-        builder.put(esEnvironment.settings());
-        builder.put(input);
+        builder.put(settings);
+        builder.put(cmdLineSettings);
 
         Environment newEnvironment = new Environment(builder.build());
 
@@ -70,23 +71,18 @@ public class CrateSettingsPreparer {
             }
         }
 
-        // we put back settings from command line to override the ones from configuration file
-        // but we avoid overriding the cluster name with the default ES cluster name.
-        String clusterNameKey = ClusterName.CLUSTER_NAME_SETTING.getKey();
-        String currentClusterName = builder.get(clusterNameKey);
-        String esClusterName = esEnvironment.settings().get(clusterNameKey);
-        builder.put(esEnvironment.settings());
-        if ((esClusterName == null || esClusterName.equals(ClusterName.DEFAULT.value())) && currentClusterName != null) {
-            builder.put(clusterNameKey, currentClusterName);
-        }
+        // override settings with cmdline settings
+        builder.put(cmdLineSettings);
+
+        validateKnownSettings(builder);
+        applyCrateDefaults(builder);
+
+        newEnvironment = new Environment(builder.build());
 
         // we put back the path.logs so we can use it in the logging configuration file
         builder.put(
             Environment.PATH_LOGS_SETTING.getKey(),
             cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
-
-        validateKnownSettings(builder);
-        applyCrateDefaults(builder);
 
         return new Environment(builder.build());
     }
