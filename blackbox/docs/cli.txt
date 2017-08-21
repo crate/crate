@@ -1,12 +1,12 @@
 .. highlight:: sh
 .. _cli:
 
-===========
-CrateDB CLI
-===========
+=======================
+The ``cratedb`` Command
+=======================
 
 After downloading and extracting the tarball (see :ref:`install_targz`) you
-will be able to invoke the CrateDB executable in the ``bin`` directory. The
+will be able to invoke the CrateDB command in the ``bin`` directory. The
 excutable is named ``crate``.
 
 The simplest way to start a CrateDB instance is to invoke ``crate`` without
