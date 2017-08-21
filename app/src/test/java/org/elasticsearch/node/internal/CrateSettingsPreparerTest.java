@@ -98,37 +98,28 @@ public class CrateSettingsPreparerTest {
         builder.put("path.home", ".");
         builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
         builder.put("stats.enabled", true);
-        builder.put("cluster.name", "crate");
-        Environment environment = new Environment(builder.build());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        builder.put("cluster.name", "clusterNameOverridden");
+        builder.put("path.logs", "/some/other/path");
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
         // Overriding value from crate.yml
         assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
         // Value kept from crate.yml
         assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
-    }
-
-    @Test
-    public void testClusterNameFromCommandLineArgsOverridesSettingFromConfigFile() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
-        builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
-        builder.put("cluster.name", "clusterNameOverridden");
-        Environment environment = new Environment(builder.build());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
         // Overriding value from crate.yml
         assertThat(finalSettings.get("cluster.name", null), is("clusterNameOverridden"));
+        // Value kept from crate.yml
+        assertThat(finalSettings.get("path.logs"), is("/some/other/path"));
     }
 
     @Test
-    public void testDefaultClusterNameDoesNotOverridesSettingFromConfigFile() throws Exception {
+    public void testConfigSettingsLoaded() throws Exception {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
-        builder.put("cluster.name", "elasticsearch");
-        Environment environment = new Environment(builder.build());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
-        // Overriding value from crate.yml
-        assertThat(finalSettings.get("cluster.name", null), is("testCluster"));
+        Settings settings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        // Values from crate.yml
+        assertThat(settings.get("cluster.name", null), is("testCluster"));
+        assertThat(settings.get("path.logs"), is("/some/path"));
     }
 
     @Test
@@ -136,8 +127,7 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("cluster.name", "clusterName");
-        Environment environment = new Environment(builder.build());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
         assertThat(finalSettings.get("cluster.name", null), is("clusterName"));
     }
 
@@ -146,8 +136,7 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("cluster.name", "elasticsearch");
-        Environment environment = new Environment(builder.build());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
         assertThat(finalSettings.get("cluster.name", null), is("crate"));
     }
 
@@ -156,10 +145,9 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("path.conf", PathUtils.get(getClass().getResource("config_invalid").toURI()));
-        Environment environment = new Environment(builder.build());
         expectedException.expect(ElasticsearchParseException.class);
         expectedException.expectMessage("duplicate settings key [stats.enabled] found at line number [2], " +
                                         "column number [16], previous value [false], current value [true]");
-        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, environment).settings();
+        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
     }
 }

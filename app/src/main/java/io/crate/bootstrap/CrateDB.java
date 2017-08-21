@@ -37,10 +37,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * A main entry point when starting from the command line.
@@ -86,6 +88,11 @@ public class CrateDB extends EnvironmentAwareCommand {
     }
 
     @Override
+    protected Environment createEnv(Terminal terminal, Map<String, String> settings) {
+        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings);
+    }
+
+    @Override
     protected void execute(Terminal terminal, OptionSet options, Environment env) throws Exception {
         if (options.nonOptionArguments().isEmpty() == false) {
             throw new UserException(ExitCodes.USAGE, "Positional arguments not allowed, found " + options.nonOptionArguments());
@@ -101,20 +108,34 @@ public class CrateDB extends EnvironmentAwareCommand {
         }
 
         final boolean daemonize = options.has(daemonizeOption);
+
         final Path pidFile = pidfileOption.value(options);
+        env = addPidFileSetting(pidFile, env);
+
         final boolean quiet = options.has(quietOption);
 
         try {
-            init(daemonize, pidFile, quiet, env);
+            init(daemonize, quiet, env);
         } catch (NodeValidationException e) {
             throw new UserException(ExitCodes.CONFIG, e.getMessage());
         }
     }
 
-    private void init(final boolean daemonize, final Path pidFile, final boolean quiet, Environment env)
+    private static Environment addPidFileSetting(Path pidFile, Environment existingEnv) {
+        if (pidFile == null) {
+            return existingEnv;
+        }
+        Settings settingsWithPid = Settings.builder()
+            .put(existingEnv.settings())
+            .put(Environment.PIDFILE_SETTING.getKey(), pidFile)
+            .build();
+        return new Environment(settingsWithPid);
+    }
+
+    private void init(final boolean daemonize, final boolean quiet, Environment env)
         throws NodeValidationException, UserException {
         try {
-            BootstrapProxy.init(!daemonize, pidFile, quiet, env);
+            BootstrapProxy.init(!daemonize, quiet, env);
         } catch (BootstrapException | RuntimeException e) {
             // format exceptions to the console in a special way
             // to avoid 2MB stacktraces from guice, etc.
