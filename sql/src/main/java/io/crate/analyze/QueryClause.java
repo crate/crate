@@ -78,7 +78,12 @@ public abstract class QueryClause {
         if (hasQuery()) {
             Symbol newQuery = replaceFunction.apply(query);
             if (query != newQuery) {
-                query = newQuery;
+                if (newQuery instanceof Input) {
+                    noMatch = !canMatch(newQuery);
+                    query = null;
+                } else {
+                    query = newQuery;
+                }
             }
         }
     }
