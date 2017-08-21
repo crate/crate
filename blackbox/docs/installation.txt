@@ -1,105 +1,109 @@
+.. highlight:: sh
+
 ============
 Installation
 ============
 
-This section shows you how to install CrateDB on a single node.
+This page documents the most basic sort of CrateDB installation.
 
-To set up a multi-node cluster, you will need to tell CrateDB how to find the
-other nodes. See the `Multi Node Setup`_ article for more information.
+.. NOTE::
 
-Java (JVM) Version
-==================
+   CrateDB comes pre-packaged for many Linux systems, Docker, and cloud hosting
+   providers. There is also a handy one-line command that let's you download
+   and run CrateDB on Mac OS X.
+
+   To learn more, check out the `install section`_ of the CrateDB Guide.
+
+Prerequisites
+=============
 
 CrateDB requires `Java 8`_. We recommend using `Oracle's Java`_ on OSX and
 OpenJDK_ on Linux Systems.
+
 The same JVM version must be used on all CrateDB nodes.
 
 We recommend installing `Java 8`_ update 20 or later.
 
 .. _install_targz:
 
-Install Via Tarball
-===================
+Download
+========
 
-.. highlight:: sh
+Download `the latest CrateDB release`_.
 
-After downloading the latest stable version of CrateDB from
-`crate.io/download/ <https://crate.io/download/>`_
-the package needs to be unpacked::
+.. TIP::
 
-   sh$ tar zxf crate-*.tar.gz
+   Older releases of CrateDB are `also available`_.
+
+
+Once downloaded, unpack the tarball and change into the resulting directory::
+
+   sh$ tar -xzf crate-*.tar.gz
    sh$ cd crate-*
 
-Once unpacked CrateDB can be started in the foreground like this::
+Run
+===
+
+There is no need to configure or build anything.
+
+Once unpacked, CrateDB can be started in the foreground like this::
 
    sh$ ./bin/crate
 
-In order to start in the background add the ``-d`` option. If started in the
-foreground you can use ``Control-C`` to stop the process again.
+This runs a single instance of CrateDB that is bound the local IP address.
 
+:kbd:`Control-C` will stop the process.
 
-The CrateDB Shell (Crash) is shipped with the tarball distribution.
-You can start the shell using the ``crash`` command::
+Pass the ``--help`` option for command usage information::
 
-  sh$ ./bin/crash
-
-The CrateDB distribution also comes with a web based administration
-interface. It is served on port ``4200`` and you can access it with
-your browser once CrateDB is started::
-
-  http://host1.example.com:4200/
-
-.. NOTE::
-
-    The admin interface runs on each node where CrateDB is installed.
-
-.. NOTE::
-
-    If the previous URL is accessed via libraries (eg. cURL), or via offline
-    browsers (eg. wget) the request will be handled by the CrateDB Rest API,
-    and the response will be JSON.
-
-Install Using Docker
-====================
-
-`Docker`_ is a lightweigt runtime to run distributed applications in a
-sandboxed container. We provide a `Docker image`_ for CrateDB for easy
-installation::
-
-    sh$ docker pull crate
-    sh$ docker run -d -p 4200:4200 -p 4300:4300 crate \
-          crate -Ccluster.name=my_cluster \
-                -Cnetwork.host=_site_
-
-.. _install_production:
-
-Install CrateDB for Production
-==============================
-
-We provide distributions for **RHEL/YUM** based systems, **Ubuntu**, **Debian**
-and **Arch Linux**.
-
-You can find instruction how to install CrateDB for production on the Download_
-page.
-
-In case your distribution is missing feel free to `contact us
-<https://crate.io/about/contact/>`_. We're happy to create and maintain
-additional packages if we see enough interest.
+   sh$ ./bin/crate --help
 
 .. SEEALSO::
 
- :doc:`Configuring CrateDB <configuration>`
+ :ref:`cli`
 
- `Hello CrateDB`_ - To learn how to interact with CrateDB.
+ :ref:`configuration`
 
- `Multi Node Setup`_ - To see how to install and run CrateDB in a Multi Node
- setup.
+Connect
+=======
 
-.. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
+The CrateDB Shell (aka `Crash`_) is shipped with the tarball distribution.
+
+Start the shell like so::
+
+  sh$ ./bin/crash
+
+CrateDB also comes with a `web administration interface`_ served on port
+``4200``.
+
+Visit the admin interface in your browser at a URL like this one::
+
+  http://localhost:4200/
+
+
+.. NOTE::
+
+    The admin interface runs on each CrateDB node.
+
+.. NOTE::
+
+    If port ``4200`` is accessed via libraries or the command line, the request
+    will be handled by `the CrateDB Rest API`_, and the response will be JSON.
+
+.. SEEALSO::
+
+ `An introductory tutorial`_
+
+ `How to run CrateDB in a multi node setup`_
+
+.. _also available: https://cdn.crate.io/downloads/releases/
+.. _An introductory tutorial: https://crate.io/docs/crate/guide/tutorials/hello.html
+.. _crash: https://crate.io/docs/crate/guide/getting_started/connect/crash.html
+.. _How to run CrateDB in a multi node setup: https://crate.io/docs/crate/guide/getting_started/scale/multi_node_setup.html
+.. _install section: https://crate.io/docs/crate/guide/getting_started/install/index.html
+.. _Java 8: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
-.. _Download: https://crate.io/download/
-.. _Docker: https://www.docker.com/
-.. _`Docker image`: https://hub.docker.com/r/_/crate/
-.. _`Multi Node Setup`: https://crate.io/docs/scale/multi_node_setup/
-.. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
-.. _Hello CrateDB: https://crate.io/docs/crate/guide/tutorials/hello.html
+.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
+.. _the CrateDB Rest API: https://crate.io/docs/crate/guide/getting_started/connect/rest.html
+.. _the latest CrateDB release: https://crate.io/download/
+.. _web administration interface: https://crate.io/docs/crate/guide/getting_started/connect/admin_ui.html
