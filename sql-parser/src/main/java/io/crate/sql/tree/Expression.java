@@ -31,6 +31,6 @@ public abstract class Expression
     }
 
     public final String toString() {
-        return ExpressionFormatter.formatExpression(this);
+        return ExpressionFormatter.formatStandaloneExpression(this);
     }
 }

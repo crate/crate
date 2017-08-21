@@ -90,6 +90,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static io.crate.sql.ExpressionFormatter.formatExpression;
+import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
 
 public final class SqlFormatter {
 
@@ -146,7 +147,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitExpression(Expression node, Integer indent) {
-            builder.append(formatExpression(node));
+            builder.append(formatStandaloneExpression(node));
             return null;
         }
 
@@ -222,20 +223,20 @@ public final class SqlFormatter {
             builder.append('\n');
 
             if (node.getWhere().isPresent()) {
-                append(indent, "WHERE " + formatExpression(node.getWhere().get()))
+                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere().get()))
                     .append('\n');
             }
 
             if (!node.getGroupBy().isEmpty()) {
                 append(indent,
                     "GROUP BY " + node.getGroupBy().stream()
-                        .map(ExpressionFormatter::formatExpression)
+                        .map(ExpressionFormatter::formatStandaloneExpression)
                         .collect(COMMA_JOINER))
                     .append('\n');
             }
 
             if (node.getHaving().isPresent()) {
-                append(indent, "HAVING " + formatExpression(node.getHaving().get()))
+                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get()))
                     .append('\n');
             }
 
@@ -287,7 +288,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitSingleColumn(SingleColumn node, Integer indent) {
-            builder.append(formatExpression(node.getExpression()));
+            builder.append(formatStandaloneExpression(node.getExpression()));
             if (node.getAlias().isPresent()) {
                 builder.append(' ')
                     .append('"')
@@ -492,7 +493,7 @@ public final class SqlFormatter {
             }
             if (node.expression() != null) {
                 builder.append(" GENERATED ALWAYS AS ")
-                    .append(formatExpression(node.expression()));
+                    .append(formatStandaloneExpression(node.expression()));
             }
 
             if (!node.constraints().isEmpty()) {
@@ -613,7 +614,7 @@ public final class SqlFormatter {
             } else if (criteria instanceof JoinOn) {
                 JoinOn on = (JoinOn) criteria;
                 builder.append(" ON (")
-                    .append(formatExpression(on.getExpression()))
+                    .append(formatStandaloneExpression(on.getExpression()))
                     .append(")");
             } else if (node.getType() != Join.Type.CROSS && !(criteria instanceof NaturalJoin)) {
                 throw new UnsupportedOperationException("unknown join criteria: " + criteria);
@@ -765,7 +766,7 @@ public final class SqlFormatter {
     static Function<SortItem, String> orderByFormatterFunction = input -> {
         StringBuilder builder = new StringBuilder();
 
-        builder.append(formatExpression(input.getSortKey()));
+        builder.append(formatStandaloneExpression(input.getSortKey()));
 
         switch (input.getOrdering()) {
             case ASCENDING:

@@ -25,7 +25,53 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.ArithmeticExpression;
+import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.ArrayLikePredicate;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.ComparisonExpression;
+import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DateLiteral;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.ExistsPredicate;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.IfExpression;
+import io.crate.sql.tree.InListExpression;
+import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IsNotNullPredicate;
+import io.crate.sql.tree.IsNullPredicate;
+import io.crate.sql.tree.LikePredicate;
+import io.crate.sql.tree.LogicalBinaryExpression;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.MatchPredicate;
+import io.crate.sql.tree.MatchPredicateColumnIdent;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NotExpression;
+import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.SearchedCaseExpression;
+import io.crate.sql.tree.SimpleCaseExpression;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubqueryExpression;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.TimeLiteral;
+import io.crate.sql.tree.TimestampLiteral;
+import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.WhenClause;
 
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +90,21 @@ public final class ExpressionFormatter {
         "current_catalog", "current_schema", "current_user", "session_user", "user");
 
     private ExpressionFormatter() {
+    }
+
+    /**
+     * Formats the given expression and removes the outer most parenthesis, which are optional from an expression
+     * correctness perspective, but clutter for the user (in case of nested expressions the inner expression will still
+     * be enclosed in parenthesis, as that is a requirement for correctness, but the outer most expression will not be
+     * surrounded by parenthesis)
+     */
+    public static String formatStandaloneExpression(Expression expression) {
+        String formattedExpression = formatExpression(expression);
+        if (formattedExpression.startsWith("(") && formattedExpression.endsWith(")")) {
+            return formattedExpression.substring(1, formattedExpression.length() - 1);
+        } else {
+            return formattedExpression;
+        }
     }
 
     public static String formatExpression(Expression expression) {

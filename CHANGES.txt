@@ -56,6 +56,9 @@ Changes
 Fixes
 =====
 
+ - Fix display of redundant parenthesis around expressions visible in 
+   `SHOW CREATE` and `EXPLAIN` statements.
+
  - Fixed column name in output by removing new lines when select list contains
    subquery. E.g.::
 

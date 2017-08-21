@@ -335,7 +335,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Unsupported expression %s", ExpressionFormatter.formatExpression(node)));
+                "Unsupported expression %s", ExpressionFormatter.formatStandaloneExpression(node)));
         }
 
         @Override

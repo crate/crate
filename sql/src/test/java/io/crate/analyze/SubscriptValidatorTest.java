@@ -94,7 +94,7 @@ public class SubscriptValidatorTest extends CrateUnitTest {
     public void testVisitSubscriptWithIndexExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a[1+2]");
         assertThat(context.qName().getSuffix(), is("a"));
-        assertThat(context.index(), isSQL("(1 + 2)"));
+        assertThat(context.index(), isSQL("1 + 2"));
     }
 
     @SuppressWarnings("ConstantConditions")
