@@ -1,12 +1,13 @@
-===========
-First Steps
-===========
+.. NOTE::
 
-- In order to get CrateDB up and running take a look at the :doc:`installation`.
+   This is a low-level reference manual.
 
-- If you are new to CrateDB, it is probably the best to say `hello`_.
+   Check out the `CrateDB Guide`_ for high-level documentation, including
+   overviews, best practices, tutorials, and a handy `getting started`_ section.
 
-- For details about working with CrateDB, see :doc:`sql/index`.
+.. _CrateDB Guide: https://crate.io/docs/crate/guide/index.html
+
+.. _Getting Started: https://crate.io/docs/crate/guide/getting_started/index.html
 
 Contents
 ========
