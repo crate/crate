@@ -6,8 +6,7 @@
    overviews, best practices, tutorials, and a handy `Getting Started`_
    section.
 
-Contents
-========
+.. rubric:: Table of Contents
 
 .. toctree::
    :maxdepth: 2
