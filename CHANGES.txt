@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fix display of redundant parenthesis around expressions visible in 
+   `SHOW CREATE` and `EXPLAIN` statements.
+
  - Updated Crash to ``0.21.5`` which removes a deprecation warning logged in
    CrateDB server on every REST request.
 

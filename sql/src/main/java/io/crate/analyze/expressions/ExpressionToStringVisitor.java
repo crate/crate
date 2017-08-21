@@ -67,12 +67,12 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     @Override
     public String visitArrayLiteral(ArrayLiteral node, Row context) {
-        return ExpressionFormatter.formatExpression(node);
+        return ExpressionFormatter.formatStandaloneExpression(node);
     }
 
     @Override
     public String visitObjectLiteral(ObjectLiteral node, Row context) {
-        return ExpressionFormatter.formatExpression(node);
+        return ExpressionFormatter.formatStandaloneExpression(node);
     }
 
     @Override
