@@ -51,6 +51,9 @@ Breaking Changes
    line arguments can still override the settings defined in th ``crate.yml``
    file.
 
+  - The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
+    become more strict.
+
 Packaging Changes
 .................
 
@@ -108,6 +111,19 @@ Upgrading from version 2.0.x
 If you're using CrateDB's BLOB storage and you need to run at least version
 2.0.4 before upgrading to 2.1.0. Please consult the :ref:`version_2.0.4`
 release notes for further details.
+
+Create columns syntax strictness
+................................
+
+The syntax strictness when creating new columns has been increased:
+
+ - Columns cannot contain a dot when using alter table. Instead, you can still
+   use the subscript pattern to add an object column.
+
+ - The use of references as a key of a subscript is not possible anymore. E.g.
+   instead of ``col_name[index]``, you'll need to use ``col_name['index']``. Be
+   aware that the use of single quotes will cause the index to be case
+   sensitive.
 
 Upgrading from versions prior to 2.0.0
 --------------------------------------
