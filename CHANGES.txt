@@ -27,12 +27,10 @@ Breaking Changes
 Changes
 =======
 
- - Update Crash to ``0.22.0`` which includes the following changes:
+ - Update Crash to ``0.22.1`` which includes the following changes:
 
     - Added a status toolbar that prints the current session info.
 
-    - Added support for multiline table headers in the tabular output format.
- 
     - Start autocompletion for non-command keys at the 3rd character.
 
  - Change semantics of ``IN`` operator to behave like ``= ANY``. The argument
