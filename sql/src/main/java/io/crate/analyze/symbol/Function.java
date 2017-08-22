@@ -39,10 +39,6 @@ public class Function extends Symbol implements Cloneable {
         return arguments;
     }
 
-    public void setArgument(int index, Symbol symbol) {
-        arguments.set(index, symbol);
-    }
-
     public FunctionInfo info() {
         return info;
     }
