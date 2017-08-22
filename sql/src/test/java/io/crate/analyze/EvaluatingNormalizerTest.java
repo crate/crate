@@ -5,7 +5,16 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
@@ -89,7 +98,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     @Test
     public void testEvaluation() {
         EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-            functions, RowGranularity.NODE, ReplaceMode.MUTATE, referenceResolver, null);
+            functions, RowGranularity.NODE, ReplaceMode.COPY, referenceResolver, null);
 
         Function op_or = prepareFunctionTree();
 

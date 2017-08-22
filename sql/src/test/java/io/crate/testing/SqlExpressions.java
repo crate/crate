@@ -109,7 +109,7 @@ public class SqlExpressions {
             null
         );
         normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, ReplaceMode.MUTATE, null, fieldResolver);
+            functions, RowGranularity.DOC, ReplaceMode.COPY, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
         transactionContext = new TransactionContext(sessionContext);
     }

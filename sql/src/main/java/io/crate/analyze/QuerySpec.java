@@ -24,13 +24,18 @@ package io.crate.analyze;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -127,24 +132,6 @@ public class QuerySpec {
     public QuerySpec hasAggregates(boolean hasAggregates) {
         this.hasAggregates = hasAggregates;
         return this;
-    }
-
-    public void normalize(EvaluatingNormalizer normalizer, TransactionContext context) {
-        if (groupBy.isPresent()) {
-            normalizer.normalizeInplace(groupBy.get(), context);
-        }
-        if (orderBy.isPresent()) {
-            orderBy.get().normalize(normalizer, context);
-        }
-        if (outputs != null) {
-            normalizer.normalizeInplace(outputs, context);
-        }
-        if (where != null && where != WhereClause.MATCH_ALL) {
-            this.where(where.normalize(normalizer, context));
-        }
-        if (having.isPresent()) {
-            having = Optional.of(having.get().normalize(normalizer, context));
-        }
     }
 
     /**
@@ -270,6 +257,16 @@ public class QuerySpec {
         }
         if (groupBy.isPresent()) {
             Lists2.replaceItems(groupBy.get(), replaceFunction);
+        }
+        if (limit.isPresent()) {
+            limit = limit.map(replaceFunction);
+        }
+        if (offset.isPresent()) {
+            offset = offset.map(replaceFunction);
+        }
+        if (having.isPresent()) {
+            HavingClause havingClause = having.get();
+            havingClause.replace(replaceFunction);
         }
     }
 

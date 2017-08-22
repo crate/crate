@@ -96,8 +96,8 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, TransactionContext context) {
-            QuerySpec querySpec = mss.querySpec();
-            querySpec.normalize(normalizer, context);
+            QuerySpec querySpec = mss.querySpec().copyAndReplace(s -> normalizer.normalize(s, context));
+
             // must create a new MultiSourceSelect because paths and query spec changed
             mss = MultiSourceSelect.createWithPushDown(RelationNormalizer.this, functions, context, mss, querySpec);
             Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);

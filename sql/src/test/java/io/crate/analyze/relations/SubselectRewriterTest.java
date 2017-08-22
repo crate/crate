@@ -110,7 +110,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
             "select * from (select * from t1 limit 10 offset 5) as tt limit 5 offset 2");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i LIMIT least(10, 5) OFFSET add(5, 2)"));
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i LIMIT 5 OFFSET 7"));
     }
 
     @Test
@@ -173,7 +173,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((Field) outerRelation.querySpec().outputs().get(0)).relation(), sameInstance(outerRelation.subRelation()));
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x DESC LIMIT least(4, 2)"));
+                   isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x DESC LIMIT 2"));
     }
 
     @Test
