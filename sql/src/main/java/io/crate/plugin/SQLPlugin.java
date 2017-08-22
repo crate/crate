@@ -22,12 +22,15 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
+import io.crate.ingestion.IngestionModules;
+import io.crate.ingestion.IngestionService;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
 import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
@@ -38,7 +41,6 @@ import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
-import io.crate.ingestion.IngestionService;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -96,14 +98,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     private final Settings settings;
     private final UserExtension userExtension;
+    private final IngestionModules ingestionModules;
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
+            ingestionModules = EnterpriseLoader.loadSingle(IngestionModules.class);
         } else {
             userExtension = null;
+            ingestionModules = null;
         }
     }
 
@@ -147,6 +152,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
         settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
 
+        // Settings for ingestion implementations
+        if (ingestionModules != null) {
+            settings.addAll(ingestionModules.getSettings());
+        }
+
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
             settings.add(crateSetting.setting());
@@ -157,7 +167,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return ImmutableList.of(
+        List<Class<? extends LifecycleComponent>> serviceClasses = Lists.newArrayList(
             DecommissioningService.class,
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
@@ -165,6 +175,12 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             Schemas.class,
             ArrayMapperService.class,
             IngestionService.class);
+
+        if (ingestionModules != null) {
+            serviceClasses.addAll(ingestionModules.getServiceClasses());
+        }
+
+        return ImmutableList.copyOf(serviceClasses);
     }
 
     @Override
@@ -198,6 +214,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.addAll(userExtension.getModules(settings));
         } else {
             modules.add(new UserFallbackModule());
+        }
+
+        if(ingestionModules != null) {
+            modules.addAll(ingestionModules.getModules());
         }
         return modules;
     }
