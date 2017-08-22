@@ -28,7 +28,11 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.MappingSymbolVisitor;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -40,7 +44,15 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.collect.Tuple;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Function;
 
 class MultiSourceFetchPushDown {
@@ -147,9 +159,11 @@ class MultiSourceFetchPushDown {
         }
 
         statement.querySpec().outputs(mssOutputs);
-        MappingSymbolVisitor.inPlace().processInplace(remainingOutputs, fetchRefByOriginalSymbol);
+        remainingOutputs = MappingSymbolVisitor.copy().process(remainingOutputs, fetchRefByOriginalSymbol);
         if (statement.querySpec().orderBy().isPresent()) {
-            MappingSymbolVisitor.inPlace().processInplace(statement.querySpec().orderBy().get().orderBySymbols(), fetchRefByOriginalSymbol);
+            statement.querySpec().orderBy(
+                statement.querySpec().orderBy().get().copyAndReplace(s -> MappingSymbolVisitor.copy().process(s, fetchRefByOriginalSymbol))
+            );
         }
     }
 

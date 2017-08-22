@@ -40,7 +40,7 @@ public class MappingSymbolVisitorTest {
 
         Map<Symbol, ? extends Symbol> fieldMap = ImmutableMap.of(f, t);
 
-        assertThat(MappingSymbolVisitor.inPlace().process(f, fieldMap), is(t));
-        assertThat(MappingSymbolVisitor.inPlace().process(one, fieldMap), is(one));
+        assertThat(MappingSymbolVisitor.copy().process(f, fieldMap), is(t));
+        assertThat(MappingSymbolVisitor.copy().process(one, fieldMap), is(one));
     }
 }
