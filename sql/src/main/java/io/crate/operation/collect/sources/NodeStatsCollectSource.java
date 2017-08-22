@@ -30,7 +30,10 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.executor.transport.TransportNodeStatsAction;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.LocalSysColReferenceResolver;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
@@ -103,7 +106,6 @@ public class NodeStatsCollectSource implements CollectSource {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
-            ReplaceMode.COPY,
             localSysColReferenceResolver,
             null
         );

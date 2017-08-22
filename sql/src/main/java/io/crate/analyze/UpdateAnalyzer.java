@@ -43,7 +43,6 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -98,7 +97,6 @@ public class UpdateAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             fieldResolver);
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);

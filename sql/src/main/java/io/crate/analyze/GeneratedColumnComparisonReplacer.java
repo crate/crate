@@ -26,10 +26,25 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.FunctionCopyVisitor;
+import io.crate.analyze.symbol.RefReplacer;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.SymbolVisitors;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.operator.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.GtOperator;
+import io.crate.operation.operator.GteOperator;
+import io.crate.operation.operator.LtOperator;
+import io.crate.operation.operator.LteOperator;
+import io.crate.operation.operator.Operators;
 import io.crate.operation.scalar.DateTruncFunction;
 import io.crate.operation.scalar.arithmetic.CeilFunction;
 import io.crate.operation.scalar.arithmetic.FloorFunction;
@@ -38,7 +53,12 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Singleton
 public class GeneratedColumnComparisonReplacer {
@@ -62,7 +82,7 @@ public class GeneratedColumnComparisonReplacer {
         return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, tableInfo);
     }
 
-    private static class ComparisonReplaceVisitor extends ReplacingSymbolVisitor<ComparisonReplaceVisitor.Context> {
+    private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
 
         static class Context {
             private final Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn;
@@ -73,7 +93,7 @@ public class GeneratedColumnComparisonReplacer {
         }
 
         ComparisonReplaceVisitor() {
-            super(ReplaceMode.COPY);
+            super();
         }
 
         Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {

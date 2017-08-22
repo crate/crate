@@ -23,17 +23,15 @@
 package io.crate.analyze.symbol;
 
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 
 import java.util.function.Function;
 
-public final class RefReplacer extends ReplacingSymbolVisitor<Function<? super Reference, ? extends Symbol>> {
+public final class RefReplacer extends FunctionCopyVisitor<Function<? super Reference, ? extends Symbol>> {
 
     private final static RefReplacer REPLACER = new RefReplacer();
 
     private RefReplacer() {
-        super(ReplaceMode.COPY);
+        super();
     }
 
     public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> replaceFunc) {

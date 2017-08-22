@@ -31,14 +31,25 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.PartitionReferenceResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class WhereClauseAnalyzer {
 
@@ -52,8 +63,7 @@ public class WhereClauseAnalyzer {
     public WhereClauseAnalyzer(Functions functions, DocTableRelation tableRelation) {
         this.functions = functions;
         this.tableInfo = tableRelation.tableInfo();
-        this.normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, null, tableRelation);
+        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, tableRelation);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
@@ -157,7 +167,7 @@ public class WhereClauseAnalyzer {
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.PARTITION, ReplaceMode.COPY, partitionReferenceResolver, null);
+            functions, RowGranularity.PARTITION, partitionReferenceResolver, null);
 
         Symbol normalized;
         Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();

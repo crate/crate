@@ -43,7 +43,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceToLiteralConverter;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -146,7 +145,6 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             tableRelation);
         analyzeColumns(statement.tableInfo(), statement.columns());

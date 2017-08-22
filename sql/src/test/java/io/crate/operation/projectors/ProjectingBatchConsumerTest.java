@@ -35,7 +35,6 @@ import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
@@ -93,7 +92,6 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
             new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
-                ReplaceMode.COPY,
                 r -> Literal.of(r.valueType(), r.valueType().value("1")),
                 null),
             t -> null,

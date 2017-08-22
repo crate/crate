@@ -22,17 +22,14 @@
 
 package io.crate.analyze.symbol;
 
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
-
 import java.util.function.Function;
 
-public final class FieldReplacer extends ReplacingSymbolVisitor<Function<? super Field, ? extends Symbol>> {
+public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Field, ? extends Symbol>> {
 
     private final static FieldReplacer REPLACER = new FieldReplacer();
 
     private FieldReplacer() {
-        super(ReplaceMode.COPY);
+        super();
     }
 
     public static Symbol replaceFields(Symbol tree, Function<? super Field, ? extends Symbol> replaceFunc) {

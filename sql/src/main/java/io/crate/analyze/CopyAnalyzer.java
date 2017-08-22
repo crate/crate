@@ -44,7 +44,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -114,7 +113,6 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
@@ -178,7 +176,6 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);

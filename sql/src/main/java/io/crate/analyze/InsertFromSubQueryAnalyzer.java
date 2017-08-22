@@ -28,7 +28,11 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.InputColumn;
@@ -36,13 +40,25 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 class InsertFromSubQueryAnalyzer {
 
@@ -197,7 +213,6 @@ class InsertFromSubQueryAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             tableRelation);
         ValueNormalizer valuesNormalizer = new ValueNormalizer();

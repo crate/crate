@@ -26,7 +26,6 @@ import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.InputRow;
@@ -48,8 +47,7 @@ public class SingleRowSource implements CollectSource {
     @Inject
     public SingleRowSource(Functions functions, ClusterReferenceResolver clusterRefResolver) {
         this.functions = functions;
-        clusterNormalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, clusterRefResolver, null);
+        clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, clusterRefResolver, null);
     }
 
     @Override

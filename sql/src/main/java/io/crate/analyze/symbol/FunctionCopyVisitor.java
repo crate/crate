@@ -24,7 +24,10 @@ package io.crate.analyze.symbol;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Base class which can be used to create a visitor that has to replace functions.
@@ -41,6 +44,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         List<Symbol> args = func.arguments();
         switch (args.size()) {
             // specialized functions to avoid allocations for common cases
+            case 0:
+                return func;
+
             case 1:
                 return oneArg(func, context);
 
@@ -57,7 +63,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         List<Symbol> newArgs = new ArrayList<>(args.size());
         boolean changed = false;
         for (Symbol arg : args) {
-            Symbol newArg = process(arg, context);
+            Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
             changed |= arg != newArg;
             newArgs.add(newArg);
         }
@@ -70,10 +76,10 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function twoArgs(Function func, C context) {
         assert func.arguments().size() == 2 : "size of arguments must be two";
         Symbol arg1 = func.arguments().get(0);
-        Symbol newArg1 = process(arg1, context);
+        Symbol newArg1 = requireNonNull(process(arg1, context), "function arguments must never be NULL");
 
         Symbol arg2 = func.arguments().get(1);
-        Symbol newArg2 = process(arg2, context);
+        Symbol newArg2 = requireNonNull(process(arg2, context), "function arguments must never be NULL");
 
         if (arg1 == newArg1 && arg2 == newArg2) {
             return func;
@@ -84,7 +90,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function oneArg(Function func, C context) {
         assert func.arguments().size() == 1 : "size of arguments must be one";
         Symbol arg = func.arguments().get(0);
-        Symbol newArg = process(arg, context);
+        Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
 
         if (arg == newArg) {
             return func;
@@ -94,7 +100,25 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     }
 
     @Override
+    public Symbol visitFunction(Function func, C context) {
+        return processAndMaybeCopy(func, context);
+    }
+
+    @Override
+    public Symbol visitDynamicReference(DynamicReference ref, C context) {
+        return visitReference(ref, context);
+    }
+
+    @Override
     protected Symbol visitSymbol(Symbol symbol, C context) {
         return symbol;
+    }
+
+    public List<Symbol> process(Collection<? extends Symbol> symbols, C context) {
+        ArrayList<Symbol> copy = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            copy.add(process(symbol, context));
+        }
+        return copy;
     }
 }

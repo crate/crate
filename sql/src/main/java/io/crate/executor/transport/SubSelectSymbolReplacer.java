@@ -23,13 +23,12 @@
 package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.FutureCallback;
+import io.crate.analyze.symbol.FunctionCopyVisitor;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
@@ -129,13 +128,13 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         }
     }
 
-    private static class SymbolReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
+    private static class SymbolReplacer extends FunctionCopyVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final SelectSymbol selectSymbolToReplace;
         private final Object value;
 
         private SymbolReplacer(SelectSymbol selectSymbolToReplace, Object value) {
-            super(ReplaceMode.MUTATE);
+            super();
             this.selectSymbolToReplace = selectSymbolToReplace;
             this.value = value;
         }

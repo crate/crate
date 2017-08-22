@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
@@ -69,7 +68,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     public void normalize(Functions functions, TransactionContext transactionContext) {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, null, tableRelation);
+            functions, RowGranularity.CLUSTER, null, tableRelation);
         querySpec.replace(s -> normalizer.normalize(s, transactionContext));
     }
 

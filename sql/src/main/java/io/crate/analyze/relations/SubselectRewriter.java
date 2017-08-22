@@ -23,18 +23,30 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.*;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FunctionCopyVisitor;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 public final class SubselectRewriter {
@@ -275,13 +287,13 @@ public final class SubselectRewriter {
         return true;
     }
 
-    private final static class FieldReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
+    private final static class FieldReplacer extends FunctionCopyVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final List<? extends Symbol> outputs;
         final Map<Symbol, Field> fieldByQSOutputSymbol = new HashMap<>();
 
         FieldReplacer(List<? extends Symbol> outputs, QueriedRelation relation) {
-            super(ReplaceMode.COPY);
+            super();
             // Store the fields of a relation mapped to its output symbol so they will not get lost (e.g. alias preserve)
             this.outputs = outputs;
 

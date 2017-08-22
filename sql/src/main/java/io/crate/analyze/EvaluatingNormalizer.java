@@ -23,18 +23,16 @@ package io.crate.analyze;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.FunctionCopyVisitor;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.reference.ReferenceResolver;
@@ -51,20 +49,13 @@ import java.util.Map;
 
 
 /**
- * the normalizer does symbol normalization and reference resolving if possible
- * <p>
- * E.g.:
- * The query
- * </p>
- * <p>
- * and(true, eq(column_ref, 'someliteral'))
- * </p>
- * <p>
- * will be changed to
- * </p>
- * <p>
- * eq(column_ref, 'someliteral')
- * </p>
+ * The normalizer does several things:
+ *
+ *  - Convert functions into a simpler form by using {@link FunctionImplementation#normalizeSymbol(Function, TransactionContext)}
+ *  - Convert {@link Field} to {@link Reference} if {@link FieldResolver} is available.
+ *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
+ *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
+ *    and {@link io.crate.metadata.ReferenceImplementation}s can be retrieved for the Reference.
  */
 public class EvaluatingNormalizer {
 
@@ -76,34 +67,28 @@ public class EvaluatingNormalizer {
     private final BaseVisitor visitor;
 
     public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions) {
-        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, ReplaceMode.COPY, null, null);
+        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, null);
     }
 
     /**
      * @param functions         function resolver
      * @param granularity       the maximum row granularity the normalizer should try to normalize
-     * @param replaceMode       defines if symbols like functions can be mutated or if they have to be copied
      * @param referenceResolver reference resolver which is used to resolve paths
      * @param fieldResolver     optional field resolver to resolve fields
      */
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
-                                ReplaceMode replaceMode,
                                 @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
                                 @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
-        if (replaceMode == ReplaceMode.MUTATE) {
-            this.visitor = new InPlaceVisitor();
-        } else {
-            this.visitor = new CopyingVisitor();
-        }
+        this.visitor = new BaseVisitor();
     }
 
 
-    private abstract class BaseVisitor extends SymbolVisitor<TransactionContext, Symbol> {
+    private class BaseVisitor extends FunctionCopyVisitor<TransactionContext> {
         @Override
         public Symbol visitField(Field field, TransactionContext context) {
             if (fieldResolver != null) {
@@ -145,14 +130,6 @@ public class EvaluatingNormalizer {
             return matchPredicate;
         }
 
-
-        @SuppressWarnings("unchecked")
-        Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
-            FunctionIdent ident = function.info().ident();
-            FunctionImplementation impl = functions.getQualified(ident);
-            return impl.normalizeSymbol(function, context);
-        }
-
         @Override
         public Symbol visitReference(Reference symbol, TransactionContext context) {
             if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
@@ -171,51 +148,11 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, TransactionContext context) {
-            return symbol;
-        }
-    }
-
-    private class CopyingVisitor extends BaseVisitor {
-        @Override
         public Symbol visitFunction(Function function, TransactionContext context) {
-            List<Symbol> newArgs = normalize(function.arguments(), context);
-            if (newArgs != function.arguments()) {
-                function = new Function(function.info(), newArgs);
-            }
-            return normalizeFunctionSymbol(function, context);
+            function = processAndMaybeCopy(function, context);
+            FunctionImplementation implementation = functions.getQualified(function.info().ident());
+            return implementation.normalizeSymbol(function, context);
         }
-    }
-
-    private class InPlaceVisitor extends BaseVisitor {
-        @Override
-        public Symbol visitFunction(Function function, TransactionContext context) {
-            normalizeInplace(function.arguments(), context);
-            return normalizeFunctionSymbol(function, context);
-        }
-    }
-
-    /**
-     * Normalizes all symbols of a List. Does not return a new list if no changes occur.
-     *
-     * @param symbols the list to be normalized
-     * @return a list with normalized symbols
-     */
-    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext context) {
-        if (symbols.size() > 0) {
-            boolean changed = false;
-            Symbol[] newArgs = new Symbol[symbols.size()];
-            int i = 0;
-            for (Symbol symbol : symbols) {
-                Symbol newArg = normalize(symbol, context);
-                changed = changed || newArg != symbol;
-                newArgs[i++] = newArg;
-            }
-            if (changed) {
-                return Arrays.asList(newArgs);
-            }
-        }
-        return symbols;
     }
 
     /**

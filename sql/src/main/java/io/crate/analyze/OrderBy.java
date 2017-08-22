@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.AmbiguousOrderByException;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -34,7 +33,12 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -65,11 +69,6 @@ public class OrderBy implements Writeable {
     public Boolean[] nullsFirst() {
         return nullsFirst;
     }
-
-    public void normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        normalizer.normalizeInplace(orderBySymbols, transactionContext);
-    }
-
 
     public OrderBy subset(Collection<Integer> positions) {
         List<Symbol> orderBySymbols = new ArrayList<>(positions.size());

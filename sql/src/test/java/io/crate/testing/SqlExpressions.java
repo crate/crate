@@ -36,7 +36,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -108,8 +107,7 @@ public class SqlExpressions {
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
             null
         );
-        normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, ReplaceMode.COPY, null, fieldResolver);
+        normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
         transactionContext = new TransactionContext(sessionContext);
     }

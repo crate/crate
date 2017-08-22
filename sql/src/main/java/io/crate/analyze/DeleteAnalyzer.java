@@ -34,7 +34,6 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -76,7 +75,6 @@ class DeleteAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
             null,
             docTableRelation);
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);

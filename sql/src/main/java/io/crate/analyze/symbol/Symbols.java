@@ -29,8 +29,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,7 +45,8 @@ public class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
     private static final AllLiteralsMatcher ALL_LITERALS_MATCHER = new AllLiteralsMatcher();
-    private static final ReplacingSymbolVisitor<Void> DEEP_COPY_VISITOR = new ReplacingSymbolVisitor<>(ReplaceMode.COPY);
+    private static final FunctionCopyVisitor<Void> DEEP_COPY_VISITOR = new FunctionCopyVisitor<Void>() {
+    };
 
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;

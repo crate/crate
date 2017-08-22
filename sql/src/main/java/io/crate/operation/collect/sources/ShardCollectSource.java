@@ -42,7 +42,6 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -207,7 +206,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         nodeNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
-            ReplaceMode.COPY,
             referenceResolver,
             null);
 

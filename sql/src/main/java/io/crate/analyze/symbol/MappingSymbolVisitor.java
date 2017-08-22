@@ -22,24 +22,21 @@
 
 package io.crate.analyze.symbol;
 
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
-
 import java.util.Map;
 
 /**
  * A symbol visitor which replaces all symbols mapped in the map given as context.
  */
-public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<? extends Symbol, ? extends Symbol>> {
+public class MappingSymbolVisitor extends FunctionCopyVisitor<Map<? extends Symbol, ? extends Symbol>> {
 
-    private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(ReplaceMode.COPY);
+    private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor();
 
     public static MappingSymbolVisitor copy() {
         return COPYING;
     }
 
-    private MappingSymbolVisitor(ReplaceMode mode) {
-        super(mode);
+    private MappingSymbolVisitor() {
+        super();
     }
 
     @Override

@@ -30,7 +30,6 @@ import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
@@ -69,7 +68,6 @@ public abstract class ShardCollectorProvider {
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
-            ReplaceMode.COPY,
             shardResolver,
             null
         );

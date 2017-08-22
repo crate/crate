@@ -269,15 +269,13 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
         assert whereClause() != null : "whereClause must not be null";
         RoutedCollectPhase result = this;
-        List<Symbol> newToCollect = normalizer.normalize(toCollect(), transactionContext);
+        Function<Symbol, Symbol> normalize = s -> normalizer.normalize(s, transactionContext);
+        List<Symbol> newToCollect = Lists2.copyAndReplace(toCollect, normalize);
         boolean changed = newToCollect != toCollect();
         WhereClause newWhereClause = whereClause().normalize(normalizer, transactionContext);
         OrderBy orderBy = this.orderBy;
         if (orderBy != null) {
-            List<Symbol> orderBySymbols = orderBy.orderBySymbols();
-            List<Symbol> normalizedOrderBy = normalizer.normalize(orderBySymbols, transactionContext);
-            changed = changed || orderBySymbols != normalizedOrderBy;
-            orderBy = new OrderBy(normalizedOrderBy, this.orderBy.reverseFlags(), this.orderBy.nullsFirst());
+            orderBy = orderBy.copyAndReplace(normalize);
         }
         changed = changed || newWhereClause != whereClause();
         if (changed) {

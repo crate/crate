@@ -11,7 +11,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -97,8 +96,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     @Test
     public void testEvaluation() {
-        EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-            functions, RowGranularity.NODE, ReplaceMode.COPY, referenceResolver, null);
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver, null);
 
         Function op_or = prepareFunctionTree();
 
@@ -110,8 +108,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     @Test
     public void testEvaluationClusterGranularity() {
-        EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, referenceResolver, null);
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver, null);
 
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, transactionContext);

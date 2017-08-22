@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.AndOperator;
 
 import javax.annotation.Nullable;
@@ -31,17 +30,6 @@ public class HavingClause extends QueryClause {
 
     public HavingClause(@Nullable Symbol query) {
         super(query);
-    }
-
-    public HavingClause normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        if (noMatch || query == null) {
-            return this;
-        }
-        Symbol normalizedQuery = normalizer.normalize(query, transactionContext);
-        if (normalizedQuery == query) {
-            return this;
-        }
-        return new HavingClause(normalizedQuery);
     }
 
     public HavingClause add(Symbol otherQuery) {

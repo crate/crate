@@ -25,9 +25,13 @@ package io.crate.analyze.relations;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.sql.tree.QualifiedName;
 
@@ -37,12 +41,12 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
-class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
+class QuerySplittingVisitor extends SymbolVisitor<QuerySplittingVisitor.Context, Symbol> {
 
     public static final QuerySplittingVisitor INSTANCE = new QuerySplittingVisitor();
 
     private QuerySplittingVisitor() {
-        super(ReplaceMode.MUTATE);
+        super();
     }
 
     public static class Context {
@@ -181,5 +185,10 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         }
         context.seenRelation = relation;
         return matchPredicate;
+    }
+
+    @Override
+    protected Symbol visitSymbol(Symbol symbol, Context context) {
+        return symbol;
     }
 }

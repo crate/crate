@@ -31,7 +31,6 @@ import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -124,7 +123,7 @@ public class SystemCollectSource implements CollectSource {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
+            functions, RowGranularity.DOC, new NodeSysReferenceResolver(nodeSysExpression), null);
         final RoutedCollectPhase routedCollectPhase = collectPhase.normalize(normalizer, null);
 
         boolean requiresScroll = consumer.requiresScroll();
