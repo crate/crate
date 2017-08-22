@@ -22,8 +22,13 @@
 
 package io.crate.exceptions;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.StringJoiner;
 
 /**
@@ -31,9 +36,10 @@ import java.util.StringJoiner;
  */
 public class MultiException extends RuntimeException {
 
-    private final Iterable<? extends Throwable> exceptions;
+    private static final int MAX_EXCEPTION_LENGTH = 10_000;
+    private final Collection<? extends Throwable> exceptions;
 
-    public MultiException(Iterable<? extends Throwable> exceptions) {
+    public MultiException(Collection<? extends Throwable> exceptions) {
         this.exceptions = exceptions;
     }
 
@@ -61,7 +67,33 @@ public class MultiException extends RuntimeException {
     @Override
     public String getMessage() {
         StringJoiner joiner = new StringJoiner("\n");
-        exceptions.forEach(e -> joiner.add(e.getMessage()));
+        for (Throwable e : exceptions) {
+            joiner.add(e.getMessage());
+            // Reduce the amount of characters returned to consume less memory
+            // this could escalate on a huge amount of exceptions that are raised by affected shards in the cluster
+            if (joiner.length() > MAX_EXCEPTION_LENGTH) {
+                joiner.add("too much output. output truncated.");
+                break;
+            }
+        }
         return joiner.toString();
+    }
+
+    @VisibleForTesting
+    Collection<? extends Throwable> getExceptions() {
+        return exceptions;
+    }
+
+    public static MultiException of(Throwable prevError, Throwable newError) {
+        if (prevError instanceof MultiException) {
+            // Create a flattened MultiException(t1, t2, t3, ...) instead of stacking them
+            // to be memory efficient
+            Collection<? extends Throwable> prevExceptions = ((MultiException) prevError).getExceptions();
+            ArrayList<Throwable> errors = new ArrayList<>(prevExceptions.size() + 1);
+            errors.addAll(prevExceptions);
+            errors.add(newError);
+            return new MultiException(errors);
+        }
+        return new MultiException(ImmutableList.of(prevError, newError));
     }
 }

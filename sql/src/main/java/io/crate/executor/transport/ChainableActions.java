@@ -115,7 +115,7 @@ public class ChainableActions {
             }
             if (t != null) {
                 if (error != null) {
-                    error = new MultiException(ImmutableList.of(error, t));
+                    error = MultiException.of(error, t);
                     // if an error was already set, current error must resulted due to on undo operation
                     errorOnUndo = true;
                 } else {
