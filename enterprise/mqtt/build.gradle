@@ -43,3 +43,13 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
 }
+
+task copyResources {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/resources"
+        }
+    }
+}
+jar.dependsOn('copyResources')
