@@ -52,14 +52,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.SelectSymbol.ResultType;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -101,7 +99,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static io.crate.analyze.symbol.SelectSymbol.ResultType.*;
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
@@ -239,7 +237,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
     }
 
     /**

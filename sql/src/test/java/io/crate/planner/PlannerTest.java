@@ -4,7 +4,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TestingTableInfo;
@@ -37,7 +36,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         e = SQLExecutor.builder(clusterService).build();
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
     }
 
     @Test

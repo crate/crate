@@ -39,7 +39,6 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -614,7 +613,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
             clusterService,

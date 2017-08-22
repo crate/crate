@@ -39,7 +39,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.InputFactory;
@@ -57,14 +56,25 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetRequest;
+import org.elasticsearch.action.get.MultiGetResponse;
+import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 public class ESGetTask extends JobTask {
@@ -290,7 +300,7 @@ public class ESGetTask extends JobTask {
         assert esGet.docKeys().size() > 0 : "number of docKeys must be > 0";
         assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.MUTATE);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         for (DocKeys.DocKey docKey : esGet.docKeys()) {
             normalizer.normalizeInplace(docKey.values(), null);
         }

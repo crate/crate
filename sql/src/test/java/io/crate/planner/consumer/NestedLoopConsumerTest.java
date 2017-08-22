@@ -31,7 +31,6 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -100,7 +99,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(emptyRoutingTable)
             .build();
         Functions functions = e.functions();
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         plannerContext = new Planner.Context(
             e.planner,
             clusterService,

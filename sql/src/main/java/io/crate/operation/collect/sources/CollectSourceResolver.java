@@ -28,7 +28,6 @@ import io.crate.data.BatchConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
@@ -88,7 +87,7 @@ public class CollectSourceResolver {
                                  NodeStatsCollectSource nodeStatsCollectSource) {
         this.clusterService = clusterService;
 
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,

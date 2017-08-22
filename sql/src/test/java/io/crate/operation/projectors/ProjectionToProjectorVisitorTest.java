@@ -39,7 +39,6 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
@@ -107,7 +106,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             new InputFactory(functions),
-            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY),
+            EvaluatingNormalizer.functionOnlyNormalizer(functions),
             t -> null,
             t -> null
         );

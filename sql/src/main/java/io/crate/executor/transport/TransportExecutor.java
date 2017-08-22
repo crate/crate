@@ -50,7 +50,6 @@ import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.NodeOperationTree;
@@ -141,7 +140,7 @@ public class TransportExecutor implements Executor {
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         this.plan2TaskVisitor = new TaskCollectingVisitor();
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,

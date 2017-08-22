@@ -30,7 +30,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -51,7 +50,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class RoutedCollectPhaseTest extends CrateUnitTest {
 
@@ -104,7 +106,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             null
         );
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions(), ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION));
 

@@ -27,7 +27,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -38,7 +37,10 @@ import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("unchecked")
@@ -46,7 +48,7 @@ public class EqualityExtractorTest extends CrateUnitTest {
 
     private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
     private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
-    private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions(), ReplaceMode.COPY);
+    private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
     private EqualityExtractor ee = new EqualityExtractor(normalizer);
     private ColumnIdent x = new ColumnIdent("x");
     private ColumnIdent i = new ColumnIdent("i");

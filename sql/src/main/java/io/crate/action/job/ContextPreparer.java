@@ -49,7 +49,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.NestedLoopContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
@@ -138,7 +137,7 @@ public class ContextPreparer extends AbstractComponent {
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             nodeJobsCounter,

@@ -75,8 +75,8 @@ public class EvaluatingNormalizer {
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
 
-    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions, ReplaceMode replaceMode) {
-        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, replaceMode, null, null);
+    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions) {
+        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, ReplaceMode.COPY, null, null);
     }
 
     /**
