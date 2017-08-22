@@ -22,7 +22,7 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.UpdateAnalyzedStatement;
-import io.crate.analyze.VersionRewriter;
+import io.crate.analyze.VersionExtractor;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
@@ -196,8 +196,12 @@ public final class UpdatePlanner {
 
         Symbol versionSymbol = null;
         if (whereClause.hasVersions()) {
-            versionSymbol = VersionRewriter.get(whereClause.query());
-            whereClause = new WhereClause(whereClause.query(), whereClause.docKeys().orElse(null), whereClause.partitions());
+            VersionExtractor.Result result = VersionExtractor.extractVersionComparisons(whereClause.query());
+            if (result.versions.size() > 1) {
+                throw new UnsupportedOperationException("Only a single _version comparison may occur in the WHERE clause");
+            }
+            versionSymbol = result.versions.get(0);
+            whereClause = new WhereClause(result.newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
         }
 
         if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
