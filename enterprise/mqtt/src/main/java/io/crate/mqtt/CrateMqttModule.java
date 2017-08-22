@@ -16,53 +16,45 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.plugin;
+package io.crate.mqtt;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import io.crate.ingestion.IngestionModules;
 import io.crate.mqtt.netty.Netty4MqttServerTransport;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
-public class CrateMqttPlugin extends Plugin {
+import static io.crate.mqtt.CrateMqttSettings.INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING;
+import static io.crate.mqtt.CrateMqttSettings.MQTT_PORT_SETTING;
+import static io.crate.mqtt.CrateMqttSettings.MQTT_TIMEOUT_SETTING;
 
-    private final boolean isEnterprise;
+public class CrateMqttModule extends AbstractModule implements IngestionModules {
 
-    public CrateMqttPlugin(Settings settings) {
-        isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-    }
-
-    public String name() {
-        return "Crate MQTT Plugin";
-    }
-
-    public String description() {
-        return "A Plugin that implements the server transport for MQTT";
+    @Override
+    protected void configure() {
+        bind(Netty4MqttServerTransport.class).asEagerSingleton();
     }
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        return Collections.emptyList();
+    public Collection<Class<? extends LifecycleComponent>> getServiceClasses() {
+        return ImmutableList.of(Netty4MqttServerTransport.class);
     }
 
     @Override
-    public Settings additionalSettings() {
-        return Settings.EMPTY;
+    public Collection<Module> getModules() {
+        return Lists.newArrayList(this);
     }
 
     @Override
-    public List<Setting<?>> getSettings() {
-        return Collections.singletonList(Netty4MqttServerTransport.MQTT_PORT_SETTING.setting());
+    public Collection<Setting<?>> getSettings() {
+        return ImmutableList.of(INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING.setting(),
+            MQTT_PORT_SETTING.setting(),
+            MQTT_TIMEOUT_SETTING.setting());
     }
 
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return isEnterprise ? Collections.singleton(Netty4MqttServerTransport.class) : Collections.emptyList();
-    }
 }
