@@ -98,7 +98,7 @@ public class UpdateAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.MUTATE,
+            ReplaceMode.COPY,
             null,
             fieldResolver);
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);

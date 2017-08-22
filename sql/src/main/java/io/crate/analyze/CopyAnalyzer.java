@@ -38,7 +38,17 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
@@ -47,14 +57,23 @@ import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.projection.WriterProjection;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CopyTo;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -95,7 +114,7 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.MUTATE,
+            ReplaceMode.COPY,
             null,
             tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
@@ -159,7 +178,7 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.MUTATE,
+            ReplaceMode.COPY,
             null,
             tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);

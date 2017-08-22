@@ -22,11 +22,12 @@
 
 package io.crate.metadata;
 
-/**
- * {@link io.crate.analyze.symbol.Function} should become immutable, so ReplaceMode.MUTATE should no longer be used
- */
-@Deprecated
 public enum ReplaceMode {
     COPY,
+
+    /**
+     * {@link io.crate.analyze.symbol.Function} should become immutable, so ReplaceMode.MUTATE should no longer be used
+     */
+    @Deprecated
     MUTATE
 }

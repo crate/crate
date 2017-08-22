@@ -76,7 +76,7 @@ class DeleteAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            ReplaceMode.MUTATE,
+            ReplaceMode.COPY,
             null,
             docTableRelation);
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
