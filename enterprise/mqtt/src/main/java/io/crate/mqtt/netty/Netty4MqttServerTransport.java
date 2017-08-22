@@ -21,11 +21,11 @@ package io.crate.mqtt.netty;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.action.sql.SQLOperations;
+import io.crate.mqtt.CrateMqttSettings;
 import io.crate.mqtt.operations.CrateIngestService;
 import io.crate.mqtt.protocol.CrateMqttProcessor;
 import io.crate.protocols.postgres.BindPostgresException;
-import io.crate.settings.CrateSetting;
-import io.crate.types.DataTypes;
+import io.crate.settings.SharedSettings;
 import io.moquette.server.netty.metrics.BytesMetricsCollector;
 import io.moquette.server.netty.metrics.BytesMetricsHandler;
 import io.moquette.server.netty.metrics.MQTTMessageLogger;
@@ -45,13 +45,11 @@ import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -70,19 +68,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
 
+import static io.crate.mqtt.CrateMqttSettings.MQTT_PORT_SETTING;
+import static io.crate.mqtt.CrateMqttSettings.MQTT_TIMEOUT_SETTING;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
-
-    public static final CrateSetting<String> MQTT_PORT_SETTING = CrateSetting.of(new Setting<>(
-            "mqtt.port", "1883",
-            Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
-
-    public static final CrateSetting<TimeValue> MQTT_TIMEOUT_SETTING = CrateSetting.of(Setting.timeSetting(
-            "mqtt.timeout", TimeValue.timeValueSeconds(10L), TimeValue.timeValueSeconds(1L),
-            Setting.Property.NodeScope), DataTypes.STRING);
 
     private final NetworkService networkService;
 
@@ -90,13 +81,13 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private final SQLOperations sqlOperations;
     private final Logger logger;
     private final TimeValue defaultIdleTimeout;
+    private final boolean isEnterprise;
+    private final boolean isEnabled;
 
     private ServerBootstrap serverBootstrap;
 
     private final List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
-    @Nullable
-    private BoundTransportAddress boundAddress = null;
 
     private final BytesMetricsCollector bytesMetricsCollector = new BytesMetricsCollector();
     private final MessageMetricsCollector metricsCollector = new MessageMetricsCollector();
@@ -104,6 +95,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     @Inject
     public Netty4MqttServerTransport(Settings settings, NetworkService networkService, SQLOperations sqlOperations) {
         super(settings);
+        this.isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
+        this.isEnabled = CrateMqttSettings.INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING.setting().get(settings);
         this.logger = Loggers.getLogger("mqtt", settings);
         this.networkService = networkService;
         this.sqlOperations = sqlOperations;
@@ -113,6 +106,10 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() {
+        if (isEnterprise == false || isEnabled == false) {
+            return;
+        }
+
         EventLoopGroup boss = new NioEventLoopGroup(
                 Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-boss"));
         EventLoopGroup worker = new NioEventLoopGroup(
@@ -151,7 +148,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
         boolean success = false;
         try {
-            boundAddress = resolveBindAddress();
+            BoundTransportAddress boundAddress = resolveBindAddress();
             logger.info("{}", boundAddress);
             success = true;
         } finally {
@@ -161,7 +158,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         }
     }
 
-    static int resolvePublishPort(List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
+    private static int resolvePublishPort(List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
         for (InetSocketTransportAddress boundAddress : boundAddresses) {
             InetAddress boundInetAddress = boundAddress.address().getAddress();
             if (boundInetAddress.isAnyLocalAddress() || boundInetAddress.equals(publishInetAddress)) {
@@ -251,11 +248,6 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
     @Override
     protected void doClose() {
-    }
-
-    @Nullable
-    public BoundTransportAddress boundAddress() {
-        return boundAddress;
     }
 
 }
