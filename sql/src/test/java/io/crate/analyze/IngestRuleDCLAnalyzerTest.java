@@ -44,7 +44,7 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.ruleName(), is("v4"));
         assertThat(analysis.sourceName(), is("mqtt"));
         assertThat(analysis.targetTable().toString(), is("doc.t3"));
-        assertThat(analysis.whereClause(), is("(\"topic\" = 1)"));
+        assertThat(analysis.whereClause(), is("\"topic\" = 1"));
     }
 
     @Test
