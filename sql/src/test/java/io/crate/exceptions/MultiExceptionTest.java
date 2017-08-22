@@ -26,7 +26,12 @@ import com.google.common.collect.Lists;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.ArrayList;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class MultiExceptionTest extends CrateUnitTest {
 
@@ -36,5 +41,25 @@ public class MultiExceptionTest extends CrateUnitTest {
             new Exception("first one"), new Exception("second one")));
         assertThat(multiException.getMessage(), is("first one\n" +
                                                    "second one"));
+    }
+
+    @Test
+    public void testMaxCharactersInMultiException() throws Exception {
+        ArrayList<Exception> exceptions = new ArrayList<>();
+        for (int i = 0; i < 10_000; i++) {
+            exceptions.add(new Exception("exc"));
+        }
+        MultiException multiException = new MultiException(exceptions);
+        assertThat(multiException.getMessage().length(), is(10038));
+        assertThat(multiException.getMessage(), containsString("too much output. output truncated."));
+    }
+
+    @Test
+    public void testMultiExceptionsAreFlattened() throws Exception {
+        MultiException e1 = new MultiException(Lists.newArrayList(new Exception("exception 1"), new Exception("exception 2")));
+        Exception e2 = new Exception("exception 3");
+
+        MultiException multiException = MultiException.of(e1, e2);
+        multiException.getExceptions().forEach(ex -> assertThat(ex, not(instanceOf(MultiException.class))));
     }
 }
