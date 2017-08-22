@@ -48,6 +48,7 @@ dependencies {
     // include the enterprise module in classpath to be able to use it with Crate launched from within intellij
     runtime project(':enterprise:users')
     runtime project(':enterprise:ssl-impl')
+    runtime project(':enterprise:mqtt')
 
     testCompile project(':integration-testing')
 
@@ -408,13 +409,14 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task collectEnterpriseModules(dependsOn: [':enterprise:users:jar', ':enterprise:ssl-impl:jar']) {
+task collectEnterpriseModules(dependsOn: [':enterprise:users:jar', ':enterprise:ssl-impl:jar', ':enterprise:mqtt:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
         copy {
             from(project(':enterprise:users').tasks.jar.archivePath)
             from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
+            from(project(':enterprise:mqtt').tasks.jar.archivePath)
             into 'enterprise'
         }
     }
