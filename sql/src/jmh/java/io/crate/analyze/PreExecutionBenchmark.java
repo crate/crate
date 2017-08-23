@@ -28,13 +28,18 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.threadpool.TestThreadPool;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -56,11 +61,29 @@ public class PreExecutionBenchmark {
     @Setup
     public void setup() {
         threadPool = new TestThreadPool("testing");
+        ClusterSettings clusterSettings = new ClusterSettings(
+            Settings.EMPTY,
+            Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS));
+        ClusterService clusterService = new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+            clusterSettings,
+            threadPool,
+            () -> DiscoveryNodes.newNode("benchmarkNode"));
+        clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null ,null) {
+            @Override
+            public void connectToNodes(org.elasticsearch.cluster.node.DiscoveryNodes discoveryNodes) {
+                // skip
+            }
+
+            @Override
+            public void disconnectFromNodesExcept(org.elasticsearch.cluster.node.DiscoveryNodes nodesToKeep) {
+                // skip
+            }
+        });
+        clusterService.setDiscoverySettings(new DiscoverySettings(Settings.EMPTY, clusterSettings));
+        clusterService.setClusterStatePublisher((event, ackListener) -> {});
+        clusterService.start();
         e = SQLExecutor.builder(
-            new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
-                new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
-                threadPool,
-                () -> DiscoveryNodes.newNode("benchmarkNode"))).
+            clusterService).
             enableDefaultTables().
             build();
         selectStatement = SqlParser.createStatement("select name from users");
