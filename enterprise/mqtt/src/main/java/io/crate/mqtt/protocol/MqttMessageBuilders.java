@@ -18,7 +18,12 @@
 
 package io.crate.mqtt.protocol;
 
-import io.netty.handler.codec.mqtt.*;
+
+import io.netty.handler.codec.mqtt.MqttFixedHeader;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttMessageIdVariableHeader;
+import io.netty.handler.codec.mqtt.MqttMessageType;
+import io.netty.handler.codec.mqtt.MqttQoS;
 
 public final class MqttMessageBuilders {
 
