@@ -67,7 +67,10 @@ final class OptimizingRewriter {
 
         @Override
         public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Void context) {
-            QueriedRelation rewrite = semiJoins.tryRewrite(table, transactionContext);
+            QueriedRelation rewrite = null;
+            if (transactionContext.sessionContext().getSemiJoinsRewriteEnabled()) {
+                rewrite = semiJoins.tryRewrite(table, transactionContext);
+            }
             if (rewrite != null) {
                 return rewrite;
             }
