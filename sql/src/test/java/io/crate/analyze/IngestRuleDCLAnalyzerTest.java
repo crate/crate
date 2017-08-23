@@ -2,7 +2,6 @@ package io.crate.analyze;
 
 
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -45,6 +44,13 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.sourceName(), is("mqtt"));
         assertThat(analysis.targetTable().toString(), is("doc.t3"));
         assertThat(analysis.whereClause(), is("\"topic\" = 1"));
+    }
+
+    @Test
+    public void testRuleWhereClauseParameterAreReplacedWithValues() {
+        CreateIngestionRuleAnalysedStatement analysis = e.analyze("CREATE INGEST RULE v4 ON mqtt WHERE topic = ? INTO t3",
+            new Object[]{"topicValue"});
+        assertThat(analysis.whereClause(), is("\"topic\" = 'topicValue'"));
     }
 
     @Test
