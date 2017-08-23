@@ -27,6 +27,13 @@ Breaking Changes
 Changes
 =======
 
+ - Added new tab in Enterprise Edition of the Admin UI to display users 
+   and their privileges.
+
+ - The documentation link in the Admin UI now points to the documentation
+   for the major.minor (e.g. 2.1) version of CrateDB, instead of 
+   major.minor.hotfix (e.g. 2.1.1).
+
  - Added node cluster check for cluster-name folder in data path directory.
 
  - Update Crash to ``0.22.1`` which includes the following changes:
@@ -62,6 +69,10 @@ Changes
 
 Fixes
 =====
+
+ - Fixed issue that caused the Monitoring tab in the Admin UI to redirect
+   to ``/401`` when the user didn't have privileges for ``sys.cluster`` 
+   or ``sys.jobs_log``.
 
  - Fix display of redundant parenthesis around expressions visible in 
    `SHOW CREATE` and `EXPLAIN` statements.
