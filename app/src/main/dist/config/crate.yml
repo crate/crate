@@ -169,13 +169,13 @@
 
 #//////// MQTT ////////
 # Enable the MQTT ingestion implementation
-#ingestion.implementation.mqtt.enabled: false
+#ingestion.mqtt.enabled: false
 
 # Set a custom port for the mqtt implementation to connect to
-#mqtt.port: 1883
+#ingestion.mqtt.port: 1883
 
 # The time of no activity after which the mqtt connection is closed
-#mqtt.timeout: 10s
+#ingestion.mqtt.timeout: 10s
 
 ################################### Cluster ##################################
 
