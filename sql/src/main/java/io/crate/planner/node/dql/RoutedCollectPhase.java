@@ -28,6 +28,7 @@ import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
@@ -47,6 +48,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -305,12 +307,18 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (table.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
-            plannerContext.normalizer().normalizeInplace(tableFunctionRelation.function().arguments(), plannerContext.transactionContext());
+            List<Symbol> args = tableFunctionRelation.function().arguments();
+            ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
+            for (Symbol arg : args) {
+                // It's not possible to use columns as argument to a table function and subqueries are currently not allowed either.
+                functionArguments.add((Literal) plannerContext.normalizer().normalize(arg, plannerContext.transactionContext()));
+            }
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
-                tableFunctionRelation,
+                tableFunctionRelation.functionImplementation(),
+                functionArguments,
                 projections,
                 toCollect,
                 where

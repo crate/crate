@@ -67,11 +67,11 @@ public class TableFunctionCollectSource implements CollectSource {
             return RowsCollector.empty(consumer, collectPhase.toCollect().size());
         }
 
-        TableFunctionImplementation functionImplementation = phase.relation().functionImplementation();
+        TableFunctionImplementation functionImplementation = phase.functionImplementation();
         TableInfo tableInfo = functionImplementation.createTableInfo(clusterService);
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
-        List<Input<?>> inputs = (List<Input<?>>) (List) phase.relation().function().arguments();
+        List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();
         List<Reference> columns = new ArrayList<>(tableInfo.columns());
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
