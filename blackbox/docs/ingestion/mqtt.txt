@@ -6,7 +6,7 @@ MQTT Ingestion Implementation
 =============================
 
 The MQTT_ ingestion implementation allows CrateDB_ to function as an MQTT broker
-for data ingestion. It is built upon Netty_ 4.1 and Moquette_ 0.10.
+for data ingestion.
 This implementation is only available within the `Enterprise Edition`_ of CrateDB_.
 
 Please see also the documentation about the general :ref:`ingestion`.

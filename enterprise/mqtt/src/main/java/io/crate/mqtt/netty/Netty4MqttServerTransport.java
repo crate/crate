@@ -27,11 +27,6 @@ import io.crate.protocols.postgres.BindPostgresException;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
-import io.moquette.server.netty.metrics.BytesMetricsCollector;
-import io.moquette.server.netty.metrics.BytesMetricsHandler;
-import io.moquette.server.netty.metrics.MQTTMessageLogger;
-import io.moquette.server.netty.metrics.MessageMetricsCollector;
-import io.moquette.server.netty.metrics.MessageMetricsHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
@@ -102,9 +97,6 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private final List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
 
-    private final BytesMetricsCollector bytesMetricsCollector = new BytesMetricsCollector();
-    private final MessageMetricsCollector metricsCollector = new MessageMetricsCollector();
-
     @Inject
     public Netty4MqttServerTransport(Settings settings, NetworkService networkService, SQLOperations sqlOperations) {
         super(settings);
@@ -148,11 +140,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
                         pipeline.addFirst("idleStateHandler", defaultIdleHandler)
                                 .addAfter("idleStateHandler", "idleEventHandler", timeoutHandler)
-                                .addFirst("bytemetrics", new BytesMetricsHandler(bytesMetricsCollector))
                                 .addLast("decoder", new MqttDecoder())
                                 .addLast("encoder", MqttEncoder.INSTANCE)
-                                .addLast("metrics", new MessageMetricsHandler(metricsCollector))
-                                .addLast("messageLogger", new MQTTMessageLogger())
                                 .addLast("handler", handler);
                     }
                 });

@@ -20,12 +20,12 @@ package io.crate.mqtt.protocol;
 
 import com.google.common.base.Charsets;
 import io.crate.mqtt.operations.MqttIngestService;
-import io.moquette.server.netty.NettyUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.mqtt.*;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import io.netty.handler.codec.mqtt.MqttQoS;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +48,7 @@ public class MqttQualityOfServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        NettyUtils.clientID(ch, "c1");
+        MqttProcessor.setClientID(ch, "c1");
     }
 
     @Rule
@@ -56,14 +56,13 @@ public class MqttQualityOfServiceTest {
 
     private MqttPublishMessage messageWithQoS(MqttQoS level) {
         ByteBuf payload = Unpooled.copiedBuffer("{}".getBytes(Charsets.UTF_8));
-        MqttPublishMessage mqttPublishMessage = MqttMessageBuilders.publish()
+        return MqttMessageBuilders.publish()
                 .qos(level)
                 .retained(false)
                 .topicName("t1")
                 .messageId(1)
                 .payload(payload)
                 .build();
-        return mqttPublishMessage;
     }
 
     @Test

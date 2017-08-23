@@ -53,7 +53,7 @@ public class MqttProcessorTest {
                 MqttMessageType.CONNECT, false, MqttQoS.AT_LEAST_ONCE, false, 0);
         MqttConnectVariableHeader variableHeader = new MqttConnectVariableHeader(
                 "connect", (byte) 1, false, false, false, (byte) 1, false, false, 60);
-        MqttConnectPayload payload = new MqttConnectPayload("mqttClient", null, null, null, null);
+        MqttConnectPayload payload = new MqttConnectPayload("mqttClient", "someTopic", new byte[0], null, null);
         processor.handleConnect(ch,
                 (MqttConnectMessage) MqttMessageFactory.newMessage(fixedHeader, variableHeader, payload));
 
