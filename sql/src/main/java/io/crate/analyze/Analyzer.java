@@ -408,7 +408,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateIngestRule(CreateIngestRule node, Analysis context) {
-            return createIngestionRuleAnalyzer.analyze(node);
+            return createIngestionRuleAnalyzer.analyze(node, context);
         }
 
     }

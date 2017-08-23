@@ -84,6 +84,8 @@ import static io.crate.sql.SqlFormatter.formatSql;
 
 public final class ExpressionFormatter {
 
+    private static final Formatter DEFAULT_FORMATTER = new Formatter();
+
     private static final Collector<CharSequence, ?, String> COMMA_JOINER = Collectors.joining(", ");
 
     private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = ImmutableSet.of(
@@ -99,7 +101,11 @@ public final class ExpressionFormatter {
      * surrounded by parenthesis)
      */
     public static String formatStandaloneExpression(Expression expression) {
-        String formattedExpression = formatExpression(expression);
+        return formatStandaloneExpression(expression, DEFAULT_FORMATTER);
+    }
+
+    public static <T extends Formatter> String formatStandaloneExpression(Expression expression, T formatter) {
+        String formattedExpression = formatter.process(expression, null);
         if (formattedExpression.startsWith("(") && formattedExpression.endsWith(")")) {
             return formattedExpression.substring(1, formattedExpression.length() - 1);
         } else {
@@ -108,7 +114,11 @@ public final class ExpressionFormatter {
     }
 
     public static String formatExpression(Expression expression) {
-        return new Formatter().process(expression, null);
+        return formatExpression(expression, DEFAULT_FORMATTER);
+    }
+
+    private static <T extends Formatter> String formatExpression(Expression expression, T formatter) {
+        return formatter.process(expression, null);
     }
 
     public static class Formatter extends AstVisitor<String, Void> {
