@@ -87,7 +87,16 @@ import org.junit.rules.Timeout;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -181,33 +190,30 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         activeContexts.setAccessible(true);
         activeOperationsSb.setAccessible(true);
         try {
-            assertBusy(new Runnable() {
-                @Override
-                public void run() {
-                    for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
-                        try {
-                            //noinspection unchecked
-                            Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
-                            assertThat(contexts.size(), is(0));
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(e);
-                        }
+            assertBusy(() -> {
+                for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
+                    try {
+                        //noinspection unchecked
+                        Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
+                        assertThat(contexts.size(), is(0));
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
                     }
-                    for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
-                        try {
-                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
-                            assertThat(operations.size(), is(0));
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(e);
-                        }
+                }
+                for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
+                    try {
+                        Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                        assertThat(operations.size(), is(0));
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
                     }
-                    for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
-                        try {
-                            Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
-                            assertThat(operations.size(), is(0));
-                        } catch (IllegalAccessException e) {
-                            throw new RuntimeException(e);
-                        }
+                }
+                for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
+                    try {
+                        Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
+                        assertThat(operations.size(), is(0));
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }, 10L, TimeUnit.SECONDS);
@@ -237,15 +243,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
-                for (IndicesService indicesService : indexServices) {
-                    for (IndexService indexService : indicesService) {
-                        for (IndexShard indexShard : indexService) {
-                            assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
-                        }
+        assertBusy(() -> {
+            Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
+            for (IndicesService indicesService : indexServices) {
+                for (IndexService indexService : indicesService) {
+                    for (IndexShard indexShard : indexService) {
+                        assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
                     }
                 }
             }
@@ -253,17 +256,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitUntilThreadPoolTasksFinished(final String name) throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                Iterable<ThreadPool> threadPools = internalCluster().getInstances(ThreadPool.class);
-                for (ThreadPool threadPool : threadPools) {
-                    ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
-                    assertThat(executor.getActiveCount(), is(0));
-                }
+        assertBusy(() -> {
+            Iterable<ThreadPool> threadPools = internalCluster().getInstances(ThreadPool.class);
+            for (ThreadPool threadPool : threadPools) {
+                ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
+                assertThat(executor.getActiveCount(), is(0));
             }
         }, 5, TimeUnit.SECONDS);
-
     }
 
     /**

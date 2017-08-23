@@ -36,6 +36,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -91,7 +92,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
         assertThat(Iterables.size(iterable), is(3));
     }
 
-    private final class Initializer implements Runnable {
+    private final class Initializer implements CheckedRunnable<Exception> {
         @Override
         public void run() {
             try {

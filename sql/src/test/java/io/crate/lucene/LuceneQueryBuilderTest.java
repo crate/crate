@@ -43,6 +43,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
@@ -56,7 +57,6 @@ import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -352,7 +352,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testIdQuery() throws Exception {
         Query query = convert("_id = 'i1'");
-        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query, instanceOf(TermInSetQuery.class));
         assertThat(query.toString(), is("_uid:default#i1"));
     }
 

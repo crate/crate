@@ -44,7 +44,11 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 @UseJdbc
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
@@ -119,23 +123,20 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Nullable
     private String waitForJobEntry(final String statement) throws Exception {
         final SettableFuture<String> jobIdFuture = SettableFuture.create();
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", $(statement));
-                if (logResponse.rowCount() == 0) {
-                    logResponse = execute("select * from sys.jobs_log where stmt = ?", $(statement));
-                    if (logResponse.rowCount() > 0L) {
-                        // query finished before jobId could be retrieved
-                        // finishing without killing - test will pass which is okay because it is not deterministic by design
-                        jobIdFuture.set(null);
-                        return;
-                    }
+        assertBusy(() -> {
+            SQLResponse logResponse = execute("select * from sys.jobs where stmt = ?", $(statement));
+            if (logResponse.rowCount() == 0) {
+                logResponse = execute("select * from sys.jobs_log where stmt = ?", $(statement));
+                if (logResponse.rowCount() > 0L) {
+                    // query finished before jobId could be retrieved
+                    // finishing without killing - test will pass which is okay because it is not deterministic by design
+                    jobIdFuture.set(null);
+                    return;
                 }
-                assertThat(logResponse.rowCount(), greaterThan(0L));
-                String jobId = logResponse.rows()[0][0].toString();
-                jobIdFuture.set(jobId);
             }
+            assertThat(logResponse.rowCount(), greaterThan(0L));
+            String jobId = logResponse.rows()[0][0].toString();
+            jobIdFuture.set(jobId);
         });
         return jobIdFuture.get(10, TimeUnit.SECONDS);
     }

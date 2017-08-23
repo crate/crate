@@ -33,7 +33,9 @@ import org.elasticsearch.snapshots.SnapshotsService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Singleton
 public class SysSnapshots {
@@ -54,12 +56,12 @@ public class SysSnapshots {
             final String repositoryName = repository.getMetadata().name();
 
 
-            List<SnapshotId> compatibleSnapshotIds =
-                repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds();
-            List<SnapshotId> incompatibleSnapshotIds =
-                repositoriesService.repository(repositoryName).getRepositoryData().getIncompatibleSnapshotIds();
-            List<SnapshotInfo> snapshots =
-                snapshotsService.snapshots(repositoryName, compatibleSnapshotIds, incompatibleSnapshotIds, true);
+            List<SnapshotId> compatibleSnapshotIds = new ArrayList<>(
+                repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds());
+            Set<SnapshotId> incompatibleSnapshotIds = new HashSet<>(
+                repositoriesService.repository(repositoryName).getRepositoryData().getIncompatibleSnapshotIds());
+            List<SnapshotInfo> snapshots = new ArrayList<>(
+                snapshotsService.snapshots(repositoryName, compatibleSnapshotIds, incompatibleSnapshotIds, true));
             sysSnapshots.addAll(Lists.transform(snapshots, new Function<SnapshotInfo, SysSnapshot>() {
                 @Nullable
                 @Override

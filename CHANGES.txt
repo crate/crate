@@ -22,16 +22,18 @@ Breaking Changes
    tables have the real column `name`). Statements with aliases that shadowed
    a real column and also retrieve that real column will no longer fail as the
    real column will be used in the `GROUP BY` clause (this will not be
-   ambigous anymore).
+   ambiguous anymore).
 
 Changes
 =======
 
- - Added new tab in Enterprise Edition of the Admin UI to display users 
+ - Upgraded Elasticsearch to v5.5.2.
+
+ - Added new tab in Enterprise Edition of the Admin UI to display users
    and their privileges.
 
  - The documentation link in the Admin UI now points to the documentation
-   for the major.minor (e.g. 2.1) version of CrateDB, instead of 
+   for the major.minor (e.g. 2.1) version of CrateDB, instead of
    major.minor.hotfix (e.g. 2.1.1).
 
  - Added node cluster check for cluster-name folder in data path directory.
@@ -74,10 +76,10 @@ Fixes
    unsupported.
 
  - Fixed issue that caused the Monitoring tab in the Admin UI to redirect
-   to ``/401`` when the user didn't have privileges for ``sys.cluster`` 
+   to ``/401`` when the user didn't have privileges for ``sys.cluster``
    or ``sys.jobs_log``.
 
- - Fix display of redundant parenthesis around expressions visible in 
+ - Fix display of redundant parenthesis around expressions visible in
    `SHOW CREATE` and `EXPLAIN` statements.
 
  - Fixed an issue that caused `path.logs` setting in `crate.yml` to be ignored.

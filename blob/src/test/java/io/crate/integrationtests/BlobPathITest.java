@@ -143,12 +143,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         blobAdminClient.dropBlobTable("test");
         String blobRootPath = String.format("%s/nodes/0/indices/.blob_test", tableBlobPath.toString());
 
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                assertFalse(Files.exists(Paths.get(blobRootPath)));
-            }
-        }, 5, TimeUnit.SECONDS);
+        assertBusy(() -> assertFalse(Files.exists(Paths.get(blobRootPath))), 5, TimeUnit.SECONDS);
     }
 
     @Test

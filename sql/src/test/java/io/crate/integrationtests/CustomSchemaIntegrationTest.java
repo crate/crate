@@ -107,14 +107,11 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         execute("drop table custom.foo");
         assertThat(client().admin().indices().exists(new IndicesExistsRequest("custom.foo")).actionGet().isExists(), is(false));
 
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    execute("select * from custom.foo");
-                    fail("should wait for cache invalidation");
-                } catch (Exception ignored) {
-                }
+        assertBusy(() -> {
+            try {
+                execute("select * from custom.foo");
+                fail("should wait for cache invalidation");
+            } catch (Exception ignored) {
             }
         });
     }

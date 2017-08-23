@@ -33,7 +33,11 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.joda.time.DateTimeUtils;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.charset.StandardCharsets;
@@ -49,7 +53,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
@@ -545,23 +557,20 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
 
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                SQLResponse resp = execute("select * from sys.operations_log order by ended limit 3");
+        assertBusy(() -> {
+            SQLResponse response = execute("select * from sys.operations_log order by ended limit 3");
 
-                List<String> names = new ArrayList<>();
-                for (Object[] objects : resp.rows()) {
-                    names.add((String) objects[4]);
-                }
-                assertThat(names, Matchers.anyOf(
-                    Matchers.hasItems("distributing collect", "distributing collect"),
-                    Matchers.hasItems("collect", "localMerge"),
-
-                    // the select * from sys.operations_log has 2 collect operations (1 per node)
-                    Matchers.hasItems("collect", "collect"),
-                    Matchers.hasItems("distributed merge", "localMerge")));
+            List<String> names = new ArrayList<>();
+            for (Object[] objects : response.rows()) {
+                names.add((String) objects[4]);
             }
+            assertThat(names, Matchers.anyOf(
+                Matchers.hasItems("distributing collect", "distributing collect"),
+                Matchers.hasItems("collect", "localMerge"),
+
+                // the select * from sys.operations_log has 2 collect operations (1 per node)
+                Matchers.hasItems("collect", "collect"),
+                Matchers.hasItems("distributed merge", "localMerge")));
         }, 10L, TimeUnit.SECONDS);
 
         execute("reset global stats.enabled, stats.operations_log_size");

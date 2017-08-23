@@ -75,9 +75,7 @@ public class JobContextIntegrationTest extends SQLTransportIntegrationTest {
         final Field activeContexts = JobContextService.class.getDeclaredField("activeContexts");
         activeContexts.setAccessible(true);
 
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
+        assertBusy(() -> {
                 for (JobContextService jobContextService : internalCluster().getInstances(JobContextService.class)) {
                     Map<UUID, JobExecutionContext> contextMap = null;
                     try {
@@ -87,9 +85,6 @@ public class JobContextIntegrationTest extends SQLTransportIntegrationTest {
                         fail(e.getMessage());
                     }
                 }
-            }
         }, 1, TimeUnit.SECONDS);
     }
-
-
 }
