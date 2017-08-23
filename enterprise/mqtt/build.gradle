@@ -4,35 +4,9 @@ archivesBaseName = 'mqtt'
 group = 'io.crate'
 description = 'MQTT ingestion implementation'
 
-configurations {
-    dependency
-    compile.extendsFrom dependency
-    requiredLibs.transitive = true
-}
-
 dependencies {
     compile project(':sql')
-    compile ('io.moquette:moquette-broker:0.10') {
-        exclude group: 'org.mapdb'
-        exclude group: 'org.hdrhistogram'
-        exclude group: 'com.hazelcast'
-        exclude group: 'commons-codec'
-        exclude group: 'org.slf4j'
-        exclude group: 'com.google.guava'
-        exclude group: 'com.fasterxml.jackson.core'
-        exclude group: 'io.dropwizard.metrics'
-    }
-
-    requiredLibs('io.moquette:moquette-broker:0.10') {
-        exclude group: 'org.mapdb'
-        exclude group: 'org.hdrhistogram'
-        exclude group: 'com.hazelcast'
-        exclude group: 'commons-codec'
-        exclude group: 'org.slf4j'
-        exclude group: 'com.google.guava'
-        exclude group: 'com.fasterxml.jackson.core'
-        exclude group: 'io.dropwizard.metrics'
-    }
+    compile "io.netty:netty-codec-mqtt:${versions.netty4}"
 
     testCompile project(':integration-testing')
     testCompile project(path: ':sql', configuration: 'testOutput')
