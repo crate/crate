@@ -47,10 +47,8 @@ import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.user.UserManager;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
@@ -63,7 +61,6 @@ import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
-import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -101,41 +98,32 @@ public class AlterTableOperation {
 
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-    private final TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction;
     private final TransportPutMappingAction transportPutMappingAction;
     private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportOpenIndexAction transportOpenIndexAction;
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
-    private final TransportIndicesAliasesAction transportIndicesAliasesAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
-    private final UserManager userManager;
     private final SQLOperations sqlOperations;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                               TransportDeleteIndexTemplateAction transportDeleteIndexTemplateAction,
                                TransportPutMappingAction transportPutMappingAction,
                                TransportUpdateSettingsAction transportUpdateSettingsAction,
                                TransportOpenIndexAction transportOpenIndexAction,
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
-                               TransportIndicesAliasesAction transportIndicesAliasesAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
-                               UserManager userManager,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.transportDeleteIndexTemplateAction = transportDeleteIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.transportOpenIndexAction = transportOpenIndexAction;
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
-        this.transportIndicesAliasesAction = transportIndicesAliasesAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
-        this.userManager = userManager;
         this.sqlOperations = sqlOperations;
     }
 

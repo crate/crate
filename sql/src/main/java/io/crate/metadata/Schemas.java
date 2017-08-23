@@ -126,12 +126,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemaInfo;
     }
 
-    public void validateSchemaName(String schemaName) {
-        if (schemas.get(schemaName) == null) {
-            throw new SchemaUnknownException(schemaName);
-        }
-    }
-
     @Nonnull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
