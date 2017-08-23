@@ -34,9 +34,9 @@ public class CrateMqttSettings {
     private CrateMqttSettings() {
     }
 
-    private static final String INGESTION_IMPLEMENTATION_MQTT_ENABLED = "ingestion.implementation.mqtt.enabled";
-    private static final String MQTT_PORT = "mqtt.port";
-    private static final String MQTT_TIMEOUT = "mqtt.timeout";
+    private static final String INGESTION_IMPLEMENTATION_MQTT_ENABLED = "ingestion.mqtt.enabled";
+    private static final String MQTT_PORT = "ingestion.mqtt.port";
+    private static final String MQTT_TIMEOUT = "ingestion.mqtt.timeout";
 
     public static final CrateSetting<Boolean> INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING = CrateSetting.of(
         Setting.boolSetting(INGESTION_IMPLEMENTATION_MQTT_ENABLED, false, Setting.Property.NodeScope),
