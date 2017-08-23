@@ -35,7 +35,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import io.crate.types.SingleColumnTableType;
 
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 
@@ -147,8 +146,7 @@ public class CastFunctionResolver {
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
         DataType sourceType = sourceSymbol.valueType();
         FunctionInfo functionInfo = functionInfo(sourceType, targetType, tryCast);
-        //noinspection ArraysAsListWithZeroOrOneArgument  # arguments of Function must be mutable
-        return new io.crate.analyze.symbol.Function(functionInfo, Arrays.asList(sourceSymbol));
+        return new io.crate.analyze.symbol.Function(functionInfo, ImmutableList.of(sourceSymbol));
     }
 
     /**

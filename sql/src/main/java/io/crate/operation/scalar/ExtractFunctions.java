@@ -28,8 +28,12 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -38,7 +42,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
-import java.util.Arrays;
 import java.util.Locale;
 
 public class ExtractFunctions {
@@ -144,7 +147,7 @@ public class ExtractFunctions {
 
                 Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
                 //noinspection ArraysAsListWithZeroOrOneArgument # need mutable list as arg to function
-                Function function = new Function(scalar.info(), Arrays.asList(symbol.arguments().get(1)));
+                Function function = new Function(scalar.info(), ImmutableList.of(symbol.arguments().get(1)));
                 return scalar.normalizeSymbol(function, transactionContext);
             }
             return super.normalizeSymbol(symbol, transactionContext);

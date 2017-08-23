@@ -9,7 +9,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -21,7 +20,7 @@ public class Function extends Symbol implements Cloneable {
     public Function(StreamInput in) throws IOException {
         info = new FunctionInfo();
         info.readFrom(in);
-        arguments = Symbols.listFromStream(in);
+        arguments = ImmutableList.copyOf(Symbols.listFromStream(in));
     }
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
@@ -29,10 +28,7 @@ public class Function extends Symbol implements Cloneable {
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size(),
             "number of arguments must match the number of argumentTypes of the FunctionIdent");
         this.info = info;
-
-        assert arguments.isEmpty() || !(arguments instanceof ImmutableList) :
-            "must not be an immutable list - would break setArgument";
-        this.arguments = arguments;
+        this.arguments = ImmutableList.copyOf(arguments);
     }
 
     public List<Symbol> arguments() {
@@ -95,6 +91,6 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public Function clone() {
-        return new Function(this.info, new ArrayList<>(this.arguments));
+        return new Function(this.info, this.arguments);
     }
 }

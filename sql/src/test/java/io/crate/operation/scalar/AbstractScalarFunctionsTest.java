@@ -26,9 +26,18 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.data.Input;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -47,7 +56,12 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
@@ -305,16 +319,21 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
         @Override
         public Input visitFunction(Function function, InputApplierContext context) {
-            Input[] argInputs = new Input[function.arguments().size()];
-            for (int j = 0; j < function.arguments().size(); j++) {
-                Input input = function.arguments().get(j).accept(this, context);
+            List<Symbol> args = function.arguments();
+            Input[] argInputs = new Input[args.size()];
+            ArrayList<Symbol> newArgs = new ArrayList<>(args.size());
+            for (int j = 0; j < args.size(); j++) {
+                Symbol arg = args.get(j);
+                Input input = arg.accept(this, context);
                 argInputs[j] = input;
                 // replace arguments on function for normalization
                 if (input instanceof Literal) {
-                    function.arguments().set(j, (Literal) argInputs[j]);
+                    newArgs.add((Literal) argInputs[j]);
+                } else {
+                    newArgs.add(arg);
                 }
             }
-
+            function = new Function(function.info(), newArgs);
             try {
                 return (Input) context.sqlExpressions.normalize(function);
             } catch (Exception e) {

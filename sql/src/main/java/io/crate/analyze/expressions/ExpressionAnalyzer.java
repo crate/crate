@@ -25,7 +25,6 @@ package io.crate.analyze.expressions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -60,7 +59,6 @@ import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.operation.operator.RegexpMatchOperator;
-import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
@@ -259,7 +257,7 @@ public class ExpressionAnalyzer {
 
             // define the outer function which contains the inner function as argument.
             String nodeName = "collection_" + name;
-            List<Symbol> outerArguments =  Arrays.asList(innerFunction); // needs to be mutable
+            List<Symbol> outerArguments = ImmutableList.of(innerFunction);
             List<DataType> outerArgumentTypes = ImmutableList.of(new SetType(argumentTypes.get(0))); // can be immutable
             try {
                 functionInfo = getBuiltinFunctionInfo(nodeName, outerArgumentTypes);
@@ -458,7 +456,7 @@ public class ExpressionAnalyzer {
             expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
             Symbol field = castIfNeededOrFail(process(node.getField(), context), DataTypes.STRING);
             return context.allocateFunction(
-                ExtractFunctions.GENERIC_INFO, Arrays.asList(field, expression));
+                ExtractFunctions.GENERIC_INFO, ImmutableList.of(field, expression));
         }
 
         @Override
@@ -497,7 +495,7 @@ public class ExpressionAnalyzer {
                 getBuiltinFunctionInfo(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(argument.valueType()));
             return context.allocateFunction(
                 NotPredicate.INFO,
-                Arrays.asList(context.allocateFunction(isNullInfo, Arrays.asList(argument))));
+                ImmutableList.of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
         }
 
         @Override
@@ -529,15 +527,15 @@ public class ExpressionAnalyzer {
                     getBuiltinFunctionInfo(
                         SubscriptFunction.NAME,
                         ImmutableList.of(subscriptSymbol.valueType(), indexSymbol.valueType())),
-                    Arrays.asList(subscriptSymbol, indexSymbol)
+                    ImmutableList.of(subscriptSymbol, indexSymbol)
                 );
             } else if (parts != null && subscriptExpression != null) {
                 FunctionInfo info = getBuiltinFunctionInfo( SubscriptObjectFunction.NAME,
                     ImmutableList.of(subscriptSymbol.valueType(), DataTypes.STRING));
 
-                Symbol function = context.allocateFunction(info, Arrays.asList(subscriptSymbol, Literal.of(parts.get(0))));
+                Symbol function = context.allocateFunction(info, ImmutableList.of(subscriptSymbol, Literal.of(parts.get(0))));
                 for (int i = 1; i < parts.size(); i++) {
-                    function = context.allocateFunction(info, Arrays.asList(function, Literal.of(parts.get(i))));
+                    function = context.allocateFunction(info, ImmutableList.of(function, Literal.of(parts.get(i))));
                 }
                 return function;
             }
@@ -546,7 +544,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, ExpressionAnalysisContext context) {
-            FunctionInfo functionInfo;
+            final FunctionInfo functionInfo;
             switch (node.getType()) {
                 case AND:
                     functionInfo = AndOperator.INFO;
@@ -558,9 +556,10 @@ public class ExpressionAnalyzer {
                     throw new UnsupportedOperationException(
                         "Unsupported logical binary expression " + node.getType().name());
             }
-            List<Symbol> arguments = new ArrayList<>(2);
-            arguments.add(process(node.getLeft(), context));
-            arguments.add(process(node.getRight(), context));
+            List<Symbol> arguments = ImmutableList.of(
+                process(node.getLeft(), context),
+                process(node.getRight(), context)
+            );
             return context.allocateFunction(functionInfo, arguments);
         }
 
@@ -568,7 +567,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitNotExpression(NotExpression node, ExpressionAnalysisContext context) {
             Symbol argument = process(node.getValue(), context);
             return context.allocateFunction(
-                getBuiltinFunctionInfo(NotPredicate.NAME, Arrays.asList(argument.valueType())), Arrays.asList(argument));
+                getBuiltinFunctionInfo(NotPredicate.NAME, ImmutableList.of(argument.valueType())), ImmutableList.of(argument));
         }
 
         @Override
@@ -623,8 +622,8 @@ public class ExpressionAnalyzer {
             String operatorName;
             operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
             return context.allocateFunction(
-                getBuiltinFunctionInfo(operatorName, Arrays.asList(leftSymbol.valueType(), arraySymbolType)),
-                Arrays.asList(leftSymbol, arraySymbol));
+                getBuiltinFunctionInfo(operatorName, ImmutableList.of(leftSymbol.valueType(), arraySymbolType)),
+                ImmutableList.of(leftSymbol, arraySymbol));
         }
 
         @Override
@@ -645,8 +644,8 @@ public class ExpressionAnalyzer {
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
             return context.allocateFunction(
-                getBuiltinFunctionInfo(operatorName, Arrays.asList(leftSymbol.valueType(), rightSymbol.valueType())),
-                Arrays.asList(leftSymbol, rightSymbol));
+                getBuiltinFunctionInfo(operatorName, ImmutableList.of(leftSymbol.valueType(), rightSymbol.valueType())),
+                ImmutableList.of(leftSymbol, rightSymbol));
         }
 
         @Override
@@ -659,7 +658,7 @@ public class ExpressionAnalyzer {
             Symbol pattern = castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING);
             return context.allocateFunction(
                 getBuiltinFunctionInfo(LikeOperator.NAME, Arrays.asList(expression.valueType(), pattern.valueType())),
-                Arrays.asList(expression, pattern));
+                ImmutableList.of(expression, pattern));
         }
 
         @Override
@@ -668,7 +667,7 @@ public class ExpressionAnalyzer {
 
             return context.allocateFunction(
                 getBuiltinFunctionInfo(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(value.valueType())),
-                Arrays.asList(value));
+                ImmutableList.of(value));
         }
 
         @Override
@@ -686,9 +685,8 @@ public class ExpressionAnalyzer {
 
             return context.allocateFunction(
                 getBuiltinFunctionInfo(
-                    node.getType().name().toLowerCase(Locale.ENGLISH),
-                    Arrays.asList(left.valueType(), right.valueType())),
-                Arrays.asList(left, right));
+                    node.getType().name().toLowerCase(Locale.ENGLISH), Arrays.asList(left.valueType(), right.valueType())),
+                ImmutableList.of(left, right));
         }
 
         @Override
@@ -870,11 +868,6 @@ public class ExpressionAnalyzer {
 
     private static class Comparison {
 
-        private static final Set<ComparisonExpression.Type> NEGATING_TYPES = ImmutableSet.of(
-            ComparisonExpression.Type.REGEX_NO_MATCH,
-            ComparisonExpression.Type.REGEX_NO_MATCH_CI,
-            ComparisonExpression.Type.NOT_EQUAL);
-
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
         private Symbol right;
@@ -936,12 +929,8 @@ public class ExpressionAnalyzer {
          * does nothing if operator != not equals
          */
         private void rewriteNegatingOperators(ExpressionAnalysisContext context) {
-            if (!NEGATING_TYPES.contains(comparisonExpressionType)) {
-                return;
-            }
-
-            String opName = null;
-            DataType opType = null;
+            final String opName;
+            final DataType opType;
             switch (comparisonExpressionType) {
                 case NOT_EQUAL:
                     opName = EqOperator.NAME;
@@ -955,13 +944,12 @@ public class ExpressionAnalyzer {
                     opName = RegexpMatchCaseInsensitiveOperator.NAME;
                     opType = RegexpMatchCaseInsensitiveOperator.RETURN_TYPE;
                     break;
-            }
 
-            FunctionIdent ident = new FunctionIdent(opName, Arrays.asList(leftType, rightType));
-            left = context.allocateFunction(
-                new FunctionInfo(ident, opType),
-                Arrays.asList(left, right)
-            );
+                default:
+                    return; // non-negating comparison
+            }
+            FunctionIdent ident = new FunctionIdent(opName, ImmutableList.of(leftType, rightType));
+            left = context.allocateFunction(new FunctionInfo(ident, opType), ImmutableList.of(left, right));
             right = null;
             rightType = null;
             functionIdent = NotPredicate.INFO.ident();
@@ -979,9 +967,9 @@ public class ExpressionAnalyzer {
         List<Symbol> arguments() {
             if (right == null) {
                 // this is the case if the comparison has been rewritten to not(eq(exp1, exp2))
-                return Arrays.asList(left);
+                return ImmutableList.of(left);
             }
-            return Arrays.asList(left, right);
+            return ImmutableList.of(left, right);
         }
     }
 }
