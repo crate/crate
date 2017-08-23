@@ -37,11 +37,13 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     private final int defaultLimit;
     private final Set<Option> options;
-    private String defaultSchema;
     @Nullable
     private final User user;
     private final StatementAuthorizedValidator statementAuthorizedValidator;
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
+
+    private String defaultSchema;
+    private boolean semiJoinsRewriteEnabled;
 
     public SessionContext(@Nullable String defaultSchema,
                           @Nullable User user,
@@ -85,6 +87,14 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public void setDefaultSchema(String schema) {
         defaultSchema = Objects.requireNonNull(schema, "Default schema must never be set to null");
+    }
+
+    public void setSemiJoinsRewriteEnabled(boolean flag) {
+        this.semiJoinsRewriteEnabled = flag;
+    }
+
+    public boolean getSemiJoinsRewriteEnabled() {
+        return semiJoinsRewriteEnabled;
     }
 
     @Nullable
