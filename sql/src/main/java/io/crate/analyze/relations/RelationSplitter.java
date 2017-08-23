@@ -206,20 +206,38 @@ public final class RelationSplitter {
 
         Symbol query = querySpec.where().query();
         assert query != null : "query must not be null";
-        QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
-        JoinConditionValidator.validate(context.query());
-        querySpec.where(new WhereClause(context.query()));
-        for (Map.Entry<QualifiedName, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
-            QuerySpec qs = getSpec(entry.getKey());
-            Symbol mergedQuery = AndOperator.join(entry.getValue());
-            AnalyzedRelation relation = relations.get(entry.getKey());
+
+        Map<Set<QualifiedName>, Symbol> splitQueries = QuerySplitter.split(query);
+        for (Map.Entry<QualifiedName, AnalyzedRelation> relationEntry : relations.entrySet()) {
+            QualifiedName relationName = relationEntry.getKey();
+            if (JoinPairs.isOuterRelation(relationName, joinPairs)) {
+                /* If the query involves a relation that is part of an outer join is cannot be pushed down.
+                 * The predicate must be applied *after* the join, because a outer join can *create* null values.
+                 *
+                 * The predicate could filter these null values if it's applied POST-join, but wouldn't if it's applied pre-join
+                 */
+                continue;
+            }
+            AnalyzedRelation relation = relationEntry.getValue();
+            Symbol queryForRelation = splitQueries.remove(Collections.singleton(relationName));
+            if (queryForRelation == null) {
+                continue;
+            }
+            QuerySpec qs = getSpec(relationName);
 
             // Case of subselect
             if (!(relation instanceof AbstractTableRelation)) {
-                applyAsWhereOrHaving(qs, mergedQuery, (QueriedRelation) relation);
+                applyAsWhereOrHaving(qs, queryForRelation, (QueriedRelation) relation);
             } else {
-                qs.where(qs.where().add(mergedQuery));
+                qs.where(qs.where().add(queryForRelation));
             }
+        }
+        if (splitQueries.isEmpty()) {
+            querySpec.where(WhereClause.MATCH_ALL);
+        } else {
+            Symbol newQuery = AndOperator.join(splitQueries.values());
+            JoinConditionValidator.validate(newQuery);
+            querySpec.where(new WhereClause(newQuery));
         }
     }
 

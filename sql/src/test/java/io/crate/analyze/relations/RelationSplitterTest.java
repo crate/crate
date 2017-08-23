@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -96,13 +95,14 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.analyze.symbol.MatchPredicate.class));
 
         splitQuerySpec = splitter.getSpec(T3.TR_2);
-        assertThat(splitQuerySpec.where().query(), isFunction("op_and"));
+        assertThat(splitQuerySpec.where().query(), isSQL("(doc.t2.b = '1')"));
     }
 
     @Test
     public void testMatchWithColumnsFrom2Relations() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Must not use columns from more than 1 relation inside the MATCH predicate");
+        expectedException.expectMessage(
+            "Cannot use MATCH predicates on columns of 2 different relations if it cannot be logically applied on each of them separately");
         QuerySpec querySpec = fromQuery("match ((a, b), 'search term')");
         split(querySpec);
     }
@@ -112,9 +112,9 @@ public class RelationSplitterTest extends CrateUnitTest {
         QuerySpec querySpec = fromQuery("x = 1 and y = 3 and x + y = 4");
         RelationSplitter splitter = split(querySpec);
 
-        assertThat(querySpec, isSQL("SELECT true WHERE (true AND (add(doc.t1.x, doc.t2.y) = 4))"));
+        assertThat(querySpec, isSQL("SELECT true WHERE (add(doc.t1.x, doc.t2.y) = 4)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (true AND (doc.t2.y = 3))"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 3)"));
     }
 
 
@@ -186,8 +186,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y ORDER BY doc.t1.x, doc.t2.y, doc.t3.z LIMIT 20"));
 
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (true AND (doc.t2.y = 2))"));
-        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (true AND (doc.t3.z = 3))"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 2)"));
+        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (doc.t3.z = 3)"));
     }
 
     @Test
@@ -225,7 +225,7 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(querySpec, isSQL("SELECT true"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT  WHERE (NOT ((doc.t1.a = '1') AND (doc.t1.x = 2)))"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT  WHERE (true AND (doc.t2.b = '2'))"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT  WHERE (doc.t2.b = '2')"));
     }
 
     @Test
@@ -261,7 +261,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         QuerySpec querySpec = fromQuery("t1.a = t2.b and t1.a = 'employees'");
         RelationSplitter splitter = split(querySpec);
 
-        assertThat(querySpec, isSQL("SELECT true WHERE ((doc.t1.a = doc.t2.b) AND true)"));
+        assertThat(querySpec, isSQL("SELECT true WHERE (doc.t1.a = doc.t2.b)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a WHERE (doc.t1.a = 'employees')"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b"));
     }

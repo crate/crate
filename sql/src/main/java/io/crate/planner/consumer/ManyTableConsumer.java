@@ -45,6 +45,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
@@ -650,6 +651,14 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public Void visitField(Field field, Set<QualifiedName> context) {
             context.add(field.relation().getQualifiedName());
+            return null;
+        }
+
+        @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Set<QualifiedName> context) {
+            for (Field field : matchPredicate.identBoostMap().keySet()) {
+                context.add(field.relation().getQualifiedName());
+            }
             return null;
         }
     }

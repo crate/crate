@@ -496,7 +496,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         MultiSourceSelect mss = (MultiSourceSelect) relation;
         assertThat(mss.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t2.i, doc.t2.y WHERE ((ISNULL doc.t1.x) AND NULL) ORDER BY doc.t2.y"));
+            isSQL("SELECT doc.t1.a, doc.t2.i, doc.t2.y WHERE (ISNULL doc.t1.x) ORDER BY doc.t2.y"));
 
         assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.FULL));
         assertThat(mss.joinPairs().get(0).left().toString(), is("doc.t1"));

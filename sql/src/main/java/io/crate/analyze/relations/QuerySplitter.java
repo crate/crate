@@ -23,13 +23,16 @@
 package io.crate.analyze.relations;
 
 
+import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.consumer.ManyTableConsumer;
 import io.crate.sql.tree.QualifiedName;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -103,6 +106,22 @@ public class QuerySplitter {
             for (Symbol arg : function.arguments()) {
                 process(arg, splits);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitField(Field field, Map<Set<QualifiedName>, Symbol> context) {
+            context.put(Collections.singleton(field.relation().getQualifiedName()), field);
+            return null;
+        }
+
+        @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Map<Set<QualifiedName>, Symbol> context) {
+            LinkedHashSet<QualifiedName> relationNames = new LinkedHashSet<>();
+            for (Field field : matchPredicate.identBoostMap().keySet()) {
+                relationNames.add(field.relation().getQualifiedName());
+            }
+            context.put(relationNames, matchPredicate);
             return null;
         }
     }
