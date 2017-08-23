@@ -25,14 +25,20 @@ using the ``-C`` prefix.
 Node Settings
 -------------
 
-**mqtt.port**
+**ingestion.mqtt.enabled**
+  | *Default:*   ``false``
+  | *Runtime:*  ``no``
+
+  Enables this MQTT_ ingestion implementation, it is disabled by default.
+
+**ingestion.mqtt.port**
   | *Default:*   ``1883``
   | *Runtime:*  ``no``
 
   TCP port on which the broker is exposed. Can either be a number, or a string
   defining a possible port range. The first free port of this range is used.
 
-**mqtt.timeout**
+**ingestion.mqtt.timeout**
   | *Default:*   ``10s``
   | *Runtime:*  ``no``
 
