@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;

@@ -23,13 +23,16 @@
 package io.crate.metadata.settings.session;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.types.BooleanType;
 
 import java.util.Map;
 
 public class SessionSettingRegistry {
 
     public static final String SEARCH_PATH_KEY = "search_path";
+    public static final String SEMI_JOIN_KEY = "semi_joins";
 
     private static final Map<String, SessionSettingApplier> SESSION_SETTINGS =
         ImmutableMap.<String, SessionSettingApplier>builder()
@@ -44,7 +47,17 @@ public class SessionSettingRegistry {
                 } else {
                     context.resetSchema();
                 }
-            }).build();
+            })
+            .put(SEMI_JOIN_KEY, (parameters, expressions, context) -> {
+                if (expressions.size() == 1) {
+                    Object value = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
+                    boolean booleanValue = BooleanType.INSTANCE.value(value);
+                    context.setSemiJoinsRewriteEnabled(booleanValue);
+                } else {
+                    throw new IllegalArgumentException(SEMI_JOIN_KEY + " should have only one argument.");
+                }
+            })
+            .build();
 
 
     public static SessionSettingApplier getApplier(String setting) {
