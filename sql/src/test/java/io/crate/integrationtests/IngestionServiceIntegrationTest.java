@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -30,11 +29,10 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowN;
-import io.crate.metadata.Functions;
-import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.ingestion.IngestionImplementation;
 import io.crate.ingestion.IngestionService;
+import io.crate.metadata.Functions;
+import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.InputFactory;
 import io.crate.operation.RowFilter;
@@ -46,7 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -60,7 +57,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.is;
 
 public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest {
@@ -96,9 +92,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
             this.expressionAnalysisContext = new ExpressionAnalysisContext();
-            Row args = new RowN($(DATA_TOPIC));
-            ParameterContext ctx = new ParameterContext(args, Collections.emptyList());
-            this.expressionAnalyzer = new ExpressionAnalyzer(functions, null, ctx, inputColumnProvider, null);
+            this.expressionAnalyzer = new ExpressionAnalyzer(functions, null, null, inputColumnProvider, null);
         }
 
         void registerIngestionImplementation() {
