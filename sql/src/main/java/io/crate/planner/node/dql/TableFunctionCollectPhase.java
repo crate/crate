@@ -23,10 +23,11 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
@@ -38,18 +39,20 @@ import java.util.UUID;
 
 public class TableFunctionCollectPhase extends RoutedCollectPhase implements CollectPhase {
 
-    private final TableFunctionRelation relation;
+    private final TableFunctionImplementation functionImplementation;
+    private final List<Literal<?>> functionArguments;
 
     TableFunctionCollectPhase(UUID jobId,
                               int phaseId,
                               Routing routing,
-                              TableFunctionRelation relation,
+                              TableFunctionImplementation functionImplementation,
+                              List<Literal<?>> functionArguments,
                               List<Projection> projections,
                               List<Symbol> outputs,
                               WhereClause whereClause) {
         super(jobId,
             phaseId,
-            relation.function().info().ident().name(),
+            functionImplementation.info().ident().name(),
             routing,
             RowGranularity.DOC,
             outputs,
@@ -57,11 +60,8 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
             whereClause,
             DistributionInfo.DEFAULT_BROADCAST,
             null);
-        this.relation = relation;
-    }
-
-    public TableFunctionRelation relation() {
-        return relation;
+        this.functionImplementation = functionImplementation;
+        this.functionArguments = functionArguments;
     }
 
     @Override
@@ -78,5 +78,13 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
     public void writeTo(StreamOutput out) throws IOException {
         // current table functions can be executed on the handler - no streaming required
         throw new UnsupportedOperationException("NYI");
+    }
+
+    public List<Literal<?>> functionArguments() {
+        return functionArguments;
+    }
+
+    public TableFunctionImplementation functionImplementation() {
+        return functionImplementation;
     }
 }
