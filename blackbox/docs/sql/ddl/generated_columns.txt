@@ -68,8 +68,6 @@ the value to partition by from existing columns in the table::
 
 .. Hidden: drop tables::
 
-    cr> drop table my_doc_table;
-    DROP OK, 1 row affected (... sec)
     cr> DROP TABLE computed;
     DROP OK, 1 row affected (... sec)
     cr> DROP TABLE computed_and_partitioned;
