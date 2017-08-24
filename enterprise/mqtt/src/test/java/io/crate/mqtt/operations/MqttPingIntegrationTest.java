@@ -18,7 +18,7 @@
 
 package io.crate.mqtt.operations;
 
-import io.crate.mqtt.protocol.CrateMqttMessageBuilders;
+import io.crate.mqtt.protocol.MqttMessageBuilders;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttMessageType;
 import io.netty.handler.codec.mqtt.MqttQoS;
@@ -30,7 +30,7 @@ public class MqttPingIntegrationTest extends MqttIntegrationTest {
 
     @Test
     public void testPing() throws Exception {
-        MQTT_CLIENT.sendMessage(CrateMqttMessageBuilders.pingReq()
+        MQTT_CLIENT.sendMessage(MqttMessageBuilders.pingReq()
             .qos(MqttQoS.AT_LEAST_ONCE)
             .build());
         MqttMessage response = MQTT_CLIENT.lastReceivedMessage();

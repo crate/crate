@@ -19,7 +19,7 @@
 package io.crate.mqtt.netty;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.mqtt.protocol.CrateMqttProcessor;
+import io.crate.mqtt.protocol.MqttProcessor;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -31,12 +31,12 @@ import java.util.Locale;
 
 
 @Sharable
-public class CrateNettyMqttHandler extends ChannelInboundHandlerAdapter {
+public class MqttNettyHandler extends ChannelInboundHandlerAdapter {
 
-    private final Logger LOGGER = Loggers.getLogger(CrateNettyMqttHandler.class);
-    private final CrateMqttProcessor processor;
+    private final Logger LOGGER = Loggers.getLogger(MqttNettyHandler.class);
+    private final MqttProcessor processor;
 
-    public CrateNettyMqttHandler(CrateMqttProcessor processor) {
+    public MqttNettyHandler(MqttProcessor processor) {
         this.processor = processor;
     }
 

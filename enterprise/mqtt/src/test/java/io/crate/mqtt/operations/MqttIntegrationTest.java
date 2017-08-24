@@ -26,8 +26,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import static io.crate.mqtt.CrateMqttSettings.INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING;
-import static io.crate.mqtt.CrateMqttSettings.MQTT_PORT_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
 
 public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -55,7 +55,7 @@ public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING.getKey(), true)
+            .put(MQTT_ENABLED_SETTING.getKey(), true)
             .put(MQTT_PORT_SETTING.getKey(), MQTT_PORT + nodeOrdinal)
             .build();
     }
