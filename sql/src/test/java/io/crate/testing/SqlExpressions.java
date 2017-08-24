@@ -63,16 +63,16 @@ public class SqlExpressions {
     private final Functions functions;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null, null, SessionContext.SYSTEM_SESSION);
+        this(sources, null, null, SessionContext.create());
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
-        this(sources, null, parameters, SessionContext.SYSTEM_SESSION);
+        this(sources, null, parameters, SessionContext.create());
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
-        this(sources, fieldResolver, null, SessionContext.SYSTEM_SESSION);
+        this(sources, fieldResolver, null, SessionContext.create());
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,

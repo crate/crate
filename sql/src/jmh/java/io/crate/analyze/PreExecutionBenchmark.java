@@ -88,7 +88,7 @@ public class PreExecutionBenchmark {
             build();
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
-            e.analyzer.boundAnalyze(selectStatement, SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+            e.analyzer.boundAnalyze(selectStatement, SessionContext.create(), ParameterContext.EMPTY);
         jobId = UUID.randomUUID();
     }
 
@@ -115,7 +115,7 @@ public class PreExecutionBenchmark {
 
     @Benchmark
     public Analysis benchAnalyze() {
-        return e.analyzer.boundAnalyze(selectStatement, SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        return e.analyzer.boundAnalyze(selectStatement, SessionContext.create(), ParameterContext.EMPTY);
     }
 
     @Benchmark

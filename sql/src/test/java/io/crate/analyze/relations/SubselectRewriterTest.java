@@ -80,7 +80,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 
     private QueriedRelation rewrite(String stmt) {
         return (QueriedRelation) analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
-            SessionContext.SYSTEM_SESSION,
+            SessionContext.create(),
             ParameterContext.EMPTY,
             ParamTypeHints.EMPTY
         ));

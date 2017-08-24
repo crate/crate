@@ -246,7 +246,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
             SqlExpressions sqlExpressions = new SqlExpressions(
-                tableSources, tableRelation, new Object[]{null}, SessionContext.SYSTEM_SESSION);
+                tableSources, tableRelation, new Object[]{null}, SessionContext.create());
 
             Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 

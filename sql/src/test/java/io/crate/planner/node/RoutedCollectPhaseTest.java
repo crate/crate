@@ -108,7 +108,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION));
+            normalizer, new TransactionContext(SessionContext.create()));
 
         assertThat(normalizedCollect.orderBy(), notNullValue());
     }

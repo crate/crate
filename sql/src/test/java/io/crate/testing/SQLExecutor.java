@@ -258,7 +258,7 @@ public class SQLExecutor {
 
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), SessionContext.SYSTEM_SESSION, parameterContext);
+            SqlParser.createStatement(stmt), SessionContext.create(), parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }
@@ -287,7 +287,7 @@ public class SQLExecutor {
      *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
      */
     public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
-        SessionContext sessionContext = SessionContext.SYSTEM_SESSION;
+        SessionContext sessionContext = SessionContext.create();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             sessionContext,
@@ -304,7 +304,7 @@ public class SQLExecutor {
 
     public <T extends Plan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+            SqlParser.createStatement(statement), SessionContext.create(), ParameterContext.EMPTY);
         //noinspection unchecked
         return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
     }
@@ -312,7 +312,7 @@ public class SQLExecutor {
     public <T extends Plan> T plan(String stmt, Object[][] bulkArgs) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(stmt),
-            SessionContext.SYSTEM_SESSION,
+            SessionContext.create(),
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
         //noinspection unchecked
         return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);

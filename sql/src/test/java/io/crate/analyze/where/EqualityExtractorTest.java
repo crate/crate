@@ -46,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 @SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends CrateUnitTest {
 
-    private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
+    private TransactionContext transactionContext = new TransactionContext(SessionContext.create());
     private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
     private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
     private EqualityExtractor ee = new EqualityExtractor(normalizer);

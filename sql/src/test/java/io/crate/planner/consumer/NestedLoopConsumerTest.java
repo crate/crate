@@ -106,7 +106,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
             UUID.randomUUID(),
             new ConsumingPlanner(clusterService, functions, tableStats),
             normalizer,
-            new TransactionContext(SessionContext.SYSTEM_SESSION),
+            new TransactionContext(SessionContext.create()),
             0,
             0);
         consumer = new NestedLoopConsumer(clusterService, tableStats);

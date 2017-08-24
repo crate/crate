@@ -620,7 +620,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             UUID.randomUUID(),
             null,
             normalizer,
-            new TransactionContext(SessionContext.SYSTEM_SESSION),
+            new TransactionContext(SessionContext.create()),
             softLimit,
             0);
         Limits limits = plannerContext.getLimits(new QuerySpec());

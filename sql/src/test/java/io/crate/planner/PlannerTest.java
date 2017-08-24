@@ -85,7 +85,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             UUID.randomUUID(),
             null,
             normalizer,
-            new TransactionContext(SessionContext.SYSTEM_SESSION.SYSTEM_SESSION),
+            new TransactionContext(SessionContext.create()),
             0,
             0);
 
