@@ -18,8 +18,8 @@
 
 package io.crate.mqtt.protocol;
 
+import io.crate.mqtt.netty.NettyUtils;
 import io.crate.mqtt.operations.MqttIngestService;
-import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -29,7 +29,6 @@ import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.AttributeKey;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -42,8 +41,7 @@ import java.util.function.BiConsumer;
 public class MqttProcessor {
 
     private static final Logger LOGGER = Loggers.getLogger(MqttProcessor.class);
-    private static final AttributeKey<Object> ATTR_KEY_KEEPALIVE = AttributeKey.valueOf("keepAlive");
-    private static final AttributeKey<Object> ATTR_KEY_CLIENTID = AttributeKey.valueOf("ClientID");
+
 
     private final MqttIngestService ingestService;
 
@@ -78,14 +76,14 @@ public class MqttProcessor {
             clientId = UUID.randomUUID().toString();
             LOGGER.info("Client connected with server generated identifier: {}", clientId);
         }
-        setClientID(channel, clientId);
+        NettyUtils.clientID(channel, clientId);
 
         int keepAlive = msg.variableHeader().keepAliveTimeSeconds();
         if (keepAlive > 0) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Client connected with keepAlive of {} s", keepAlive);
             }
-            setKeepAlive(channel, keepAlive);
+            NettyUtils.keepAlive(channel, keepAlive);
 
             if (channel.pipeline().names().contains("idleStateHandler")) {
                 channel.pipeline().remove("idleStateHandler");
@@ -111,7 +109,7 @@ public class MqttProcessor {
 
     public void handlePublish(Channel channel, MqttPublishMessage msg) {
         final MqttQoS qos = msg.fixedHeader().qosLevel();
-        String clientId = getClientID(channel);
+        String clientId = NettyUtils.clientID(channel);
         switch (qos) {
             case AT_LEAST_ONCE:
                 SendPubAckCallback ackCallback = new SendPubAckCallback(
@@ -137,19 +135,6 @@ public class MqttProcessor {
             .qos(MqttQoS.AT_LEAST_ONCE)
             .build())
             .addListener(cf -> LOGGER.info("PINGRESP sent"));
-    }
-
-    private static void setKeepAlive(Channel channel, int keepAlive) {
-        channel.attr(ATTR_KEY_KEEPALIVE).set(keepAlive);
-    }
-
-    @VisibleForTesting
-    static void setClientID(Channel channel, String clientID) {
-        channel.attr(ATTR_KEY_CLIENTID).set(clientID);
-    }
-
-    private static String getClientID(Channel channel) {
-        return (String) channel.attr(ATTR_KEY_CLIENTID).get();
     }
 
     private static class SendPubAckCallback implements BiConsumer<Object, Throwable> {

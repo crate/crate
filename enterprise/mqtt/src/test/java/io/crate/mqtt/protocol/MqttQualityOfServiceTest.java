@@ -19,6 +19,7 @@
 package io.crate.mqtt.protocol;
 
 import com.google.common.base.Charsets;
+import io.crate.mqtt.netty.NettyUtils;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -48,7 +49,7 @@ public class MqttQualityOfServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        MqttProcessor.setClientID(ch, "c1");
+        NettyUtils.clientID(ch, "c1");
     }
 
     @Rule
