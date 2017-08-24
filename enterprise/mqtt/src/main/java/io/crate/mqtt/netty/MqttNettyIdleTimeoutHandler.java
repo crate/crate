@@ -24,7 +24,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 
 
 @Sharable
-public class CrateMqttIdleTimeoutHandler extends ChannelDuplexHandler {
+public class MqttNettyIdleTimeoutHandler extends ChannelDuplexHandler {
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {

@@ -20,7 +20,7 @@ package io.crate.mqtt.protocol;
 
 import io.netty.handler.codec.mqtt.*;
 
-public final class CrateMqttMessageBuilders  {
+public final class MqttMessageBuilders {
 
     public static final class MqttPingResponseBuilder {
 
@@ -107,24 +107,24 @@ public final class CrateMqttMessageBuilders  {
         }
     }
 
-    public static MqttMessageBuilders.ConnectBuilder connect() {
-        return MqttMessageBuilders.connect();
+    public static io.netty.handler.codec.mqtt.MqttMessageBuilders.ConnectBuilder connect() {
+        return io.netty.handler.codec.mqtt.MqttMessageBuilders.connect();
     }
 
-    public static MqttMessageBuilders.ConnAckBuilder connAck() {
-        return MqttMessageBuilders.connAck();
+    public static io.netty.handler.codec.mqtt.MqttMessageBuilders.ConnAckBuilder connAck() {
+        return io.netty.handler.codec.mqtt.MqttMessageBuilders.connAck();
     }
 
-    public static MqttMessageBuilders.PublishBuilder publish() {
-        return MqttMessageBuilders.publish();
+    public static io.netty.handler.codec.mqtt.MqttMessageBuilders.PublishBuilder publish() {
+        return io.netty.handler.codec.mqtt.MqttMessageBuilders.publish();
     }
 
-    public static MqttMessageBuilders.SubscribeBuilder subscribe() {
-        return MqttMessageBuilders.subscribe();
+    public static io.netty.handler.codec.mqtt.MqttMessageBuilders.SubscribeBuilder subscribe() {
+        return io.netty.handler.codec.mqtt.MqttMessageBuilders.subscribe();
     }
 
-    public static MqttMessageBuilders.UnsubscribeBuilder unsubscribe() {
-        return MqttMessageBuilders.unsubscribe();
+    public static io.netty.handler.codec.mqtt.MqttMessageBuilders.UnsubscribeBuilder unsubscribe() {
+        return io.netty.handler.codec.mqtt.MqttMessageBuilders.unsubscribe();
     }
 
     public static MqttPingRequestBuilder pingReq() {

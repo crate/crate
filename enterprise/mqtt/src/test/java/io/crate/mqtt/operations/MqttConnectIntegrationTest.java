@@ -19,7 +19,7 @@
 package io.crate.mqtt.operations;
 
 import io.crate.mqtt.netty.Client;
-import io.crate.mqtt.protocol.CrateMqttMessageBuilders;
+import io.crate.mqtt.protocol.MqttMessageBuilders;
 import io.netty.handler.codec.mqtt.*;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.is;
 public class MqttConnectIntegrationTest extends MqttIntegrationTest {
 
     private static MqttMessage connectMessage(String clientId, boolean isCleanSession) {
-        return CrateMqttMessageBuilders.connect()
+        return MqttMessageBuilders.connect()
                 .protocolVersion(MqttVersion.MQTT_3_1_1)
                 .clientId(clientId)
                 .cleanSession(isCleanSession)

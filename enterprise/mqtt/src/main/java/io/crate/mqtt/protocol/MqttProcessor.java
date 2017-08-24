@@ -18,7 +18,7 @@
 
 package io.crate.mqtt.protocol;
 
-import io.crate.mqtt.operations.CrateIngestService;
+import io.crate.mqtt.operations.MqttIngestService;
 import io.moquette.server.netty.NettyUtils;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -38,12 +38,12 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 
 
-public class CrateMqttProcessor {
+public class MqttProcessor {
 
-    private static final Logger LOGGER = Loggers.getLogger(CrateMqttProcessor.class);
-    private final CrateIngestService ingestService;
+    private static final Logger LOGGER = Loggers.getLogger(MqttProcessor.class);
+    private final MqttIngestService ingestService;
 
-    public CrateMqttProcessor(CrateIngestService ingestService) {
+    public MqttProcessor(MqttIngestService ingestService) {
         this.ingestService = ingestService;
     }
 
@@ -89,7 +89,7 @@ public class CrateMqttProcessor {
             channel.pipeline().addFirst("idleStateHandler", new IdleStateHandler(0, 0, Math.round(keepAlive * 1.5f)));
         }
 
-        channel.writeAndFlush(CrateMqttMessageBuilders.connAck()
+        channel.writeAndFlush(MqttMessageBuilders.connAck()
                 .returnCode(MqttConnectReturnCode.CONNECTION_ACCEPTED)
                 .sessionPresent(true)
                 .build())
@@ -98,7 +98,7 @@ public class CrateMqttProcessor {
 
     private ChannelFuture sendErrorResponse(Channel channel, MqttConnectReturnCode returnCode) {
 
-        return channel.writeAndFlush(CrateMqttMessageBuilders.connAck()
+        return channel.writeAndFlush(MqttMessageBuilders.connAck()
                 .returnCode(returnCode)
                 .sessionPresent(false)
                 .build())
@@ -129,7 +129,7 @@ public class CrateMqttProcessor {
     }
 
     public void handlePingReq(Channel channel) {
-        channel.writeAndFlush(CrateMqttMessageBuilders.pingResp()
+        channel.writeAndFlush(MqttMessageBuilders.pingResp()
             .qos(MqttQoS.AT_LEAST_ONCE)
             .build())
             .addListener(cf -> LOGGER.info("PINGRESP sent"));
@@ -158,7 +158,7 @@ public class CrateMqttProcessor {
         }
 
         private static void sendPubAck(Channel channel, int packetId, boolean isDupFlag) {
-            channel.writeAndFlush(CrateMqttMessageBuilders.pubAck()
+            channel.writeAndFlush(MqttMessageBuilders.pubAck()
                     .qos(MqttQoS.AT_LEAST_ONCE)
                     .isDup(isDupFlag)
                     .packetId(packetId)

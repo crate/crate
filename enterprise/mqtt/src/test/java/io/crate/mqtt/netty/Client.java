@@ -15,7 +15,7 @@
  */
 package io.crate.mqtt.netty;
 
-import io.crate.mqtt.protocol.CrateMqttMessageBuilders;
+import io.crate.mqtt.protocol.MqttMessageBuilders;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -124,7 +124,7 @@ public class Client implements AutoCloseable {
 
     public void disconnect() {
         System.out.println("[mqtt-client] disconnect");
-        sendMessage(CrateMqttMessageBuilders.disconnect()
+        sendMessage(MqttMessageBuilders.disconnect()
             .qos(MqttQoS.AT_LEAST_ONCE)
             .build());
     }

@@ -29,11 +29,11 @@ import org.elasticsearch.common.settings.Setting;
 
 import java.util.Collection;
 
-import static io.crate.mqtt.CrateMqttSettings.INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING;
-import static io.crate.mqtt.CrateMqttSettings.MQTT_PORT_SETTING;
-import static io.crate.mqtt.CrateMqttSettings.MQTT_TIMEOUT_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_TIMEOUT_SETTING;
 
-public class CrateMqttModule extends AbstractModule implements IngestionModules {
+public class MqttModule extends AbstractModule implements IngestionModules {
 
     @Override
     protected void configure() {
@@ -52,7 +52,7 @@ public class CrateMqttModule extends AbstractModule implements IngestionModules 
 
     @Override
     public Collection<Setting<?>> getSettings() {
-        return ImmutableList.of(INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING.setting(),
+        return ImmutableList.of(MQTT_ENABLED_SETTING.setting(),
             MQTT_PORT_SETTING.setting(),
             MQTT_TIMEOUT_SETTING.setting());
     }
