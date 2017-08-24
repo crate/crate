@@ -96,6 +96,11 @@ the ``doc`` schema::
     +--------------+--------------+
     SELECT 1 row in set (... sec)
 
+.. Hidden: drop tables::
+
+    cr> drop table my_doc_table;
+    DROP OK, 1 row affected (... sec)
+
 .. _sql_ddl_naming_restrictions:
 
 Naming Restrictions
