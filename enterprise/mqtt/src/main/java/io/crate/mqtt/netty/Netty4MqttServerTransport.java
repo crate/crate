@@ -84,29 +84,29 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         Setting.Property.NodeScope), DataTypes.STRING);
 
     private final NetworkService networkService;
-
     private final String port;
     private final SQLOperations sqlOperations;
     private final Logger logger;
     private final TimeValue defaultIdleTimeout;
     private final boolean isEnterprise;
     private final boolean isEnabled;
-
-    private ServerBootstrap serverBootstrap;
-
+    private final MqttMessageLogger mqttMessageLogger;
     private final List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
+
+    private ServerBootstrap serverBootstrap;
 
     @Inject
     public Netty4MqttServerTransport(Settings settings, NetworkService networkService, SQLOperations sqlOperations) {
         super(settings);
-        this.isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        this.isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
-        this.logger = Loggers.getLogger("mqtt", settings);
         this.networkService = networkService;
         this.sqlOperations = sqlOperations;
-        this.port = MQTT_PORT_SETTING.setting().get(settings);
-        this.defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
+        logger = Loggers.getLogger("mqtt", settings);
+        isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
+        isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
+        port = MQTT_PORT_SETTING.setting().get(settings);
+        defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
+        mqttMessageLogger = new MqttMessageLogger(settings);
     }
 
     @Override
@@ -116,35 +116,36 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         }
 
         EventLoopGroup boss = new NioEventLoopGroup(
-                Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-boss"));
+            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-boss"));
         EventLoopGroup worker = new NioEventLoopGroup(
-                Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-worker"));
+            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-worker"));
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
         serverBootstrap = new ServerBootstrap()
-                .channel(NioServerSocketChannel.class)
-                .group(boss, worker)
-                .option(ChannelOption.SO_REUSEADDR, reuseAddress)
-                .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
-                .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
-                .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings))
-                .childHandler(new ChannelInitializer<Channel>() {
-                    @Override
-                    protected void initChannel(Channel ch) throws Exception {
-                        ChannelPipeline pipeline = ch.pipeline();
-                        final MqttIngestService publishHandler = new MqttIngestService(sqlOperations);
-                        final MqttProcessor processor = new MqttProcessor(publishHandler);
-                        final MqttNettyHandler handler = new MqttNettyHandler(processor);
-                        final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
-                        final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,
-                                defaultIdleTimeout.seconds(), TimeUnit.SECONDS);
+            .channel(NioServerSocketChannel.class)
+            .group(boss, worker)
+            .option(ChannelOption.SO_REUSEADDR, reuseAddress)
+            .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
+            .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
+            .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings))
+            .childHandler(new ChannelInitializer<Channel>() {
+                @Override
+                protected void initChannel(Channel ch) throws Exception {
+                    ChannelPipeline pipeline = ch.pipeline();
+                    final MqttIngestService publishHandler = new MqttIngestService(sqlOperations);
+                    final MqttProcessor processor = new MqttProcessor(publishHandler);
+                    final MqttNettyHandler handler = new MqttNettyHandler(processor);
+                    final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
+                    final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,
+                        defaultIdleTimeout.seconds(), TimeUnit.SECONDS);
 
-                        pipeline.addFirst("idleStateHandler", defaultIdleHandler)
-                                .addAfter("idleStateHandler", "idleEventHandler", timeoutHandler)
-                                .addLast("decoder", new MqttDecoder())
-                                .addLast("encoder", MqttEncoder.INSTANCE)
-                                .addLast("handler", handler);
-                    }
-                });
+                    pipeline.addFirst("idleStateHandler", defaultIdleHandler)
+                        .addAfter("idleStateHandler", "idleEventHandler", timeoutHandler)
+                        .addLast("decoder", new MqttDecoder())
+                        .addLast("encoder", MqttEncoder.INSTANCE)
+                        .addLast("messageLogger", mqttMessageLogger)
+                        .addLast("handler", handler);
+                }
+            });
 
         serverBootstrap.validate();
 
@@ -178,8 +179,10 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         }
 
         throw new BindHttpException("Failed to auto-resolve mqtt publish port, multiple bound addresses " +
-                boundAddresses + " with distinct ports and none of them matched the publish address (" +
-                publishInetAddress + "). Please specify a unique port by setting " + MQTT_PORT_SETTING.getKey());
+                                    boundAddresses +
+                                    " with distinct ports and none of them matched the publish address (" +
+                                    publishInetAddress + "). " +
+                                    "Please specify a unique port by setting " + MQTT_PORT_SETTING.getKey());
     }
 
     private TransportAddress bindAddress(final InetAddress hostAddress) {
@@ -201,7 +204,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         });
         if (!success) {
             throw new BindHttpException("Failed to bind to [" + portsRange.getPortRangeString() + "]",
-                    lastException.get());
+                lastException.get());
         }
 
         if (logger.isDebugEnabled()) {
@@ -231,7 +234,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         final int publishPort = resolvePublishPort(boundAddresses, publishInetAddress);
         final InetSocketAddress publishAddress = new InetSocketAddress(publishInetAddress, publishPort);
         return new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]),
-                new InetSocketTransportAddress(publishAddress));
+            new InetSocketTransportAddress(publishAddress));
     }
 
     @Override
