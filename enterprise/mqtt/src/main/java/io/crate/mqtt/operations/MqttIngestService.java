@@ -41,26 +41,27 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 
-public class CrateIngestService {
+public class MqttIngestService {
 
     private static final String DEFAULT_SCHEMA = "mqtt";
     private static final String STMT_NAME = "I";
-    private static final Logger LOGGER = Loggers.getLogger(CrateIngestService.class);
+    private static final String STMT = "INSERT INTO raw (" +
+                                       "\"client_id\", \"packet_id\", \"topic\", \"ts\", \"payload\"" +
+                                       ") VALUES (" +
+                                       "?, ?, ?, CURRENT_TIMESTAMP, ?" +
+                                       ")";
+    private static final List<DataType> DATA_TYPES = Arrays.asList(DataTypes.STRING, DataTypes.INTEGER, DataTypes.STRING, DataTypes.OBJECT);
+    private static final Logger LOGGER = Loggers.getLogger(MqttIngestService.class);
+
     private final Session session;
 
-    public CrateIngestService(SQLOperations sqlOperations) {
-        List<DataType> argTypes = Arrays.asList(DataTypes.STRING, DataTypes.INTEGER, DataTypes.STRING, DataTypes.OBJECT);
-        String stmt = "INSERT INTO raw (" +
-                "\"client_id\", \"packet_id\", \"topic\", \"ts\", \"payload\"" +
-                ") VALUES (" +
-                "?, ?, ?, CURRENT_TIMESTAMP, ?" +
-                ")";
+    public MqttIngestService(SQLOperations sqlOperations) {
         session = sqlOperations.createSession(DEFAULT_SCHEMA, null, Option.NONE, 1);
-        session.parse(STMT_NAME, stmt, argTypes);
+        session.parse(STMT_NAME, STMT, DATA_TYPES);
     }
 
 
-   private static String mqttPayloadToString(ByteBuf content) {
+    private static String mqttPayloadToString(ByteBuf content) {
         byte[] rawBytes;
         if (content.hasArray()) {
             rawBytes = content.array();
@@ -90,9 +91,9 @@ public class CrateIngestService {
             return;
         }
         List<Object> args = Arrays.asList(clientId,
-                msg.variableHeader().packetId(),
-                msg.variableHeader().topicName(),
-                payload
+            msg.variableHeader().packetId(),
+            msg.variableHeader().topicName(),
+            payload
         );
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Parsed MQTT message into arguments: {}", args);

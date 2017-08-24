@@ -21,11 +21,12 @@ package io.crate.mqtt.netty;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.action.sql.SQLOperations;
-import io.crate.mqtt.CrateMqttSettings;
-import io.crate.mqtt.operations.CrateIngestService;
-import io.crate.mqtt.protocol.CrateMqttProcessor;
+import io.crate.mqtt.operations.MqttIngestService;
+import io.crate.mqtt.protocol.MqttProcessor;
 import io.crate.protocols.postgres.BindPostgresException;
+import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
+import io.crate.types.DataTypes;
 import io.moquette.server.netty.metrics.BytesMetricsCollector;
 import io.moquette.server.netty.metrics.BytesMetricsHandler;
 import io.moquette.server.netty.metrics.MQTTMessageLogger;
@@ -50,6 +51,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -68,12 +70,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
-import static io.crate.mqtt.CrateMqttSettings.MQTT_PORT_SETTING;
-import static io.crate.mqtt.CrateMqttSettings.MQTT_TIMEOUT_SETTING;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
+
+    public static final CrateSetting<Boolean> MQTT_ENABLED_SETTING = CrateSetting.of(
+        Setting.boolSetting("ingestion.mqtt.enabled", false, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
+
+    public static final CrateSetting<String> MQTT_PORT_SETTING = CrateSetting.of(new Setting<>(
+        "ingestion.mqtt.port", "1883",
+        Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
+
+    public static final CrateSetting<TimeValue> MQTT_TIMEOUT_SETTING = CrateSetting.of(Setting.timeSetting(
+        "ingestion.mqtt.timeout", TimeValue.timeValueSeconds(10L), TimeValue.timeValueSeconds(1L),
+        Setting.Property.NodeScope), DataTypes.STRING);
 
     private final NetworkService networkService;
 
@@ -96,7 +109,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     public Netty4MqttServerTransport(Settings settings, NetworkService networkService, SQLOperations sqlOperations) {
         super(settings);
         this.isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        this.isEnabled = CrateMqttSettings.INGESTION_IMPLEMENTATION_MQTT_ENABLED_SETTING.setting().get(settings);
+        this.isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
         this.logger = Loggers.getLogger("mqtt", settings);
         this.networkService = networkService;
         this.sqlOperations = sqlOperations;
@@ -126,10 +139,10 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
                     @Override
                     protected void initChannel(Channel ch) throws Exception {
                         ChannelPipeline pipeline = ch.pipeline();
-                        final CrateIngestService publishHandler = new CrateIngestService(sqlOperations);
-                        final CrateMqttProcessor processor = new CrateMqttProcessor(publishHandler);
-                        final CrateNettyMqttHandler handler = new CrateNettyMqttHandler(processor);
-                        final CrateMqttIdleTimeoutHandler timeoutHandler = new CrateMqttIdleTimeoutHandler();
+                        final MqttIngestService publishHandler = new MqttIngestService(sqlOperations);
+                        final MqttProcessor processor = new MqttProcessor(publishHandler);
+                        final MqttNettyHandler handler = new MqttNettyHandler(processor);
+                        final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
                         final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,
                                 defaultIdleTimeout.seconds(), TimeUnit.SECONDS);
 
