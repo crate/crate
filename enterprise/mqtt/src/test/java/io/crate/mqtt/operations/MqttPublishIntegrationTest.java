@@ -1,11 +1,10 @@
 package io.crate.mqtt.operations;
 
-import io.crate.mqtt.protocol.CrateMqttMessageBuilders;
+import io.crate.mqtt.protocol.MqttMessageBuilders;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.mqtt.MqttConnAckMessage;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttMessage;
-import io.netty.handler.codec.mqtt.MqttMessageBuilders;
 import io.netty.handler.codec.mqtt.MqttPubAckMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
@@ -36,7 +35,7 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 ") WITH (column_policy = 'strict', number_of_replicas = '0')");
 
         // MQTT CONNECT
-        MQTT_CLIENT.sendMessage(CrateMqttMessageBuilders.connect()
+        MQTT_CLIENT.sendMessage(MqttMessageBuilders.connect()
                 .clientId(MQTT_CLIENT.clientId())
                 .build());
         MqttConnAckMessage response = (MqttConnAckMessage) MQTT_CLIENT.lastReceivedMessage();
@@ -50,7 +49,7 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
     }
 
     private static MqttPublishMessage publishMessage(MqttQoS level, String payload) {
-        return CrateMqttMessageBuilders.publish()
+        return MqttMessageBuilders.publish()
                 .topicName("t1")
                 .qos(level)
                 .payload(Unpooled.copiedBuffer(payload.getBytes()))
@@ -60,7 +59,7 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
 
     @Test
     public void testPublishUnsupportedQoS() throws Exception {
-        MqttPublishMessage mqttPublishMessage = CrateMqttMessageBuilders.publish()
+        MqttPublishMessage mqttPublishMessage = MqttMessageBuilders.publish()
                 .qos(MqttQoS.AT_LEAST_ONCE)
                 .topicName("t1")
                 .messageId(messageId.incrementAndGet())
@@ -86,7 +85,7 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
     public void testPublishQos1WithoutDUPFlag() throws Exception {
         int mId = messageId.incrementAndGet();
         // isDup = false
-        MqttMessageBuilders.PublishBuilder message = CrateMqttMessageBuilders.publish()
+        io.netty.handler.codec.mqtt.MqttMessageBuilders.PublishBuilder message = MqttMessageBuilders.publish()
                 .topicName("t1")
                 .qos(MqttQoS.AT_LEAST_ONCE)
                 .payload(Unpooled.copiedBuffer("{\"ts\":1498797237000}".getBytes()))

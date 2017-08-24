@@ -19,7 +19,7 @@
 package io.crate.mqtt.protocol;
 
 import com.google.common.base.Charsets;
-import io.crate.mqtt.operations.CrateIngestService;
+import io.crate.mqtt.operations.MqttIngestService;
 import io.moquette.server.netty.NettyUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -31,7 +31,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.nio.ByteBuffer;
 import java.util.function.BiConsumer;
 
 import static org.mockito.Matchers.any;
@@ -41,10 +40,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 
-public class CrateMqttQualityOfServiceTest {
+public class MqttQualityOfServiceTest {
 
-    private final CrateIngestService handler = mock(CrateIngestService.class);
-    private final CrateMqttProcessor processor = new CrateMqttProcessor(handler);
+    private final MqttIngestService handler = mock(MqttIngestService.class);
+    private final MqttProcessor processor = new MqttProcessor(handler);
     private final Channel ch = new EmbeddedChannel();
 
     @Before
@@ -57,7 +56,7 @@ public class CrateMqttQualityOfServiceTest {
 
     private MqttPublishMessage messageWithQoS(MqttQoS level) {
         ByteBuf payload = Unpooled.copiedBuffer("{}".getBytes(Charsets.UTF_8));
-        MqttPublishMessage mqttPublishMessage = CrateMqttMessageBuilders.publish()
+        MqttPublishMessage mqttPublishMessage = MqttMessageBuilders.publish()
                 .qos(level)
                 .retained(false)
                 .topicName("t1")

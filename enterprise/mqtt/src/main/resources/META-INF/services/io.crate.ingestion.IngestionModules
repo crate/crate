@@ -1,1 +1,1 @@
-io.crate.mqtt.CrateMqttModule
+io.crate.mqtt.MqttModule

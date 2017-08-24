@@ -18,7 +18,7 @@
 
 package io.crate.mqtt.protocol;
 
-import io.crate.mqtt.operations.CrateIngestService;
+import io.crate.mqtt.operations.MqttIngestService;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.mqtt.*;
 import org.junit.Rule;
@@ -30,15 +30,15 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 
 
-public class CrateMqttProcessorTest {
+public class MqttProcessorTest {
 
-    private final CrateMqttProcessor processor = new CrateMqttProcessor(mock(CrateIngestService.class));
+    private final MqttProcessor processor = new MqttProcessor(mock(MqttIngestService.class));
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     private static MqttMessage connectMessage(String clientId, boolean isCleanSession) {
-        return CrateMqttMessageBuilders.connect()
+        return MqttMessageBuilders.connect()
                 .protocolVersion(MqttVersion.MQTT_3_1_1)
                 .clientId(clientId)
                 .cleanSession(isCleanSession)
