@@ -56,7 +56,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
             impl.info(),
             Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
         );
-        return impl.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
+        return impl.normalizeSymbol(function, new TransactionContext(SessionContext.create()));
     }
 
     private Boolean anyNotLikeNormalize(String pattern, String... expressions) {
@@ -160,7 +160,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
             Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
         Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
-        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new TransactionContext(SessionContext.SYSTEM_SESSION));
+        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new TransactionContext(SessionContext.create()));
         assertThat(normalized.value(), is(true));
         assertThat(new NotPredicate().evaluate(normalized), is(false));
     }

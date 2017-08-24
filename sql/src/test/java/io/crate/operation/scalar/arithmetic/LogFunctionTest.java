@@ -43,7 +43,7 @@ import static org.hamcrest.core.IsNull.nullValue;
 
 public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
-    private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
+    private TransactionContext transactionContext = new TransactionContext(SessionContext.create());
 
     private LogFunction getFunction(String name, DataType value) {
         return (LogFunction) functions.getBuiltin(name, Arrays.asList(value));

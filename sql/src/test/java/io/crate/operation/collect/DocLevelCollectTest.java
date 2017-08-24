@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.SharedShardContexts;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -51,7 +52,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.action.sql.SessionContext.SYSTEM_SESSION;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -184,7 +184,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
+        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 new Reference(new ReferenceIdent(tableIdent, "id"),

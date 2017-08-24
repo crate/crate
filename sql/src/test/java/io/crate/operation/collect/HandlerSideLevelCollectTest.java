@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -52,7 +53,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static io.crate.action.sql.SessionContext.SYSTEM_SESSION;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -94,7 +94,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     public void testClusterLevel() throws Exception {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
-        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
+        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
         Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
@@ -113,7 +113,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     public void testInformationSchemaTables() throws Exception {
         InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
-        Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
+        Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
@@ -136,7 +136,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         assert tableInfo != null;
-        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
+        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
             toCollect.add(ref);

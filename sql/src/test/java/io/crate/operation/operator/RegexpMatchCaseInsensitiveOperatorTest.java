@@ -41,7 +41,7 @@ public class RegexpMatchCaseInsensitiveOperatorTest extends CrateUnitTest {
             op.info(),
             Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
         );
-        return op.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
+        return op.normalizeSymbol(function, new TransactionContext(SessionContext.create()));
     }
 
     private Boolean regexpNormalize(String source, String pattern) {

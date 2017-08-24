@@ -324,7 +324,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
-        Plan plan = planner.plan(analyzer.boundAnalyze(SqlParser.createStatement(stmt), SessionContext.SYSTEM_SESSION, parameterContext), UUID.randomUUID(), 0, 0);
+        Plan plan = planner.plan(analyzer.boundAnalyze(SqlParser.createStatement(stmt), SessionContext.create(), parameterContext), UUID.randomUUID(), 0, 0);
         return new PlanForNode(plan, nodeName);
     }
 

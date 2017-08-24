@@ -72,7 +72,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     private MultiSourceSelect analyze(String statement) {
         Analysis analysis = e.analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+            SqlParser.createStatement(statement), SessionContext.create(), ParameterContext.EMPTY);
         return (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
     }
 

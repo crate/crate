@@ -104,7 +104,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints,
+            functions, SessionContext.create(), paramTypeHints,
             new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -184,7 +184,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            SessionContext.SYSTEM_SESSION,
+            SessionContext.create(),
             paramTypeHints,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
             null

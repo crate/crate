@@ -104,6 +104,6 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction function =
             (AggregationFunction) functions.getBuiltin(functionName, Arrays.asList(argTypes));
-        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
+        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.create()));
     }
 }

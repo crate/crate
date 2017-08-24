@@ -35,8 +35,6 @@ import java.util.Set;
 
 public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
 
-    public static final SessionContext SYSTEM_SESSION = new SessionContext(null, null, s -> {}, t -> {});
-
     private final int defaultLimit;
     private final Set<Option> options;
     private String defaultSchema;
@@ -96,5 +94,12 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
         statementAuthorizedValidator.ensureStatementAuthorized(statement);
+    }
+
+    /**
+     * Creates a new SessionContext with default settings.
+     */
+    public static SessionContext create() {
+        return new SessionContext(null, null, s -> {}, t -> {});
     }
 }
