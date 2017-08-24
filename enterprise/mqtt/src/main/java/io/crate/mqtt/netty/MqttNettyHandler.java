@@ -38,7 +38,7 @@ public class MqttNettyHandler extends ChannelInboundHandlerAdapter {
     private final Logger LOGGER = Loggers.getLogger(MqttNettyHandler.class);
     private final MqttProcessor processor;
 
-    public MqttNettyHandler(MqttProcessor processor) {
+    MqttNettyHandler(MqttProcessor processor) {
         this.processor = processor;
     }
 
