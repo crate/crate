@@ -69,7 +69,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     public void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
         List<IngestionImplementation> implementationsForSource = implementations.computeIfAbsent(sourceIdent, k -> new ArrayList<>());
         implementationsForSource.add(implementation);
-        implementation.applyRules(getIngestionRules(clusterService.state().metaData()).get(sourceIdent));
+        implementation.applyRules(getIngestionRules(clusterService.state().metaData()).getOrDefault(sourceIdent, Collections.emptySet()));
     }
 
     @Override
@@ -82,7 +82,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         filterOutInvalidRules(ingestionRules);
         for (Map.Entry<String, List<IngestionImplementation>> entry : implementations.entrySet()) {
             String sourceIdent = entry.getKey();
-            Set<IngestRule> rulesForSource = ingestionRules.get(sourceIdent);
+            Set<IngestRule> rulesForSource = ingestionRules.getOrDefault(sourceIdent, Collections.emptySet());
             for (IngestionImplementation ingestionImplementation : entry.getValue()) {
                 ingestionImplementation.applyRules(rulesForSource);
             }
@@ -107,7 +107,11 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
             (IngestRulesMetaData) metaData.customs().get(IngestRulesMetaData.TYPE);
 
         if (ingestRulesMetaData != null) {
-            return ingestRulesMetaData.getIngestRules();
+            Map<String, Set<IngestRule>> ingestRules = ingestRulesMetaData.getIngestRules();
+            if(ingestRules == null) {
+                ingestRules = Collections.emptyMap();
+            }
+            return ingestRules;
         } else {
             return Collections.emptyMap();
         }
