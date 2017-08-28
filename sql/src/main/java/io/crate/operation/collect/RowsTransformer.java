@@ -27,11 +27,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -54,7 +52,6 @@ public final class RowsTransformer {
         }
         InputFactory.Context ctx = inputFactory.ctxForRefs(referenceResolver);
         ctx.add(collectPhase.toCollect());
-
         OrderBy orderBy = collectPhase.orderBy();
         if (orderBy != null) {
             for (Symbol symbol : orderBy.orderBySymbols()) {
@@ -62,21 +59,15 @@ public final class RowsTransformer {
             }
         }
 
-        Input<Boolean> condition;
+        @SuppressWarnings("unchecked")
+        Iterable<Row> rows = Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions()));
         if (whereClause.hasQuery()) {
             assert DataTypes.BOOLEAN.equals(whereClause.query().valueType()) :
                 "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
+
             //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
-            condition = (Input<Boolean>) ctx.add(whereClause.query());
-        } else {
-            condition = Literal.BOOLEAN_TRUE;
+            rows = Iterables.filter(rows, InputCondition.asPredicate(ctx.add(whereClause.query())));
         }
-
-        @SuppressWarnings("unchecked")
-        Iterable<Row> rows = Iterables.filter(
-            Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions())),
-            InputCondition.asPredicate(condition));
-
         if (orderBy == null) {
             return rows;
         }
@@ -86,7 +77,7 @@ public final class RowsTransformer {
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
         Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
-        Collections.sort(objects, ordering.reverse());
+        objects.sort(ordering.reverse());
         return Iterables.transform(objects, Buckets.arrayToRowFunction());
     }
 }
