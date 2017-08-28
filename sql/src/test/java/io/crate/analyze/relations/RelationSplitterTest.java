@@ -168,7 +168,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.remainingOrderBy().isPresent(), is(true));
         assertThat(splitter.remainingOrderBy().get().orderBy(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.requiredForQuery(), isSQL("doc.t1.a, doc.t1.x, doc.t2.y"));
+        assertThat(splitter.requiredForMerge(), isSQL("doc.t1.a, doc.t1.x, doc.t2.y"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
         assertThat(splitter.canBeFetched(), empty());

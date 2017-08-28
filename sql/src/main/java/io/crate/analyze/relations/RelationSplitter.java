@@ -58,7 +58,7 @@ import java.util.function.Consumer;
 public final class RelationSplitter {
 
     private final QuerySpec querySpec;
-    private final Set<Symbol> requiredForQuery = new HashSet<>();
+    private final Set<Symbol> requiredForMerge = new HashSet<>();
     private final Map<AnalyzedRelation, QuerySpec> specs;
     private final Map<QualifiedName, AnalyzedRelation> relations;
     private final List<JoinPair> joinPairs;
@@ -94,8 +94,8 @@ public final class RelationSplitter {
         return Optional.ofNullable(remainingOrderBy);
     }
 
-    public Set<Symbol> requiredForQuery() {
-        return requiredForQuery;
+    public Set<Symbol> requiredForMerge() {
+        return requiredForMerge;
     }
 
     public Set<Field> canBeFetched() {
@@ -127,7 +127,7 @@ public final class RelationSplitter {
 
             FieldsVisitor.visitFields(orderBy.orderBySymbols(), f -> {
                 fieldsByRelation.put(f.relation(), f);
-                requiredForQuery.add(f);
+                requiredForMerge.add(f);
             });
         }
 
@@ -175,9 +175,6 @@ public final class RelationSplitter {
                 FieldsVisitor.visitFields(querySpec.orderBy().get().orderBySymbols(), addFieldToMap);
             }
         }
-
-        // everything except the actual outputs is required for query
-        requiredForQuery.addAll(fieldsByRelation.values());
 
         // capture items from the outputs
         canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), fieldsByRelation);
@@ -297,7 +294,7 @@ public final class RelationSplitter {
             if (!(spec.orderBy().isPresent() && (spec.limit().isPresent() || spec.offset().isPresent()))) {
                 orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
                 spec.orderBy(orderBy);
-                requiredForQuery.addAll(orderBy.orderBySymbols());
+                requiredForMerge.addAll(orderBy.orderBySymbols());
             }
         } else {
             remainingOrderBy = new RemainingOrderBy();

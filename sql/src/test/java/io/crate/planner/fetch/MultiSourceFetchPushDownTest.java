@@ -32,7 +32,9 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -69,7 +71,6 @@ public class MultiSourceFetchPushDownTest extends CrateDummyClusterServiceUnitTe
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._fetchid"));
 
         assertThat(pd.fetchSources().size(), is(2));
-
     }
 
     @Test
@@ -82,4 +83,9 @@ public class MultiSourceFetchPushDownTest extends CrateDummyClusterServiceUnitTe
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b ORDER BY doc.t2.b"));
     }
 
+    @Test
+    public void testPushDownDoesNotAddJoinConditionsAsOutputs() throws Exception {
+        pushDown("select t1.a from t1 inner join t2 on t1.x = t2.y");
+        assertThat(mss.querySpec().outputs(), contains(isField("_fetchid")));
+    }
 }

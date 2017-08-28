@@ -977,7 +977,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.requiredForQuery(), contains(isField("id")));
+        assertThat(relation.requiredForMerge(), contains(isField("id")));
     }
 
     @Test
@@ -995,8 +995,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.requiredForQuery(), isSQL(
+        assertThat(relation.requiredForMerge(), isSQL(
             "doc.users.name, doc.users_multi_pk.id, doc.users_multi_pk.name"));
+    }
+
+    @Test
+    public void testJoinConditionIsNotPartOfOutputs() throws Exception {
+        SelectAnalyzedStatement stmt = analyze(
+            "select u1.name from users u1 inner join users u2 on u1.id = u2.id order by u1.date");
+        MultiSourceSelect rel = (MultiSourceSelect) stmt.relation();
+        assertThat(rel.requiredForMerge(), contains(isField("date")));
+        assertThat(rel.querySpec().outputs(), contains(isField("name")));
     }
 
     @Test

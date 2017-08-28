@@ -28,7 +28,12 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.MappingSymbolVisitor;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -40,7 +45,16 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.collect.Tuple;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Function;
 
 class MultiSourceFetchPushDown {
@@ -86,16 +100,24 @@ class MultiSourceFetchPushDown {
      * </pre>
      */
     void process() {
-        remainingOutputs = statement.querySpec().outputs();
+        List<Symbol> originalOutputs = statement.querySpec().outputs();
+        Set<Field> fieldsInMSSOutputs = new HashSet<>();
+        for (Symbol originalOutput : originalOutputs) {
+            FieldsVisitor.visitFields(originalOutput, fieldsInMSSOutputs::add);
+        }
 
         Map<Symbol, FetchReference> fetchRefByOriginalSymbol = new IdentityHashMap<>();
         ArrayList<Symbol> mssOutputs = new ArrayList<>(
-            statement.sources().size() + statement.requiredForQuery().size());
+            statement.sources().size() + statement.requiredForMerge().size());
 
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
             QueriedRelation relation = (QueriedRelation) entry.getValue();
             if (!(relation instanceof QueriedDocTable)) {
-                mssOutputs.addAll(relation.fields());
+                for (Field field : relation.fields()) {
+                    if (fieldsInMSSOutputs.contains(field)) {
+                        mssOutputs.add(field);
+                    }
+                }
                 continue;
             }
 
@@ -117,7 +139,10 @@ class MultiSourceFetchPushDown {
                     Symbol output = relation.querySpec().outputs().get(i);
                     if (!canBeFetched.contains(output)) {
                         qtOutputs.add(output);
-                        mssOutputs.add(relation.fields().get(i));
+                        Field f = relation.fields().get(i);
+                        if (fieldsInMSSOutputs.contains(f)) {
+                            mssOutputs.add(relation.fields().get(i));
+                        }
                     }
                 }
                 /*
@@ -142,12 +167,17 @@ class MultiSourceFetchPushDown {
                 entry.setValue(newRelation);
                 mssOutputs.set(fetchIdInput.index(), newRelation.getField(DocSysColumns.FETCHID, Operation.READ));
             } else {
-                mssOutputs.addAll(relation.fields());
+                for (Field field : relation.fields()) {
+                    if (fieldsInMSSOutputs.contains(field)) {
+                        mssOutputs.add(field);
+                    }
+                }
             }
         }
 
         statement.querySpec().outputs(mssOutputs);
-        MappingSymbolVisitor.inPlace().processInplace(remainingOutputs, fetchRefByOriginalSymbol);
+        MappingSymbolVisitor.inPlace().processInplace(originalOutputs, fetchRefByOriginalSymbol);
+        remainingOutputs = originalOutputs;
         if (statement.querySpec().orderBy().isPresent()) {
             MappingSymbolVisitor.inPlace().processInplace(statement.querySpec().orderBy().get().orderBySymbols(), fetchRefByOriginalSymbol);
         }
