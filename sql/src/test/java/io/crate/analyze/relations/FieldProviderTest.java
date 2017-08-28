@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -50,7 +51,7 @@ public class FieldProviderTest extends CrateUnitTest {
     }
 
     private static FullQualifiedNameFieldProvider newFQFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
-        return new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS);
+        return new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, Schemas.DEFAULT_SCHEMA_NAME);
     }
 
     @Test

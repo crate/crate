@@ -47,11 +47,17 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final ParentRelations parents;
+    private final String defaultSchema;
 
-    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources, ParentRelations parents) {
+    public FullQualifiedNameFieldProvider(Map<QualifiedName,
+                                          AnalyzedRelation> sources,
+                                          ParentRelations parents,
+                                          String defaultSchema) {
         assert !sources.isEmpty() : "Must have at least one source";
+        assert defaultSchema != null : "Default schema must not be null";
         this.sources = sources;
         this.parents = parents;
+        this.defaultSchema = defaultSchema;
     }
 
     public Field resolveField(QualifiedName qualifiedName, Operation operation) {
@@ -129,7 +135,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
     }
 
     private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName) {
-        String schema = columnSchema == null ? Schemas.DEFAULT_SCHEMA_NAME : columnSchema;
+        String schema = columnSchema == null ? defaultSchema : columnSchema;
         QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
         if (parents.containsRelation(qn)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,

@@ -109,6 +109,7 @@ public class SQLExecutor {
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
+    private final SessionContext sessionContext;
 
     public static class Builder {
 
@@ -117,6 +118,7 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
+        private String defaultSchema = Schemas.DEFAULT_SCHEMA_NAME;
 
         private TableStats tableStats = new TableStats();
 
@@ -125,6 +127,11 @@ public class SQLExecutor {
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo(clusterService));
             functions = getFunctions();
+        }
+
+        public Builder setDefaultSchema(String schema) {
+            this.defaultSchema = schema;
+            return this;
         }
 
         /**
@@ -156,7 +163,7 @@ public class SQLExecutor {
 
         public SQLExecutor build() {
             UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemaInfoByName.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
+            schemaInfoByName.put(defaultSchema, new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemaInfoByName.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
@@ -197,7 +204,8 @@ public class SQLExecutor {
                     functions,
                     tableStats
                 ),
-                new RelationAnalyzer(clusterService, functions, schemas)
+                new RelationAnalyzer(clusterService, functions, schemas),
+                new SessionContext(defaultSchema, null, s -> {}, t -> {})
             );
         }
 
@@ -245,11 +253,12 @@ public class SQLExecutor {
         return new Builder(clusterService);
     }
 
-    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, RelationAnalyzer relAnalyzer) {
+    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, RelationAnalyzer relAnalyzer, SessionContext sessionContext) {
         this.functions = functions;
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
+        this.sessionContext = sessionContext;
     }
 
     public Functions functions() {
@@ -258,7 +267,7 @@ public class SQLExecutor {
 
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), SessionContext.create(), parameterContext);
+            SqlParser.createStatement(stmt), sessionContext, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }
@@ -292,7 +301,7 @@ public class SQLExecutor {
             functions,
             sessionContext,
             ParamTypeHints.EMPTY,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             new SubqueryAnalyzer(
                 relAnalyzer,
                 new StatementAnalysisContext(sessionContext, ParamTypeHints.EMPTY, Operation.READ, new TransactionContext(sessionContext))

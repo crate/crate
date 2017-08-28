@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.HavingClause;
@@ -168,11 +169,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
+                SessionContext sessionContext = statementContext.sessionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
-                    statementContext.sessionContext(),
+                    sessionContext,
                     statementContext.convertParamFunction(),
-                    new FullQualifiedNameFieldProvider(relationContext.sources(), relationContext.parentSources()),
+                    new FullQualifiedNameFieldProvider(
+                        relationContext.sources(), relationContext.parentSources(), sessionContext.defaultSchema()),
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
@@ -202,11 +205,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
+        SessionContext sessionContext = statementContext.sessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            statementContext.sessionContext(),
+            sessionContext,
             statementContext.convertParamFunction(),
-            new FullQualifiedNameFieldProvider(context.sources(), context.parentSources()),
+            new FullQualifiedNameFieldProvider(context.sources(), context.parentSources(), sessionContext.defaultSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);

@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Iterables;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -110,11 +111,13 @@ public class UpdateAnalyzer {
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation :
             "currentRelationContext.sources().values() must have one element and equal to analyzedRelation";
+        SessionContext sessionContext = analysis.sessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            analysis.sessionContext(),
+            sessionContext,
             analysis.parameterContext(),
-            new FullQualifiedNameFieldProvider(currentRelationContext.sources(), currentRelationContext.parentSources()),
+            new FullQualifiedNameFieldProvider(
+                currentRelationContext.sources(), currentRelationContext.parentSources(), sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -62,8 +63,9 @@ class DeleteAnalyzer {
         int numNested = 1;
 
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
+        SessionContext sessionContext = analysis.sessionContext();
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            analysis.sessionContext(),
+            sessionContext,
             convertParamFunction,
             Operation.DELETE,
             analysis.transactionContext());
@@ -80,9 +82,10 @@ class DeleteAnalyzer {
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            analysis.sessionContext(),
+            sessionContext,
             convertParamFunction,
-            new FullQualifiedNameFieldProvider(relationAnalysisContext.sources(), relationAnalysisContext.parentSources()),
+            new FullQualifiedNameFieldProvider(
+                relationAnalysisContext.sources(), relationAnalysisContext.parentSources(), sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(

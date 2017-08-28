@@ -70,6 +70,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a bug in the detection of correlated subqueries which are currently
+   unsupported.
+
  - Fixed issue that caused the Monitoring tab in the Admin UI to redirect
    to ``/401`` when the user didn't have privileges for ``sys.cluster`` 
    or ``sys.jobs_log``.
