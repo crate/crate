@@ -28,6 +28,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -53,5 +54,30 @@ public class MessagesTest {
         // size of the message
         assertThat(buffer.readInt(), is(16));
         assertThat(buffer.readableBytes(), is(12)); // 16 - INT4 because the size was already read
+    }
+
+    @Test
+    public void testCommandCompleteWithWhitespace() throws Exception {
+        final EmbeddedChannel channel = new EmbeddedChannel();
+        final String response = "SELECT 42";
+
+        Messages.sendCommandComplete(channel, "Select 1", 42);
+        verifyResponse(channel, response);
+        Messages.sendCommandComplete(channel, " Select 1", 42);
+        verifyResponse(channel, response);
+        Messages.sendCommandComplete(channel, "  Select 1 ", 42);
+        verifyResponse(channel, response);
+        Messages.sendCommandComplete(channel, "\n  Select 1", 42);
+        verifyResponse(channel, response);
+    }
+
+    private static void verifyResponse(EmbeddedChannel channel, String response) {
+        byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+        ByteBuf buffer = (ByteBuf) channel.outboundMessages().poll();
+        assertThat(buffer.readByte(), is((byte) 'C'));
+        assertThat(buffer.readInt(), is(responseBytes.length + 4 + 1));
+        byte[] string = new byte[9];
+        buffer.readBytes(string);
+        assertThat(string, is(responseBytes));
     }
 }

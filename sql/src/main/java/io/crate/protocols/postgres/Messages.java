@@ -83,7 +83,7 @@ public class Messages {
      * @param rowCount : number of rows in the result set or number of rows affected by the DML statement
      */
     static ChannelFuture sendCommandComplete(Channel channel, String query, long rowCount) {
-        query = query.split(" ", 2)[0].toUpperCase(Locale.ENGLISH);
+        query = query.trim().split(" ", 2)[0].toUpperCase(Locale.ENGLISH);
         String commandTag;
         /*
          * from https://www.postgresql.org/docs/current/static/protocol-message-formats.html:
