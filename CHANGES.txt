@@ -72,6 +72,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a bug which returned a malformed response for PSQL queries containing
+   whitespace characters.
+
  - Fixed a bug in the detection of correlated subqueries which are currently
    unsupported.
 
