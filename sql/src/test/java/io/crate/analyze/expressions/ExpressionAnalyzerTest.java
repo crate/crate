@@ -97,9 +97,10 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
+        SessionContext sessionContext = new SessionContext(null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
+            functions, sessionContext, paramTypeHints,
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -108,11 +109,13 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
+        SessionContext sessionContext = new SessionContext(
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
+            sessionContext,
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -146,11 +149,13 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testAnalyzeSubscriptFunctionCall() throws Exception {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
+        SessionContext sessionContext = new SessionContext(
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
+            sessionContext,
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS),
+            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         FunctionCall subscriptFunctionCall = new FunctionCall(
@@ -176,11 +181,12 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             new QualifiedName("t1"), tr1,
             new QualifiedName("t2"), tr2
         );
+        SessionContext sessionContext = new SessionContext(null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            SessionContext.SYSTEM_SESSION,
+            sessionContext,
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null
         );
         Function andFunction = (Function) expressionAnalyzer.convert(

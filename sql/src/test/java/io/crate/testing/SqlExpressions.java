@@ -105,7 +105,7 @@ public class SqlExpressions {
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS),
+            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null
         );
         normalizer = new EvaluatingNormalizer(

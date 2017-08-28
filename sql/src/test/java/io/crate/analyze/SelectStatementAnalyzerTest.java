@@ -2227,6 +2227,27 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testCustomSchemaSubSelectWithAccessToParentRelation() throws Exception {
+        DocTableInfo fooTableInfo = TestingTableInfo.builder(new TableIdent("foo", "t1"), SHARD_ROUTING)
+            .add("id", DataTypes.LONG, null)
+            .add("name", DataTypes.STRING, null)
+            .addPrimaryKey("id")
+            .build();
+        DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
+            ImmutableMap.of(fooTableInfo.ident(), fooTableInfo));
+        Functions functions = getFunctions();
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
+        SQLExecutor sqlExecutor2 = SQLExecutor.builder(clusterService)
+            .setDefaultSchema("foo")
+            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, fooTableFactory))
+            .addDocTable(fooTableInfo)
+            .build();
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use relation \"foo.t1\" in subquery. Correlated subqueries are not supported");
+        sqlExecutor2.analyze("select * from t1 where id = (select 1 from t1 as x where x.id = t1.id)");
+    }
+
+    @Test
     public void testColumnOutputWithSingleRowSubselect() {
         SelectAnalyzedStatement statement = analyze("select 1 = \n (select \n 2\n)\n");
         assertThat(statement.relation().fields(), isSQL("doc.empty_row.(1 = (SELECT 2))"));

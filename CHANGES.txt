@@ -24,6 +24,9 @@ Fixes
  - Fix issue where a `DROP TABLE` statement would return before the table 
    privileges are dropped.
 
+ - Fixed a bug in the detection of correlated subqueries which are currently
+   unsupported.
+
  - Fix display of redundant parenthesis around expressions visible in 
    `SHOW CREATE` and `EXPLAIN` statements.
 

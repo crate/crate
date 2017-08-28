@@ -22,7 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.Schemas;
@@ -31,6 +30,7 @@ import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.Set;
 
 public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
@@ -64,7 +64,17 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         this.user = user;
         this.statementAuthorizedValidator = statementAuthorizedValidator;
         this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
-        setDefaultSchema(defaultSchema);
+        this.defaultSchema = defaultSchema;
+        if (defaultSchema == null) {
+            resetSchema();
+        }
+    }
+
+    /**
+     * Reverts the schema to the built-in default.
+     */
+    public void resetSchema() {
+        defaultSchema = Schemas.DEFAULT_SCHEMA_NAME;
     }
 
     public Set<Option> options() {
@@ -75,8 +85,8 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         return defaultSchema;
     }
 
-    public void setDefaultSchema(@Nullable String schema) {
-        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
+    public void setDefaultSchema(String schema) {
+        defaultSchema = Objects.requireNonNull(schema, "Default schema must never be set to null");
     }
 
     @Nullable

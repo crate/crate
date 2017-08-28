@@ -27,6 +27,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.data.Row;
@@ -95,6 +96,7 @@ public class SQLExecutor {
     private final Functions functions;
     public final Analyzer analyzer;
     public final Planner planner;
+    private final SessionContext sessionContext;
 
     public static class Builder {
 
@@ -103,6 +105,7 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
+        private String defaultSchema = Schemas.DEFAULT_SCHEMA_NAME;
 
         private TableStats tableStats = new TableStats();
 
@@ -111,6 +114,11 @@ public class SQLExecutor {
             schemas.put("sys", new SysSchemaInfo(clusterService));
             schemas.put("information_schema", new InformationSchemaInfo(clusterService));
             functions = getFunctions();
+        }
+
+        public Builder setDefaultSchema(String schema) {
+            this.defaultSchema = schema;
+            return this;
         }
 
         /**
@@ -142,7 +150,7 @@ public class SQLExecutor {
 
         public SQLExecutor build() {
             UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
+            schemas.put(defaultSchema, new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
@@ -181,7 +189,8 @@ public class SQLExecutor {
                     clusterService,
                     functions,
                     tableStats
-                )
+                ),
+                new SessionContext(defaultSchema, null, s -> {}, t -> {})
             );
         }
 
@@ -229,10 +238,11 @@ public class SQLExecutor {
         return new Builder(clusterService);
     }
 
-    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner) {
+    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, SessionContext sessionContext) {
         this.functions = functions;
         this.analyzer = analyzer;
         this.planner = planner;
+        this.sessionContext = sessionContext;
     }
 
     public Functions functions() {
@@ -241,7 +251,7 @@ public class SQLExecutor {
 
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), SessionContext.SYSTEM_SESSION, parameterContext);
+            SqlParser.createStatement(stmt), sessionContext, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }

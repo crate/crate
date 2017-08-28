@@ -29,9 +29,11 @@ import java.util.Map;
 
 public class SessionSettingRegistry {
 
+    public static final String SEARCH_PATH_KEY = "search_path";
+
     private static final Map<String, SessionSettingApplier> SESSION_SETTINGS =
         ImmutableMap.<String, SessionSettingApplier>builder()
-            .put("search_path", (parameters, expressions, context) -> {
+            .put(SEARCH_PATH_KEY, (parameters, expressions, context) -> {
                 if (expressions.size() > 0) {
                     // The search_path takes a schema name as a string or comma-separated list of schema names.
                     // In the second case only the first schema in the list will be used.
@@ -40,7 +42,7 @@ public class SessionSettingRegistry {
                     String schema = ExpressionToStringVisitor.convert(expressions.get(0), parameters);
                     context.setDefaultSchema(schema.trim());
                 } else {
-                    context.setDefaultSchema(null);
+                    context.resetSchema();
                 }
             }).build();
 

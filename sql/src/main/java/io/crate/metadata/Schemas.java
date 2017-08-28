@@ -118,7 +118,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     private SchemaInfo getSchemaInfo(TableIdent ident) {
-        String schemaName = firstNonNull(ident.schema(), DEFAULT_SCHEMA_NAME);
+        String schemaName = ident.schema();
         SchemaInfo schemaInfo = schemas.get(schemaName);
         if (schemaInfo == null) {
             throw new SchemaUnknownException(schemaName);
