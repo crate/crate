@@ -177,14 +177,14 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
             Matchers.contains(instanceOf(FilterProjection.class), instanceOf(EvalProjection.class)));
 
         EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1));
-        assertThat(eval.outputs().size(), is(3));
+        assertThat(eval.outputs().size(), is(2));
 
         MergePhase localMergePhase = merge.mergePhase();
         assertThat(localMergePhase.projections(),
             Matchers.contains(instanceOf(FetchProjection.class)));
 
         FetchProjection fetchProjection = (FetchProjection) localMergePhase.projections().get(0);
-        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), doc.users._doc['floats']), INPUT(2)"));
+        assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), doc.users._doc['floats']), INPUT(1)"));
     }
 
     @Test

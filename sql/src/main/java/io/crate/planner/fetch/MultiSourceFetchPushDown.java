@@ -30,6 +30,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.MappingSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
@@ -46,6 +47,7 @@ import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -98,16 +100,24 @@ class MultiSourceFetchPushDown {
      * </pre>
      */
     void process() {
-        remainingOutputs = statement.querySpec().outputs();
+        List<Symbol> originalOutputs = statement.querySpec().outputs();
+        Set<Field> fieldsInMSSOutputs = new HashSet<>();
+        for (Symbol originalOutput : originalOutputs) {
+            FieldsVisitor.visitFields(originalOutput, fieldsInMSSOutputs::add);
+        }
 
         Map<Symbol, FetchReference> fetchRefByOriginalSymbol = new IdentityHashMap<>();
         ArrayList<Symbol> mssOutputs = new ArrayList<>(
-            statement.sources().size() + statement.requiredForQuery().size());
+            statement.sources().size() + statement.requiredForMerge().size());
 
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
             QueriedRelation relation = (QueriedRelation) entry.getValue();
             if (!(relation instanceof QueriedDocTable)) {
-                mssOutputs.addAll(relation.fields());
+                for (Field field : relation.fields()) {
+                    if (fieldsInMSSOutputs.contains(field)) {
+                        mssOutputs.add(field);
+                    }
+                }
                 continue;
             }
 
@@ -129,7 +139,10 @@ class MultiSourceFetchPushDown {
                     Symbol output = relation.querySpec().outputs().get(i);
                     if (!canBeFetched.contains(output)) {
                         qtOutputs.add(output);
-                        mssOutputs.add(relation.fields().get(i));
+                        Field f = relation.fields().get(i);
+                        if (fieldsInMSSOutputs.contains(f)) {
+                            mssOutputs.add(relation.fields().get(i));
+                        }
                     }
                 }
                 /*
@@ -154,12 +167,16 @@ class MultiSourceFetchPushDown {
                 entry.setValue(newRelation);
                 mssOutputs.set(fetchIdInput.index(), newRelation.getField(DocSysColumns.FETCHID, Operation.READ));
             } else {
-                mssOutputs.addAll(relation.fields());
+                for (Field field : relation.fields()) {
+                    if (fieldsInMSSOutputs.contains(field)) {
+                        mssOutputs.add(field);
+                    }
+                }
             }
         }
 
         statement.querySpec().outputs(mssOutputs);
-        remainingOutputs = MappingSymbolVisitor.copy().process(remainingOutputs, fetchRefByOriginalSymbol);
+        remainingOutputs = MappingSymbolVisitor.copy().process(originalOutputs, fetchRefByOriginalSymbol);
         if (statement.querySpec().orderBy().isPresent()) {
             statement.querySpec().orderBy(
                 statement.querySpec().orderBy().get().copyAndReplace(s -> MappingSymbolVisitor.copy().process(s, fetchRefByOriginalSymbol))
