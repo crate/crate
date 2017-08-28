@@ -279,4 +279,32 @@ public class Setup {
         );
         transportExecutor.exec("refresh table characters");
     }
+
+    public void setUpJobs() {
+        transportExecutor.exec("create table jobs (id int primary key, department string, min_salary double, max_salary double)");
+        transportExecutor.ensureYellowOrGreen();
+        transportExecutor.execBulk("insert into jobs (id, department, min_salary, max_salary) values (?, ?, ?, ?)",
+            new Object[][]{
+                new Object[]{1, "engineering", 8200.0, 16000.0},
+                new Object[]{2, "HR", 6000.0, 12000.0},
+                new Object[]{3, "management", 20000.0, 40000.0},
+                new Object[]{4, "internship", 3000.0, 6000.0}
+            }
+        );
+        transportExecutor.exec("refresh table jobs");
+
+
+        transportExecutor.exec("create table job_history (job_id int, from_ts timestamp, to_ts timestamp)");
+        transportExecutor.ensureYellowOrGreen();
+        transportExecutor.execBulk("insert into job_history (job_id, from_ts, to_ts) values (?, ?, ?)",
+            new Object[][]{
+                new Object[]{1, "2017-01-01", "2017-02-02"},
+                new Object[]{1, "2017-05-05", "2017-01-12"},
+                new Object[]{2, "2015-12-01", "2016-10-25"},
+                new Object[]{3, "2016-05-20", "2017-12-31"},
+                new Object[]{4, "2014-11-11", "2016-04-04"}
+            }
+        );
+        transportExecutor.exec("refresh table job_history");
+    }
 }

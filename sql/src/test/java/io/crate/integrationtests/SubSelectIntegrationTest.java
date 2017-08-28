@@ -588,4 +588,63 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertNull(response.rows()[0][0]);
     }
+
+    @Test
+    public void testNestedSubqueryWithAggregatesInMultipleStages() throws Exception {
+        setup.setUpJobs();
+        setup.setUpEmployees();
+
+        execute("select department, avg(income) from employees" +
+            "   where income <= ANY (" +
+            "       select avg(min_salary) from jobs" +
+            "       where id in (" +
+            "           select job_id from job_history where from_ts between '2014-01-01' and '2017-12-31'" +
+            "       )" +
+            "   )" +
+            "   group by department" +
+            "   order by avg(income) desc");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(printedTable(response.rows()),
+            is( "engineering| 5000.0\n" +
+                "HR| 0.5\n"));
+    }
+
+    @Test
+    public void testJoiningSubqueries() throws Exception {
+        setup.setUpJobs();
+        setup.setUpEmployees();
+
+        execute("select employees.name, employees.department from employees" +
+            "    join ( select jobs.department" +
+            "           from jobs" +
+            "        ) sub" +
+            "       on employees.department = sub.department" +
+            "    order by 1, 2");
+        assertThat(response.rowCount(), is(6L));
+        assertThat(printedTable(response.rows()),
+            is ("asok| internship\n" +
+                "catbert| HR\n" +
+                "dilbert| engineering\n" +
+                "pointy haired boss| management\n" +
+                "ratbert| HR\n" +
+                "wally| engineering\n"));
+    }
+
+    @Test
+    public void testSubqueryWithNestedEquiJoin() throws Exception {
+        setup.setUpJobs();
+        setup.setUpEmployees();
+
+        execute("select name, income from employees" +
+            "   where hired <= ANY (" +
+            "       select jh.from_ts from job_history jh" +
+            "       join jobs j on jh.job_id = j.id" +
+            "       where j.department = 'HR'" +
+            "   )" +
+            "   and department = 'HR'" +
+            "   order by income desc");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(printedTable(response.rows()),
+            is( "catbert| 9.9999999999E8\n"));
+    }
 }
