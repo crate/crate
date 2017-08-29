@@ -31,6 +31,9 @@ Changelog
 Fixes
 -----
 
+ - Fixed issue that caused the Monitoring tab to redirect to ``/401`` when
+   the user didn't have privileges for ``sys.cluster`` or ``sys.jobs_log``.
+
  - Fix issue where a ``DROP TABLE`` statement would return before the table
    privileges are dropped.
 
