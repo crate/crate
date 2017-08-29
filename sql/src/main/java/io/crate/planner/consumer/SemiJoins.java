@@ -54,7 +54,7 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -99,48 +99,50 @@ final class SemiJoins {
         if (rewriteCandidates.isEmpty()) {
             return null;
         }
-        if (rewriteCandidates.size() > 1) {
-            return null;  // TODO: support this as well
-        }
-        Function rewriteCandidate = rewriteCandidates.get(0);
-        SelectSymbol selectSymbol = getSubqueryOrNull(rewriteCandidate.arguments().get(1));
-        assert selectSymbol != null : "rewriteCandidate must contain a selectSymbol";
-
         AnalyzedRelation sourceRel = getSource(rel);
         if (sourceRel == null) {
             return null;
         }
 
-        // Turn Ref(x) back into Field(rel, x); it's required for the MultiSourceSelect structure;
+
+        // Function to turn Ref(x) back into Field(rel, x); it's required for the MultiSourceSelect structure;
         // (a lot of logic that follows in the Planner after the rewrite is based on Fields)
         java.util.function.Function<? super Symbol, ? extends Symbol> refsToFields =
             RefReplacer.replaceRefs(r -> sourceRel.getField(r.ident().columnIdent(), Operation.READ));
-        Symbol joinCondition = makeJoinCondition(rewriteCandidate, sourceRel, selectSymbol.relation());
 
-        removeRewriteCandidatesFromWhere(rel, rewriteCandidate);
-        QuerySpec newQS = rel.querySpec().copyAndReplace(refsToFields);
-
-        // Avoid name clashes if the subquery is on the same relation; e.g.: select * from t1 where x in (select * from t1)
-        QualifiedName subQueryName = selectSymbol.relation().getQualifiedName().withPrefix("S");
+        removeRewriteCandidatesFromWhere(rel, rewriteCandidates);
+        QuerySpec newTopQS = rel.querySpec().copyAndReplace(refsToFields);
 
         // Using MSS instead of TwoTableJoin so that the "fetch-pushdown" logic in the Planner is also applied
         HashMap<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>(2);
         sources.put(rel.getQualifiedName(), sourceRel);
-        sources.put(subQueryName, selectSymbol.relation());
+
+        ArrayList<JoinPair> semiJoinPairs = new ArrayList<>();
+        int count = 0;
+        for (Function rewriteCandidate : rewriteCandidates) {
+            SelectSymbol selectSymbol = getSubqueryOrNull(rewriteCandidate.arguments().get(1));
+            assert selectSymbol != null : "rewriteCandidate must contain a selectSymbol";
+
+            // Avoid name clashes if the subquery is on the same relation; e.g.: select * from t1 where x in (select * from t1)
+            QualifiedName subQueryName = selectSymbol.relation().getQualifiedName().withPrefix("S" + count);
+            count++;
+            Symbol joinCondition = makeJoinCondition(rewriteCandidate, sourceRel, selectSymbol.relation());
+            semiJoinPairs.add(JoinPair.of(
+                rel.getQualifiedName(),
+                subQueryName,
+                JoinType.SEMI,
+                joinCondition
+            ));
+            sources.put(subQueryName, selectSymbol.relation());
+        }
 
         // normalize is done to rewrite  SELECT * from t1, t2 to SELECT * from (select ... t1) t1, (select ... t2) t2
         // because planner logic expects QueriedRelation in the sources
         MultiSourceSelect mss = new MultiSourceSelect(
             sources,
             rel.fields(),
-            newQS,
-            new ArrayList<>(Collections.singletonList(
-                JoinPair.of(
-                    rel.getQualifiedName(),
-                    subQueryName,
-                    JoinType.SEMI,
-                    joinCondition
-                )))
+            newTopQS,
+            semiJoinPairs
         );
         return (QueriedRelation) relationNormalizer.normalize(mss, transactionCtx);
     }
@@ -154,9 +156,9 @@ final class SemiJoins {
         return null;
     }
 
-    private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Function rewriteCandidate) {
+    private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Collection<Function> rewriteCandidates) {
         rel.querySpec().where().replace(FuncSymbols.mapNodes(f -> {
-            if (f == rewriteCandidate) {
+            if (rewriteCandidates.contains(f)) {
                 return Literal.BOOLEAN_TRUE;
             }
             return f;

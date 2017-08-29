@@ -27,6 +27,8 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
+import static io.crate.integrationtests.SubSelectIntegrationTest.NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED;
+import static io.crate.testing.TestingHelpers.isPrintedTable;
 import static org.hamcrest.Matchers.is;
 
 @UseJdbc
@@ -123,15 +125,19 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t values(3)");
         execute("refresh table t");
 
-        execute("select 3 where 1 = ANY(select id from t order by id asc)");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(3L));
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED ,
+            "select 3 where 1 = ANY(select id from t order by id asc)",
+            isPrintedTable("3\n")
+        );
 
-        execute("select id from t where id = ANY(select id from t order by id asc)");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(response.rows()[1][0], is(2));
-        assertThat(response.rows()[2][0], is(3));
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select id from t where id = ANY(select id from t order by id asc)",
+            isPrintedTable("1\n" +
+                           "2\n" +
+                           "3\n")
+        );
     }
 
     @Test
