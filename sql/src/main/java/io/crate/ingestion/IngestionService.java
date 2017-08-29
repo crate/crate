@@ -22,6 +22,7 @@
 
 package io.crate.ingestion;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -38,11 +39,9 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,7 +49,7 @@ import java.util.Set;
 public class IngestionService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
-    private final Map<String, List<IngestionImplementation>> implementations = new HashMap<>();
+    private final Map<String, IngestionImplementation> implementations = new HashMap<>();
     private final Schemas schemas;
     private IngestRulesMetaData previousIngestRulesMetaData;
 
@@ -69,8 +68,11 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
      * Register the provided @param implementation for ingest rule changes belonging to the provided @param sourceIdent.
      */
     public void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
-        List<IngestionImplementation> implementationsForSource = implementations.computeIfAbsent(sourceIdent, k -> new ArrayList<>());
-        implementationsForSource.add(implementation);
+        IngestionImplementation existingImplementation = implementations.put(sourceIdent, implementation);
+        if (existingImplementation != null) {
+            throw new IllegalArgumentException("There already exists an ingestion implementation registered for " +
+                                               sourceIdent);
+        }
 
         Map<String, Set<IngestRule>> ingestionRules = getIngestRulesOrNull(clusterService.state().metaData());
         if (ingestionRules == null) {
@@ -78,6 +80,11 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         } else {
             implementation.applyRules(ingestionRules.getOrDefault(sourceIdent, Collections.emptySet()));
         }
+    }
+
+    @VisibleForTesting
+    public void removeImplementationFor(String sourceIdent) {
+        implementations.remove(sourceIdent);
     }
 
     @Nullable
@@ -102,12 +109,10 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
             return;
         }
         filterOutInvalidRules(ingestionRules);
-        for (Map.Entry<String, List<IngestionImplementation>> entry : implementations.entrySet()) {
+        for (Map.Entry<String, IngestionImplementation> entry : implementations.entrySet()) {
             String sourceIdent = entry.getKey();
             Set<IngestRule> rulesForSource = ingestionRules.getOrDefault(sourceIdent, Collections.emptySet());
-            for (IngestionImplementation ingestionImplementation : entry.getValue()) {
-                ingestionImplementation.applyRules(rulesForSource);
-            }
+            entry.getValue().applyRules(rulesForSource);
         }
     }
 
