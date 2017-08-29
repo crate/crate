@@ -127,7 +127,6 @@ public class MqttProcessor {
         channel.flush()
                 .close()
                 .addListener(cf -> LOGGER.debug("Client closed connection by sending DISCONNECT"));
-        ingestService.close();
     }
 
     public void handlePingReq(Channel channel) {

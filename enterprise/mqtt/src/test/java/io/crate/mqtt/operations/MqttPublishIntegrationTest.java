@@ -8,6 +8,7 @@ import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttPubAckMessage;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-
 
 public class MqttPublishIntegrationTest extends MqttIntegrationTest {
 
@@ -34,6 +34,9 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 "  PRIMARY KEY (\"client_id\", \"packet_id\")\n" +
                 ") WITH (column_policy = 'strict', number_of_replicas = '0')");
 
+        execute("CREATE INGEST RULE ingest_all ON " + MqttIngestService.SOURCE_IDENT +
+                " WHERE topic = ? INTO mqtt.raw", new Object[]{"t1"});
+
         // MQTT CONNECT
         MQTT_CLIENT.sendMessage(MqttMessageBuilders.connect()
                 .clientId(MQTT_CLIENT.clientId())
@@ -43,6 +46,10 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 is(MqttConnectReturnCode.CONNECTION_ACCEPTED));
     }
 
+    @After
+    public void dropIngestRule() {
+        execute("DROP INGEST RULE IF EXISTS ingest_all");
+    }
 
     private static MqttPublishMessage publishMessage(String payload) {
         return publishMessage(MqttQoS.AT_LEAST_ONCE, payload);
