@@ -27,82 +27,71 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.operator.AndOperator;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.function.Function;
 
 public final class JoinPairs {
 
     /**
-     * Find and return a {@link JoinPair} for the given relation names, also check for reversed names.
-     * If the {@link JoinType} is INNER and a pair is found for the reversed names, merge the join conditions.
-     * Found join pairs will be removed from the list if consume is true.
+     * Searches {@code pairs} for a pair of {@code left ⋈ right}
+     * <ul>
+     *     <li>The matching is fuzzy, so {@code right ⋈ left} also matches if the join-type supports being inverted</li>
+     *     <li>If no pair is found a CROSS JOIN pair is created and returned.</li>
+     *     <li>The found pair is also removed from {@code pairs}</li>
+     * </ul>
      */
-    public static JoinPair ofRelationsWithMergedConditions(QualifiedName left,
-                                                           QualifiedName right,
-                                                           List<JoinPair> joinPairs,
-                                                           boolean consume) {
-        JoinPair joinPair = ofRelations(left, right, joinPairs, true);
+    public static JoinPair findAndRemovePair(List<JoinPair> pairs, QualifiedName left, QualifiedName right) {
+        JoinPair joinPair = fuzzyFindPair(pairs, left, right);
         if (joinPair == null) {
-            // default to cross join (or inner, doesn't matter)
             return JoinPair.crossJoin(left, right);
         }
-        assert !(joinPairs instanceof ImmutableList) : "joinPairs list must be mutable if it contains items";
-        // if it's an INNER, lets check for reverse relations and merge conditions
-        if (joinPair.joinType() == JoinType.INNER) {
-            JoinPair joinPairReverse = ofRelations(right, left, joinPairs, false);
-            if (joinPairReverse != null) {
-                joinPair.condition(AndOperator.join(Arrays.asList(joinPair.condition(), joinPairReverse.condition())));
-                if (consume) {
-                    joinPairs.remove(joinPairReverse);
-                }
-            }
-        }
-        if (consume) {
-            joinPairs.remove(joinPair);
-        }
-
+        assert !(pairs instanceof ImmutableList) : "joinPairs list must be mutable if it contains items";
+        pairs.remove(joinPair);
         return joinPair;
     }
 
     /**
-     * Returns the {@link JoinPair} of a pair of relation names based on the given list of join pairs.
-     * If <p>checkReversePairs</p> is true, also check for any {@link JoinPair} with switched names.
+     * Finds a JoinPair within pair where pair.left = lhs and pair.right = rhs
      */
     @Nullable
-    public static JoinPair ofRelations(QualifiedName left,
-                                       QualifiedName right,
-                                       List<JoinPair> joinPairs,
-                                       boolean checkReversePair) {
-        for (JoinPair joinPair : joinPairs) {
-            if (joinPair.equalsNames(left, right)) {
-                return joinPair;
+    public static JoinPair exactFindPair(Collection<JoinPair> pairs, QualifiedName lhs, QualifiedName rhs) {
+        for (JoinPair pair : pairs) {
+            if (pair.equalsNames(lhs, rhs)) {
+                return pair;
             }
         }
-        // check if relations were switched due to some optimization
-        if (checkReversePair) {
-            for (JoinPair joinPair : joinPairs) {
-                if (joinPair.equalsNames(right, left)) {
-                    JoinPair reverseJoinPair = JoinPair.of(
-                        joinPair.right(),
-                        joinPair.left(),
-                        joinPair.joinType().invert(),
-                        joinPair.condition());
-                    joinPairs.add(reverseJoinPair);
-                    return reverseJoinPair;
+        return null;
+    }
+
+    /**
+     * Finds a JoinPair within pairs where either
+     *
+     *  - pair.left = lhs and pair.right = rhs
+     *  - or pair.left = rhs and pair.right = lhs, in which case a reversed pair is returned (and the original pair in the list is replaced)
+     */
+    @Nullable
+    public static JoinPair fuzzyFindPair(List<JoinPair> pairs, QualifiedName lhs, QualifiedName rhs) {
+        JoinPair exactMatch = exactFindPair(pairs, lhs, rhs);
+        if (exactMatch == null) {
+            ListIterator<JoinPair> it = pairs.listIterator();
+            while (it.hasNext()) {
+                JoinPair pair = it.next();
+                if (pair.equalsNames(rhs, lhs)) {
+                    JoinPair reversed = pair.reverse();
+                    it.set(reversed); // change list entry so that the found entry can be removed from pairs
+                    return reversed;
                 }
             }
         }
-
-        return null;
+        return exactMatch;
     }
 
     /**

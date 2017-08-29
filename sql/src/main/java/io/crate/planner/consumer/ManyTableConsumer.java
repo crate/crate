@@ -258,7 +258,7 @@ public class ManyTableConsumer implements Consumer {
                                               QualifiedName b,
                                               List<JoinPair> joinPairs,
                                               Set<QualifiedName> outerJoinRelations) {
-        JoinPair joinPair = JoinPairs.ofRelations(a, b, joinPairs, false);
+        JoinPair joinPair = JoinPairs.exactFindPair(joinPairs, a, b);
         // relations are not directly joined and they are part of an outer join
         return (joinPair == null && (outerJoinRelations.contains(a) || outerJoinRelations.contains(b)));
     }
@@ -369,7 +369,7 @@ public class ManyTableConsumer implements Consumer {
             }
 
             // get explicit join definition
-            JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs, true);
+            JoinPair joinPair = JoinPairs.findAndRemovePair(joinPairs, leftName, rightName);
 
             // Search the splittedJoinConditions to find if a join condition
             // can be applied at the current status of the join tree
@@ -546,7 +546,7 @@ public class ManyTableConsumer implements Consumer {
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.of(), ImmutableSet.of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
-        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
+        JoinPair joinPair = JoinPairs.findAndRemovePair(mss.joinPairs(), left, right);
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(left);
         QueriedRelation rightRelation = (QueriedRelation) mss.sources().get(right);
 

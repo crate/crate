@@ -125,4 +125,13 @@ public class JoinPair {
     public void joinType(JoinType joinType) {
         this.joinType = joinType;
     }
+
+    public JoinPair reverse() {
+        return of(
+            right,
+            left,
+            joinType.invert(),
+            condition
+        );
+    }
 }
