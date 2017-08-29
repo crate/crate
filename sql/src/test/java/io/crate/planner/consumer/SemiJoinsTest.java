@@ -132,4 +132,18 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         Plan plan = executor.plan("select * from t1 where a in (select 'foo')");
         assertThat(plan, not(instanceOf(NestedLoop.class)));
     }
+
+    @Test
+    public void testWriteWithMultipleInClauses() throws Exception {
+        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 " +
+                                                        "where " +
+                                                        "   x in (select * from unnest([1, 2])) " +
+                                                        "   and x in (select 1)");
+        QueriedRelation rel = stmt.relation();
+        QueriedRelation semiJoins = this.semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
+
+        assertThat(semiJoins, instanceOf(MultiSourceSelect.class));
+        MultiSourceSelect mss = (MultiSourceSelect) semiJoins;
+        assertThat(mss.sources().size(), is(3));
+    }
 }

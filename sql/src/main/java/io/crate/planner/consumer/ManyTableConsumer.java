@@ -417,7 +417,7 @@ public class ManyTableConsumer implements Consumer {
                         // path is prefixed with relationName so that they are still unique
                         ColumnIdent path = new ColumnIdent(f.relation().getQualifiedName().toString(), f.path().outputName());
                         Field field = join.getField(path, Operation.READ);
-                        assert field != null : "must be able to resolve the field from the twoTableJoin";
+                        assert field != null : "must be able to resolve field \"" + path + "\" from " + join.getQualifiedName();
                         return field;
                     }
                     return f;

@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.is;
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-    private static final List<List<String>> NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED = Arrays.asList(
+    static final List<List<String>> NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED = Arrays.asList(
         Collections.emptyList(),
         Collections.singletonList("set semi_joins = true"));
 
@@ -661,5 +661,20 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             "   order by income desc",
             isPrintedTable("catbert| 9.9999999999E8\n")
         );
+    }
+
+    @Test
+    public void testSelectWithTwoInOnSubQueryThatCanBeRewrittenToSemiJoins() throws Exception {
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select * from unnest([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) t1 " +
+                "where " +
+                "   col1 in (select col1 from unnest([1, 2, 4, 5, 6])) " +
+                "   and col1 in (select col1 from unnest([4, 5, 6])) " +
+                "order by col1 ",
+            isPrintedTable(
+                "4\n" +
+               "5\n" +
+               "6\n"));
     }
 }

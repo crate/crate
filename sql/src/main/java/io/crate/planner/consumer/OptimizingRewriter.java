@@ -62,19 +62,23 @@ final class OptimizingRewriter {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Void context) {
-            return super.visitQueriedTable(table, context);
+            return maybeApplySemiJoinRewrite(table);
         }
 
         @Override
         public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Void context) {
-            QueriedRelation rewrite = null;
-            if (transactionContext.sessionContext().getSemiJoinsRewriteEnabled()) {
-                rewrite = semiJoins.tryRewrite(table, transactionContext);
+            return maybeApplySemiJoinRewrite(table);
+        }
+
+        private QueriedRelation maybeApplySemiJoinRewrite(QueriedRelation queriedRelation) {
+            if (!transactionContext.sessionContext().getSemiJoinsRewriteEnabled()) {
+                return queriedRelation;
             }
-            if (rewrite != null) {
-                return rewrite;
+            QueriedRelation rewrite = semiJoins.tryRewrite(queriedRelation, transactionContext);
+            if (rewrite == null) {
+                return queriedRelation;
             }
-            return super.visitQueriedDocTable(table, context);
+            return rewrite;
         }
     }
 }
