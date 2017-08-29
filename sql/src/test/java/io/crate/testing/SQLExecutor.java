@@ -79,6 +79,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_INFO;
@@ -118,7 +119,7 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
-        private String defaultSchema = Schemas.DEFAULT_SCHEMA_NAME;
+        private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
 
         private TableStats tableStats = new TableStats();
 
@@ -163,9 +164,14 @@ public class SQLExecutor {
 
         public SQLExecutor build() {
             UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemaInfoByName.put(defaultSchema, new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
+            schemaInfoByName.put(
+                defaultSchema,
+                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService,
+                    new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
-                schemaInfoByName.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
+                schemaInfoByName.put(
+                    BlobSchemaInfo.NAME,
+                    new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
             File tempDir = createTempDir();
             Schemas schemas = new Schemas(
@@ -296,7 +302,6 @@ public class SQLExecutor {
      *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
      */
     public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
-        SessionContext sessionContext = SessionContext.create();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             sessionContext,
@@ -313,7 +318,7 @@ public class SQLExecutor {
 
     public <T extends Plan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), SessionContext.create(), ParameterContext.EMPTY);
+            SqlParser.createStatement(statement), sessionContext, ParameterContext.EMPTY);
         //noinspection unchecked
         return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
     }
@@ -321,7 +326,7 @@ public class SQLExecutor {
     public <T extends Plan> T plan(String stmt, Object[][] bulkArgs) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(stmt),
-            SessionContext.create(),
+            sessionContext,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
         //noinspection unchecked
         return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);

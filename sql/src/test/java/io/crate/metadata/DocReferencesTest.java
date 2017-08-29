@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 
 public class DocReferencesTest {
 
-    private static final TableIdent tableIdent = new TableIdent(null, "users");
+    private static final TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users");
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);

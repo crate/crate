@@ -25,6 +25,7 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
@@ -49,11 +50,11 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
     @Test
     public void testResolveTableIndexWithIgnoreUnavailable() throws Exception {
         CompletableFuture<SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext> f = SnapshotRestoreDDLDispatcher.resolveIndexNames(
-            Collections.singletonList(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(null, "my_table"),null)),
+            Collections.singletonList(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "my_table"),null)),
             true, null, "my_repo"
         );
         SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext ctx = f.get();
-        assertThat(ctx.resolvedIndices(), containsInAnyOrder("my_table", PartitionName.templateName(null, "my_table") + "*"));
+        assertThat(ctx.resolvedIndices(), containsInAnyOrder("my_table", PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "my_table") + "*"));
         assertThat(ctx.resolvedTemplates(), contains(".partitioned.my_table."));
     }
 
@@ -75,14 +76,14 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
     public void testResolvePartitionedTableIndexFromSnapshot() throws Exception {
         SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext ctx = new SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext();
         SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveTableFromSnapshot(
-            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(null, "restoreme"), null),
+            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             Collections.singletonList(
                 new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()),
                     Collections.singletonList(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L)
             ),
             ctx
         );
-        String template = PartitionName.templateName(null, "restoreme");
+        String template = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "restoreme");
         assertThat(ctx.resolvedIndices(), contains(template + "*"));
         assertThat(ctx.resolvedTemplates(), contains(template));
     }
@@ -91,7 +92,7 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
     public void testResolveEmptyPartitionedTemplate() throws Exception {
         SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext ctx = new SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext();
         SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveTableFromSnapshot(
-            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(null, "restoreme"), null),
+            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             Collections.singletonList(
                 new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), ImmutableList.of(), 0L)
             ),
@@ -100,14 +101,14 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         assertThat(ctx.resolvedIndices().size(), is(0));
         // If the snapshot doesn't contain any index which belongs to the table, it could be that the user
         // restores an empty partitioned table. For that case we attempt to restore the table template.
-        assertThat(ctx.resolvedTemplates(), contains(PartitionName.templateName(null, "restoreme")));
+        assertThat(ctx.resolvedTemplates(), contains(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "restoreme")));
     }
 
     @Test
     public void testResolveMultiTablesIndexNamesFromSnapshot() throws Exception {
         List<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> tables = Arrays.asList(
-            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(null, "my_table"), null),
-            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(null, "my_partitioned_table"), null)
+            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
+            new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
         );
         List<SnapshotInfo> snapshots = Arrays.asList(
                 new SnapshotInfo(
@@ -125,8 +126,8 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         actionListener.onResponse(response);
 
         SnapshotRestoreDDLDispatcher.ResolveIndicesAndTemplatesContext ctx = future.get();
-        assertThat(ctx.resolvedIndices(), containsInAnyOrder("my_table", PartitionName.templateName(null, "my_partitioned_table") + "*"));
-        assertThat(ctx.resolvedTemplates(), contains(PartitionName.templateName(null, "my_partitioned_table")));
+        assertThat(ctx.resolvedIndices(), containsInAnyOrder("my_table", PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table") + "*"));
+        assertThat(ctx.resolvedTemplates(), contains(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table")));
     }
 
 }

@@ -59,17 +59,6 @@ public class Privilege implements Writeable {
         public static final List<Clazz> VALUES = ImmutableList.copyOf(values());
     }
 
-    /**
-     * Parses the schema name out of a given table ident string.
-     */
-    public static String schemaNameFromTableIdent(String ident) {
-        int dotPos = ident.indexOf('.');
-        if (dotPos == -1) {
-            return Schemas.DEFAULT_SCHEMA_NAME;
-        }
-        return ident.substring(0, dotPos);
-    }
-
 
     private final State state;
     private final PrivilegeIdent ident;

@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.SubstrFunction;
@@ -54,7 +55,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     public void prepare() {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
 
-        TableIdent usersGeneratedIdent = new TableIdent(null, "users_generated");
+        TableIdent usersGeneratedIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users_generated");
         TestingTableInfo.Builder usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)
             .add("id", DataTypes.LONG)
             .add("firstname", DataTypes.STRING)

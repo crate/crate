@@ -18,7 +18,6 @@
 
 package io.crate.scalar.systeminformation;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
@@ -38,8 +37,7 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     private static final User TEST_USER = new User("testUser", Collections.emptySet(), Collections.emptySet());
 
     private void setupFunctionsFor(@Nullable User user) {
-        SessionContext sessionContext = new SessionContext(null, user, s -> {}, t -> {});
-        sqlExpressions = new SqlExpressions(tableSources, null, null, sessionContext,
+        sqlExpressions = new SqlExpressions(tableSources, null, null, user,
             new UsersScalarFunctionModule());
         functions = sqlExpressions.functions();
     }

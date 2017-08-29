@@ -119,7 +119,7 @@ public class SchemasTest {
                         "burlesque", "Hello, World!Q")
                 )
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metaData), contains("new_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metaData), contains("doc", "new_schema"));
     }
 
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {

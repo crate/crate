@@ -70,13 +70,13 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         .add("other_obj", DataTypes.OBJECT, null)
         .clusteredBy("obj.name").build();
 
-    private final TableIdent testAliasTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "alias");
+    private final TableIdent testAliasTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "alias");
     private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
         testAliasTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
-    private final TableIdent nestedPk = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "t_nested_pk");
+    private final TableIdent nestedPk = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t_nested_pk");
     private final DocTableInfo tiNestedPk = new TestingTableInfo.Builder(
         nestedPk, SHARD_ROUTING)
         .add("o", DataTypes.OBJECT)
@@ -95,14 +95,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(testAliasTableInfo)
             .addDocTable(tiNestedPk);
 
-        TableIdent partedGeneratedColumnTableIdent = new TableIdent(null, "parted_generated_column");
+        TableIdent partedGeneratedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted_generated_column");
         TestingTableInfo.Builder partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
             partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
         builder.addDocTable(partedGeneratedColumnTableInfo);
 
-        TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(null, "nested_parted_generated_column");
+        TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "nested_parted_generated_column");
         TestingTableInfo.Builder nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
             nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("user", DataTypes.OBJECT, null)
@@ -188,7 +188,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         UpdateAnalyzedStatement statement = analyze("update users set name='Trillian'");
         UpdateAnalyzedStatement.NestedAnalyzedStatement statement1 = statement.nestedStatements().get(0);
         assertThat(statement1.assignments().size(), is(1));
-        assertThat(((DocTableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users")));
+        assertThat(((DocTableRelation) statement.sourceRelation()).tableInfo().ident(), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "users")));
 
         Reference ref = statement1.assignments().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name(), is("users"));

@@ -24,6 +24,7 @@ package io.crate.operation.user;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.PrivilegeIdent;
+import io.crate.metadata.Schemas;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -85,7 +86,7 @@ class UserPrivileges implements Iterable<Privilege> {
             case TABLE:
                 foundPrivilege = hasAnyTablePrivilege(ident);
                 if (foundPrivilege == false) {
-                    String schemaIdent = Privilege.schemaNameFromTableIdent(ident);
+                    String schemaIdent = Schemas.getSchemaName(ident);
                     foundPrivilege = hasAnySchemaPrivilege(schemaIdent);
                     if (foundPrivilege == false) {
                         foundPrivilege = hasAnyClusterPrivilege();
@@ -113,7 +114,7 @@ class UserPrivileges implements Iterable<Privilege> {
                     foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     break;
                 case TABLE:
-                    String schemaIdent = Privilege.schemaNameFromTableIdent(ident);
+                    String schemaIdent = Schemas.getSchemaName(ident);
                     foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
                         foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));

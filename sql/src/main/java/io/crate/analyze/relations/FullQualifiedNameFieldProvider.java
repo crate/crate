@@ -124,8 +124,9 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
         }
         if (lastField == null) {
             if (!schemaMatched || !tableNameMatched) {
-                raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName);
-                throw RelationUnknownException.of(columnSchema, columnTableName);
+                String schema = columnSchema == null ? defaultSchema : columnSchema;
+                raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
+                throw RelationUnknownException.of(schema, columnTableName);
             }
             QualifiedName tableName = sources.entrySet().iterator().next().getKey();
             TableIdent tableIdent = TableIdent.fromIndexName(tableName.toString());
@@ -134,8 +135,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
         return lastField;
     }
 
-    private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName) {
-        String schema = columnSchema == null ? defaultSchema : columnSchema;
+    private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName, String schema) {
         QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
         if (parents.containsRelation(qn)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,

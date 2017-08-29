@@ -31,6 +31,7 @@ import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -85,7 +86,7 @@ import static org.mockito.Mockito.mock;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
-    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
     private LegacyLongFieldMapper.LongFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
@@ -252,7 +253,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Reference sysColReference =
             new Reference(
                 new ReferenceIdent(
-                    new TableIdent(null, "table"),
+                    new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"),
                     DocSysColumns.SCORE),
                 RowGranularity.DOC, DataTypes.FLOAT);
 

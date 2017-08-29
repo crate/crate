@@ -43,6 +43,7 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
+import io.crate.operation.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -63,27 +64,22 @@ public class SqlExpressions {
     private final Functions functions;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null, null, SessionContext.create());
+        this(sources, null, null, null);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
-        this(sources, null, parameters, SessionContext.create());
+        this(sources, null, parameters, null);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
-        this(sources, fieldResolver, null, SessionContext.create());
-    }
-
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
-                          SessionContext sessionContext) {
-        this(sources, null, null, sessionContext);
+        this(sources, fieldResolver, null, null);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           @Nullable Object[] parameters,
-                          SessionContext sessionContext,
+                          User user,
                           AbstractModule... additionalModules) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new OperatorModule())
@@ -98,6 +94,7 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
+        SessionContext sessionContext = SessionContext.create(user);
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             sessionContext,
@@ -126,5 +123,9 @@ public class SqlExpressions {
 
     public Functions functions() {
         return functions;
+    }
+
+    public void setDefaultSchema(String schema) {
+        this.transactionContext.sessionContext().setDefaultSchema(schema);
     }
 }

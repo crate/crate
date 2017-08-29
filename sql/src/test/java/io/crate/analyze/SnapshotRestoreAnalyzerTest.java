@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -262,7 +263,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         PartitionName partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123")));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partition));
-        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(null, "parted")));
+        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted")));
     }
 
     @Test
@@ -272,7 +273,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         PartitionName partitionName = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123")));
         assertThat(statement.restoreTables().size(), is(1));
         assertThat(statement.restoreTables().get(0).partitionName(), is(partitionName));
-        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(null, "unknown_parted")));
+        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
     }
 
     @Test

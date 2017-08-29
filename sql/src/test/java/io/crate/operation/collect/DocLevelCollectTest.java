@@ -63,15 +63,15 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(
-        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "doc"),
+        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER);
     private static final Reference underscoreIdReference = new Reference(
-        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_id"),
+        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING);
     private static final Reference underscoreRawReference = new Reference(
-        new ReferenceIdent(new TableIdent(null, TEST_TABLE_NAME), "_raw"),
+        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_raw"),
         RowGranularity.DOC,
         DataTypes.STRING);
 
@@ -183,7 +183,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
-        TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
+        TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(

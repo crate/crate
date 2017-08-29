@@ -33,7 +33,7 @@ public class TableIdentTest extends CrateUnitTest {
 
     @Test
     public void testIndexName() throws Exception {
-        TableIdent ti = new TableIdent(null, "t");
+        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.indexName(), is("t"));
         ti = new TableIdent("s", "t");
         assertThat(ti.indexName(), is("s.t"));
@@ -41,26 +41,26 @@ public class TableIdentTest extends CrateUnitTest {
 
     @Test
     public void testFromIndexName() throws Exception {
-        assertThat(TableIdent.fromIndexName("t"), is(new TableIdent(null, "t")));
+        assertThat(TableIdent.fromIndexName("t"), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t")));
         assertThat(TableIdent.fromIndexName("s.t"), is(new TableIdent("s", "t")));
 
         PartitionName pn = new PartitionName("s", "t", ImmutableList.of(new BytesRef("v1")));
         assertThat(TableIdent.fromIndexName(pn.asIndexName()), is(new TableIdent("s", "t")));
 
-        pn = new PartitionName(null, "t", ImmutableList.of(new BytesRef("v1")));
-        assertThat(TableIdent.fromIndexName(pn.asIndexName()), is(new TableIdent(null, "t")));
+        pn = new PartitionName( "t", ImmutableList.of(new BytesRef("v1")));
+        assertThat(TableIdent.fromIndexName(pn.asIndexName()), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t")));
     }
 
     @Test
     public void testDefaultSchema() throws Exception {
-        TableIdent ti = new TableIdent(null, "t");
+        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.schema(), is("doc"));
         assertThat(ti, is(new TableIdent("doc", "t")));
     }
 
     @Test
     public void testFQN() throws Exception {
-        TableIdent ti = new TableIdent(null, "t");
+        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.fqn(), is("doc.t"));
 
         ti = new TableIdent("s", "t");
@@ -69,9 +69,9 @@ public class TableIdentTest extends CrateUnitTest {
 
     @Test
     public void testFqnFromIndexName() throws Exception {
-        assertThat(TableIdent.fqnFromIndexName("t1"), is(Schemas.DEFAULT_SCHEMA_NAME + ".t1"));
+        assertThat(TableIdent.fqnFromIndexName("t1"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
         assertThat(TableIdent.fqnFromIndexName("my_schema.t1"), is("my_schema.t1"));
-        assertThat(TableIdent.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DEFAULT_SCHEMA_NAME + ".t1"));
+        assertThat(TableIdent.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
         assertThat(TableIdent.fqnFromIndexName("my_schema..partitioned.t1.abc"), is("my_schema.t1"));
     }
 

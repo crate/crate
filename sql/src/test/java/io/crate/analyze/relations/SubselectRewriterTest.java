@@ -70,8 +70,8 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         Schemas schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of(
-                Schemas.DEFAULT_SCHEMA_NAME,
-                new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
+                Schemas.DOC_SCHEMA_NAME,
+                new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
             clusterService,
             new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
         );

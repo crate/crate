@@ -26,8 +26,6 @@ import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.regex.Matcher;
-
 public class ShardTableNameExpression implements ReferenceImplementation<BytesRef> {
 
     private final BytesRef value;
@@ -37,12 +35,7 @@ public class ShardTableNameExpression implements ReferenceImplementation<BytesRe
         if (PartitionName.isPartition(index)) {
             value = new BytesRef(PartitionName.fromIndexOrTemplate(index).tableIdent().name());
         } else {
-            Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
-            if (matcher.matches()) {
-                value = new BytesRef(matcher.group(2));
-            } else {
-                value = new BytesRef(index);
-            }
+            value = new BytesRef(Schemas.getTableName(index));
         }
     }
 

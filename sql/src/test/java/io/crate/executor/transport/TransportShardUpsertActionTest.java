@@ -95,7 +95,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     private DocTableInfo generatedColumnTableInfo;
 
-    private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
+    private final static TableIdent TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList(new BytesRef("1395874800000"))).asIndexName();
     private final static Reference ID_REF = new Reference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT);
@@ -183,7 +183,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     }
 
     private void bindGeneratedColumnTable(Functions functions) {
-        TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
+        TableIdent generatedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_column");
         generatedColumnTableInfo = new TestingTableInfo.Builder(
             generatedColumnTableIdent, new Routing(Collections.EMPTY_MAP))
             .add("ts", DataTypes.TIMESTAMP, null)
@@ -310,7 +310,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             .map();
 
         DocTableInfo docTableInfo = new TestingTableInfo.Builder(
-            new TableIdent(null, "generated_column"),
+            new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_column"),
             new Routing(Collections.<String, Map<String, List<Integer>>>emptyMap()))
             .add("obj", DataTypes.OBJECT, null)
             .add("obj", new ArrayType(DataTypes.INTEGER), Arrays.asList("arr"))

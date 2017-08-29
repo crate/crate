@@ -71,7 +71,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private void registerUserDefinedFunction(String name, DataType returnType, List<DataType> types, String definition) throws ScriptException {
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
-            Schemas.DEFAULT_SCHEMA_NAME,
+            Schemas.DOC_SCHEMA_NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             returnType,
@@ -82,10 +82,10 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         String validation = udfService.getLanguage(JS).validate(udfMeta);
         if (validation == null) {
             functionImplementations.put(
-                new FunctionIdent(Schemas.DEFAULT_SCHEMA_NAME, name, types),
+                new FunctionIdent(Schemas.DOC_SCHEMA_NAME, name, types),
                 udfService.getLanguage(JS).createFunctionImplementation(udfMeta)
             );
-            functions.registerUdfResolversForSchema(Schemas.DEFAULT_SCHEMA_NAME, functionImplementations);
+            functions.registerUdfResolversForSchema(Schemas.DOC_SCHEMA_NAME, functionImplementations);
         } else {
             throw new ScriptException(validation);
         }
@@ -106,7 +106,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testInvalidJavascript() throws ScriptException{
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
-            Schemas.DEFAULT_SCHEMA_NAME,
+            Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,
@@ -121,7 +121,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testValidJavascript() throws Exception {
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
-            Schemas.DEFAULT_SCHEMA_NAME,
+            Schemas.DOC_SCHEMA_NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY)),
             DataTypes.DOUBLE,

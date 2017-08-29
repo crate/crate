@@ -157,7 +157,7 @@ public class PartitionNameTest extends CrateUnitTest {
         PartitionName partitionName = new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
 
-        partitionName = new PartitionName(null, "t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
+        partitionName = new PartitionName("t", Arrays.asList(new BytesRef("a"), new BytesRef("b")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("081620j2"));
 
@@ -165,11 +165,11 @@ public class PartitionNameTest extends CrateUnitTest {
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("081620j2"));
 
-        partitionName = new PartitionName(null, "t", Collections.singletonList(new BytesRef("hoschi")));
+        partitionName = new PartitionName( "t", Collections.singletonList(new BytesRef("hoschi")));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("043mgrrjcdk6i"));
 
-        partitionName = new PartitionName(null, "t", Collections.<BytesRef>singletonList(null));
+        partitionName = new PartitionName("t", Collections.singletonList(null));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("0400"));
     }
@@ -229,12 +229,12 @@ public class PartitionNameTest extends CrateUnitTest {
             new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
                 new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
         assertTrue(
-            new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
-                new PartitionName(Schemas.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
         assertFalse(
             new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
                 new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));
-        PartitionName name = new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx")));
+        PartitionName name = new PartitionName( "table", Arrays.asList(new BytesRef("xxx")));
         assertTrue(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName())));
     }
 }

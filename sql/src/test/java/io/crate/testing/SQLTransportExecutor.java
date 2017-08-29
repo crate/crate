@@ -31,6 +31,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.Schemas;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -99,8 +100,14 @@ public class SQLTransportExecutor {
     private static final Logger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
+    private final String defaultSchema = Schemas.DOC_SCHEMA_NAME;
+
     public SQLTransportExecutor(ClientProvider clientProvider) {
         this.clientProvider = clientProvider;
+    }
+
+    public String getDefaultSchema() {
+        return defaultSchema;
     }
 
     public SQLResponse exec(String statement) {
@@ -195,7 +202,7 @@ public class SQLTransportExecutor {
 
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         return execute(stmt, args, clientProvider.sqlOperations().createSession(
-            null,
+            defaultSchema,
             null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT
@@ -230,7 +237,7 @@ public class SQLTransportExecutor {
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
         SQLOperations.Session session = clientProvider.sqlOperations().createSession(
-            null,
+            defaultSchema,
             null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT

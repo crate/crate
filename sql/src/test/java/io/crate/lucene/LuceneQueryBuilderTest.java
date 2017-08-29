@@ -29,6 +29,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
@@ -114,7 +115,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        DocTableInfo users = TestingTableInfo.builder(new TableIdent(null, "users"), null)
+        DocTableInfo users = TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "users"), null)
             .add("name", DataTypes.STRING)
             .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
             .add("d", DataTypes.DOUBLE)
@@ -240,13 +241,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(null, "test_primitive"), null)
+            DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "test_primitive"), null)
                 .add("x", type)
                 .build();
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
-            SqlExpressions sqlExpressions = new SqlExpressions(
-                tableSources, tableRelation, new Object[]{null}, SessionContext.create());
+            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, new Object[]{null}, null);
 
             Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 

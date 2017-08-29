@@ -12,6 +12,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.AndOperator;
@@ -69,7 +70,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
             functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
         Symbol name_ref = new Reference(
-            new ReferenceIdent(new TableIdent(null, "foo"), "name"),
+            new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
             DataTypes.STRING);
         Symbol x_literal = Literal.of("x");

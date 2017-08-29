@@ -98,7 +98,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
-        return new DocIndexMetaData(functions, metaData, new TableIdent(null, name)).build();
+        return new DocIndexMetaData(functions, metaData, new TableIdent(Schemas.DOC_SCHEMA_NAME, name)).build();
     }
 
     @Before
@@ -939,7 +939,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             functions,
             new IndexNameExpressionResolver(Settings.EMPTY)
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,

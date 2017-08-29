@@ -58,15 +58,19 @@ public class PartitionName {
     }
 
     public PartitionName(String tableName, List<BytesRef> values) {
-        this(null, tableName, values);
+        this(Schemas.DOC_SCHEMA_NAME, tableName, values);
     }
 
-    public PartitionName(@Nullable String schemaName, String tableName, List<BytesRef> values) {
+    public PartitionName(String schemaName, String tableName, List<BytesRef> values) {
         this(new TableIdent(schemaName, tableName), values);
     }
 
     public static String indexName(TableIdent tableIdent, String ident) {
-        if (tableIdent.schema().equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
+        // For the index name belonging to the 'doc' schema, we skip the schema name.
+        // This may safe us some bytes but it also requires checks in different places.
+        // Would have been better to just prefix the 'doc' schema but now that would
+        // mean having to migrate all existing indices.
+        if (tableIdent.schema().equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableIdent.name(), ident);
         }
         return DOT_JOINER.join(tableIdent.schema(), PARTITIONED_TABLE_PREFIX, tableIdent.name(), ident);
@@ -200,14 +204,14 @@ public class PartitionName {
 
         List<String> parts = SPLITTER.splitToList(indexOrTemplate);
 
-        String schema;
-        String partitioned;
-        String table;
-        String ident;
+        final String schema;
+        final String partitioned;
+        final String table;
+        final String ident;
         switch (parts.size()) {
             case 4:
                 // ""."partitioned"."table_name". ["ident"]
-                schema = null;
+                schema = Schemas.DOC_SCHEMA_NAME;
                 partitioned = parts.get(1);
                 table = parts.get(2);
                 ident = parts.get(3);
@@ -240,8 +244,8 @@ public class PartitionName {
     /**
      * compute the template name (used with partitioned tables) from a given schema and table name
      */
-    public static String templateName(@Nullable String schemaName, String tableName) {
-        if (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) {
+    public static String templateName(String schemaName, String tableName) {
+        if (schemaName == null || schemaName.equals(Schemas.DOC_SCHEMA_NAME)) {
             return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, "");
         } else {
             return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
@@ -251,7 +255,7 @@ public class PartitionName {
     /**
      * return the template prefix to match against index names for the given schema and table name
      */
-    public static String templatePrefix(@Nullable String schemaName, String tableName) {
+    public static String templatePrefix(String schemaName, String tableName) {
         return templateName(schemaName, tableName) + "*";
     }
 }

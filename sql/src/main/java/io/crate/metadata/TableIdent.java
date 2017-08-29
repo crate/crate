@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -35,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -67,11 +65,8 @@ public class TableIdent implements Writeable {
             PartitionName pn = PartitionName.fromIndexOrTemplate(indexName);
             return pn.tableIdent();
         }
-        int dotPos = indexName.indexOf('.');
-        if (dotPos == -1) {
-            return new TableIdent(null, indexName);
-        }
-        return new TableIdent(indexName.substring(0, dotPos), indexName.substring(dotPos + 1));
+        Schemas.SchemaAndTableName schemaAndTableName = Schemas.getSchemaAndTableName(indexName);
+        return new TableIdent(schemaAndTableName.schemaName, schemaAndTableName.tableName);
     }
 
     public static String fqnFromIndexName(String indexName) {
@@ -79,13 +74,13 @@ public class TableIdent implements Writeable {
         switch (parts.size()) {
             case 1:
                 // "table_name"
-                return Schemas.DEFAULT_SCHEMA_NAME + "." + indexName;
+                return Schemas.DOC_SCHEMA_NAME + "." + indexName;
             case 2:
                 // "schema"."table_name"
                 return indexName;
             case 4:
                 // ""."partitioned"."table_name". ["ident"]
-                return Schemas.DEFAULT_SCHEMA_NAME + "." + parts.get(2);
+                return Schemas.DOC_SCHEMA_NAME + "." + parts.get(2);
             case 5:
                 // "schema".""."partitioned"."table_name". ["ident"]
                 return parts.get(0) + "." + parts.get(3);
@@ -99,9 +94,10 @@ public class TableIdent implements Writeable {
         name = in.readString();
     }
 
-    public TableIdent(@Nullable String schema, String name) {
+    public TableIdent(String schema, String name) {
+        assert schema != null : "schema name must not be null";
         assert name != null : "table name must not be null";
-        this.schema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
+        this.schema = schema;
         this.name = name;
     }
 
@@ -122,7 +118,7 @@ public class TableIdent implements Writeable {
     }
 
     public String indexName() {
-        if (schema.equalsIgnoreCase(Schemas.DEFAULT_SCHEMA_NAME)) {
+        if (schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return name;
         }
         return fqn();

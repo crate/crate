@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
@@ -676,7 +677,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         );
         execute("alter table quotes set (number_of_shards=5)");
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse =
             client().admin().indices().prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();

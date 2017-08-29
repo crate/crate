@@ -72,7 +72,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Reverts the schema to the built-in default.
      */
     public void resetSchema() {
-        defaultSchema = Schemas.DEFAULT_SCHEMA_NAME;
+        defaultSchema = Schemas.DOC_SCHEMA_NAME;
     }
 
     public Set<Option> options() {
@@ -110,6 +110,14 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Creates a new SessionContext with default settings.
      */
     public static SessionContext create() {
-        return new SessionContext(null, null, s -> {}, t -> {});
+        return create(null);
+    }
+
+    /**
+     * Creates a new SessionContext with a specific user.
+     * Note: User can only set at the beginning of session.
+     */
+    public static SessionContext create(User user) {
+        return new SessionContext(null, user, s -> {}, t -> {});
     }
 }

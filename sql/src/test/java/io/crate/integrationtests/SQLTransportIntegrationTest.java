@@ -323,7 +323,10 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
-        Plan plan = planner.plan(analyzer.boundAnalyze(SqlParser.createStatement(stmt), SessionContext.create(), parameterContext), UUID.randomUUID(), 0, 0);
+        SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), null, x -> {}, x -> {});
+        Plan plan = planner.plan(
+            analyzer.boundAnalyze(SqlParser.createStatement(stmt), sessionContext, parameterContext),
+            UUID.randomUUID(), 0, 0);
         return new PlanForNode(plan, nodeName);
     }
 
@@ -454,7 +457,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
+        waitForMappingUpdateOnAll(new TableIdent(Schemas.DOC_SCHEMA_NAME, tableOrPartition), fieldNames);
     }
 
     /**

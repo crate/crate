@@ -1855,9 +1855,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         SelectAnalyzedStatement stmt =
             analyze("select * from unnest(['a'], ['b'], [0], [0], [0], [0], [0], [0], [0], [0], [0])");
 
-        String sqlFields = "doc.unnest.col1, doc.unnest.col2, doc.unnest.col3, doc.unnest.col4, " +
-                           "doc.unnest.col5, doc.unnest.col6, doc.unnest.col7, doc.unnest.col8, " +
-                           "doc.unnest.col9, doc.unnest.col10, doc.unnest.col11";
+        String sqlFields = ".unnest.col1, .unnest.col2, .unnest.col3, .unnest.col4, " +
+                           ".unnest.col5, .unnest.col6, .unnest.col7, .unnest.col8, " +
+                           ".unnest.col9, .unnest.col10, .unnest.col11";
         assertThat(stmt.relation().querySpec().outputs(), isSQL(sqlFields));
         assertThat(stmt.relation().fields(), isSQL(sqlFields));
     }
@@ -1914,6 +1914,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testColumnOutputWithSingleRowSubselect() {
         SelectAnalyzedStatement statement = analyze("select 1 = \n (select \n 2\n)\n");
-        assertThat(statement.relation().fields(), isSQL("doc.empty_row.(1 = (SELECT 2))"));
+        assertThat(statement.relation().fields(), isSQL(".empty_row.(1 = (SELECT 2))"));
     }
 }

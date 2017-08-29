@@ -34,7 +34,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class ReferenceToLiteralConverterTest extends CrateUnitTest {
 
-    private static final TableIdent TABLE_IDENT = new TableIdent(null, "characters");
+    private static final TableIdent TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
 
     @Test
     public void testReplaceSimpleReference() throws Exception {

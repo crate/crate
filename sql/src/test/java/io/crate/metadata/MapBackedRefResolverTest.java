@@ -35,7 +35,7 @@ import static org.mockito.Mockito.mock;
 
 public class MapBackedRefResolverTest {
 
-    private static final TableIdent USERS_TI = new TableIdent(null, "users");
+    private static final TableIdent USERS_TI = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users");
 
     @Test
     public void testGetImplementation() throws Exception {

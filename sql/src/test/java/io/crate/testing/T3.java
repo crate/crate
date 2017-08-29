@@ -59,39 +59,44 @@ public class T3 {
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t4", Collections.singletonList(0))));
 
-    public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), t1Routing)
+    public static final DocTableInfo T1_INFO =
+        new TestingTableInfo.Builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)
         .add("a", DataTypes.STRING)
         .add("x", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
         .build();
     public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
-    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), t2Routing)
+    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(
+        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t2"), t2Routing)
         .add("b", DataTypes.STRING)
         .add("y", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
         .build();
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
-    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), t3Routing)
+    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(
+        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t3"), t3Routing)
         .add("c", DataTypes.STRING)
         .add("z", DataTypes.INTEGER)
         .build();
     public static final TableRelation TR_3 = new TableRelation(T3_INFO);
 
-    public static final DocTableInfo T4_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t4"), t4Routing)
+    public static final DocTableInfo T4_INFO = new TestingTableInfo.Builder(
+        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t4"), t4Routing)
         .add("id", DataTypes.INTEGER)
         .add("obj", DataTypes.OBJECT)
         .add("obj", DataTypes.INTEGER, ImmutableList.of("i"))
         .add("obj_array", new ArrayType(DataTypes.OBJECT))
         .add("obj_array", DataTypes.INTEGER, ImmutableList.of("i"))
         .build();
+
     public static final TableRelation TR_4 = new TableRelation(T4_INFO);
 
-    public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t1"));
-    public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t2"));
-    public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t3"));
-    public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t4"));
+    public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t1"));
+    public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t2"));
+    public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t3"));
+    public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t4"));
 
     public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3, TR_4);
     public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.of(

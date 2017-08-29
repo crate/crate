@@ -21,6 +21,7 @@ package io.crate.operation.user;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
 
 import javax.annotation.Nullable;
@@ -73,7 +74,7 @@ class Privileges {
         assert ident != null : "ident must not be null if privilege class is not 'CLUSTER'";
         String schemaName;
         if (Privilege.Clazz.TABLE.equals(clazz)) {
-            schemaName = Privilege.schemaNameFromTableIdent(ident);
+            schemaName = Schemas.getSchemaName(ident);
         } else {
             schemaName = ident;
         }

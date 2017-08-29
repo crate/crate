@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
@@ -377,7 +378,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -413,7 +414,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "numbers"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);
@@ -449,7 +450,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         GetIndexTemplatesResponse templateResponse = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(null, "numbers"))
+            .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "numbers"))
             .execute().actionGet();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = templateResponse.getIndexTemplates().get(0);
@@ -580,7 +581,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table dynamic_table");
         ensureYellow();
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(null, "dynamic_table"))
+            .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "dynamic_table"))
             .execute().actionGet();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetaData template = response.getIndexTemplates().get(0);

@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
@@ -52,7 +53,7 @@ import static org.mockito.Mockito.*;
 
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
+    private final static TableIdent TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;

@@ -31,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
@@ -58,7 +59,7 @@ import static org.mockito.Mockito.mock;
 public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
-    private static final TableIdent bulkImportIdent = new TableIdent(null, "bulk_import");
+    private static final TableIdent bulkImportIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "bulk_import");
     private static Reference rawSourceReference = new Reference(
         new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING);
 
@@ -79,7 +80,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             Settings.EMPTY,
             transportBulkCreateIndicesAction,
             (request, listener) -> {},
-            IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
+            IndexNameResolver.forTable(new TableIdent(Schemas.DOC_SCHEMA_NAME, "bulk_import")),
             rawSourceReference,
             Arrays.asList(ID_IDENT),
             Arrays.<Symbol>asList(new InputColumn(1)),

@@ -24,7 +24,6 @@ package io.crate.exceptions;
 
 import io.crate.metadata.TableIdent;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -32,7 +31,7 @@ public class RelationUnknownException extends ResourceUnknownException implement
 
     private final TableIdent tableIdent;
 
-    public static RelationUnknownException of(@Nullable String schemaName, String tableName) {
+    public static RelationUnknownException of(String schemaName, String tableName) {
         return new RelationUnknownException(new TableIdent(schemaName, tableName));
     }
 

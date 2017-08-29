@@ -4,6 +4,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TestingTableInfo;
@@ -65,7 +66,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom.table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(null, "table"), shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"), shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("table"));
 
         indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1"))

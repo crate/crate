@@ -28,6 +28,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -274,7 +275,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table parted (id integer, name string, date timestamp)" +
                 "partitioned by (date)");
         ensureYellow();
-        String templateName = PartitionName.templateName(null, "parted");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "parted");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         assertThat(templatesResponse.getIndexTemplates().get(0).template(),
@@ -1072,7 +1073,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(1L, response.rowCount());
 
         GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(null, "quotes")).execute().get();
+            .prepareGetTemplates(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes")).execute().get();
         assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
 
         assertThat(internalCluster().clusterService().state().metaData().indices().size(), is(0));
@@ -1293,7 +1294,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1363,7 +1364,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='1')");
         ensureYellow();
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1398,7 +1399,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("alter table quotes reset (number_of_replicas)");
         ensureYellow();
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1448,7 +1449,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(settingsResponse.getSetting(partitions.get(0), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
         assertThat(settingsResponse.getSetting(partitions.get(1), IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("0"));
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1784,7 +1785,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
 
-        String templateName = PartitionName.templateName(null, "quotes");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
@@ -1990,7 +1991,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into foo (name, p) values (?, ?)", new Object[]{"Marvin", 1});
         execute("refresh table foo");
 
-        String templateName = PartitionName.templateName(null, "foo");
+        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "foo");
         client().admin().indices().prepareDeleteTemplate(templateName).execute().actionGet();
         waitNoPendingTasksOnAll();
         execute("select * from sys.shards where table_name = 'foo'");

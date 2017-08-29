@@ -36,6 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
@@ -172,7 +173,7 @@ public class TestingHelpers {
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
         return new Reference(
-            new ReferenceIdent(new TableIdent(null, tableName), columnIdent),
+            new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
             dataType);
     }
@@ -286,7 +287,7 @@ public class TestingHelpers {
         }
         switch (parts.length) {
             case 2:
-                refIdent = new ReferenceIdent(new TableIdent(null, parts[0]), parts[1], nestedParts);
+                refIdent = new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
                 break;
             case 3:
                 refIdent = new ReferenceIdent(new TableIdent(parts[0], parts[1]), parts[2], nestedParts);

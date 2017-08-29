@@ -9,8 +9,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.regex.Matcher;
-
 /**
  * This class represents an unassigned shard
  * <p>
@@ -72,11 +70,12 @@ public class UnassignedShard {
                            ShardRoutingState state) {
         String index = shardId.getIndexName();
         boolean isBlobIndex = BlobIndex.isBlobIndex(index);
-        String tableName;
-        String ident = "";
+        final String tableName;
+        final String ident;
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
             tableName = BlobIndex.stripPrefix(index);
+            ident = "";
         } else if (PartitionName.isPartition(index)) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
             schemaName = partitionName.tableIdent().schema();
@@ -86,14 +85,10 @@ public class UnassignedShard {
                 orphanedPartition = true;
             }
         } else {
-            Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
-            if (matcher.matches()) {
-                this.schemaName = matcher.group(1);
-                tableName = matcher.group(2);
-            } else {
-                this.schemaName = Schemas.DEFAULT_SCHEMA_NAME;
-                tableName = index;
-            }
+            Schemas.SchemaAndTableName schemaAndTableName = Schemas.getSchemaAndTableName(index);
+            this.schemaName = schemaAndTableName.schemaName;
+            tableName = schemaAndTableName.tableName;
+            ident = "";
         }
 
         this.tableName = tableName;

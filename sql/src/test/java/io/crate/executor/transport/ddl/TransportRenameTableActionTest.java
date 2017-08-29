@@ -50,11 +50,13 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testRenameOnOpenTableThrowsException() throws Exception {
-        RenameTableRequest request = new RenameTableRequest(TableIdent.fromIndexName("t1"),
-            TableIdent.fromIndexName("t2"), false);
+        String defaultSchema = sqlExecutor.getDefaultSchema();
+        RenameTableRequest request = new RenameTableRequest(
+            TableIdent.fromIndexName(defaultSchema + ".t1"),
+            TableIdent.fromIndexName(defaultSchema + ".t2"), false);
 
         expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("Table 'doc.t1' is not closed, cannot perform a rename");
+        expectedException.expectMessage(String.format("Table '%s.t1' is not closed, cannot perform a rename", defaultSchema));
         transportRenameTableAction.execute(request).actionGet(5, TimeUnit.SECONDS);
     }
 

@@ -22,8 +22,6 @@
 
 package io.crate.operation.scalar.systeminformation;
 
-import io.crate.action.sql.Option;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
@@ -39,14 +37,15 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeCurrentSchemaDefaultSchema() throws Exception {
-        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, null, null, s -> {}, t -> {}));
+        sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.getInstance(Functions.class);
         assertNormalize("current_schema()", isLiteral("doc"), false);
     }
 
     @Test
     public void testNormalizeCurrentSchemaCustomSchema() throws Exception {
-        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, "custom_schema", null, s -> {}, t -> {}));
+        sqlExpressions = new SqlExpressions(tableSources);
+        sqlExpressions.setDefaultSchema("custom_schema");
         functions = sqlExpressions.getInstance(Functions.class);
         assertNormalize("current_schema()", isLiteral("custom_schema"), false);
     }

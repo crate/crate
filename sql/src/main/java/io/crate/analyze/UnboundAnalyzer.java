@@ -89,8 +89,9 @@ class UnboundAnalyzer {
 
         @Override
         protected AnalyzedRelation visitShowColumns(ShowColumns node, Analysis context) {
-            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node);
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.sessionContext(), tuple.v2().typeHints());
+            SessionContext sessionContext = context.sessionContext();
+            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node, sessionContext.defaultSchema());
+            return relationAnalyzer.analyzeUnbound(tuple.v1(), sessionContext, tuple.v2().typeHints());
         }
 
         @Override

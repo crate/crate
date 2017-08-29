@@ -125,11 +125,11 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
-            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
+            assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
                 " returns string language dummy_lang as 'function foo(x) { return x; }'");
-            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
+            assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
 
             execute("select foo(str) from test order by id asc");
             assertThat(response.rows()[0][0], is("DUMMY EATS string"));
@@ -145,10 +145,10 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testDropFunction() throws Exception {
         execute("create function custom(string) returns string language dummy_lang as 'DUMMY DUMMY DUMMY'");
-        assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
+        assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));
-        assertFunctionIsDeletedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
+        assertFunctionIsDeletedOnAll(Schemas.DOC_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             execute("create function subtract_test(long, long, long) " +
                     "returns long language dummy_lang " +
                     "as 'function subtract_test(a, b, c) { return a - b - c; }'");
-            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME,
+            assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME,
                 "subtract_test",
                 ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
             );
@@ -196,7 +196,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         // is created and dropped on the same schema. It proves that creating and dropping
         // functions doesn't affect already registered functions.
         execute("create function foo(long) returns string language dummy_lang as 'f doo()'");
-        assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
+        assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
 
         final CountDownLatch latch = new CountDownLatch(50);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
@@ -206,7 +206,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             while (latch.getCount() > 0) {
                 try {
                     execute("create function bar(long) returns long language dummy_lang as 'dummy'");
-                    assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "bar", ImmutableList.of(DataTypes.LONG));
+                    assertFunctionIsCreatedOnAll(Schemas.DOC_SCHEMA_NAME, "bar", ImmutableList.of(DataTypes.LONG));
                     execute("drop function bar(long)");
                 } catch (Exception e) {
                     lastThrowable.set(e);
@@ -236,6 +236,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        assertFunctionIsDeletedOnAll(Schemas.DEFAULT_SCHEMA_NAME, name, types);
+        assertFunctionIsDeletedOnAll(Schemas.DOC_SCHEMA_NAME, name, types);
     }
 }

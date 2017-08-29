@@ -22,7 +22,7 @@ public class DocTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        TableIdent tableIdent = new TableIdent(null, "dummy");
+        TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         DocTableInfo info = new DocTableInfo(
             tableIdent,
@@ -68,7 +68,7 @@ public class DocTableInfoTest extends CrateUnitTest {
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
 
-        TableIdent dummy = new TableIdent(null, "dummy");
+        TableIdent dummy = new TableIdent(Schemas.DOC_SCHEMA_NAME, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
         Reference strictParent = new Reference(
             foobarIdent,

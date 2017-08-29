@@ -51,7 +51,7 @@ public class FieldProviderTest extends CrateUnitTest {
     }
 
     private static FullQualifiedNameFieldProvider newFQFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
-        return new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, Schemas.DEFAULT_SCHEMA_NAME);
+        return new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test

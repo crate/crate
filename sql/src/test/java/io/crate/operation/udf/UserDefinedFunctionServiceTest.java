@@ -38,15 +38,15 @@ import static org.hamcrest.Matchers.*;
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
-        Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
-        Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
-        Schemas.DEFAULT_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
+        Schemas.DOC_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
     );
 

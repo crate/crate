@@ -32,6 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.Routing;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
@@ -67,13 +68,13 @@ import static org.hamcrest.core.Is.is;
 
 public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "alias");
     private static final DocTableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
-    private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(null, "nested_clustered");
+    private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "nested_clustered");
     private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
         NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("o", DataTypes.OBJECT, null)
@@ -81,7 +82,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         .clusteredBy("o.c")
         .build();
 
-    private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(null, "three_pk");
+    private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
     private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
         THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("a", DataTypes.INTEGER)
@@ -102,14 +103,14 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .addDocTable(NESTED_CLUSTERED_TABLE_INFO)
             .addDocTable(THREE_PK_TABLE_INFO);
 
-        TableIdent notNullColumnTableIdent = new TableIdent(null, "not_null_column");
+        TableIdent notNullColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "not_null_column");
         TestingTableInfo.Builder notNullColumnTable = new TestingTableInfo.Builder(
             notNullColumnTableIdent, new Routing(ImmutableMap.of()))
             .add("id", DataTypes.INTEGER, null)
             .add("name", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, false, false);
         executorBuilder.addDocTable(notNullColumnTable);
 
-        TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
+        TableIdent generatedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_column");
         TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
             generatedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
@@ -119,7 +120,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false);
         executorBuilder.addDocTable(generatedColumnTable);
 
-        TableIdent generatedPkColumnTableIdent = new TableIdent(null, "generated_pk_column");
+        TableIdent generatedPkColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_pk_column");
         TestingTableInfo.Builder generatedPkColumnTable = new TestingTableInfo.Builder(
             generatedPkColumnTableIdent, SHARD_ROUTING)
             .add("serial_no", DataTypes.INTEGER, null)
@@ -131,7 +132,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .addPrimaryKey("id2");
         executorBuilder.addDocTable(generatedPkColumnTable);
 
-        TableIdent generatedClusteredByTableIdent = new TableIdent(null, "generated_clustered_by_column");
+        TableIdent generatedClusteredByTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_clustered_by_column");
         TestingTableInfo.Builder clusteredByGeneratedTable = new TestingTableInfo.Builder(
             generatedClusteredByTableIdent, SHARD_ROUTING)
             .add("serial_no", DataTypes.INTEGER, null)
@@ -140,7 +141,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .clusteredBy("routing_col");
         executorBuilder.addDocTable(clusteredByGeneratedTable);
 
-        TableIdent generatedNestedClusteredByTableIdent = new TableIdent(null, "generated_nested_clustered_by");
+        TableIdent generatedNestedClusteredByTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_nested_clustered_by");
         TestingTableInfo.Builder generatedNestedClusteredByInfo = new TestingTableInfo.Builder(
             generatedNestedClusteredByTableIdent, SHARD_ROUTING)
             .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)

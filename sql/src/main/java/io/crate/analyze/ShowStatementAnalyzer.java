@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.Schemas;
@@ -104,7 +105,7 @@ class ShowStatementAnalyzer {
     }
 
 
-    Tuple<Query, ParameterContext> rewriteShow(ShowColumns node) {
+    Tuple<Query, ParameterContext> rewriteShow(ShowColumns node, String defaultSchema) {
         /*
          * <code>
          *     SHOW COLUMNS {FROM | IN} table [{FROM | IN} schema] [LIKE 'pattern' | WHERE expr];
@@ -130,7 +131,7 @@ class ShowStatementAnalyzer {
         if (node.schema().isPresent()) {
             params.add(node.schema().get().toString());
         } else {
-            params.add(Schemas.DEFAULT_SCHEMA_NAME);
+            params.add(defaultSchema);
         }
         if (node.likePattern().isPresent()) {
             params.add(node.likePattern().get());
@@ -146,8 +147,9 @@ class ShowStatementAnalyzer {
     }
 
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
-        Tuple<Query, ParameterContext> tuple = rewriteShow(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
+        SessionContext sessionContext = analysis.sessionContext();
+        Tuple<Query, ParameterContext> tuple = rewriteShow(node, sessionContext.defaultSchema());
+        Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), sessionContext, tuple.v2());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }

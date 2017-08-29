@@ -120,7 +120,6 @@ public class DocSchemaInfo implements SchemaInfo {
     private static final Predicate<String> NO_PARTITION = ((Predicate<String>)PartitionName::isPartition).negate();
 
     private final String schemaName;
-    private boolean isDocSchema;
 
     /**
      * DocSchemaInfo constructor for the all schemas.
@@ -132,26 +131,9 @@ public class DocSchemaInfo implements SchemaInfo {
                          DocTableInfoFactory docTableInfoFactory) {
         this.functions = functions;
         this.schemaName = schemaName;
-        this.isDocSchema = Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
         this.clusterService = clusterService;
         this.udfService = udfService;
         this.docTableInfoFactory = docTableInfoFactory;
-    }
-
-    private static String getTableNameFromIndexName(String indexName) {
-        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(indexName);
-        if (matcher.matches()) {
-            return matcher.group(2);
-        }
-        return indexName;
-    }
-
-    private boolean indexMatchesSchema(String index) {
-        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
-        if (matcher.matches()) {
-            return matcher.group(1).equals(schemaName);
-        }
-        return isDocSchema;
     }
 
     private DocTableInfo innerGetTableInfo(String tableName) {
@@ -173,8 +155,8 @@ public class DocSchemaInfo implements SchemaInfo {
         Stream.of(clusterService.state().metaData().getConcreteAllIndices())
             .filter(NO_BLOB)
             .filter(NO_PARTITION)
-            .filter(this::indexMatchesSchema)
-            .map(DocSchemaInfo::getTableNameFromIndexName)
+            .filter(index -> Schemas.indexMatchesSchema(index, schemaName))
+            .map(Schemas::getTableName)
             .forEach(tables::add);
 
         // Search for partitioned table templates
@@ -290,7 +272,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private String getIndexName(String tableName) {
-        if (schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) {
+        if (schemaName.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
             return tableName;
         } else {
             return schemaName + "." + tableName;
