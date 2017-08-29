@@ -71,33 +71,3 @@ Changes
 
 Fixes
 =====
-
- - Fixed a bug which returned a malformed response for PSQL queries containing
-   whitespace characters.
-
- - Fixed a bug in the detection of correlated subqueries which are currently
-   unsupported.
-
- - Fixed issue that caused the Monitoring tab in the Admin UI to redirect
-   to ``/401`` when the user didn't have privileges for ``sys.cluster``
-   or ``sys.jobs_log``.
-
- - Fix display of redundant parenthesis around expressions visible in
-   `SHOW CREATE` and `EXPLAIN` statements.
-
- - Fixed an issue that caused `path.logs` setting in `crate.yml` to be ignored.
-
- - Fixed column name in output by removing new lines when select list contains
-   subquery. E.g.::
-
-     SELECT 1 =
-         (SELECT 1)
-
- - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
-
- - Fixed an issue that caused queries with ``IS NULL`` or ``IS NOT NULL` on
-   columns of type ``geo_point`` to fail.
-
- - Changed ``crate`` unix/linux startup script to use standard ``sh`` syntax
-   instead of ``bash`` specific syntax.
-
