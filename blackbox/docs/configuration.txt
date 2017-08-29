@@ -1920,7 +1920,11 @@ Layer Security (TLS).
   | *Default:* ``false``
 
   Set this to true to enable secure communication between the CrateDB node
-  and the client through SSL via the HTTPS protocol.
+  and the client through SSL via HTTPS.
+
+  .. NOTE::
+
+     When enabled, HTTPS replaces HTTP on the same port number.
 
 **ssl.psql.enabled**
   | *Runtime:*  ``no``
