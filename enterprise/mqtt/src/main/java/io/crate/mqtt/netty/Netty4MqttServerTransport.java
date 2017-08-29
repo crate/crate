@@ -21,8 +21,11 @@ package io.crate.mqtt.netty;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.action.sql.SQLOperations;
+import io.crate.ingestion.IngestionService;
+import io.crate.metadata.Functions;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.crate.mqtt.protocol.MqttProcessor;
+import io.crate.operation.user.UserManager;
 import io.crate.protocols.postgres.BindPostgresException;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
@@ -43,6 +46,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
@@ -69,6 +73,7 @@ import java.util.function.Function;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
+@Singleton
 public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
     public static final CrateSetting<Boolean> MQTT_ENABLED_SETTING = CrateSetting.of(
@@ -85,7 +90,6 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
     private final NetworkService networkService;
     private final String port;
-    private final SQLOperations sqlOperations;
     private final Logger logger;
     private final TimeValue defaultIdleTimeout;
     private final boolean isEnterprise;
@@ -95,18 +99,24 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
 
     private ServerBootstrap serverBootstrap;
+    private final MqttIngestService mqttIngestService;
 
     @Inject
-    public Netty4MqttServerTransport(Settings settings, NetworkService networkService, SQLOperations sqlOperations) {
+    public Netty4MqttServerTransport(Settings settings,
+                                     NetworkService networkService,
+                                     Functions functions,
+                                     SQLOperations sqlOperations,
+                                     UserManager userManager,
+                                     IngestionService ingestionService) {
         super(settings);
         this.networkService = networkService;
-        this.sqlOperations = sqlOperations;
         logger = Loggers.getLogger("mqtt", settings);
         isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
         port = MQTT_PORT_SETTING.setting().get(settings);
         defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
         mqttMessageLogger = new MqttMessageLogger(settings);
+        mqttIngestService = new MqttIngestService(functions, sqlOperations, userManager, ingestionService);
     }
 
     @Override
@@ -120,6 +130,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         EventLoopGroup worker = new NioEventLoopGroup(
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-worker"));
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
+        mqttIngestService.initialize();
         serverBootstrap = new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
@@ -131,8 +142,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    final MqttIngestService publishHandler = new MqttIngestService(sqlOperations);
-                    final MqttProcessor processor = new MqttProcessor(publishHandler);
+                    final MqttProcessor processor = new MqttProcessor(mqttIngestService);
                     final MqttNettyHandler handler = new MqttNettyHandler(processor);
                     final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
                     final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,

@@ -216,7 +216,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
 
         // last produced data should've been ingested twice in the target table
         execute("select * from ingest_data_raw order by data desc limit 2");
-        assertThat(response.rowCount(), greaterThan(0L));
+        assertThat(response.rowCount(), greaterThan(1L));
         assertThat(response.rows()[0][0], is(lastProducedData.get()));
         assertThat(response.rows()[1][0], is(lastProducedData.get()));
     }
