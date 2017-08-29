@@ -71,3 +71,5 @@ Changes
 
 Fixes
 =====
+
+ - Fixed empty ``account_user``-column in twitter tutorial plugin of the Admin UI.
