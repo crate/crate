@@ -39,7 +39,6 @@ import io.crate.operation.RowFilter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.collect.Tuple;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,6 +66,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     private static final String UNDER_TEST_INGEST_RULE_NAME = "ingest_data_rule";
     private static final String DATA_TOPIC = "test";
     private static final String TARGET_TABLE = "ingest_data_raw";
+    private IngestionService ingestionService;
 
     private class TestIngestionImplementation implements IngestionImplementation {
 
@@ -149,8 +149,9 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             UNDER_TEST_INGEST_RULE_NAME, INGESTION_SOURCE_ID, TARGET_TABLE),
             new Object[]{DATA_TOPIC}
         );
+        ingestionService = internalCluster().getInstance(IngestionService.class);
         implementation = new TestIngestionImplementation(internalCluster().getInstance(Functions.class),
-            internalCluster().getInstance(IngestionService.class));
+            ingestionService);
         implementation.registerIngestionImplementation();
         produceData = true;
         dataFlowingLatch = new CountDownLatch(1);
@@ -178,6 +179,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         produceData = false;
         resumeDataIngestion();
         dataIngestionThread.join(5000);
+        ingestionService.removeImplementationFor(INGESTION_SOURCE_ID);
     }
 
     @Test
