@@ -35,6 +35,17 @@ can be deleted and no expensive query is involved.
    Altogether this must not exceed the 255 bytes length limitation. See
    :ref:`sql_ddl_naming_restrictions`.
 
+.. CAUTION::
+
+   Every table partition is clustered into as many shards as you configure for
+   the table. Because of this, a good partition configuration depends on good
+   shard allocation.
+
+   Well tuned shard allocation is vital. Read the `Sharding Guide`_ to make
+   sure you're getting the best performance out ot CrateDB.
+
+.. _Sharding Guide: https://crate.io/docs/crate/guide/best_practices/sharding.html
+
 Creation
 ========
 
