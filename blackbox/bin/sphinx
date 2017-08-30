@@ -9,11 +9,8 @@ else
     printf "\033[1mCleaning output folder ...\033[0m\n"
     rm -rf $DIR/docs/out/
     RESULT+=$?
-    printf "\033[1;44mBuilding server docs (html) ...\033[0m\n"
+    printf "\033[1;44mBuilding server docs ...\033[0m\n"
     sphinx-build -n -W -b html -E $DIR/docs $DIR/docs/out/html
-    RESULT+=$?
-    printf "\033[1;44mBuilding server docs (text) ...\033[0m\n"
-    sphinx-build -b text -E $DIR/docs $DIR/docs/out/text
     RESULT+=$?
     exit $RESULT
 fi
