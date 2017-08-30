@@ -20,6 +20,9 @@ information and changelog.
 2.x
 ===
 
+2.1.x
+-----
+
 .. toctree::
     :maxdepth: 1
 
@@ -30,6 +33,13 @@ information and changelog.
     2.1.2
     2.1.1
     2.1.0
+
+2.0.x
+-----
+
+.. toctree::
+    :maxdepth: 1
+
     2.0.7
     2.0.6
     2.0.5
@@ -42,10 +52,20 @@ information and changelog.
 1.x
 ===
 
+1.2.x
+-----
+
 .. toctree::
     :maxdepth: 1
 
     1.2.0
+
+1.1.x
+-----
+
+.. toctree::
+    :maxdepth: 1
+
     1.1.6
     1.1.5
     1.1.4
@@ -53,6 +73,13 @@ information and changelog.
     1.1.2
     1.1.1
     1.1.0
+
+1.0.x
+-----
+
+.. toctree::
+    :maxdepth: 1
+
     1.0.6
     1.0.5
     1.0.4
