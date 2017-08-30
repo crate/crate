@@ -37,6 +37,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class NestedLoopBatchIteratorTest {
@@ -210,5 +211,23 @@ public class NestedLoopBatchIteratorTest {
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
+    }
+
+    @Test
+    public void testMoveToStartWhileRightSideIsActive() throws Exception {
+        BatchIterator batchIterator = NestedLoopBatchIterator.crossJoin(
+            TestingBatchIterators.range(0, 3),
+            TestingBatchIterators.range(10, 20)
+        );
+
+        assertThat(batchIterator.moveNext(), is(true));
+        assertThat(batchIterator.rowData().get(0).value(), is(0));
+        assertThat(batchIterator.rowData().get(1).value(), is(10));
+
+        batchIterator.moveToStart();
+
+        assertThat(batchIterator.moveNext(), is(true));
+        assertThat(batchIterator.rowData().get(0).value(), is(0));
+        assertThat(batchIterator.rowData().get(1).value(), is(10));
     }
 }
