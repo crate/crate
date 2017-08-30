@@ -5,10 +5,32 @@ CrateDB Reference
 CrateDB is a distributed SQL database that makes it simple to store and analyze
 massive amounts of machine data in real-time.
 
-.. only:: html
+.. NOTE::
 
-    .. include:: index_html.rst
+   This is a low-level reference manual.
 
-.. only:: text
+   Check out the `CrateDB Guide`_ for high-level documentation, including
+   overviews, best practices, tutorials, and a handy `Getting Started`_
+   section.
 
-    .. include:: index_text.rst
+.. rubric:: Table of Contents
+
+.. toctree::
+   :maxdepth: 2
+
+   release_notes/index
+   installation
+   configuration/index
+   cli
+   sql/index
+   blob
+   plugins
+   discovery
+   udc
+   protocols/index
+   enterprise/index
+   administration/index
+   monitoring/index
+
+.. _CrateDB Guide: https://crate.io/docs/crate/guide/index.html
+.. _Getting Started: https://crate.io/docs/crate/guide/getting_started/index.html
