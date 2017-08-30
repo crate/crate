@@ -354,17 +354,23 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeGrant(node, context.sessionContext().user());
+            return privilegesAnalyzer.analyzeGrant(node,
+                context.sessionContext().user(),
+                context.sessionContext().defaultSchema());
         }
 
         @Override
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeDeny(node, context.sessionContext().user());
+            return privilegesAnalyzer.analyzeDeny(node,
+                context.sessionContext().user(),
+                context.sessionContext().defaultSchema());
         }
 
         @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeRevoke(node, context.sessionContext().user());
+            return privilegesAnalyzer.analyzeRevoke(node,
+                context.sessionContext().user(),
+                context.sessionContext().defaultSchema());
         }
 
         @Override
