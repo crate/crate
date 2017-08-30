@@ -159,14 +159,17 @@ public class MqttIngestService implements IngestRuleListener {
         }
 
         Set<Tuple<Predicate<Row>, IngestRule>> predicateAndIngestRules = predicateAndIngestRulesReference.get();
+        int packetId = msg.variableHeader().packetId();
         Object[] args = new Object[]{clientId,
-            msg.variableHeader().packetId(),
+            packetId,
             msg.variableHeader().topicName(),
             payload};
         List<Object> argsAsList = Arrays.asList(args);
 
+        boolean messageMatchedRule = false;
         for (Tuple<Predicate<Row>, IngestRule> entry : predicateAndIngestRules) {
             if (entry.v1().test(new RowN(args))) {
+                messageMatchedRule = true;
                 IngestRule ingestRule = entry.v2();
                 SQLOperations.Session session = createSessionFor(TableIdent.fromIndexName(ingestRule.getTargetTable()));
                 session.bind(SQLOperations.Session.UNNAMED, STATEMENT_NAME, argsAsList, null);
@@ -176,6 +179,11 @@ public class MqttIngestService implements IngestRuleListener {
                 session.sync();
                 session.close();
             }
+        }
+
+        if (messageMatchedRule == false) {
+            LOGGER.warn("Message with client_id {} and packet_id {} did not match any rule. The message will not be " +
+                        "acknowledged", clientId, packetId);
         }
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Parsed MQTT message into arguments: {}", argsAsList);
