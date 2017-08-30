@@ -1,0 +1,40 @@
+.. highlight:: sh
+
+.. _conf-overview:
+
+======================
+Configuration Overview
+======================
+
+Since CrateDB has sensible defaults, there is no configuration needed at all
+for basic operation.
+
+CrateDB is mainly configured via a configuration file, which is located at
+``config/crate.yml``. The vanilla configuration file distributed with the
+package has all available settings as comments in it along with the according
+default value.
+
+The location of the config file can be specified upon startup like this::
+
+    sh$ ./bin/crate -Cpath.conf=/path/to/config/directory
+
+Any setting can be configured either by the config file or via the ``-C``
+option upon startup.
+
+For example, configuring the cluster name by using command line properties will
+work this way::
+
+    sh$ ./bin/crate -Ccluster.name=cluster
+
+.. highlight:: yaml
+
+This is exactly the same as setting the cluster name in the config file::
+
+    cluster.name = cluster
+
+Settings will get applied in the following order where the latter one will
+overwrite the prior one:
+
+ 1. internal defaults
+ 2. options from config file
+ 3. command-line properties
