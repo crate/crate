@@ -41,6 +41,13 @@ is applied, (see :ref:`ref_clustered_clause`).
    The number of shards can only be set on table creation, it cannot be changed
    later on.
 
+.. CAUTION::
+
+   Well tuned shard allocation is vital. Read the `Sharding Guide`_ to make
+   sure you're getting the best performance out ot CrateDB.
+
+.. _Sharding Guide: https://crate.io/docs/crate/guide/best_practices/sharding.html
+
 .. _routing:
 
 Routing
