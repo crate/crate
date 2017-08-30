@@ -164,7 +164,7 @@ public class MqttProcessor {
                     .isDup(isDupFlag)
                     .packetId(packetId)
                     .build())
-                    .addListener(cf -> LOGGER.info("PUBACK sent"));
+                    .addListener(cf -> LOGGER.trace("PUBACK sent"));
         }
     }
 }
