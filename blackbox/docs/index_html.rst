@@ -13,7 +13,7 @@
 
    release_notes/index
    installation
-   configuration
+   configuration/index
    cli
    sql/index
    blob

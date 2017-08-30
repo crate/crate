@@ -92,6 +92,8 @@ Visit the admin interface in your browser at a URL like this one::
 
 .. SEEALSO::
 
+ :doc:`Configuring CrateDB <configuration/index>`
+
  `An introductory tutorial`_
 
  `How to run CrateDB in a multi node setup`_
