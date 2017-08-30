@@ -254,4 +254,19 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
         execute("select * from t1", null, testUserSession());
     }
+
+    @Test
+    public void testGrantWithCustomDefaultSchema() {
+        executeAsSuperuser("create table doc.t1 (x int)");
+        executeAsSuperuser("set search_path to 'custom_schema'");
+        executeAsSuperuser("create table t2 (x int)");
+        ensureYellow();
+
+        executeAsSuperuser("grant dql on table t2 to "+ TEST_USERNAME);
+        assertThat(response.rowCount(), is(1L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("TableUnknownException: Table 'custom_schema.t1' unknown");
+        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+    }
 }
