@@ -112,7 +112,7 @@ public class SimplePortal extends AbstractPortal {
                 fields(),
                 resultReceiver, maxRows, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
-        } else if (this.statement != null) {
+        } else if (this.statement != null && this.analysis != null) {
             assert consumer == null : "Existing portal must not have a consumer";
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();

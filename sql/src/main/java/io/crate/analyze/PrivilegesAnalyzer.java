@@ -55,30 +55,30 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user, String defaultSchema) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents,
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user, String defaultSchema) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, defaultSchema);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents,
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user, String defaultSchema) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false);
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents,
@@ -119,8 +119,11 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> tableOrSchemaNames, boolean isRevoke) {
-        List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames);
+    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz,
+                                                 List<QualifiedName> tableOrSchemaNames,
+                                                 boolean isRevoke,
+                                                 String defaultSchema) {
+        List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames, defaultSchema);
         if (isRevoke) {
             return idents;
         }
@@ -188,10 +191,11 @@ class PrivilegesAnalyzer {
     }
 
     private static List<String> convertQualifiedNamesToIdents(Privilege.Clazz clazz,
-                                                              List<QualifiedName> tableOrSchemaNames) {
+                                                              List<QualifiedName> tableOrSchemaNames,
+                                                              String defaultSchema) {
         if (clazz.equals(Privilege.Clazz.SCHEMA)) {
             return Lists2.copyAndReplace(tableOrSchemaNames, QualifiedName::toString);
         }
-        return Lists2.copyAndReplace(tableOrSchemaNames, q -> TableIdent.of(q, Schemas.DEFAULT_SCHEMA_NAME).fqn());
+        return Lists2.copyAndReplace(tableOrSchemaNames, q -> TableIdent.of(q, defaultSchema).fqn());
     }
 }
