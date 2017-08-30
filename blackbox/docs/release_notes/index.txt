@@ -4,6 +4,19 @@
 Release Notes
 =============
 
+Information about individual CrateDB releases, typically including upgrade
+information and changelog.
+
+.. NOTE::
+
+   The latest stable, testing, and nightly version is always available from the
+   CrateDB download page.
+
+   Older version of CrateDB are available in `the release archives`_.
+
+.. _the CrateDB download page: https://crate.io/download/
+.. _the release archives: https://cdn.crate.io/downloads/releases/
+
 2.x
 ===
 
