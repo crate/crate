@@ -21,8 +21,8 @@
 
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -32,7 +32,7 @@ public class ShardSchemaNameExpression implements ReferenceImplementation<BytesR
 
     public ShardSchemaNameExpression(ShardId shardId) {
         String indexName = shardId.getIndexName();
-        this.schemaName = new BytesRef(Schemas.getSchemaName(indexName));
+        this.schemaName = new BytesRef(new IndexParts(indexName).getSchema());
     }
 
     @Override

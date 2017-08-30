@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.Constants;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
@@ -191,7 +192,7 @@ public class TableCreator {
     private static boolean isPartition(MetaData metaData, String fqn) {
         SortedMap<String, AliasOrIndex> aliasAndIndexLookup = metaData.getAliasAndIndexLookup();
         AliasOrIndex aliasOrIndex = aliasAndIndexLookup.get(fqn);
-        return PartitionName.isPartition(
+        return IndexParts.isPartitioned(
             aliasOrIndex.getIndices().iterator().next().getIndex().getName());
     }
 

@@ -27,7 +27,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.BatchConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
@@ -161,7 +161,7 @@ public class CollectSourceResolver {
             if (indexName == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }
-            if (phase.maxRowGranularity() == RowGranularity.DOC && PartitionName.isPartition(indexName)) {
+            if (phase.maxRowGranularity() == RowGranularity.DOC && IndexParts.isPartitioned(indexName)) {
                 // partitioned table without any shards; nothing to collect
                 return emptyCollectSource;
             }

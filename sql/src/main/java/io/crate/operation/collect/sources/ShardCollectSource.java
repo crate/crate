@@ -41,7 +41,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -387,7 +387,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (PartitionName.isPartition(indexName)) {
+                    if (IndexParts.isPartitioned(indexName)) {
                         break;
                     }
                     throw e;
@@ -438,7 +438,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             String indexName = entry.getKey();
             IndexMetaData indexMD = metaData.index(indexName);
             if (indexMD == null) {
-                if (PartitionName.isPartition(indexName)) {
+                if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);
@@ -447,7 +447,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             try {
                 indicesService.indexServiceSafe(index);
             } catch (IndexNotFoundException e) {
-                if (PartitionName.isPartition(indexName)) {
+                if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
                 throw e;

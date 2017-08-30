@@ -29,6 +29,7 @@ import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
@@ -276,7 +277,7 @@ public class SnapshotRestoreDDLDispatcher {
         }
 
         private static boolean isIndexPartitionOfTable(String index, TableIdent tableIdent) {
-            return PartitionName.isPartition(index) &&
+            return IndexParts.isPartitioned(index) &&
                    PartitionName.fromIndexOrTemplate(index).tableIdent().equals(tableIdent);
         }
 

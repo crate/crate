@@ -18,11 +18,11 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.Schemas;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -32,11 +32,7 @@ public class ShardTableNameExpression implements ReferenceImplementation<BytesRe
 
     public ShardTableNameExpression(ShardId shardId) {
         String index = shardId.getIndexName();
-        if (PartitionName.isPartition(index)) {
-            value = new BytesRef(PartitionName.fromIndexOrTemplate(index).tableIdent().name());
-        } else {
-            value = new BytesRef(Schemas.getTableName(index));
-        }
+        value = new BytesRef(new IndexParts(index).getTable());
     }
 
     @Override

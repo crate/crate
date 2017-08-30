@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
@@ -41,7 +40,6 @@ import java.util.Set;
 public class TableIdent implements Writeable {
 
     private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
-    private static final Splitter SPLITTER = Splitter.on(".").limit(6);
 
     private final String schema;
     private final String name;
@@ -61,32 +59,12 @@ public class TableIdent implements Writeable {
     }
 
     public static TableIdent fromIndexName(String indexName) {
-        if (PartitionName.isPartition(indexName)) {
-            PartitionName pn = PartitionName.fromIndexOrTemplate(indexName);
-            return pn.tableIdent();
-        }
-        Schemas.SchemaAndTableName schemaAndTableName = Schemas.getSchemaAndTableName(indexName);
-        return new TableIdent(schemaAndTableName.schemaName, schemaAndTableName.tableName);
+        IndexParts indexParts = new IndexParts(indexName);
+        return indexParts.toTableIdent();
     }
 
     public static String fqnFromIndexName(String indexName) {
-        List<String> parts = SPLITTER.splitToList(indexName);
-        switch (parts.size()) {
-            case 1:
-                // "table_name"
-                return Schemas.DOC_SCHEMA_NAME + "." + indexName;
-            case 2:
-                // "schema"."table_name"
-                return indexName;
-            case 4:
-                // ""."partitioned"."table_name". ["ident"]
-                return Schemas.DOC_SCHEMA_NAME + "." + parts.get(2);
-            case 5:
-                // "schema".""."partitioned"."table_name". ["ident"]
-                return parts.get(0) + "." + parts.get(3);
-            default:
-                throw new IllegalArgumentException("Invalid index name: " + indexName);
-        }
+        return new IndexParts(indexName).toFullyQualifiedName();
     }
 
     public TableIdent(StreamInput in) throws IOException {

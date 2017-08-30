@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.jobs.AbstractExecutionSubContext;
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -42,7 +42,16 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FetchContext extends AbstractExecutionSubContext {
@@ -106,7 +115,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                 }
                 IndexMetaData indexMetaData = metaData.index(indexName);
                 if (indexMetaData == null) {
-                    if (PartitionName.isPartition(indexName)) {
+                    if (IndexParts.isPartitioned(indexName)) {
                         continue;
                     }
                     throw new IndexNotFoundException(indexName);
@@ -127,7 +136,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                             try {
                                 searchers.put(readerId, shardContext.acquireSearcher());
                             } catch (IndexNotFoundException e) {
-                                if (!PartitionName.isPartition(indexName)) {
+                                if (!IndexParts.isPartitioned(indexName)) {
                                     throw e;
                                 }
                             }

@@ -24,6 +24,7 @@ package io.crate.metadata.cluster;
 
 import io.crate.Constants;
 import io.crate.executor.transport.ddl.RenameTableRequest;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
@@ -211,7 +212,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         String[] newPartitionIndexNames = new String[sourceIndices.length];
         for (int i = 0; i < sourceIndices.length; i++) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i].getName());
-            String targetIndexName = PartitionName.indexName(targetTableIdent, partitionName.ident());
+            String targetIndexName = IndexParts.toIndexName(targetTableIdent, partitionName.ident());
             newPartitionIndexNames[i] = targetIndexName;
         }
         return newPartitionIndexNames;

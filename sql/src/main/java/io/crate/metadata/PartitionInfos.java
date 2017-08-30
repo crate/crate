@@ -51,7 +51,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
 
     private static final Predicate<ObjectObjectCursor<String, IndexMetaData>> PARTITION_INDICES_PREDICATE = input ->
         input != null
-        && PartitionName.isPartition(input.key);
+        && IndexParts.isPartitioned(input.key);
 
     private static final Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo> CREATE_PARTITION_INFO_FUNCTION =
         new Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo>() {

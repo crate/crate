@@ -32,7 +32,7 @@ import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.operation.projectors.RetryListener;
 import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpsertById;
@@ -281,7 +281,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private boolean partitionWasDeleted(Throwable throwable, String index) {
-        return throwable instanceof IndexNotFoundException && PartitionName.isPartition(index);
+        return throwable instanceof IndexNotFoundException && IndexParts.isPartitioned(index);
     }
 
     private boolean updateAffectedNoRows(Throwable throwable) {
@@ -300,7 +300,7 @@ public class UpsertByIdTask extends JobTask {
             try {
                 shardId = getShardId(state, index, item.id(), item.routing());
             } catch (IndexNotFoundException e) {
-                if (PartitionName.isPartition(index)) {
+                if (IndexParts.isPartitioned(index)) {
                     continue;
                 } else {
                     throw e;

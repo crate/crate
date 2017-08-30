@@ -1,6 +1,7 @@
 package io.crate.metadata.shard.unassigned;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -70,29 +71,24 @@ public class UnassignedShard {
                            ShardRoutingState state) {
         String index = shardId.getIndexName();
         boolean isBlobIndex = BlobIndex.isBlobIndex(index);
-        final String tableName;
-        final String ident;
+        final String schemaName, tableName, partitionIdent;
         if (isBlobIndex) {
-            this.schemaName = BlobSchemaInfo.NAME;
+            schemaName = BlobSchemaInfo.NAME;
             tableName = BlobIndex.stripPrefix(index);
-            ident = "";
-        } else if (PartitionName.isPartition(index)) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
-            schemaName = partitionName.tableIdent().schema();
-            tableName = partitionName.tableIdent().name();
-            ident = partitionName.ident();
-            if (!clusterService.state().metaData().hasConcreteIndex(tableName)) {
+            partitionIdent = "";
+        } else {
+            IndexParts indexParts = new IndexParts(index);
+            schemaName = indexParts.getSchema();
+            tableName = indexParts.getTable();
+            partitionIdent = indexParts.getPartitionIdent();
+            if (indexParts.isPartitioned() && !clusterService.state().metaData().hasConcreteIndex(tableName)) {
                 orphanedPartition = true;
             }
-        } else {
-            Schemas.SchemaAndTableName schemaAndTableName = Schemas.getSchemaAndTableName(index);
-            this.schemaName = schemaAndTableName.schemaName;
-            tableName = schemaAndTableName.tableName;
-            ident = "";
         }
 
+        this.schemaName = schemaName;
         this.tableName = tableName;
-        partitionIdent = ident;
+        this.partitionIdent = partitionIdent;
         this.primary = primary;
         this.id = shardId.id();
         this.state = state == ShardRoutingState.UNASSIGNED ? UNASSIGNED : INITIALIZING;

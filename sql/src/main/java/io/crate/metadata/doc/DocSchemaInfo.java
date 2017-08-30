@@ -29,6 +29,7 @@ import com.google.common.collect.Iterators;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -51,7 +52,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
 /**
@@ -117,7 +117,6 @@ public class DocSchemaInfo implements SchemaInfo {
     private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
 
     private static final Predicate<String> NO_BLOB = ((Predicate<String>)BlobIndex::isBlobIndex).negate();
-    private static final Predicate<String> NO_PARTITION = ((Predicate<String>)PartitionName::isPartition).negate();
 
     private final String schemaName;
 
@@ -154,16 +153,17 @@ public class DocSchemaInfo implements SchemaInfo {
 
         Stream.of(clusterService.state().metaData().getConcreteAllIndices())
             .filter(NO_BLOB)
-            .filter(NO_PARTITION)
-            .filter(index -> Schemas.indexMatchesSchema(index, schemaName))
-            .map(Schemas::getTableName)
+            .map(IndexParts::new)
+            .filter(indexParts -> !indexParts.isPartitioned())
+            .filter(indexParts -> indexParts.matchesSchema(schemaName))
+            .map(IndexParts::getTable)
             .forEach(tables::add);
 
         // Search for partitioned table templates
         Iterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
-            if (!PartitionName.isPartition(templateName)) {
+            if (!IndexParts.isPartitioned(templateName)) {
                 continue;
             }
             try {
@@ -239,7 +239,7 @@ public class DocSchemaInfo implements SchemaInfo {
                     String possibleTemplateName = PartitionName.templateName(name(), tableName);
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
-                            if (PartitionName.isPartition(indexEntry.key)) {
+                            if (IndexParts.isPartitioned(indexEntry.key)) {
                                 docTableByName.remove(tableName);
                                 break;
                             }

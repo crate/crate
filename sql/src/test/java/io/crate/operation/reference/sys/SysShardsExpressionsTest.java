@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
@@ -240,7 +241,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testTableNameOfPartition() throws Exception {
         // expression should return the real table name
-        indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        indexName = IndexParts.PARTITIONED_TABLE_PART + "wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
@@ -252,7 +253,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionIdent() throws Exception {
-        indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        indexName = IndexParts.PARTITIONED_TABLE_PART + "wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
@@ -272,7 +273,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrphanPartition() throws Exception {
-        indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
+        indexName = IndexParts.PARTITIONED_TABLE_PART + "wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
         ReferenceImplementation<Boolean> shardExpression = (ReferenceImplementation<Boolean>) resolver.getImplementation(refInfo);

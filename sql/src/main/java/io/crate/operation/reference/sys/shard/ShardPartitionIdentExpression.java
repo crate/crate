@@ -20,6 +20,7 @@
  */
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
@@ -32,7 +33,7 @@ public class ShardPartitionIdentExpression implements ReferenceImplementation<By
 
     public ShardPartitionIdentExpression(ShardId shardId) {
         String indexName = shardId.getIndexName();
-        if (PartitionName.isPartition(indexName)) {
+        if (IndexParts.isPartitioned(indexName)) {
             value = new BytesRef(PartitionName.fromIndexOrTemplate(indexName).ident());
         } else {
             value = EMPTY;

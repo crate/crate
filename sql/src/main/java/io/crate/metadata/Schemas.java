@@ -56,7 +56,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
@@ -227,7 +226,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     public boolean tableExists(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = schemas.get(firstNonNull(tableIdent.schema(), DOC_SCHEMA_NAME));
+        SchemaInfo schemaInfo = schemas.get(tableIdent.schema());
         if (schemaInfo == null) {
             return false;
         }
@@ -239,43 +238,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             return !isOrphanedAlias((DocTableInfo) tableInfo);
         }
         return true;
-    }
-
-    public static class SchemaAndTableName {
-
-        public final String schemaName;
-        public final String tableName;
-
-        private SchemaAndTableName(String schemaName, String tableName) {
-            this.schemaName = schemaName;
-            this.tableName = tableName;
-        }
-    }
-
-    public static SchemaAndTableName getSchemaAndTableName(String indexName) {
-        Matcher matcher = SCHEMA_PATTERN.matcher(indexName);
-        final String schemaName, tableName;
-        if (matcher.matches()) {
-            schemaName = matcher.group(1);
-            tableName = matcher.group(2);
-        } else {
-            schemaName = Schemas.DOC_SCHEMA_NAME;
-            tableName = indexName;
-        }
-        return new SchemaAndTableName(schemaName, tableName);
-    }
-
-    public static String getSchemaName(String indexName) {
-        return getSchemaAndTableName(indexName).schemaName;
-    }
-
-    public static String getTableName(String indexName) {
-        return getSchemaAndTableName(indexName).tableName;
-    }
-
-    public static boolean indexMatchesSchema(String indexName, String schemaName) {
-        String indexSchema = getSchemaName(indexName);
-        return indexSchema.equalsIgnoreCase(schemaName);
     }
 
     /**

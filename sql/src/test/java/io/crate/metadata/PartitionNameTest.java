@@ -118,13 +118,13 @@ public class PartitionNameTest extends CrateUnitTest {
 
     @Test
     public void testPartitionNameNotFromTable() throws Exception {
-        String partitionName = PartitionName.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test1._1";
         assertFalse(PartitionName.fromIndexOrTemplate(partitionName).tableIdent().name().equals("test"));
     }
 
     @Test
     public void testPartitionNameNotFromSchema() throws Exception {
-        String partitionName = "schema1." + PartitionName.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        String partitionName = "schema1." + IndexParts.PARTITIONED_TABLE_PART + "test1._1";
         assertFalse(PartitionName.fromIndexOrTemplate(partitionName).tableIdent().schema().equals("schema"));
     }
 
@@ -133,23 +133,23 @@ public class PartitionNameTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid partition ident: 1");
 
-        String partitionName = PartitionName.PARTITIONED_TABLE_PREFIX + ".test.1";
+        String partitionName = IndexParts.PARTITIONED_TABLE_PART + "test.1";
         PartitionName.fromIndexOrTemplate(partitionName).values();
     }
 
     @Test
     public void testIsPartition() throws Exception {
-        assertFalse(PartitionName.isPartition("test"));
+        assertFalse(IndexParts.isPartitioned("test"));
 
-        assertTrue(PartitionName.isPartition(PartitionName.PARTITIONED_TABLE_PREFIX + ".test."));
-        assertTrue(PartitionName.isPartition("schema." + PartitionName.PARTITIONED_TABLE_PREFIX + ".test."));
+        assertTrue(IndexParts.isPartitioned(IndexParts.PARTITIONED_TABLE_PART + "test."));
+        assertTrue(IndexParts.isPartitioned("schema." + IndexParts.PARTITIONED_TABLE_PART + "test."));
 
-        assertFalse(PartitionName.isPartition("partitioned.test.dshhjfgjsdh"));
-        assertFalse(PartitionName.isPartition("schema.partitioned.test.dshhjfgjsdh"));
-        assertFalse(PartitionName.isPartition(".test.dshhjfgjsdh"));
-        assertFalse(PartitionName.isPartition("schema.test.dshhjfgjsdh"));
-        assertTrue(PartitionName.isPartition(".partitioned.test.dshhjfgjsdh"));
-        assertTrue(PartitionName.isPartition("schema..partitioned.test.dshhjfgjsdh"));
+        assertFalse(IndexParts.isPartitioned("partitioned.test.dshhjfgjsdh"));
+        assertFalse(IndexParts.isPartitioned("schema.partitioned.test.dshhjfgjsdh"));
+        assertFalse(IndexParts.isPartitioned(".test.dshhjfgjsdh"));
+        assertFalse(IndexParts.isPartitioned("schema.test.dshhjfgjsdh"));
+        assertTrue(IndexParts.isPartitioned(".partitioned.test.dshhjfgjsdh"));
+        assertTrue(IndexParts.isPartitioned("schema..partitioned.test.dshhjfgjsdh"));
     }
 
     @Test
@@ -184,43 +184,44 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void testSplitInvalid1() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
-        PartitionName.fromIndexOrTemplate(PartitionName.PARTITIONED_TABLE_PREFIX + "lalala.n");
+        expectedException.expectMessage("Invalid index name");
+        String part = IndexParts.PARTITIONED_TABLE_PART.substring(0, IndexParts.PARTITIONED_TABLE_PART.length() - 1);
+        PartitionName.fromIndexOrTemplate(part + "lalala.n");
     }
 
     @Test
     public void testSplitInvalid2() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
-        PartitionName.fromIndexOrTemplate(PartitionName.PARTITIONED_TABLE_PREFIX.substring(1) + ".lalala.n");
+        expectedException.expectMessage("Invalid index name");
+        PartitionName.fromIndexOrTemplate(IndexParts.PARTITIONED_TABLE_PART.substring(1) + "lalala.n");
     }
 
     @Test
     public void testSplitInvalid3() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
+        expectedException.expectMessage("Invalid index name");
         PartitionName.fromIndexOrTemplate("lalala");
     }
 
     @Test
     public void testSplitInvalid4() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
-        PartitionName.fromIndexOrTemplate(PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
+        expectedException.expectMessage("Invalid index name");
+        PartitionName.fromIndexOrTemplate(IndexParts.PARTITIONED_TABLE_PART + "lalala");
     }
 
     @Test
     public void testSplitInvalidWithSchema1() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
-        PartitionName.fromIndexOrTemplate("schema" + PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
+        expectedException.expectMessage("Invalid index name");
+        PartitionName.fromIndexOrTemplate("schema" + IndexParts.PARTITIONED_TABLE_PART + "lalala");
     }
 
     @Test
     public void testSplitInvalidWithSchema2() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid partition name");
-        PartitionName.fromIndexOrTemplate("schema." + PartitionName.PARTITIONED_TABLE_PREFIX + ".lalala");
+        expectedException.expectMessage("Invalid index name");
+        PartitionName.fromIndexOrTemplate("schema." + IndexParts.PARTITIONED_TABLE_PART + "lalala");
     }
 
     @Test

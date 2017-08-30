@@ -27,6 +27,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.crate.collections.Lists2;
 import io.crate.data.Input;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.Inputs;
@@ -59,7 +60,7 @@ public class IndexNameResolver {
     }
 
     private static Supplier<String> forPartition(TableIdent tableIdent, String partitionIdent) {
-        return () -> PartitionName.indexName(tableIdent, partitionIdent);
+        return () -> IndexParts.toIndexName(tableIdent, partitionIdent);
     }
 
     private static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
@@ -70,7 +71,7 @@ public class IndexNameResolver {
             .build(new CacheLoader<List<BytesRef>, String>() {
                 @Override
                 public String load(@Nonnull List<BytesRef> key) throws Exception {
-                    return PartitionName.indexName(tableIdent, PartitionName.encodeIdent(key));
+                    return IndexParts.toIndexName(tableIdent, PartitionName.encodeIdent(key));
                 }
             });
         return () -> {

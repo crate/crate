@@ -44,6 +44,7 @@ import io.crate.executor.transport.ddl.RenameTableRequest;
 import io.crate.executor.transport.ddl.RenameTableResponse;
 import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -275,7 +276,7 @@ public class AlterTableOperation {
         for (int i = 0; i < sourceIndices.length; i++) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i]);
             String sourceIndexName = partitionName.asIndexName();
-            String targetIndexName = PartitionName.indexName(targetTableIdent, partitionName.ident());
+            String targetIndexName = IndexParts.toIndexName(targetTableIdent, partitionName.ident());
             targetIndices[i] = targetIndexName;
             if (metaData.index(sourceIndexName).getState() == IndexMetaData.State.OPEN) {
                 sourceIndicesToClose.add(sourceIndexName);

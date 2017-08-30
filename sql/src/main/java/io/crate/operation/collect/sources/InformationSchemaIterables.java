@@ -58,7 +58,7 @@ public class InformationSchemaIterables {
         this.schemas = schemas;
         tablesIterable = FluentIterable.from(schemas)
             .transformAndConcat(schema -> FluentIterable.from(schema)
-                .filter(i -> !PartitionName.isPartition(i.ident().indexName())));
+                .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
         partitionInfos = new PartitionInfos(clusterService);
         columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
 

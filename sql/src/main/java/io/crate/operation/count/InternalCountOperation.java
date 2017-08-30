@@ -21,10 +21,9 @@
 
 package io.crate.operation.count;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.IndexParts;
 import io.crate.operation.ThreadPools;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -80,7 +79,7 @@ public class InternalCountOperation implements CountOperation {
             String indexName = entry.getKey();
             IndexMetaData indexMetaData = metaData.index(indexName);
             if (indexMetaData == null) {
-                if (PartitionName.isPartition(indexName)) {
+                if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
                 throw new IndexNotFoundException(indexName);
@@ -108,7 +107,7 @@ public class InternalCountOperation implements CountOperation {
         try {
             indexService = indicesService.indexServiceSafe(index);
         } catch (IndexNotFoundException e) {
-            if (PartitionName.isPartition(index.getName())) {
+            if (IndexParts.isPartitioned(index.getName())) {
                 return 0L;
             }
             throw e;

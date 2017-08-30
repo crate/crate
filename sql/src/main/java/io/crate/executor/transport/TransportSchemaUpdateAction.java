@@ -25,6 +25,7 @@ package io.crate.executor.transport;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
@@ -106,7 +107,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     protected void masterOperation(SchemaUpdateRequest request, ClusterState state, ActionListener<SchemaUpdateResponse> listener) throws Exception {
         // ideally we'd handle the index mapping update together with the template update in a single clusterStateUpdateTask
         // but the index mapping-update logic is difficult to re-use
-        if (PartitionName.isPartition(request.index().getName())) {
+        if (IndexParts.isPartitioned(request.index().getName())) {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
                 .thenCompose(r -> updateTemplate(
                     state.getMetaData().getTemplates(),

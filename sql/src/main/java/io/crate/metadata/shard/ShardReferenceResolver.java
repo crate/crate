@@ -24,6 +24,7 @@ package io.crate.metadata.shard;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -70,7 +71,7 @@ public class ShardReferenceResolver {
         Index index = shardId.getIndex();
 
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
-        if (PartitionName.isPartition(index.getName())) {
+        if (IndexParts.isPartitioned(index.getName())) {
             addPartitions(index, schemas, builder);
         }
         builder.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.getId()));

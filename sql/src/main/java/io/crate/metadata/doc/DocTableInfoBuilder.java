@@ -25,6 +25,7 @@ import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
@@ -162,7 +163,7 @@ class DocTableInfoBuilder {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
             for (String indexName : concreteIndices) {
-                if (PartitionName.isPartition(indexName)) {
+                if (IndexParts.isPartitioned(indexName)) {
                     try {
                         PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
                         assert partitionName.tableIdent().equals(ident) : "ident must equal partitionName";

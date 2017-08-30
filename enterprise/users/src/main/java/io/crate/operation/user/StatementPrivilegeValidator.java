@@ -67,6 +67,7 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.SetStatement;
@@ -280,7 +281,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         public Void visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, User user) {
             for (String indexName : analysis.indexNames()) {
                 String tableName;
-                if (PartitionName.isPartition(indexName)) {
+                if (IndexParts.isPartitioned(indexName)) {
                     tableName = PartitionName.fromIndexOrTemplate(indexName).tableIdent().toString();
                 } else {
                     tableName = TableIdent.fqnFromIndexName(indexName);

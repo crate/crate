@@ -20,6 +20,7 @@
  */
 package io.crate.operation.reference.sys.shard;
 
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -35,7 +36,7 @@ public class ShardPartitionOrphanedExpression implements ReferenceImplementation
 
     public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
         this.clusterService = clusterService;
-        isPartition = PartitionName.isPartition(shardId.getIndex().getName());
+        isPartition = IndexParts.isPartitioned(shardId.getIndex().getName());
         if (isPartition) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex().getName());
             aliasName = partitionName.tableIdent().indexName();
