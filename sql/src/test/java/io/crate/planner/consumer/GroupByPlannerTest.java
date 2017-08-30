@@ -24,7 +24,12 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -37,7 +42,13 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.*;
+import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
@@ -53,10 +64,19 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.analyze.TableDefinitions.shardRouting;
 import static io.crate.testing.SymbolMatchers.isAggregation;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -666,5 +686,21 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
         assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMP));
+    }
+
+    @Test
+    public void testJoinConditionFieldsAreNotPartOfNLOutputInGroupByOnJoin() throws Exception {
+        NestedLoop nl = e.plan("select count(*), u1.name " +
+                               "from users u1 " +
+                               "  inner join users u2 on u1.id = u2.id " +
+                               "group by u1.name");
+        List<Projection> projections = nl.nestedLoopPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(EvalProjection.class),
+            instanceOf(GroupProjection.class),
+            instanceOf(EvalProjection.class)
+        ));
+        // Only u1.name is in the outputs of the NL (pre projections)
+        assertThat(projections.get(0).outputs(), contains(isInputColumn(0)));
     }
 }

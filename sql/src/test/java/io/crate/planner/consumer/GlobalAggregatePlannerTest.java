@@ -22,9 +22,16 @@
 
 package io.crate.planner.consumer;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.projection.*;
+import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -34,6 +41,8 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -42,7 +51,10 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        e = SQLExecutor.builder(clusterService)
+            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+            .addDocTable(T3.T1_INFO)
+            .build();
     }
 
     @Test
@@ -57,12 +69,26 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     public void testAggregateOnSubQueryUsesQueryThenFetchIfPossible() throws Exception {
         QueryThenFetch plan = e.plan("select sum(x) from (select x, i from t1 order by x limit 10) ti");
         List<Projection> projections = ((Collect) plan.subPlan()).collectPhase().projections();
-        assertThat(projections, Matchers.contains(
+        assertThat(projections, contains(
             instanceOf(TopNProjection.class),
             instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class),
             instanceOf(AggregationProjection.class),
             instanceOf(EvalProjection.class)
         ));
+    }
+
+    @Test
+    public void testJoinConditionFieldsAreNotPartOfNLOutputOnAggOnJoin() throws Exception {
+        NestedLoop nl = e.plan("select sum(u1.ints) from users u1 " +
+                               "    inner join users u2 on u1.id = u2.id ");
+        List<Projection> projections = nl.nestedLoopPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(EvalProjection.class),
+            instanceOf(AggregationProjection.class),
+            instanceOf(EvalProjection.class)
+        ));
+        // Only u1.ints is in the outputs of the NL (pre projections)
+        assertThat(projections.get(0).outputs(), contains(isInputColumn(1)));
     }
 }
