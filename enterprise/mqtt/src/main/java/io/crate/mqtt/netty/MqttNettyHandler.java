@@ -45,7 +45,7 @@ public class MqttNettyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object message) {
         MqttMessage msg = (MqttMessage) message;
-        LOGGER.info("Received a message of type {}", msg.fixedHeader().messageType().toString());
+        LOGGER.trace("Received a message of type {}", msg.fixedHeader().messageType().toString());
         try {
             switch (msg.fixedHeader().messageType()) {
                 case CONNECT:
