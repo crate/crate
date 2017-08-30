@@ -35,6 +35,8 @@ Download `the latest CrateDB release`_.
 
    Older releases of CrateDB are `also available`_.
 
+   Check out the :ref:`release_notes` for specific information about each
+   CrateDB release.
 
 Once downloaded, unpack the tarball and change into the resulting directory::
 
