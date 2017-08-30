@@ -37,6 +37,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -86,9 +87,7 @@ class MultiSourceAggregationConsumer implements Consumer {
 
     private static void removeAggregationsAndLimitsFromMSS(MultiSourceSelect mss, SplitPoints splitPoints) {
         QuerySpec querySpec = mss.querySpec();
-        List<Symbol> outputs = Lists2.concatUnique(
-            splitPoints.toCollect(),
-            JoinPairs.extractFieldsFromJoinConditions(mss.joinPairs()));
+        List<Symbol> outputs = new ArrayList<>(splitPoints.toCollect());
         querySpec.outputs(outputs);
         querySpec.hasAggregates(false);
         // Limit & offset must be applied after the aggregation, so remove it from mss and sources.

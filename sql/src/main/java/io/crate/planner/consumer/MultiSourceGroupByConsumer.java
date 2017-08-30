@@ -25,14 +25,13 @@ package io.crate.planner.consumer;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.planner.Plan;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -101,10 +100,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
          */
         private static void updateQuerySpec(MultiSourceSelect mss, SplitPoints splitPoints) {
             QuerySpec querySpec = mss.querySpec();
-            List<Symbol> outputs = Lists2.concatUnique(
-                splitPoints.toCollect(),
-                JoinPairs.extractFieldsFromJoinConditions(mss.joinPairs())
-            );
+            List<Symbol> outputs = new ArrayList<>(splitPoints.toCollect());
             querySpec.outputs(outputs);
             querySpec.hasAggregates(false);
             removePostGroupingActions(querySpec);
