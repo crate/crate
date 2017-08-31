@@ -22,8 +22,8 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.ReferenceImplementation;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.engine.EngineClosedException;
 import org.elasticsearch.index.shard.IndexShard;
 
 public class ShardMinLuceneVersionExpression implements ReferenceImplementation<BytesRef> {
@@ -43,7 +43,7 @@ public class ShardMinLuceneVersionExpression implements ReferenceImplementation<
         // you might get different results.
         try {
             return new BytesRef(indexShard.minimumCompatibleVersion().toString());
-        } catch (EngineClosedException e) {
+        } catch (AlreadyClosedException e) {
             return null;
         }
     }
