@@ -113,7 +113,10 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private ClusterState newClusterState() {
-        MetaData newMetaData = MetaData.builder(clusterService.state().metaData()).build();
+        MetaData newMetaData = MetaData.builder(clusterService.state().metaData())
+            .putCustom(IngestRulesMetaData.TYPE, new IngestRulesMetaData(Collections.emptyMap()))
+            .build();
+
         return ClusterState.builder(clusterService.state())
             .metaData(newMetaData)
             .build();
