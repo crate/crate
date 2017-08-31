@@ -37,6 +37,7 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -84,9 +85,9 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testRegisterImplementationAppliesCurrentRules() {
+    public void testRegisterIngestRuleListenerAppliesCurrentRules() {
         final AtomicReference<Set<IngestRule>> receivedRules = new AtomicReference<>();
-        ingestionService.registerImplementation(UNDER_TEST_SOURCE_IDENT,
+        ingestionService.registerIngestRuleListener(UNDER_TEST_SOURCE_IDENT,
             rules -> receivedRules.set(rules));
         assertThat(receivedRules.get().size(), is(1));
         assertThat(receivedRules.get().iterator().next(), is(UNDER_TEST_INGEST_RULE));
@@ -105,7 +106,7 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
         });
 
         final AtomicReference<Set<IngestRule>> receivedRules = new AtomicReference<>();
-        ingestionService.registerImplementation(UNDER_TEST_SOURCE_IDENT, rules -> receivedRules.set(rules));
+        ingestionService.registerIngestRuleListener(UNDER_TEST_SOURCE_IDENT, rules -> receivedRules.set(rules));
         ingestionService.clusterChanged(new ClusterChangedEvent("table_dropped", newClusterState(), clusterService.state()));
         assertThat(receivedRules.get(), notNullValue());
         assertThat(receivedRules.get().size(), is(0));

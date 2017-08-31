@@ -45,11 +45,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Guardian of the IngestRules entities and listeners. Tracks the {@link IngestRuleListener}s which register against a
+ * provided source ident, listens for cluster change events related to the ingest rules and notifies the
+ * registered listeners with the entire set of rules belonging to the registered source idents when there are changes.
+ */
 @Singleton
 public class IngestionService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
-    private final Map<String, IngestionImplementation> implementations = new ConcurrentHashMap<>();
+    private final Map<String, IngestRuleListener> listeners = new ConcurrentHashMap<>();
     private final Schemas schemas;
 
     @Inject
@@ -64,26 +69,25 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     }
 
     /**
-     * Register the provided @param implementation for ingest rule changes belonging to the provided @param sourceIdent.
+     * Register the provided @param listener for ingest rule changes belonging to the provided @param sourceIdent.
      */
-    public void registerImplementation(String sourceIdent, IngestionImplementation implementation) {
-        IngestionImplementation existingImplementation = implementations.put(sourceIdent, implementation);
+    public void registerIngestRuleListener(String sourceIdent, IngestRuleListener ruleListener) {
+        IngestRuleListener existingImplementation = listeners.put(sourceIdent, ruleListener);
         if (existingImplementation != null) {
-            throw new IllegalArgumentException("There already exists an ingestion implementation registered for " +
-                                               sourceIdent);
+            throw new IllegalArgumentException("There already exists a ruleListener registered for " + sourceIdent);
         }
 
         Map<String, Set<IngestRule>> ingestionRules = getIngestRulesOrNull(clusterService.state().metaData());
         if (ingestionRules == null) {
-            implementation.applyRules(Collections.emptySet());
+            ruleListener.applyRules(Collections.emptySet());
         } else {
-            implementation.applyRules(ingestionRules.getOrDefault(sourceIdent, Collections.emptySet()));
+            ruleListener.applyRules(ingestionRules.getOrDefault(sourceIdent, Collections.emptySet()));
         }
     }
 
     @VisibleForTesting
-    public void removeImplementationFor(String sourceIdent) {
-        implementations.remove(sourceIdent);
+    public void removeListenerFor(String sourceIdent) {
+        listeners.remove(sourceIdent);
     }
 
     @Nullable
@@ -108,7 +112,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
             return;
         }
         removeRulesWithoutActiveTargetTable(ingestionRules);
-        for (Map.Entry<String, IngestionImplementation> entry : implementations.entrySet()) {
+        for (Map.Entry<String, IngestRuleListener> entry : listeners.entrySet()) {
             String sourceIdent = entry.getKey();
             Set<IngestRule> rulesForSource = ingestionRules.getOrDefault(sourceIdent, Collections.emptySet());
             entry.getValue().applyRules(rulesForSource);

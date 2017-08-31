@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.ingestion.IngestionImplementation;
+import io.crate.ingestion.IngestRuleListener;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.rule.ingest.IngestRule;
@@ -68,7 +68,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     private static final String TARGET_TABLE = "ingest_data_raw";
     private IngestionService ingestionService;
 
-    private class TestIngestionImplementation implements IngestionImplementation {
+    private class TestIngestRuleListener implements IngestRuleListener {
 
         private final IngestionService ingestionService;
         private final InputFactory inputFactory;
@@ -88,8 +88,8 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             }
         };
 
-        TestIngestionImplementation(Functions functions,
-                                    IngestionService ingestionService) {
+        TestIngestRuleListener(Functions functions,
+                               IngestionService ingestionService) {
             this.predicateAndIngestRulesReference = new AtomicReference<>(new HashSet<>());
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
@@ -97,8 +97,8 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.expressionAnalyzer = new ExpressionAnalyzer(functions, null, null, inputColumnProvider, null);
         }
 
-        void registerIngestionImplementation() {
-            ingestionService.registerImplementation(INGESTION_SOURCE_ID, this);
+        void registerListener() {
+            ingestionService.registerIngestRuleListener(INGESTION_SOURCE_ID, this);
         }
 
         void ingestData(String topic, int data) {
@@ -124,7 +124,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         }
     }
 
-    private TestIngestionImplementation implementation;
+    private TestIngestRuleListener ruleListener;
     private Thread dataIngestionThread;
     private Iterator<Integer> dataSource = Stream.iterate(1, i -> i + 1).iterator();
 
@@ -142,7 +142,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Before
-    public void setupIngestRuleAndImplementation() {
+    public void setupIngestRuleAndListener() {
         execute(String.format(Locale.ENGLISH, "create table %s (data int)", TARGET_TABLE));
         execute(String.format(Locale.ENGLISH,
             "create ingest rule %s on %s where topic = ? into %s",
@@ -150,9 +150,9 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             new Object[]{DATA_TOPIC}
         );
         ingestionService = internalCluster().getInstance(IngestionService.class);
-        implementation = new TestIngestionImplementation(internalCluster().getInstance(Functions.class),
+        ruleListener = new TestIngestRuleListener(internalCluster().getInstance(Functions.class),
             ingestionService);
-        implementation.registerIngestionImplementation();
+        ruleListener.registerListener();
         produceData = true;
         dataFlowingLatch = new CountDownLatch(1);
         dataIngestionThread = new Thread(() -> {
@@ -160,7 +160,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
                 try {
                     dataFlowSemaphore.acquire();
                     Integer nextValue = dataSource.next();
-                    implementation.ingestData(DATA_TOPIC, nextValue);
+                    ruleListener.ingestData(DATA_TOPIC, nextValue);
                     lastProducedData.set(nextValue);
                 } catch (InterruptedException e) {
                     // will retry if interrupted
@@ -179,11 +179,11 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         produceData = false;
         resumeDataIngestion();
         dataIngestionThread.join(5000);
-        ingestionService.removeImplementationFor(INGESTION_SOURCE_ID);
+        ingestionService.removeListenerFor(INGESTION_SOURCE_ID);
     }
 
     @Test
-    public void testIngestionImplementationIngestsData() throws Exception {
+    public void testIngestData() throws Exception {
         dataFlowingLatch.await(5, TimeUnit.SECONDS);
         pauseDataIngestion();
 
@@ -222,7 +222,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testDropIngestRuleWillCauseImplementationToStopIngesting() throws Exception {
+    public void testDropIngestRuleWillCauseIngestionToStop() throws Exception {
         dataFlowingLatch.await(5, TimeUnit.SECONDS);
 
         // pausing data ingestion so we can get the last ingested value before we drop the ingest rule.

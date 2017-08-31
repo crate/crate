@@ -27,18 +27,15 @@ import io.crate.metadata.rule.ingest.IngestRule;
 import java.util.Set;
 
 /**
- * Ingestion implementation that usually facilitate the data flow into the system based on the configured ingestion
- * rules.
+ * IngestRule listener interface used to receive a snapshot of the IngestRules in the system when any rule is created,
+ * changed or dropped.
  */
-public interface IngestionImplementation {
+public interface IngestRuleListener {
 
     /**
-     * Provides a way for the IngestionImplementation to receive the configured ingestion rules after it registered
-     * with the {@link IngestionService}.
+     * Callback to receive the configured ingestion rules after it registered with the {@link IngestionService}.
      * The {@link IngestionService} listens for changes (eg. rules created/dropped, target tables dropped, etc),
-     * processes the ingestion rules and feeds them to the IngestionImplementations using this callback.
-     * The implementation will receive all rules belonging to its source and should update its ingestion data flow to
-     * obey the received rules.
+     * processes the ingestion rules and feeds them to the IngestRuleListener using this callback.
      */
     void applyRules(Set<IngestRule> rules);
 }
