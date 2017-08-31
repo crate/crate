@@ -33,7 +33,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class OrderedTopNProjection extends Projection {
@@ -52,9 +56,9 @@ public class OrderedTopNProjection extends Projection {
                                  boolean[] reverseFlags,
                                  Boolean[] nullsFirst) {
         assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "OrderedTopNProjection outputs cannot contain Field or Reference symbols";
+            : "OrderedTopNProjection outputs cannot contain Field or Reference symbols: " + outputs;
         assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "OrderedTopNProjection orderBy cannot contain Field or Reference symbols";
+            : "OrderedTopNProjection orderBy cannot contain Field or Reference symbols: " + orderBy;
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";
 

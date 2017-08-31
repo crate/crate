@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
@@ -94,13 +93,6 @@ class NestedLoopConsumer implements Consumer {
             QueriedRelation left = statement.left();
             QueriedRelation right = statement.right();
             List<Symbol> nlOutputs = Lists2.concat(left.fields(), right.fields());
-
-            // for nested loops we are fine to remove pushed down orders
-            OrderBy orderByBeforeSplit = querySpec.orderBy().orElse(null);
-
-            if (statement.remainingOrderBy().isPresent()) {
-                querySpec.orderBy(statement.remainingOrderBy().get());
-            }
 
             JoinPair joinPair = statement.joinPair();
             JoinType joinType = joinPair.joinType();
@@ -197,18 +189,14 @@ class NestedLoopConsumer implements Consumer {
                       + joinCondition + " nlOutputs=" + nlOutputs;
             }
 
-            List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
-            if (orderByBeforeSplit != null && isDistributed) {
-                for (Symbol symbol : orderByBeforeSplit.orderBySymbols()) {
-                    if (postNLOutputs.indexOf(symbol) == -1) {
-                        postNLOutputs.add(symbol);
-                    }
-                }
-            }
 
-            OrderBy orderBy = statement.remainingOrderBy().orElse(null);
-            if (orderBy == null && joinType.isOuter()) {
-                orderBy = orderByBeforeSplit;
+            OrderBy orderBy = querySpec.orderBy().orElse(null);
+            final List<Symbol> postNLOutputs;
+            if (orderBy != null && isDistributed) {
+                // orderBy outputs are required to merge the result
+                postNLOutputs = Lists2.concatUnique(querySpec.outputs(), orderBy.orderBySymbols());
+            } else {
+                postNLOutputs = querySpec.outputs();
             }
 
             int limit = isDistributed ? limits.limitAndOffset() : limits.finalLimit();
@@ -246,7 +234,7 @@ class NestedLoopConsumer implements Consumer {
                     limits.offset(),
                     limit,
                     postMergeNumOutput,
-                    PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs)
+                    PositionalOrderBy.of(orderBy, postNLOutputs)
                 );
             } else {
                 return new NestedLoop(nl, leftPlan, rightPlan, TopN.NO_LIMIT, 0, limit, postMergeNumOutput, null);

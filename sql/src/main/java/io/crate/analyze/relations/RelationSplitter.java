@@ -58,14 +58,16 @@ import java.util.function.Consumer;
 public final class RelationSplitter {
 
     private final QuerySpec querySpec;
-    private final Set<Symbol> requiredForMerge = new HashSet<>();
+    private final Set<Symbol> requiredForMerge = new LinkedHashSet<>();
     private final Map<AnalyzedRelation, QuerySpec> specs;
     private final Map<QualifiedName, AnalyzedRelation> relations;
     private final List<JoinPair> joinPairs;
     private final List<Symbol> joinConditions;
     private final Set<QualifiedName> relationPartOfJoinConditions;
+
+    private AnalyzedRelation firstRel;
     private Set<Field> canBeFetched;
-    private RemainingOrderBy remainingOrderBy;
+    private boolean orderByMoved = false;
 
     public RelationSplitter(QuerySpec querySpec,
                             Collection<? extends AnalyzedRelation> relations,
@@ -74,6 +76,9 @@ public final class RelationSplitter {
         specs = new IdentityHashMap<>(relations.size());
         this.relations = new HashMap<>(relations.size());
         for (AnalyzedRelation relation : relations) {
+            if (firstRel == null) {
+                firstRel = relation;
+            }
             specs.put(relation, new QuerySpec());
             this.relations.put(relation.getQualifiedName(), relation);
         }
@@ -90,8 +95,8 @@ public final class RelationSplitter {
         }
     }
 
-    public Optional<RemainingOrderBy> remainingOrderBy() {
-        return Optional.ofNullable(remainingOrderBy);
+    public boolean relationReOrderAllowed() {
+        return orderByMoved == false;
     }
 
     public Set<Symbol> requiredForMerge() {
@@ -121,16 +126,6 @@ public final class RelationSplitter {
             new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(specs.size()), LinkedHashSet::new);
         Consumer<Field> addFieldToMap = f -> fieldsByRelation.put(f.relation(), f);
 
-        // declare all symbols from the remaining order by as required for query
-        if (remainingOrderBy != null) {
-            OrderBy orderBy = remainingOrderBy.orderBy();
-
-            FieldsVisitor.visitFields(orderBy.orderBySymbols(), f -> {
-                fieldsByRelation.put(f.relation(), f);
-                requiredForMerge.add(f);
-            });
-        }
-
         Optional<List<Symbol>> groupBy = querySpec.groupBy();
         if (groupBy.isPresent()) {
             FieldsVisitor.visitFields(groupBy.get(), addFieldToMap);
@@ -154,7 +149,7 @@ public final class RelationSplitter {
         // and only if the relations are not part of a join condition
         Optional<Symbol> limit = querySpec.limit();
         boolean filterNeeded = querySpec.where().hasQuery() && !(querySpec.where().query() instanceof Literal);
-        if (limit.isPresent() && !filterNeeded && !remainingOrderBy().isPresent()) {
+        if (limit.isPresent() && !filterNeeded && !querySpec.orderBy().isPresent()) {
             Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
                 if (!relationPartOfJoinConditions.contains(rel.getQualifiedName())) {
@@ -179,6 +174,12 @@ public final class RelationSplitter {
         canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), fieldsByRelation);
 
         FieldsVisitor.visitFields(querySpec.outputs(), addFieldToMap);
+        for (Symbol symbol : requiredForMerge) {
+            FieldsVisitor.visitFields(symbol, f -> {
+                canBeFetched.remove(f);
+                addFieldToMap.accept(f);
+            });
+        }
 
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
@@ -256,51 +257,24 @@ public final class RelationSplitter {
     }
 
     /**
-     * Move ORDER BY expressions to the subRelations if it's safe.
-     * Move is safe if all order by expressions refer to the same relation and there is no outer join.
      *
-     *  - NL with outer-join injects null rows; so it doesn't preserve the ordering
-     *  - Two or more relations in ORDER BY requires a post-join sorting, relying on preserving the pre-ordering doesn't work:
+     * Move the orderBy expression to the sub-relation if possible.
      *
-     *  Example:
-     *
-     * <pre>
-     *   ORDER BY tx, ty
-     *
-     *   tx = [1, 1, 2, 2]
-     *   ty = [1, 2]
-     *
-     *   for x in tx:
-     *      for y in ty:
-     *
-     *   results in
-     *     1| 1
-     *     1| 2
-     *     1| 1
-     *     1| 2
-     *     ...
-     *
-     *   but should result in
-     *
-     *     1| 1
-     *     1| 1
-     *     1| 2
-     *     1| 2
-     *
-     * </pre>
+     * This is possible becuase a nested loop preserves the ordering of the input-relation
+     * IF:
+     *   - the order by expressions only operate using fields from a single relation
+     *   - that relation happens to be on the left-side of the join
+     *   - the relation is *not* involved in a outer join (outer joins may create null rows - breaking the ordering)
      */
     private void processOrderBy() {
         Optional<OrderBy> optOrderBy = querySpec.orderBy();
-        if (!optOrderBy.isPresent()) {
+        if (!optOrderBy.isPresent() || querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
             return;
         }
         OrderBy orderBy = optOrderBy.get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         Consumer<Field> gatherRelations = f -> relations.add(f.relation());
 
-        if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
-            return;
-        }
         for (Symbol orderExpr : orderBy.orderBySymbols()) {
             FieldsVisitor.visitFields(orderExpr, gatherRelations);
         }
@@ -308,18 +282,16 @@ public final class RelationSplitter {
             AnalyzedRelation relationInOrderBy = relations.iterator().next();
             QuerySpec spec = getSpec(relationInOrderBy);
             // If it's a sub-select it might already have an ordering
-            if (!(spec.orderBy().isPresent() && (spec.limit().isPresent() || spec.offset().isPresent()))) {
+            if (firstRel == relationInOrderBy &&
+                !(spec.orderBy().isPresent() && (spec.limit().isPresent() || spec.offset().isPresent()))) {
                 orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
                 spec.orderBy(orderBy);
-                requiredForMerge.addAll(orderBy.orderBySymbols());
+                querySpec.orderBy(null);
+                orderByMoved = true;
+                return;
             }
-        } else {
-            remainingOrderBy = new RemainingOrderBy();
-            for (AnalyzedRelation relation : relations) {
-                remainingOrderBy.addRelation(relation.getQualifiedName());
-            }
-            remainingOrderBy.addOrderBy(orderBy);
         }
+        requiredForMerge.addAll(orderBy.orderBySymbols());
     }
 
     private final static class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {

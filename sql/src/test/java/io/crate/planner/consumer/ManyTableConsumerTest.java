@@ -107,23 +107,22 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "join t3 on t2.b = t3.c " +
                                         "order by t3.c, t1.a, t2.b");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.toString(), is("join.join.doc.t3.doc.t1.doc.t2"));
+        assertThat(root.toString(), is("join.join.doc.t1.doc.t2.doc.t3"));
 
-        TwoTableJoin t3AndT1 = (TwoTableJoin) root.left();
-        assertThat(t3AndT1.toString(), is("join.doc.t3.doc.t1"));
-        assertThat(t3AndT1.querySpec().where().query(), isSQL("null"));
+        TwoTableJoin t1AndT2 = (TwoTableJoin) root.left();
+        assertThat(t1AndT2.toString(), is("join.doc.t1.doc.t2"));
+        assertThat(t1AndT2.joinPair().condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
-        assertThat(root.joinPair().condition(),
-            isSQL("((join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b) AND (doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']))"));
+        assertThat(root.joinPair().condition(), isSQL("(join.doc.t1.doc.t2.doc.t2['b'] = doc.t3.c)"));
     }
 
     @Test
-    public void testQuerySplittingReplacesCopiedSymbols() throws Exception {
+    public void testQuerySplittingInCaseOrderByCanBeMoved() throws Exception {
         MultiSourceSelect mss = analyze("select * from t1, t2 " +
                                         "where t1.x = 1 or t2.y = 1 " +
                                         "order by t1.x + t1.x");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
+        assertThat("ORDER BY can be moved to subRelation", root.querySpec().orderBy().isPresent(), is(false));
         assertThat(root.left().querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
     }
 
@@ -311,23 +310,23 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         " join users_multi_pk on t3.z=users_multi_pk.id" +
                                         " order by t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.toString(), is("join.join.join.join.doc.t3.doc.t2.doc.t1.doc.users.doc.users_multi_pk"));
+        assertThat(root.toString(), is("join.join.join.join.doc.t1.doc.t2.doc.t3.doc.users.doc.users_multi_pk"));
         assertThat(root.joinPair().condition(),
-                   isSQL("(join.join.join.doc.t3.doc.t2.doc.t1.doc.users.\"join.join.doc.t3.doc.t2.doc.t1\"['" +
-                         "join.doc.t3.doc.t2['doc.t3['z']']'] = to_int(doc.users_multi_pk.id))"));
+            isSQL("(join.join.join.doc.t1.doc.t2.doc.t3.doc.users." +
+                  "\"join.join.doc.t1.doc.t2.doc.t3\"['doc.t3['z']'] = to_int(doc.users_multi_pk.id))"));
+
         TwoTableJoin tt1 = (TwoTableJoin) root.left();
-        assertThat(tt1.toString(), is("join.join.join.doc.t3.doc.t2.doc.t1.doc.users"));
+        assertThat(tt1.toString(), is("join.join.join.doc.t1.doc.t2.doc.t3.doc.users"));
         assertThat(tt1.joinPair().condition(),
-                   isSQL("(join.join.doc.t3.doc.t2.doc.t1.doc.t1['i'] = to_int(doc.users.id))"));
+                   isSQL("(join.join.doc.t1.doc.t2.doc.t3.\"join.doc.t1.doc.t2\"['doc.t1['i']'] = to_int(doc.users.id))"));
         TwoTableJoin tt2 = (TwoTableJoin) tt1.left();
-        assertThat(tt2.toString(), is("join.join.doc.t3.doc.t2.doc.t1"));
+        assertThat(tt2.toString(), is("join.join.doc.t1.doc.t2.doc.t3"));
         assertThat(tt2.joinPair().condition(),
-            isSQL("((doc.t1.a = join.doc.t3.doc.t2.doc.t2['b']) AND " +
-                  "((join.doc.t3.doc.t2.doc.t2['b'] = '10') OR (doc.t1.a = '20')))"));
+            isSQL("(join.doc.t1.doc.t2.doc.t2['b'] = doc.t3.c)"));
 
         TwoTableJoin tt3 = (TwoTableJoin) tt2.left();
-        assertThat(tt3.toString(), is("join.doc.t3.doc.t2"));
-        assertThat(tt3.joinPair().condition(), isSQL("(doc.t2.b = doc.t3.c)"));
+        assertThat(tt3.toString(), is("join.doc.t1.doc.t2"));
+        assertThat(tt3.joinPair().condition(), isSQL("((doc.t1.a = doc.t2.b) AND ((doc.t2.b = '10') OR (doc.t1.a = '20')))"));
     }
 
     @Test
