@@ -79,6 +79,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -977,7 +978,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.requiredForMerge(), contains(isField("id")));
+        assertThat("requiredForMerge can be empty because orderBy is moved to subRelation",
+            relation.requiredForMerge().isEmpty(),is(true));
+
+        assertThat(relation.querySpec().orderBy().isPresent(), is(false));
+        Iterator<Map.Entry<QualifiedName, AnalyzedRelation>> it = relation.sources().entrySet().iterator();
+        QueriedRelation usersRel = (QueriedRelation) it.next().getValue();
+        assertThat(usersRel.querySpec().orderBy().get().orderBySymbols(), isSQL("doc.users.id"));
     }
 
     @Test
@@ -996,13 +1003,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
         assertThat(relation.requiredForMerge(), isSQL(
-            "doc.users.name, doc.users_multi_pk.id, doc.users_multi_pk.name"));
+            "doc.users_multi_pk.id, concat(doc.users.name, doc.users_multi_pk.name)"));
     }
 
     @Test
     public void testJoinConditionIsNotPartOfOutputs() throws Exception {
         SelectAnalyzedStatement stmt = analyze(
-            "select u1.name from users u1 inner join users u2 on u1.id = u2.id order by u1.date");
+            "select u1.name from users u1 inner join users u2 on u1.id = u2.id order by u2.date");
         MultiSourceSelect rel = (MultiSourceSelect) stmt.relation();
         assertThat(rel.requiredForMerge(), contains(isField("date")));
         assertThat(rel.querySpec().outputs(), contains(isField("name")));

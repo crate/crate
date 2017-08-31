@@ -27,7 +27,6 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.RelationSplitter;
-import io.crate.analyze.relations.RemainingOrderBy;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Symbol;
@@ -44,7 +43,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -52,10 +50,10 @@ public class MultiSourceSelect implements QueriedRelation {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final Fields fields;
+    private final boolean relationReOrderAllowed;
     private final List<JoinPair> joinPairs;
     private final Set<Symbol> requiredForMerge;
     private final Set<Field> canBeFetched;
-    private final Optional<RemainingOrderBy> remainingOrderBy;
     private QualifiedName qualifiedName;
     private QuerySpec querySpec;
 
@@ -99,9 +97,6 @@ public class MultiSourceSelect implements QueriedRelation {
         Function<? super Symbol, ? extends Symbol> convertFieldInSymbolsToNewRelations =
             FieldReplacer.bind(convertFieldToPointToNewRelations);
 
-        if (splitter.remainingOrderBy().isPresent()) {
-            splitter.remainingOrderBy().get().orderBy().replace(convertFieldInSymbolsToNewRelations);
-        }
         for (JoinPair joinPair : mss.joinPairs) {
             joinPair.replaceCondition(convertFieldInSymbolsToNewRelations);
         }
@@ -114,7 +109,7 @@ public class MultiSourceSelect implements QueriedRelation {
             mss.joinPairs,
             requiredForMerge,
             canBeFetched,
-            splitter.remainingOrderBy()
+            splitter.relationReOrderAllowed()
         );
     }
 
@@ -147,7 +142,7 @@ public class MultiSourceSelect implements QueriedRelation {
         }
         this.requiredForMerge = Collections.emptySet();
         this.canBeFetched = Collections.emptySet();
-        this.remainingOrderBy = Optional.empty();
+        this.relationReOrderAllowed = true;
     }
 
     private MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
@@ -156,17 +151,28 @@ public class MultiSourceSelect implements QueriedRelation {
                               List<JoinPair> joinPairs,
                               Set<Symbol> requiredForMerge,
                               Set<Field> canBeFetched,
-                              Optional<RemainingOrderBy> remainingOrderBy) {
+                              boolean relationReOrderAllowed) {
         this.sources = sources;
         this.joinPairs = joinPairs;
         this.querySpec = querySpec;
         this.fields = new Fields(fields.size());
+        this.relationReOrderAllowed = relationReOrderAllowed;
         for (Field field : fields) {
             this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
         this.requiredForMerge = requiredForMerge;
         this.canBeFetched = canBeFetched;
-        this.remainingOrderBy = remainingOrderBy;
+    }
+
+    /**
+     * @return true if the planner is allowed to re-arrange the order of the relations.
+     *         (Ex.: t1 ⋈ t2 ⋈ t3 may be re-ordered to ((t2 ⋈ t3) ⋈ t1)
+     *
+     *
+     * See also: {@link RelationSplitter#processOrderBy()} and {@link io.crate.planner.consumer.ManyTableConsumer}
+     */
+    public boolean isRelationReOrderAllowed() {
+        return relationReOrderAllowed;
     }
 
     public Set<Symbol> requiredForMerge() {
@@ -218,14 +224,8 @@ public class MultiSourceSelect implements QueriedRelation {
         return querySpec;
     }
 
-
-    public Optional<RemainingOrderBy> remainingOrderBy() {
-        return remainingOrderBy;
-    }
-
     @Override
     public String toString() {
         return "MSS{" + sources.keySet() + '}';
     }
-
 }

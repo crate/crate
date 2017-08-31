@@ -80,7 +80,7 @@ public class MultiSourceFetchPushDownTest extends CrateDummyClusterServiceUnitTe
         assertThat(mss.querySpec(),
             isSQL("SELECT doc.t1._fetchid, doc.t2.b ORDER BY doc.t2.b"));
         assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._fetchid"));
-        assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b ORDER BY doc.t2.b"));
+        assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b"));
     }
 
     @Test

@@ -37,14 +37,12 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.Optional;
 
 public class TwoTableJoin implements QueriedRelation {
 
     private final QuerySpec querySpec;
     private final QueriedRelation left;
     private final QueriedRelation right;
-    private final Optional<OrderBy> remainingOrderBy;
     private final Fields fields;
     private final QualifiedName name;
     private final JoinPair joinPair;
@@ -52,7 +50,6 @@ public class TwoTableJoin implements QueriedRelation {
     public TwoTableJoin(QuerySpec querySpec,
                         QueriedRelation left,
                         QueriedRelation right,
-                        Optional<OrderBy> remainingOrderBy,
                         JoinPair joinPair) {
         this.querySpec = querySpec;
         this.left = left;
@@ -61,7 +58,6 @@ public class TwoTableJoin implements QueriedRelation {
             "join",
             left.getQualifiedName().toString(),
             right.getQualifiedName().toString());
-        this.remainingOrderBy = remainingOrderBy;
         this.joinPair = joinPair;
 
         List<Symbol> outputs = querySpec.outputs();
@@ -82,10 +78,6 @@ public class TwoTableJoin implements QueriedRelation {
             }
             fields.add(fqPath, new Field(this, fqPath, output.valueType()));
         }
-    }
-
-    public Optional<OrderBy> remainingOrderBy() {
-        return remainingOrderBy;
     }
 
     public QueriedRelation left() {

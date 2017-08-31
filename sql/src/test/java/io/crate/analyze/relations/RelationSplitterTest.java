@@ -166,9 +166,9 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         RelationSplitter splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.remainingOrderBy().isPresent(), is(true));
-        assertThat(splitter.remainingOrderBy().get().orderBy(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.requiredForMerge(), isSQL("doc.t1.a, doc.t1.x, doc.t2.y"));
+        assertThat(querySpec.orderBy().isPresent(), is(true));
+        assertThat(querySpec.orderBy().get(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
+        assertThat(splitter.requiredForMerge(), isSQL("doc.t1.a, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
         assertThat(splitter.canBeFetched(), empty());
@@ -208,12 +208,12 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT doc.t1.a, doc.t2.b " +
                                     "ORDER BY doc.t1.x, add(subtract(doc.t1.x, doc.t2.y), doc.t3.z), " +
                                     "doc.t2.y, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b, doc.t2.y"));
         assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
 
-        assertThat(splitter.remainingOrderBy().isPresent(), is(true));
-        assertThat(splitter.remainingOrderBy().get().orderBy(),
+        assertThat(querySpec.orderBy().isPresent(), is(true));
+        assertThat(querySpec.orderBy().get(),
             isSQL("doc.t1.x, add(subtract(doc.t1.x, doc.t2.y), doc.t3.z), doc.t2.y, add(doc.t1.x, doc.t2.y)"));
     }
 
@@ -318,7 +318,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(qs, Collections.singletonList(t1AndT2InnerJoin));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a ORDER BY doc.t1.a"));
         assertThat("remainingOrderBy must be false if it's safe to remove after pushDown",
-            splitter.remainingOrderBy().isPresent(), is(false));
+            qs.orderBy().isPresent(), is(false));
     }
 
     @Test

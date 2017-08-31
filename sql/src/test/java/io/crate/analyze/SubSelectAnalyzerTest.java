@@ -191,7 +191,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                     "order by 2 limit 10");
         MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i ORDER BY doc.t1.i LIMIT 10"));
+            isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i LIMIT 10"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
             isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50') ORDER BY doc.t1.i LIMIT 10"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),

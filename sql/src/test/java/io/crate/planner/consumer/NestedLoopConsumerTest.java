@@ -139,7 +139,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     public void testFetch() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.id from users u1, users u2 order by 2");
         NestedLoopPhase nlp = ((NestedLoop) plan.subPlan()).nestedLoopPhase();
-        assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(1), INPUT(0)"));
+        assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
     }
 
     @Test
