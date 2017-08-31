@@ -548,17 +548,11 @@ public class ManyTableConsumer implements Consumer {
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(left);
         QueriedRelation rightRelation = (QueriedRelation) mss.sources().get(right);
 
-        Optional<OrderBy> remainingOrderByToApply = Optional.empty();
-        if (mss.remainingOrderBy().isPresent() &&
-            mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
-            remainingOrderByToApply = Optional.of(mss.remainingOrderBy().get().orderBy());
-        }
-
         return new TwoTableJoin(
             mss.querySpec(),
             leftRelation,
             rightRelation,
-            remainingOrderByToApply,
+            mss.remainingOrderBy().map(RemainingOrderBy::orderBy),
             joinPair
         );
     }
