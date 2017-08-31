@@ -107,7 +107,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         if(ingestionRules == null) {
             return;
         }
-        filterOutInvalidRules(ingestionRules);
+        removeRulesWithoutActiveTargetTable(ingestionRules);
         for (Map.Entry<String, IngestionImplementation> entry : implementations.entrySet()) {
             String sourceIdent = entry.getKey();
             Set<IngestRule> rulesForSource = ingestionRules.getOrDefault(sourceIdent, Collections.emptySet());
@@ -115,7 +115,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         }
     }
 
-    private void filterOutInvalidRules(Map<String, Set<IngestRule>> ingestionRules) {
+    private void removeRulesWithoutActiveTargetTable(Map<String, Set<IngestRule>> ingestionRules) {
         for (Set<IngestRule> sourceIngestRules : ingestionRules.values()) {
             Iterator<IngestRule> rulesIterator = sourceIngestRules.iterator();
             //noinspection Java8CollectionRemoveIf - would result in a lambda instance for every iteration
