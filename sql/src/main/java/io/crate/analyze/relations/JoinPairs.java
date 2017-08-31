@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 
@@ -129,21 +128,5 @@ public final class JoinPairs {
             }
         }
         return false;
-    }
-
-    /**
-     * Removes order by on the outer relation of an outer join because it must be applied after the join anyway
-     */
-    public static void removeOrderByOnOuterRelation(QualifiedName left,
-                                                    QualifiedName right,
-                                                    QuerySpec leftQuerySpec,
-                                                    QuerySpec rightQuerySpec,
-                                                    JoinPair joinPair) {
-        if (joinPair.isOuterRelation(left)) {
-            leftQuerySpec.orderBy(null);
-        }
-        if (joinPair.isOuterRelation(right)) {
-            rightQuerySpec.orderBy(null);
-        }
     }
 }
