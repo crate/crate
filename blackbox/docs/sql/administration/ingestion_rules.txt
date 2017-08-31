@@ -1,6 +1,25 @@
 .. highlight:: psql
 .. _administration-ingestion-rules:
 
+.. Hidden: CREATE TABLE::
+
+    cr> create table humidity_data.raw (
+    ... id long,
+    ... data string,
+    ... date timestamp
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+
+.. Hidden: CREATE TABLE::
+
+    cr> create table temp_data.raw (
+    ... id long,
+    ... data string,
+    ... date timestamp
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
 ===============
 Ingestion Rules
 ===============
@@ -20,15 +39,6 @@ Suppose we have installed an ingestion implementation for an ``mqtt`` broker,
 and we would like to filter temperature data streams by topic and store them to
 ``temp_data.raw``::
 
-.. Hidden: CREATE TABLE::
-
-    cr> create table temp_data.raw (
-    ... id long,
-    ... data string,
-    ... date timestamp
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
     cr> CREATE INGEST RULE temperature
     ... ON mqtt
     ... WHERE topic like 'temperature/%'
@@ -43,15 +53,6 @@ implementation's data structure.
 
 Multiple rules can be created for the same ingestion source, for example, to
 store the humidity data streams in ``humidity_data.raw``::
-
-.. Hidden: CREATE TABLE::
-
-    cr> create table humidity_data.raw (
-    ... id long,
-    ... data string,
-    ... date timestamp
-    ... );
-    CREATE OK, 1 row affected (... sec)
 
     cr> CREATE INGEST RULE humidity
     ... ON mqtt
@@ -77,11 +78,11 @@ By querying the ``information_schema.ingestion_rules`` table you can get all
 information regarding the existing ingestion rules. E.g.::
 
     cr> SELECT * FROM information_schema.ingestion_rules order by rule_name;
-    +-----------------------------+-----------+--------------+-------------------+
-    | condition                   | rule_name | source_ident | target_table      |
-    +-----------------------------+-----------+--------------+-------------------+
-    | ("topic" LIKE 'humidity/%') | humidity  | mqtt         | humidity_data.raw |
-    +-----------------------------+-----------+--------------+-------------------+
+    +---------------------------+-----------+--------------+-------------------+
+    | condition                 | rule_name | source_ident | target_table      |
+    +---------------------------+-----------+--------------+-------------------+
+    | "topic" LIKE 'humidity/%' | humidity  | mqtt         | humidity_data.raw |
+    +---------------------------+-----------+--------------+-------------------+
     SELECT 1 row in set (... sec)
 
 The column ``rule_name`` shows the identifier of the rule, the column
