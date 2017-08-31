@@ -1,5 +1,4 @@
 .. highlight:: psql
-.. _administration-ingestion-rules:
 
 .. Hidden: CREATE TABLE::
 
@@ -10,7 +9,6 @@
     ... );
     CREATE OK, 1 row affected (... sec)
 
-
 .. Hidden: CREATE TABLE::
 
     cr> create table temp_data.raw (
@@ -19,6 +17,8 @@
     ... date timestamp
     ... );
     CREATE OK, 1 row affected (... sec)
+
+.. _administration-ingestion-rules:
 
 ===============
 Ingestion Rules

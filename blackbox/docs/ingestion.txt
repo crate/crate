@@ -24,7 +24,7 @@ The schema below describes the flow of the ingestion framework and how data is
 routed from the data source to the target table.
 
 .. figure:: /_images/ingestion_framework.png
-   :scale: 100 %
+   :scale: 60 %
    :alt: The Ingestion Framework Flow
 
 
