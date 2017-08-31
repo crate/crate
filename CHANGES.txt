@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused ``account_user``-column to be empty in the
+   twitter tutorial plugin of the Admin UI.
+
  - Fixed an issue with ``INNER`` and ``CROSS JOINS`` on more than 2 tables that
    could result in a ``Iterator is not on a row`` error.
 
