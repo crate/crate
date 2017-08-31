@@ -40,16 +40,16 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 public class IngestionService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
-    private final Map<String, IngestionImplementation> implementations = new HashMap<>();
+    private final Map<String, IngestionImplementation> implementations = new ConcurrentHashMap<>();
     private final Schemas schemas;
     private IngestRulesMetaData previousIngestRulesMetaData;
 
