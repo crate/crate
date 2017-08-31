@@ -49,7 +49,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toCollection;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -129,9 +130,9 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     private Iterator<Integer> dataSource = Stream.iterate(1, i -> i + 1).iterator();
 
     private volatile boolean produceData;
-    private CountDownLatch dataFlowingLatch;
     private final AtomicInteger lastProducedData = new AtomicInteger(-1);
     private final Semaphore dataFlowSemaphore = new Semaphore(1);
+    private volatile Set<String> existingRulesOnIngestValue;
 
     private void pauseDataIngestion() throws InterruptedException {
         dataFlowSemaphore.acquire();
@@ -154,20 +155,30 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             ingestionService);
         ruleListener.registerListener();
         produceData = true;
-        dataFlowingLatch = new CountDownLatch(1);
+        existingRulesOnIngestValue = new CopyOnWriteArraySet<>();
         dataIngestionThread = new Thread(() -> {
             while (produceData) {
                 try {
                     dataFlowSemaphore.acquire();
                     Integer nextValue = dataSource.next();
+
+                    // Save the rules that the listener received before ingesting this value (and most likely will use
+                    // to ingest it - unless tests do concurrent `drop ingest rule` but that's for the tests to handle)
+                    // Tests will want to wait until we ingest values in the presence of particular rules, so we'll push
+                    // these rules into a collection AFTER we do the ingest so that tests can assertBusy on tha collection
+                    Set<Tuple<Predicate<Row>, IngestRule>> listenerReceivedRules =
+                        ruleListener.predicateAndIngestRulesReference.get();
+
                     ruleListener.ingestData(DATA_TOPIC, nextValue);
                     lastProducedData.set(nextValue);
+
+                    listenerReceivedRules.stream().map(tuple -> tuple.v2().getName())
+                        .collect(toCollection(() -> existingRulesOnIngestValue));
                 } catch (InterruptedException e) {
                     // will retry if interrupted
                 } finally {
                     dataFlowSemaphore.release();
                 }
-                dataFlowingLatch.countDown();
             }
         }, "DataIngestionThread");
         dataIngestionThread.start();
@@ -176,6 +187,7 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     @After
     public void dropIngestRuleAndStopProducingData() throws InterruptedException {
         execute("drop ingest rule if exists " + UNDER_TEST_INGEST_RULE_NAME);
+        execute("drop ingest rule if exists another_topic_rule");
         produceData = false;
         resumeDataIngestion();
         dataIngestionThread.join(5000);
@@ -184,7 +196,8 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testIngestData() throws Exception {
-        dataFlowingLatch.await(5, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(existingRulesOnIngestValue.contains(UNDER_TEST_INGEST_RULE_NAME), is(true)),
+            5, TimeUnit.SECONDS);
         pauseDataIngestion();
 
         execute("select * from ingest_data_raw order by data desc");
@@ -196,11 +209,12 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
     public void testCreateRuleOnDifferentTopicThanIncomingData() throws Exception {
         execute("create table other_topic_raw_table (data int)");
         execute(String.format(Locale.ENGLISH,
-            "create ingest rule rule_for_other_topic on %s where topic = '%s' into %s",
+            "create ingest rule another_topic_rule on %s where topic = '%s' into %s",
             INGESTION_SOURCE_ID, "other_topic", "other_topic_raw_table")
         );
 
-        dataFlowingLatch.await(5, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(existingRulesOnIngestValue.contains("another_topic_rule"), is(true)),
+            5, TimeUnit.SECONDS);
         execute("select * from other_topic_raw_table order by data desc");
         assertThat(response.rowCount(), is(0L));
     }
@@ -211,19 +225,22 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             "create ingest rule another_topic_rule on %s where topic = '%s' into %s",
             INGESTION_SOURCE_ID, DATA_TOPIC, TARGET_TABLE)
         );
-        dataFlowingLatch.await(5, TimeUnit.SECONDS);
+
+        assertBusy(() -> assertThat(existingRulesOnIngestValue.contains("another_topic_rule"), is(true)),
+            5, TimeUnit.SECONDS);
         pauseDataIngestion();
 
         // last produced data should've been ingested twice in the target table
         execute("select * from ingest_data_raw order by data desc limit 2");
-        assertThat(response.rowCount(), greaterThan(0L));
+        assertThat(response.rowCount(), greaterThan(1L));
         assertThat(response.rows()[0][0], is(lastProducedData.get()));
         assertThat(response.rows()[1][0], is(lastProducedData.get()));
     }
 
     @Test
     public void testDropIngestRuleWillCauseIngestionToStop() throws Exception {
-        dataFlowingLatch.await(5, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(existingRulesOnIngestValue.contains(UNDER_TEST_INGEST_RULE_NAME), is(true)),
+            5, TimeUnit.SECONDS);
 
         // pausing data ingestion so we can get the last ingested value before we drop the ingest rule.
         // we will assert that after the rule is dropped and ingestion resumed, no more data is inserted
