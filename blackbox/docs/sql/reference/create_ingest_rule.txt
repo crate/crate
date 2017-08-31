@@ -49,9 +49,6 @@ Notes
     When the :ref:`administration_user_management` is enabled, this statement
     can only be issued by a superuser.
 
-    The default user for the ``INSERT`` operations in the target
-    ``table_ident`` is the superuser ``crate``.
-
 Ingestion rules can be created and dropped, even if no ingestion implementation
 is available. In such case the ingestion rules will not take any effect, until
 the ingestion implementation is installed.
