@@ -38,7 +38,7 @@ public class CreateIngestionRuleAnalyzer {
 
     CreateIngestionRuleAnalysedStatement analyze(CreateIngestRule node, Analysis context) {
         TableIdent tableIdent = TableIdent.of(node.targetTable(), Schemas.DEFAULT_SCHEMA_NAME);
-        validateTableName(tableIdent);
+        ensureTableExists(tableIdent);
 
         String whereCondition = "";
         if (node.where().isPresent()) {
@@ -52,7 +52,7 @@ public class CreateIngestionRuleAnalyzer {
             whereCondition);
     }
 
-    private void validateTableName(TableIdent tableIdent) {
+    private void ensureTableExists(TableIdent tableIdent) {
         schemas.getTableInfo(tableIdent);
     }
 }
