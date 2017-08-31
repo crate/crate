@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 public class InformationSchemaIterables implements ClusterStateListener {
@@ -66,7 +67,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private FluentIterable<RoutineInfo> routines;
-    private FluentIterable<IngestionRuleInfo> ingestionRules;
+    private Iterable<IngestionRuleInfo> ingestionRules;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
@@ -128,7 +129,9 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (event.metaDataChanged() == false) {
+        Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
+        if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false &&
+            changedCustomMetaDataSet.contains(IngestRulesMetaData.TYPE) == false) {
             return;
         }
         createMetaDataBasedIterables(event.state().getMetaData());
@@ -138,9 +141,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
             metaData.custom(UserDefinedFunctionsMetaData.TYPE));
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
-
-        IngestionRuleInfos ingestionRuleInfos = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
-        ingestionRules = FluentIterable.from(ingestionRuleInfos);
+        ingestionRules = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
     }
 
     static class ColumnsIterable implements Iterable<ColumnContext> {

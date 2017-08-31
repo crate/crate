@@ -4,14 +4,13 @@ package io.crate.metadata;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static java.util.Collections.emptyIterator;
-
 public class IngestionRuleInfos implements Iterable<IngestionRuleInfo> {
 
-    private List<IngestionRuleInfo> ingestionRuleInfoList = null;
+    private final List<IngestionRuleInfo> ingestionRuleInfoList;
 
     public IngestionRuleInfos(IngestRulesMetaData ingestRulesMetaData) {
         if (ingestRulesMetaData != null && ingestRulesMetaData.getIngestRules() != null) {
@@ -23,15 +22,13 @@ public class IngestionRuleInfos implements Iterable<IngestionRuleInfo> {
                     ingestRule.getTargetTable(),
                     ingestRule.getCondition()))
             ));
+        } else {
+            ingestionRuleInfoList = Collections.emptyList();
         }
     }
 
     @Override
     public Iterator<IngestionRuleInfo> iterator() {
-        if (ingestionRuleInfoList == null) {
-            return emptyIterator();
-        }
-
         return ingestionRuleInfoList.iterator();
     }
 }
