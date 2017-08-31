@@ -53,11 +53,8 @@ Breaking Changes
    line arguments can still override the settings defined in th ``crate.yml``
    file.
 
-  - The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
-    become more strict.
-
-Packaging Changes
-.................
+ - The syntax for creating columns on ``Create Table`` and ``Alter Table`` has
+   become more strict.
 
  - The sigar jar and object files have been moved from ``plugins/sigar`` to
    ``lib/sigar``.
@@ -121,8 +118,9 @@ Upgrading from version 2.0.x
 ----------------------------
 
 If you're using CrateDB's BLOB storage and you need to run at least version
-2.0.4 before upgrading to 2.1.0. Please consult the :ref:`version_2.0.4`
-release notes for further details.
+2.0.4 before upgrading to 2.1.0.
+
+Please consult the :ref:`version_2.0.4` release notes for further details.
 
 Create columns syntax strictness
 ................................

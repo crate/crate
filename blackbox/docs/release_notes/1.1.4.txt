@@ -25,8 +25,11 @@ Released on 2017/06/02.
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+Changelog
+=========
+
 Changes
-=======
+-------
 
  - Improved the resiliency of the retrieval of large results via HTTP. Queries
    are now aborted and result in an error if they consume too much memory.
@@ -38,7 +41,7 @@ Changes
    easily.
 
 Fixes
-=====
+-----
 
  - Fixed a ``COPY FROM`` issue that caused imports into tables with certain
    combinations of ``PARTITIONED BY``, ``PRIMARY KEY`` and

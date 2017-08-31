@@ -26,10 +26,10 @@ Released on 2017/02/24.
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
 Changelog
----------
+=========
 
 Changes
-=======
+-------
 
  - Removed limitation which didn't allow ordering on partitioned columns in a
    ``GROUP BY`` query.
@@ -50,7 +50,7 @@ Changes
     - Show loading indicator when ``Execute Query`` is in progress.
 
 Fixes
-=====
+-----
 
  - Fixed an issue which caused restoring a whole partitioned table from a
    snapshot to fail.

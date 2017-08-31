@@ -25,8 +25,11 @@ Released on 2017/06/12.
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+Changelog
+=========
+
 Fixes
-=====
+-----
 
  - Fixed an issue that leads to an exception if the statement evaluates on
    arrays that are provided in an aggregation function.
