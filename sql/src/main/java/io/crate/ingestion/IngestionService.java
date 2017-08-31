@@ -88,7 +88,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     }
 
     @Nullable
-    private Map<String, Set<IngestRule>> getIngestRulesOrNull(MetaData metaData) {
+    private static Map<String, Set<IngestRule>> getIngestRulesOrNull(MetaData metaData) {
         IngestRulesMetaData ingestRulesMetaData =
             (IngestRulesMetaData) metaData.customs().get(IngestRulesMetaData.TYPE);
 
