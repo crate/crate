@@ -37,7 +37,7 @@ public class DropIngestRuleRequest extends AcknowledgedRequest<DropIngestRuleReq
     DropIngestRuleRequest() {
     }
 
-    public DropIngestRuleRequest(String ingestRuleName, boolean ifExists) {
+    public DropIngestRuleRequest(String ingestRuleName) {
         this.ingestRuleName = ingestRuleName;
     }
 

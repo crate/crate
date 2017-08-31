@@ -111,7 +111,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                         }
                     }
                 };
-            transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName(), analysis.ifExists()), listener);
+            transportDropIngestRuleAction.execute(new DropIngestRuleRequest(analysis.ruleName()), listener);
             return listener;
         }
     }
