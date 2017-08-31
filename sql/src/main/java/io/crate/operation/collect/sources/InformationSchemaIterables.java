@@ -22,12 +22,23 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.FluentIterable;
-import io.crate.metadata.*;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IngestionRuleInfo;
+import io.crate.metadata.IngestionRuleInfos;
+import io.crate.metadata.PartitionInfo;
+import io.crate.metadata.PartitionInfos;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RoutineInfo;
+import io.crate.metadata.RoutineInfos;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.collect.files.SqlFeaturesIterable;
 import io.crate.operation.reference.information.ColumnContext;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -124,10 +135,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     private void createMetaDataBasedIterables(MetaData metaData) {
-        RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver, metaData);
+        RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
+            metaData.custom(UserDefinedFunctionsMetaData.TYPE));
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
-        IngestionRuleInfos ingestionRuleInfos = new IngestionRuleInfos(metaData);
-        ingestionRules = FluentIterable.from(ingestionRuleInfos).filter(Objects::nonNull);
+
+        IngestionRuleInfos ingestionRuleInfos = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
+        ingestionRules = FluentIterable.from(ingestionRuleInfos);
     }
 
     static class ColumnsIterable implements Iterable<ColumnContext> {

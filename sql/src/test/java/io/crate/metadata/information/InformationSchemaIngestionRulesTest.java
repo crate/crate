@@ -46,7 +46,7 @@ public class InformationSchemaIngestionRulesTest extends CrateDummyClusterServic
                     .putCustom(IngestRulesMetaData.TYPE, inputMetaData)).build();
             ClusterServiceUtils.setState(clusterService, clusterState);
         }
-        ingestionRuleInfos = new IngestionRuleInfos(clusterService.state().getMetaData());
+        ingestionRuleInfos = new IngestionRuleInfos(clusterService.state().getMetaData().custom(IngestRulesMetaData.TYPE));
     }
 
     @Test
