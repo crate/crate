@@ -706,225 +706,96 @@ Shards
 The table ``sys.shards`` contains real-time statistics for all shards of all
 (non-system) tables.
 
-The table schema is as follows:
-
-``id``
-------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``id``               | The shard ID. This shard ID is   | ``Integer`` |
-|                      | managed by the system ranging    |             |
-|                      | from 0 and up to the specified   |             |
-|                      | number of shards of a table      |             |
-|                      | (by default the number of        |             |
-|                      | shards is 5).                    |             |
-+----------------------+----------------------------------+-------------+
-
-``schema_name``
----------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``schema_name``      | The schema name.                 | ``String``  |
-|                      |                                  |             |
-|                      | This will be "blob" for shards   |             |
-|                      | of blob tables and "doc" for     |             |
-|                      | shards of common tables without  |             |
-|                      | a defined schema.                |             |
-+----------------------+----------------------------------+-------------+
-
-``table_name``
---------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``table_name``       | The table name.                  | ``String``  |
-+----------------------+----------------------------------+-------------+
-
-``partition_ident``
--------------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``partition_ident``  | The partition ident of a         | ``String``  |
-|                      | partitioned table.               |             |
-|                      | Empty string on non-partitioned  |             |
-|                      | tables.                          |             |
-+----------------------+----------------------------------+-------------+
-
-``num_docs``
+Table Schema
 ------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``num_docs``         | The total amount of docs         | ``Long``    |
-|                      | within a shard.                  |             |
-+----------------------+----------------------------------+-------------+
-
-``min_lucene_version``
-----------------------
-
-+------------------------+----------------------------------+-------------+
-|     Column Name        |           Description            | Return Type |
-+========================+==================================+=============+
-| ``min_lucene_version`` | Shows the oldest lucene segment  | ``String``  |
-|                        | version used in this shard.      |             |
-+------------------------+----------------------------------+-------------+
-
-``primary``
------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``primary``          | Describes if the shard is the    | ``Boolean`` |
-|                      | primary shard.                   |             |
-+----------------------+----------------------------------+-------------+
-
-``relocating_node``
--------------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``relocating_node``  | The node ID which the shard is   | ``String``  |
-|                      | getting relocated to at the time |             |
-+----------------------+----------------------------------+-------------+
-
-``size``
---------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``size``             | Current size in bytes.           | ``Long``    |
-|                      | This value is cached for max.    |             |
-|                      | 10 seconds to reduce file system |             |
-|                      | access.                          |             |
-+----------------------+----------------------------------+-------------+
-
-``state``
----------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``state``            | The current state of the shard.  | ``String``  |
-|                      | Possible states are:             |             |
-|                      | CREATED,                         |             |
-|                      | RECOVERING,                      |             |
-|                      | POST_RECOVERY,                   |             |
-|                      | STARTED,                         |             |
-|                      | RELOCATED,                       |             |
-|                      | CLOSED,                          |             |
-|                      | INITIALIZING,                    |             |
-|                      | UNASSIGNED                       |             |
-+----------------------+----------------------------------+-------------+
-
-``routing_state``
------------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``routing_state``    | The current state of a shard     | ``String``  |
-|                      | as defined by the routing.       |             |
-|                      | Possible states of the shard     |             |
-|                      | routing are:                     |             |
-|                      | UNASSIGNED,                      |             |
-|                      | INITIALIZING,                    |             |
-|                      | STARTED,                         |             |
-|                      | RELOCATING                       |             |
-+----------------------+----------------------------------+-------------+
-
-``orphan_partition``
---------------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``orphan_partition`` | True if the partition has NO     | ``Boolean`` |
-|                      | table associated with. In rare   |             |
-|                      | situations the table is          |             |
-|                      | missing.                         |             |
-|                      | False on non-partitioned         |             |
-|                      | tables.                          |             |
-+----------------------+----------------------------------+-------------+
-
-``path``
---------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``path``             | Path to the shard directory on   | ``String``  |
-|                      | the filesystem.                  |             |
-|                      | This directory contains state    |             |
-|                      | and index files.                 |             |
-+----------------------+----------------------------------+-------------+
-
-
-``blob_path``
--------------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``blob_path``        | Path to the directory which      | ``String``  |
-|                      | contains the blob files of the   |             |
-|                      | shard, or null if the shard is   |             |
-|                      | not a blob shard.                |             |
-+----------------------+----------------------------------+-------------+
-
-
-``_node``
----------
-
-+----------------------+----------------------------------+-------------+
-|     Column Name      |           Description            | Return Type |
-+======================+==================================+=============+
-| ``_node``            | Information about the node the   | ``Object``  |
-|                      | shard is located at              |             |
-|                      | at. Contains the same            |             |
-|                      | information as the ``sys.nodes`` |             |
-|                      | table.                           |             |
-+----------------------+----------------------------------+-------------+
-
-Accessing the ``sys.shards`` table is subjected to the same privileges
-constraints as the other tables. Namely, in order to query it, the connected
-user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either
-directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information
-on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges
-<hierarchical_privileges_inheritance>`).
-
-However, being able to query ``sys.shards`` will not allow the user to retrieve
-all the rows in the table, as it can contain information related to tables over
-which the connected user does not have any privileges. The only rows that will
-be returned will be the ones the user is allowed to access.
-
-For example, if the user ``john`` has any privilege on the ``doc.books`` table
-but no privilege at all on ``doc.locations``, when ``john`` issues a
-``SELECT * FROM sys.shards`` statement, the shards information related to the
-``doc.locations`` table will not be returned.
-
-``recovery``
-------------
-
-Recovery is the process of moving a table shard to a different node or loading
-it from disk, e.g. during node startup (local gateway recovery), replication,
-shard rebalancing or snapshot recovery.
 
 +------------------------------------+----------------------------------------------------+-------------+
 | Column Name                        | Description                                        | Return Type |
 +====================================+====================================================+=============+
+| ``id``                             | The shard ID.                                      | ``Integer`` |
+|                                    |                                                    |             |
+|                                    | This shard ID is managed by the managed by the     |             |
+|                                    | system ranging from 0 and up to the specified      |             |
+|                                    | number of shards of a table (by default the number |             |
+|                                    | of shards is 5).                                   |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``schema_name``                    | The schema name.                                   | ``String``  |
+|                                    |                                                    |             |
+|                                    | This will be "blob" for shards of blob tables and  |             |
+|                                    | "doc" for shards of common tables without a        |             |
+|                                    | defined schema.                                    |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``table_name``                     | The table name.                                    | ``String``  |
++------------------------------------+----------------------------------------------------+-------------+
+| ``partition_ident``                | The partition ident of a partitioned table.        | ``String``  |
+|                                    |                                                    |             |
+|                                    | Empty string on non-partitioned tables.            |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``num_docs``                       | The total amount of docs within a shard.           | ``Long``    |
++------------------------------------+----------------------------------------------------+-------------+
+| ``min_lucene_version``             | Shows the oldest lucene segment version used in    | ``String``  |
+|                                    | this shard.                                        |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``primary``                        | Describes if the shard is the primary shard.       | ``Boolean`` |
++------------------------------------+----------------------------------------------------+-------------+
+| ``relocating_node``                | The node ID which the shard is getting relocated   | ``String``  |
+|                                    | to at the time.                                    |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``size``                           | Current size in bytes.                             | ``Long``    |
+|                                    |                                                    |             |
+|                                    | This value is cached for max. 10 seconds to reduce |             |
+|                                    | file system access.                                |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``state``                          | The current state of the shard.                    | ``String``  |
+|                                    |                                                    |             |
+|                                    | Possible states are:                               |             |
+|                                    |                                                    |             |
+|                                    | -CREATED,                                          |             |
+|                                    | -RECOVERING                                        |             |
+|                                    | -POST_RECOVERY                                     |             |
+|                                    | -STARTED                                           |             |
+|                                    | -RELOCATED                                         |             |
+|                                    | -CLOSED                                            |             |
+|                                    | -INITIALIZING                                      |             |
+|                                    | -UNASSIGNED                                        |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``routing_state``                  | The current state of a shard as defined by the     | ``String``  |
+|                                    | routing.                                           |             |
+|                                    |                                                    |             |
+|                                    | Possible states of the shard routing are:          |             |
+|                                    |                                                    |             |
+|                                    | - UNASSIGNED,                                      |             |
+|                                    | - INITIALIZING                                     |             |
+|                                    | - STARTED                                          |             |
+|                                    | - RELOCATING                                       |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``orphan_partition``               | True if the partition has NO table associated      | ``Boolean`` |
+|                                    | with. In rare situations the table is missing.     |             |
+|                                    |                                                    |             |
+|                                    | False on non-partitioned tables.                   |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``path``                           | Path to the shard directory on the filesystem.     | ``String``  |
+|                                    |                                                    |             |
+|                                    | This directory contains state and index files.     |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``blob_path``                      | Path to the directory which contains the blob      | ``String``  |
+|                                    | files of the shard, or null if the shard is not a  |             |
+|                                    | blob shard.                                        |             |
++------------------------------------+----------------------------------------------------+-------------+
+| ``_node``                          | Information about the node the shard is located    | ``Object``  |
+|                                    | at.                                                |             |
+|                                    |                                                    |             |
+|                                    | Contains the same information as the ``sys.nodes`` |             |
+|                                    | table.                                             |             |
++------------------------------------+----------------------------------------------------+-------------+
 | ``recovery``                       | Represents recovery statistic of the particular    | ``Object``  |
 |                                    | shard.                                             |             |
+|                                    |                                                    |             |
+|                                    | Recovery is the process of moving a table shard to |             |
+|                                    | a different node or loading it from disk, e.g.     |             |
+|                                    | during node startup (local gateway recovery),      |             |
+|                                    | replication, shard rebalancing or snapshot         |             |
+|                                    | recovery.                                          |             |
 +------------------------------------+----------------------------------------------------+-------------+
 | ``recovery['stage']``              | Recovery stage:                                    | ``String``  |
 |                                    |                                                    |             |
@@ -971,6 +842,29 @@ shard rebalancing or snapshot recovery.
 | ``recovery['total_time']``         | Returns elapsed time from the start of the shard   | ``Long``    |
 |                                    | recovery.                                          |             |
 +------------------------------------+----------------------------------------------------+-------------+
+
+Notes
+-----
+
+Accessing the ``sys.shards`` table is subjected to the same privileges
+constraints as the other tables. Namely, in order to query it, the connected
+user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either
+directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information
+on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges
+<hierarchical_privileges_inheritance>`).
+
+However, being able to query ``sys.shards`` will not allow the user to retrieve
+all the rows in the table, as it can contain information related to tables over
+which the connected user does not have any privileges. The only rows that will
+be returned will be the ones the user is allowed to access.
+
+For example, if the user ``john`` has any privilege on the ``doc.books`` table
+but no privilege at all on ``doc.locations``, when ``john`` issues a
+``SELECT * FROM sys.shards`` statement, the shards information related to the
+``doc.locations`` table will not be returned.
+
+Example
+-------
 
 For example, you can query shards like this::
 
