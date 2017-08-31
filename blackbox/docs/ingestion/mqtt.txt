@@ -64,7 +64,10 @@ MQTT data ingestion
 
 As every CrateDB_ ingestion implementation, the ingestion of data is controlled by
 defining :ref:`administration-ingestion-rules`. Without any defined valid rule,
-no data will be ingested at all.
+no data will be ingested at all and the messages will not be acknowledged. 
+The ``PUBLISH`` messages will receive the corresponding ``PUBACK`` reply only 
+after the message is stored in a configured table (at least one, as there can 
+be multiple ingestion rules configured for this source).
 
 The ``source_ident`` of this implementation is: **mqtt**
 
@@ -73,6 +76,9 @@ When creating new rules, one must be familar of the :ref:`structure of the data
 Any ``condition`` of the rules may only contain columns defined by this implementation.
 Also all columns will be inserted into the defined ``target_table`` of the rules,
 these tables must be created **before** creating any rules.
+
+The default user for the ``INSERT`` operations in the ``target_table`` is the  
+superuser ``crate``.
 
 Example for creating a target table and a simple ingestion rule:
 
@@ -92,6 +98,14 @@ Example for creating a target table and a simple ingestion rule:
     ...  WHERE topic like 'temperature/%'
     ...  INTO mqtt.temp_data;
     CREATE OK, 1 row affected (... sec)
+
+The structure of the ``target_table`` is very important as it can prevent or 
+allow duplicates in case of message retransmission. 
+In the above example, in case a message is delivered multiple times, the 
+message will only be stored once in the ``mqtt.temp_data`` table because the 
+``PRIMARY KEY`` includes both the ``client_id`` and ``packet_id``. 
+If the ``packet_id`` were to be omitted, a message arriving at CrateDB multiple 
+times will be stored multiple times. 
 
 .. NOTE::
 
