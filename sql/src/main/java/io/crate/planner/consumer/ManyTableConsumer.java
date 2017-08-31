@@ -384,8 +384,6 @@ public class ManyTableConsumer implements Consumer {
             }
             joinPair.condition(joinConditions.isEmpty() ? null : AndOperator.join(joinConditions));
 
-            JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightRelation.querySpec(), joinPair);
-
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
@@ -548,8 +546,6 @@ public class ManyTableConsumer implements Consumer {
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(left);
         QueriedRelation rightRelation = (QueriedRelation) mss.sources().get(right);
-
-        JoinPairs.removeOrderByOnOuterRelation(left, right, leftRelation.querySpec(), rightRelation.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.empty();
         if (mss.remainingOrderBy().isPresent() &&
