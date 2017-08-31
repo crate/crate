@@ -1,9 +1,9 @@
 .. highlight:: sh
 .. _cli:
 
-=======================
-The ``cratedb`` Command
-=======================
+======================
+Command Line Interface
+======================
 
 After downloading and extracting the tarball (see :ref:`install_targz`) you
 will be able to invoke the CrateDB command in the ``bin`` directory. The
@@ -34,18 +34,21 @@ The ``crate`` executable supports the following command line options:
 Command Line Options
 ====================
 
--d
-    start the daemon in the background
--h
-    print usage information
--p <pidfile>
-    log the pid to a file
--v
-    print version information
--D
-    set a java system property value
--X
-    set a nonstandard java option
++------------------+---------------------------------------------+
+| Option           | Description                                 |
++==================+=============================================+
+| ``-d``           | Start the daemon in the background          |
++------------------+---------------------------------------------+
+| ``-h``           | Print usage information                     |
++------------------+---------------------------------------------+
+| ``-p <pidfile>`` | Log the pid to a file                       |
++------------------+---------------------------------------------+
+| ``-v``           | Print version information                   |
++------------------+---------------------------------------------+
+| ``-D``           | Set a java system property value            |
++------------------+---------------------------------------------+
+| ``-X``           | Set a nonstandard java option               |
++------------------+---------------------------------------------+
 
 Example::
 
