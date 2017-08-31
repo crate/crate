@@ -41,6 +41,7 @@ import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -232,7 +233,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef(Version.LATEST.toString()), shardExpression.value());
 
-        doThrow(new EngineClosedException(indexShard.shardId())).when(indexShard).minimumCompatibleVersion();
+        doThrow(new AlreadyClosedException("Already closed")).when(indexShard).minimumCompatibleVersion();
         assertThat(shardExpression.value(), nullValue());
     }
 
