@@ -51,7 +51,8 @@ public class IngestionDDLClusterStateModifier implements DDLClusterStateModifier
             return false;
         }
 
-        // create a new instance of the metadata if rules were changed, to guarantee the cluster changed action.
+        // a new instance of the metadata is created if any rules are transferred from source to target (this guarantees
+        // a cluster change event is triggered)
         IngestRulesMetaData newMetaData = IngestRulesMetaData.maybeCopyAndReplaceTargetTableIdents(
             oldMetaData, sourceTableIdent.fqn(), targetTableIdent.fqn());
 
