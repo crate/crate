@@ -4,56 +4,38 @@
 Ingestion Framework
 ===================
 
-Aside from using standard SQL to ingest data, CrateDB offers the possibility to
-ingest data through custom event-based ingestion sources. The ingestion
-framework of CrateDB provides highly available and distributed ingestion
-sources for custom protocols where thousands of events are being sent
-simultaneously, such as MQTT_. With CrateDB's ingestion framework no
-intermediate queues or brokers need to be set up.
+As well as allowing you to ingest data via standard SQL inserts, CrateDB
+provides an ingestion framework that allows you to ingest data through custom
+event-based ingestion sources.
 
-Terms And Concepts
-==================
+The CrateDB ingestion framework provides highly available and distributed
+ingestion sources for custom protocols where thousands of events are being sent
+simultaneously, such as MQTT_. No intermediate queues or brokers need to
+be set up.
 
-Ingestion is configured via *ingestion rules* which define how
-incoming data gets routed and stored. Such ingestion rules are bound
-to a specific *ingestion source*. Ingestion sources are provided by
-custom implementations, available as builtin components or as
-:ref:`CrateDB-Plugins <plugins>`.
+The Basics
+==========
 
-The schema below describes the flow of the ingestion framework and how data is
-routed from the data source to the target table.
+Ingestion is configured via *ingestion rules*, which define how incoming data
+gets routed and stored. For more, details see
+:ref:`administration-ingestion-rules`.
 
-.. figure:: /_images/ingestion_framework.png
-   :scale: 60 %
+Ingestion rules are bound to a specific *ingestion source*.
+
+An ingestion source is a registered source of data. Such sources are registered
+and accessed by their unique identification, also known as the ``source_ident``.
+
+How data flows into the data source is implementation specific. For example, a
+data source could get data from an MQTT_ endpoint, an HTTP webhook, or a module
+listening for Kernel events.
+
+Here's how it all hooks together:
+
+.. figure:: ingestion_01.png
    :alt: The Ingestion Framework Flow
-
-
-:Ingestion Rule:
-
-  An ingestion rule defines where to put the incoming data of a
-  specific ingestion source, based on predefined conditions. For more,
-  details see :ref:`administration-ingestion-rules`
-
-:Ingestion Source:
-
-  An ingestion source is a registered source of data. Such sources are
-  registered and accessed by their unique *source ident*, provided by
-  the implementation.
-
-  How data is flowing into the system is completely implementation
-  specific. This could be an MQTT_ endpoint, a component listening to
-  HTTP-POSTs or a module listening for Kernel events.
 
 .. _MQTT: http://mqtt.org/
 
-
 .. SEEALSO::
 
-    :ref:`administration-ingestion-rules` for more details on ingestion rules.
-
-    :ref:`information_schema_ingest` to list all existing ingestion rules
-
-    :ref:`create-ingest-rule` for more details on creating ingestion rules.
-
-    :ref:`drop-ingest-rule` for more details on deleting ingestion rules.
-
+   :ref:`administration-ingestion-rules`

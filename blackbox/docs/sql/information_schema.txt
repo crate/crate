@@ -656,8 +656,8 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 Ingestion Rules
 ===============
 
-The ingestion rules table contains rules created by ``CREATE INGEST RULE``
-statements (see :ref:`create-ingest-rule`).
+The ``ingestion_rules`` table contains rules created by
+:ref:`create-ingest-rule` statements.
 
 Columns
 -------
@@ -674,12 +674,11 @@ Columns
 | condition          | String      |
 +--------------------+-------------+
 
-
 :rule_name:
-    The identifier of the ingestion rule.
+    The rule name
 :source_ident:
-    The identifier of the ingestion implementation (eg. ``mqtt``).
+    The ingestion source identifier
 :target_table:
-    The identifier of the target table.
+    The target table identifier
 :condition:
-    A boolean expression used to filter the source data.
+    A boolean expression used to filter the source data

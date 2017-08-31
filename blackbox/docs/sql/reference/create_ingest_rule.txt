@@ -21,67 +21,53 @@ Synopsis
 Description
 ===========
 
-``CREATE INGEST RULE`` creates a new ingestion rule, applying on a
-``source_ident`` and ingesting into the specified target ``table_ident``.
-
-The ingestion rules will be used by ingestion implementations to filter the
-``source_ident`` stream, the filtered data will then be stored in the
-corresponding target ``table_ident``.
+``CREATE INGEST RULE`` creates a new ingestion rule on an ingest source
+(``source_ident``) that filters data (via the ``WHERE`` condition) into a target
+table (``table_ident``).
 
 Parameters
 ==========
 
-:rule_name: The identifier of the rule to create.
-
-:source_ident: The registration identifier of an ingestion implementation.
-
-:condition: A boolean expression using references specific to the ingestion
-            implementation.
-
-:table_ident: The identifier of the target table.
-
+:rule_name:    The rule name
+:source_ident: The ingestion source identifier
+:condition:    A boolean expression using references specific to the ingestion
+               implementation
+:table_ident:  The target table identifier
 
 Notes
 =====
 
-.. NOTE::
+When :ref:`administration_user_management` is enabled, this statement can only
+be issued by a superuser.
 
-    When the :ref:`administration_user_management` is enabled, this statement
-    can only be issued by a superuser.
+By default, all incoming data will be discarded by an ingestion source. You
+must create an ingestion rule to write the data anywhere.
 
-Ingestion rules can be created and dropped, even if no ingestion implementation
-is available. In such case the ingestion rules will not take any effect, until
-the ingestion implementation is installed.
+Ingestion rules can be created for ingestion sources that do not exist yet. In
+such cases, the ingestion rule will have no effect until the ingestion source
+is installed.
 
-There is no default ingestion rule,  all incoming streams into any ingestion
-endpoint should be discarded by default by any ingestion implementation.
+The target table needs to be created manually before the ``CREATE INGEST RULE``
+statement is issued, and it needs to have the same structure as the ingestion
+source data. Otherwise, the statement will fail and an error will be logged.
 
-The target table must be created manually, and should contain the same
-structure as the ingestion implementation's data structure. Otherwise, the
-ingestion will fail and an error will be logged.
+The details of what can be queried in the ``WHERE`` clause is specific to each
+ingestion source.
 
-The references to be used in the ``WHERE`` clause are specific to each
-ingestion implementation.
-
-Examples
+Example
 ========
 
-Create an ingestion rule on ``mqtt``, that filters the ``mqtt`` messages by
-topic and stores the messages in ``my_schema.raw_v4``
-::
+To create an ingestion rule on ``mqtt`` that filters messages that match
+``v4/%`` into the ``mqtt_v4`` table, you could do::
 
-    CREATE INGEST RULE v4 ON mqtt WHERE topic like 'v4/%' INTO my_schema.raw_v4
-
-This statement will return an error if the table ``my_schema.raw_v4`` does not
-exist.
+    CREATE INGEST RULE mqtt_v4_rule
+    ON mqtt
+    WHERE topic like 'v4/%'
+    INTO mqtt_v4
 
 
 .. SEEALSO::
 
-    :ref:`drop-ingest-rule` for deleting ingestion rules.
+    :ref:`administration-ingestion-rules`
 
-    :ref:`information_schema_ingest` to list all existing ingestion rules
-
-
-
-
+    :ref:`drop-ingest-rule`

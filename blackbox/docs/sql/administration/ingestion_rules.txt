@@ -2,7 +2,7 @@
 
 .. Hidden: CREATE TABLE::
 
-    cr> create table humidity_data.raw (
+    cr> create table mqtt_temperature (
     ... id long,
     ... data string,
     ... date timestamp
@@ -11,7 +11,7 @@
 
 .. Hidden: CREATE TABLE::
 
-    cr> create table temp_data.raw (
+    cr> create table mqtt_humidity (
     ... id long,
     ... data string,
     ... date timestamp
@@ -24,93 +24,82 @@
 Ingestion Rules
 ===============
 
-In CrateDB, ingestion rules define where and how the incoming data of a
+Ingestion rules define where and how the incoming data of a
 specific ingestion should be routed and stored.
 
-In this section, we will learn about creating and deleting ingestion rules,
-listing the existing ingestion rules and finally the required privileges for
-the ``CREATE`` and ``DROP INGEST RULE`` statements, when the
-:ref:`administration_user_management` feature is enabled.
+This document will show you how to:
 
-Creating and Deleting Ingestion Rules
-.....................................
-
-Suppose we have installed an ingestion implementation for an ``mqtt`` broker,
-and we would like to filter temperature data streams by topic and store them to
-``temp_data.raw``::
-
-    cr> CREATE INGEST RULE temperature
-    ... ON mqtt
-    ... WHERE topic like 'temperature/%'
-    ... INTO temp_data.raw;
-    CREATE OK, 1 row affected (... sec)
-
-It is currently possible to create and drop ingestion rules even if the
-corresponding ingestion implementation is not available. However, the target
-table needs to be created manually before the ``CREATE INGEST RULE`` statement
-is issued, and it needs to have the same structure as the ingestion
-implementation's data structure.
-
-Multiple rules can be created for the same ingestion source, for example, to
-store the humidity data streams in ``humidity_data.raw``::
-
-    cr> CREATE INGEST RULE humidity
-    ... ON mqtt
-    ... WHERE topic like 'humidity/%'
-    ... INTO humidity_data.raw;
-    CREATE OK, 1 row affected (... sec)
-
-See :ref:`create-ingest-rule` for more information on ingestion rule creation.
-
-To drop the ``temperature`` ingestion rule created above::
-
-	cr> DROP INGEST RULE temperature;
-	DROP OK, 1 row affected (... sec)
-
-See :ref:`drop-ingest-rule` for more information on deleting ingestion rules.
-
-Listing Ingestion Rules
-.......................
-
-CrateDB exposes ingestion rules ``information_schema.ingestion_rules`` table.
-
-By querying the ``information_schema.ingestion_rules`` table you can get all
-information regarding the existing ingestion rules. E.g.::
-
-    cr> SELECT * FROM information_schema.ingestion_rules order by rule_name;
-    +---------------------------+-----------+--------------+-------------------+
-    | condition                 | rule_name | source_ident | target_table      |
-    +---------------------------+-----------+--------------+-------------------+
-    | "topic" LIKE 'humidity/%' | humidity  | mqtt         | humidity_data.raw |
-    +---------------------------+-----------+--------------+-------------------+
-    SELECT 1 row in set (... sec)
-
-The column ``rule_name`` shows the identifier of the rule, the column
-``source_ident`` shows the identifier of the ingestion implementation that uses
-this rule. The column ``target_table`` identifies the target table where the
-data is stored and finally ``condition`` stands for the condition by which the
-data is filtered.
-
-Ingestion Rules and Privileges
-..............................
-
-When the :ref:`administration_user_management` is enabled, creating and
-dropping ingestion rules can only be issued by a superuser.
+- Create ingestion rules
+- List existing ingestion rules
+- Delete ingestion rules
 
 .. SEEALSO::
 
-    :ref:`ingestion` for more information of the ingestion framework.
+   :doc:`Learn more about ingestion <../../ingestion>`
 
-    :ref:`create-ingest-rule` for more details on creating ingestion rules.
+Creating Ingestion Rules
+========================
 
-    :ref:`drop-ingest-rule` for more details on deleting ingestion rules.
+Use the :ref:`create-ingest-rule` statement to create ingestion rules.
 
-    :ref:`information_schema_ingest` to list all existing ingestion rules
+Suppose we have an ingestion source for an ``mqtt`` broker, and we would like
+to filter temperature data streams by topic and write them to the
+``mqtt_temperature`` table.
+
+We could do this::
+
+    cr> CREATE INGEST RULE mqtt_temperature_rule
+    ... ON mqtt
+    ... WHERE topic like 'temperature/%'
+    ... INTO mqtt_temperature;
+    CREATE OK, 1 row affected (... sec)
+
+Multiple rules can be created for the same ingestion source. For example, to
+write the humidity data to the ``mqtt_humidity`` table, you could do this::
+
+    cr> CREATE INGEST RULE mqtt_humidity_rule
+    ... ON mqtt
+    ... WHERE topic like 'humidity/%'
+    ... INTO mqtt_humidity;
+    CREATE OK, 1 row affected (... sec)
+
+Listing Ingestion Rules
+=======================
+
+CrateDB exposes ingestion rules via the :ref:`Ingestion Rules Table
+<information_schema_ingest>`.
+
+Query the ``information_schema.ingestion_rules`` table to get information about
+existing ingestion rules.
+
+For example::
+
+    cr> SELECT * FROM information_schema.ingestion_rules order by rule_name;
+    +------------------------------+-----------------------+--------------+----------------------+
+    | condition                    | rule_name             | source_ident | target_table         |
+    +------------------------------+-----------------------+--------------+----------------------+
+    | "topic" LIKE 'humidity/%'    | mqtt_humidity_rule    | mqtt         | doc.mqtt_humidity    |
+    | "topic" LIKE 'temperature/%' | mqtt_temperature_rule | mqtt         | doc.mqtt_temperature |
+    +------------------------------+-----------------------+--------------+----------------------+
+    SELECT 2 rows in set (... sec)
+
+Deleting Ingestion Rules
+========================
+
+Use the :ref:`drop-ingest-rule` statement to delete ingestion rules.
+
+For example::
+
+	cr> DROP INGEST RULE mqtt_temperature_rule;
+	DROP OK, 1 row affected (... sec)
 
 .. Hidden: DROP TABLE::
 
-	cr> DROP TABLE humidity_data.raw;
+	cr> DROP INGEST RULE mqtt_humidity_rule;
 	DROP OK, 1 row affected (... sec)
 
-    cr> DROP TABLE temp_data.raw;
-    DROP OK, 1 row affected (... sec)
+	cr> DROP TABLE mqtt_temperature;
+	DROP OK, 1 row affected (... sec)
+
+	cr> DROP TABLE mqtt_humidity;
+	DROP OK, 1 row affected (... sec)
