@@ -51,7 +51,6 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
     private final ClusterService clusterService;
     private final Map<String, IngestionImplementation> implementations = new ConcurrentHashMap<>();
     private final Schemas schemas;
-    private IngestRulesMetaData previousIngestRulesMetaData;
 
     @Inject
     public IngestionService(Settings settings,
@@ -100,7 +99,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (event.metaDataChanged() == false) {
+        if (event.changedCustomMetaDataSet().contains(IngestRulesMetaData.TYPE) == false) {
             return;
         }
 
@@ -134,11 +133,6 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         IngestRulesMetaData ingestRulesMetaData =
             (IngestRulesMetaData) metaData.customs().get(IngestRulesMetaData.TYPE);
 
-        if (previousIngestRulesMetaData != null && previousIngestRulesMetaData.equals(ingestRulesMetaData)) {
-            return null;
-        }
-
-        previousIngestRulesMetaData = ingestRulesMetaData;
         if (ingestRulesMetaData != null) {
             return ingestRulesMetaData.getIngestRules();
         } else {
