@@ -27,7 +27,9 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateIngestionRuleAnalysedStatement;
 import io.crate.analyze.DropIngestionRuleAnalysedStatement;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
@@ -38,6 +40,8 @@ import io.crate.operation.rule.ingest.IngestRuleResponse;
 import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
 import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
 import io.crate.operation.user.UserManager;
+import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.tree.ParameterExpression;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -54,6 +58,25 @@ import java.util.function.BiFunction;
  */
 @Singleton
 public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
+
+    private static class ExpressionParameterSubstitutionFormatter extends ExpressionFormatter.Formatter {
+
+        private final ParameterContext parameterContext;
+
+        ExpressionParameterSubstitutionFormatter(ParameterContext context) {
+            this.parameterContext = context;
+        }
+
+        @Override
+        public String visitParameterExpression(ParameterExpression node, Void context) {
+            String formattedExpression = null;
+            Symbol symbol = parameterContext.apply(node);
+            if (symbol != null) {
+                formattedExpression = symbol.representation();
+            }
+            return formattedExpression;
+        }
+    }
 
     private final InnerVisitor INNER_VISITOR = new InnerVisitor();
     private final TransportCreateIngestRuleAction transportCreateIngestRuleAction;
@@ -89,12 +112,19 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         public CompletableFuture<Long> visitCreateIngestRuleStatement(CreateIngestionRuleAnalysedStatement analysis, UserManager context) {
-            IngestRule ingestRule = new IngestRule(analysis.ruleName(), analysis.targetTable().fqn(), analysis.whereClause());
+            IngestRule ingestRule =
+                new IngestRule(analysis.ruleName(), analysis.targetTable().fqn(), getFormattedCondition(analysis));
             FutureActionListener<IngestRuleResponse, Long> listener =
                 new FutureActionListener<>(r -> 1L);
             transportCreateIngestRuleAction.execute(
                 new CreateIngestRuleRequest(analysis.sourceName(), ingestRule), listener);
             return listener;
+        }
+
+        private String getFormattedCondition(CreateIngestionRuleAnalysedStatement analysis) {
+            return analysis.whereClause() != null ? ExpressionFormatter.formatStandaloneExpression(analysis.whereClause(),
+                    new ExpressionParameterSubstitutionFormatter(analysis.parameterContext())) :
+                    "";
         }
 
         @Override

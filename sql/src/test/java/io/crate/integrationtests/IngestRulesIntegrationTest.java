@@ -64,6 +64,15 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateParameterizedRuleIsStoredWithParemeterReplaced() {
+        execute("create ingest test_rule test on mqtt where topic = ? into t1", new Object[]{"test"});
+        assertThat(response.rowCount(), is(1L));
+        execute("select condition from information_schema.ingestion_rules where rule_name = ?", new Object[]{"test_rule"});
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("\"topic\" = 'test'"));
+    }
+
+    @Test
     public void testCreateExistingRuleFails() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(

@@ -8,6 +8,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 
 public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -43,14 +45,18 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.ruleName(), is("v4"));
         assertThat(analysis.sourceName(), is("mqtt"));
         assertThat(analysis.targetTable().toString(), is("doc.t3"));
-        assertThat(analysis.whereClause(), is("\"topic\" = 1"));
+        assertThat(analysis.whereClause(), notNullValue());
+        //noinspection ConstantConditions
+        assertThat(analysis.whereClause().toString(), is("\"topic\" = 1"));
     }
 
     @Test
-    public void testRuleWhereClauseParameterAreReplacedWithValues() {
+    public void testRuleWhereClauseParameterIsNotReplaced() {
         CreateIngestionRuleAnalysedStatement analysis = e.analyze("CREATE INGEST RULE v4 ON mqtt WHERE topic = ? INTO t3",
             new Object[]{"topicValue"});
-        assertThat(analysis.whereClause(), is("\"topic\" = 'topicValue'"));
+        assertThat(analysis.whereClause(), notNullValue());
+        //noinspection ConstantConditions
+        assertThat(analysis.whereClause().toString(), is("\"topic\" = $1"));
     }
 
     @Test
@@ -59,7 +65,7 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.ruleName(), is("v4"));
         assertThat(analysis.sourceName(), is("mqtt"));
         assertThat(analysis.targetTable().toString(), is("doc.t3"));
-        assertThat(analysis.whereClause(), is(""));
+        assertThat(analysis.whereClause(), nullValue());
     }
 
     @Test
