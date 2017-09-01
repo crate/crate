@@ -89,8 +89,9 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         defaultSchema = Objects.requireNonNull(schema, "Default schema must never be set to null");
     }
 
-    public void setSemiJoinsRewriteEnabled(boolean flag) {
+    public SessionContext setSemiJoinsRewriteEnabled(boolean flag) {
         this.semiJoinsRewriteEnabled = flag;
+        return this;
     }
 
     public boolean getSemiJoinsRewriteEnabled() {

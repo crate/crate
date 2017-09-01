@@ -21,11 +21,15 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
+
+import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.is;
 
@@ -123,15 +127,23 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t values(3)");
         execute("refresh table t");
 
-        execute("select 3 where 1 = ANY(select id from t order by id asc)");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(3L));
+        executeWithSessionContext(
+            "select 3 where 1 = ANY(select id from t order by id asc)",
+            SessionContext.create().setSemiJoinsRewriteEnabled(true),
+            response -> {
+                assertThat(response.rowCount(), is(1L));
+                assertThat(response.rows()[0][0], is(3L));
+            });
 
-        execute("select id from t where id = ANY(select id from t order by id asc)");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(response.rows()[1][0], is(2));
-        assertThat(response.rows()[2][0], is(3));
+        executeWithSessionContext(
+            "select id from t where id = ANY(select id from t order by id asc)",
+            SessionContext.create().setSemiJoinsRewriteEnabled(true),
+            response -> {
+                assertThat(response.rowCount(), is(3L));
+                assertThat(response.rows()[0][0], is(1));
+                assertThat(response.rows()[1][0], is(2));
+                assertThat(response.rows()[2][0], is(3));
+            });
     }
 
     @Test

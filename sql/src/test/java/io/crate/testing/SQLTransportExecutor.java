@@ -28,6 +28,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
@@ -79,12 +80,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -111,11 +116,11 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return exec(statement, null, REQUEST_TIMEOUT);
+        return exec(statement, null, null, REQUEST_TIMEOUT);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return exec(statement, params, REQUEST_TIMEOUT);
+        return exec(statement, null, params, REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
@@ -126,15 +131,19 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
-    private SQLResponse exec(String stmt, @Nullable Object[] args, TimeValue timeout) {
+    private SQLResponse exec(String stmt,
+                             @Nullable SessionContext sessionContext,
+                             @Nullable Object[] args,
+                             TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
-        if (pgUrl != null && isJdbcEnabled()) {
+        // TODO remove hack which skips pg execution if sessionContext is supplied
+        if (pgUrl != null && isJdbcEnabled() && sessionContext == null) {
             LOGGER.trace("Executing with pgJDBC: {}", stmt);
-            return executeWithPg(stmt, args, pgUrl, random);
+            return executeWithPg(stmt, sessionContext, args, pgUrl, random);
         }
         try {
-            return execute(stmt, args).actionGet(timeout);
+            return execute(stmt, sessionContext, args).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, stmt);
             throw e;
@@ -200,13 +209,25 @@ public class SQLTransportExecutor {
         return actionFuture;
     }
 
-    public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
-        return execute(stmt, args, clientProvider.sqlOperations().createSession(
-            defaultSchema,
-            null,
-            Option.NONE,
-            DEFAULT_SOFT_LIMIT
-        ));
+    public ActionFuture<SQLResponse> execute(String stmt,
+                                             @Nullable Object[] args) {
+        return execute(stmt, null, args);
+    }
+
+    public ActionFuture<SQLResponse> execute(String stmt,
+                                             @Nullable SessionContext sessionContext,
+                                             @Nullable Object[] args) {
+        final SQLOperations.Session session;
+        if (sessionContext != null) {
+            session = clientProvider.sqlOperations().createSession(sessionContext);
+        } else {
+            session = clientProvider.sqlOperations().createSession(
+                defaultSchema,
+                null,
+                Option.NONE,
+                DEFAULT_SOFT_LIMIT);
+        }
+        return execute(stmt, args, session);
     }
 
     public static ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
@@ -275,7 +296,11 @@ public class SQLTransportExecutor {
         }
     }
 
-    private SQLResponse executeWithPg(String stmt, @Nullable Object[] args, String pgUrl, Random random) {
+    private SQLResponse executeWithPg(String stmt,
+                                      @Nullable SessionContext sessionContext,
+                                      @Nullable Object[] args,
+                                      String pgUrl,
+                                      Random random) {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {

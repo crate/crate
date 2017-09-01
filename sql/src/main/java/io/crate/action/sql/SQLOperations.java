@@ -97,7 +97,7 @@ public class SQLOperations {
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
-    private Session createSession(SessionContext sessionContext) {
+    public Session createSession(SessionContext sessionContext) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
