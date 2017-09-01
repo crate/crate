@@ -81,6 +81,7 @@ public class MqttIngestService implements IngestionImplementation {
         "payload", 4);
     private static final List<DataType> DATA_TYPES = Arrays.asList(DataTypes.STRING, DataTypes.INTEGER, DataTypes.STRING, DataTypes.OBJECT);
     private static final String STATEMENT_NAME = "ingestMqtt";
+    private static final Predicate<Row> EMPTY_CONDITION_PREDICATE = (r) -> true;
 
     private final ExpressionAnalyzer expressionAnalyzer;
     private final InputFactory inputFactory;
@@ -201,6 +202,8 @@ public class MqttIngestService implements IngestionImplementation {
                     expressionAnalysisContext);
                 Predicate<Row> conditionPredicate = RowFilter.create(inputFactory, conditionSymbol);
                 newRules.add(new Tuple<>(conditionPredicate, rule));
+            } else {
+                newRules.add(new Tuple<>(EMPTY_CONDITION_PREDICATE, rule));
             }
         }
         predicateAndIngestRulesReference.set(newRules);
