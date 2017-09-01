@@ -7,8 +7,9 @@ crash==0.22.1
 crate==0.20.1
 
 # don't pin crate-docs-theme to a version number so the docs pick up whatever
-the latest theme happens to be. these packages are installed into a venv, so if
-you want to pick up the newest theme, clear your venv and rerun boostrap.sh
+# the latest theme happens to be. these packages are installed into a venv, so
+# if you want to pick up the newest theme, clear your venv and rerun
+# boostrap.sh
 crate-docs-theme
 
 docutils==0.13.1
