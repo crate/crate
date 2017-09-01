@@ -22,7 +22,7 @@ The created user can be used to authenticate against CrateDB, see
 :doc:`/administration/hba`.
 
 For usage of the ``CREATE USER`` statement see
-:doc:`/sql/administration/user_management`.
+:ref:`administration_user_management`.
 
 Parameters
 ==========

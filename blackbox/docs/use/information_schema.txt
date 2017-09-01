@@ -256,7 +256,7 @@ Columns Specification
 | ``data_type``                 | The data type of the column                   | ``String``    |
 |                               |                                               |               |
 |                               | For further information see                   |               |
-|                               | :doc:`/sql/data_types`                        |               |
+|                               | :ref:`sql_ddl_datatypes`                      |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``column_default``            | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+
