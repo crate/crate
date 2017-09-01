@@ -196,10 +196,12 @@ public class MqttIngestService implements IngestionImplementation {
     public void applyRules(Set<IngestRule> rules) {
         Set<Tuple<Predicate<Row>, IngestRule>> newRules = new HashSet<>(rules.size());
         for (IngestRule rule : rules) {
-            Symbol conditionSymbol = expressionAnalyzer.convert(SqlParser.createExpression(rule.getCondition()),
-                expressionAnalysisContext);
-            Predicate<Row> conditionPredicate = RowFilter.create(inputFactory, conditionSymbol);
-            newRules.add(new Tuple<>(conditionPredicate, rule));
+            if (rule.getCondition() != null && rule.getCondition().trim().isEmpty() == false) {
+                Symbol conditionSymbol = expressionAnalyzer.convert(SqlParser.createExpression(rule.getCondition()),
+                    expressionAnalysisContext);
+                Predicate<Row> conditionPredicate = RowFilter.create(inputFactory, conditionSymbol);
+                newRules.add(new Tuple<>(conditionPredicate, rule));
+            }
         }
         predicateAndIngestRulesReference.set(newRules);
     }
