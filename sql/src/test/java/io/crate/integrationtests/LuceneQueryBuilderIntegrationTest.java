@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
@@ -286,8 +287,10 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("insert into t2 (id) values (1)");
         execute("refresh table t1, t2");
 
-        execute("select count(*) from t2 where id != any(select id from t1)");
-        assertThat(response.rows()[0][0], is(1L));
+        executeWithSessionContext(
+            "select count(*) from t2 where id != any(select id from t1)",
+            SessionContext.create().setSemiJoinsRewriteEnabled(true),
+            result -> assertThat(response.rows()[0][0], is(1L)));
     }
 
 

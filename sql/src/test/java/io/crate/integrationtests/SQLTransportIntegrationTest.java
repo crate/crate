@@ -99,6 +99,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
@@ -370,6 +371,29 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return execute(stmt, (Object[])null);
     }
 
+    /**
+     * Execute an SQL Statement on a random node of the cluster with
+     * the default and a supplied {@link SessionContext}.
+     *
+     * @param stmt the SQL Statement
+     * @param resultChecker result consumer to be called for every execution
+     */
+    public void executeWithSessionContext(String stmt, SessionContext sessionContext, Consumer<SQLResponse> resultChecker) {
+        final SessionContext effectiveContext;
+        if (sessionContext != null) {
+            effectiveContext = sessionContext;
+        } else {
+            effectiveContext = SessionContext.create();
+        }
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        SQLOperations.Session session = sqlOperations.createSession(effectiveContext);
+        SQLResponse response = execute(stmt, null, session);
+        resultChecker.accept(response);
+        if (sessionContext != null) {
+            // execute again with an empty session context
+            executeWithSessionContext(stmt, null, resultChecker);
+        }
+    }
 
     /**
      * Execute an SQL Statement using a specific {@link SQLOperations.Session}
