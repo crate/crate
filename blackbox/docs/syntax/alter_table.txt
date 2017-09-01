@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-alter-table:
 
-===========
-ALTER TABLE
-===========
+===============
+``ALTER TABLE``
+===============
 
 Alter an existing table
 

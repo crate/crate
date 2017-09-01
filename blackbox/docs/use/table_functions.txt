@@ -1,4 +1,5 @@
 .. highlight:: psql
+.. _table-functions:
 
 ===============
 Table Functions
@@ -9,7 +10,7 @@ table or subquery in the FROM clause of a query.
 
 ``empty_row( )``
 ================
-empty_row doesn't take any argument and produces a table with an empty row and 
+empty_row doesn't take any argument and produces a table with an empty row and
 no column.
 
 ::

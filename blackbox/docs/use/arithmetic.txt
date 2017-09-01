@@ -1,5 +1,5 @@
-.. _arithmetic:
 .. highlight:: psql
+.. _arithmetic:
 
 ====================
 Arithmetic Operators

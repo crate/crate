@@ -22,7 +22,8 @@ massive amounts of machine data in real-time.
    installation
    configuration/index
    cli
-   sql/index
+   use/index
+   syntax/index
    blob
    plugins
    discovery

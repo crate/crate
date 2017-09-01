@@ -147,8 +147,8 @@ Table Function
                 Depending on the function the parenthesis and arguments are
                 either optional or required.
 
-Available functions are documented in the :doc:`table functions
-</sql/table_functions>` section.
+Available functions are documented in the :ref:`table functions
+<table-functions>` section.
 
 .. _sql_reference_subselect:
 

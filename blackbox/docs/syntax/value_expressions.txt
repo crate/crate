@@ -46,8 +46,8 @@ Different types have different notations. The simplest forms are:
 
 .. SEEALSO::
 
-    - :doc:`/sql/reference/lexical_structure`
-    - :doc:`/sql/data_types`
+    - :ref:`sql_lexical`
+    - :ref:`sql_ddl_datatypes`
 
 Column Reference
 ================
@@ -67,7 +67,7 @@ multiple alias or table definitions::
 
 .. SEEALSO::
 
-    - :doc:`/sql/reference/lexical_structure`
+    - :ref:`sql_lexical`
 
 Parameter Reference
 ===================
@@ -94,7 +94,7 @@ There are two different types of operators in CrateDB:
 .. SEEALSO::
 
     - :ref:`sql_dql_where_clause`
-    - :doc:`/sql/arithmetic`
+    - :ref:`arithmetic`
 
 .. _sql_expressions_subscript:
 
@@ -144,8 +144,8 @@ parentheses::
 
 .. SEEALSO::
 
-    - :doc:`/sql/scalar`
-    - :doc:`/sql/aggregation`
+    - :ref:`scalar`
+    - :ref:`aggregation`
 
 Type Cast
 =========
@@ -156,7 +156,7 @@ A type cast specifies the conversion from one type to another. The syntax is::
 
 .. SEEALSO::
 
-    - :doc:`/sql/data_types`
+    - :ref:`sql_ddl_datatypes`
 
 Object Constructor
 ==================

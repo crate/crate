@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-set-transation:
 
-===============
-SET TRANSACTION
-===============
+===================
+``SET TRANSACTION``
+===================
 
 Sets the characteristics of transactions.
 
