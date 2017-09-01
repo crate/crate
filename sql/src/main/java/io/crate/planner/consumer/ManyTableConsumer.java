@@ -335,6 +335,7 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
+        Optional<OrderBy> finalOrderBy = mss.querySpec().orderBy();
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(leftName);
         QuerySpec leftQuerySpec = leftRelation.querySpec();
         List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
@@ -357,8 +358,14 @@ public class ManyTableConsumer implements Consumer {
             }
 
             if (it.hasNext()) {
-                extendQSOutputs(splittedWhereQuery, leftName, rightName, newQuerySpec);
-                extendQSOutputs(splittedJoinConditions, leftName, rightName, newQuerySpec);
+                newQuerySpec.outputs(extendQSOutputs(
+                    newQuerySpec.outputs(),
+                    leftName,
+                    rightName,
+                    splittedWhereQuery,
+                    splittedJoinConditions,
+                    finalOrderBy.orElse(null)
+                ));
             }
 
             // get explicit join definition
@@ -449,40 +456,66 @@ public class ManyTableConsumer implements Consumer {
     }
 
     /**
-     * Extends the outputs of a querySpec to include symbols which are required by the next/upper
-     * joins in the tree. These are symbols that are not selected, but are for example used in a
-     * joinCondition later on.
+     * Returns the a new list of outputs which also contains symbols which are used higher up in the tree. (E.g in a JOIN, or ORDER BY)
      *
      * e.g.:
      * select count(*) from t1, t2, t3 where t1.a = t2.b and t2.b = t3.c
      *
-     *                   join
-     * outputs=t1[a]    /   \
-     *      |          /     \
-     *      +------> join    t3
-     *               / \
-     *              /   \
-     *             t1   t2
+     *                ((t1 ⋈ t2) ⋈ t3)
+     *                  /         \
+     *                 /           \
+     *      +---> (t1 ⋈ t2)        t3
+     *      |        / \
+     *      |       /   \
+     *      |      t1   t2
+     *      |
+     *   Outputs need to contain t2.b because it's used to join (t1 ⋈ t2) with t3
      */
-    private static void extendQSOutputs(Map<Set<QualifiedName>, Symbol> splitQuery,
-                                        final QualifiedName leftName,
-                                        final QualifiedName rightName,
-                                        QuerySpec newQuerySpec) {
-        Set<Symbol> fields = new LinkedHashSet<>(newQuerySpec.outputs());
-        for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
-            Set<QualifiedName> relations = entry.getKey();
-            Symbol joinCondition = entry.getValue();
-            if (relations.contains(leftName) || relations.contains(rightName)) {
-                FieldsVisitor.visitFields(joinCondition,
-                                          f -> {
-                                            if (f.relation().getQualifiedName().equals(leftName) ||
-                                                    f.relation().getQualifiedName().equals(rightName)) {
-                                                fields.add(f);
-                                            }
-                                          });
+    private static List<Symbol> extendQSOutputs(List<Symbol> currentOutputs,
+                                                QualifiedName leftName,
+                                                QualifiedName rightName,
+                                                Map<Set<QualifiedName>, Symbol> splittedWhereQuery,
+                                                Map<Set<QualifiedName>, Symbol> splittedJoinConditions,
+                                                @Nullable OrderBy orderBy) {
+        final LinkedHashSet<Symbol> outputs = new LinkedHashSet<>(currentOutputs);
+        java.util.function.Consumer<Field> maybeAddFieldToOutputs = f -> {
+            QualifiedName relName = f.relation().getQualifiedName();
+            if (relName.equals(leftName) || relName.equals(rightName)) {
+                outputs.add(f);
+            }
+        };
+        visitFieldsRequiredLater(maybeAddFieldToOutputs, splittedWhereQuery, leftName, rightName);
+        visitFieldsRequiredLater(maybeAddFieldToOutputs, splittedJoinConditions, leftName, rightName);
+        if (orderBy != null) {
+            for (Symbol symbol : orderBy.orderBySymbols()) {
+                FieldsVisitor.visitFields(symbol, maybeAddFieldToOutputs);
             }
         }
-        newQuerySpec.outputs(new ArrayList<>(fields));
+        return new ArrayList<>(outputs);
+    }
+
+    /**
+     * See {@link #extendQSOutputs(List, QualifiedName, QualifiedName, Map, Map, OrderBy)}
+     *
+     * This method calls {@code fieldConsumer.accept} on each Field within {@code splitSymbol} that is required
+     * in a "parent" join.
+     */
+    private static void visitFieldsRequiredLater(java.util.function.Consumer<Field> fieldConsumer,
+                                                 Map<Set<QualifiedName>, Symbol> splitSymbol,
+                                                 QualifiedName leftName,
+                                                 QualifiedName rightName) {
+        for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitSymbol.entrySet()) {
+            Set<QualifiedName> relations = entry.getKey();
+            Symbol symbol = entry.getValue();
+            if (relations.contains(leftName) && relations.contains(rightName)) {
+                // If both relations are part the split query it will be removed on this level and therefore
+                // it's not necessary to extend the output
+                continue;
+            }
+            if (relations.contains(leftName) || relations.contains(rightName)) {
+                FieldsVisitor.visitFields(symbol, fieldConsumer);
+            }
+        }
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
