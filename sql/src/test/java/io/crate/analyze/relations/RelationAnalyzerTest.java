@@ -49,8 +49,8 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testColumnNameFromArrayComparisonExpression() throws Exception {
-        SelectAnalyzedStatement statement = executor.analyze("select 'foo' = any(constraint_name) " +
-                                                             "from information_schema.table_constraints");
-        assertThat(statement.relation().fields().get(0).path().outputName(), is("'foo' = ANY(constraint_name)"));
+        SelectAnalyzedStatement statement = executor.analyze("select 'foo' = any(partitioned_by) " +
+                                                             "from information_schema.tables");
+        assertThat(statement.relation().fields().get(0).path().outputName(), is("'foo' = ANY(partitioned_by)"));
     }
 }

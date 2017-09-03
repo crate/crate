@@ -20,8 +20,16 @@ Breaking Changes
    converted to the column type but not vice-versa. The column can still be
    manually cast to a type by using a cast function.
 
+ - Table ``information_schema.table_constraints`` is now returning
+   ``constraint_name`` as type string instead of type array. Constraint type
+   ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also PRIMARY KEY
+   constraint is not returned when not explicitly defined.
+
 Changes
 =======
+
+- Table ``information_schema.table_constraints`` is now returning ``NOT_NULL``
+  constraints.
 
 - Fixed an issue that caused an error ``Primary key value must not be NULL``
   to be thrown when trying to insert rows in a table that has a generated
