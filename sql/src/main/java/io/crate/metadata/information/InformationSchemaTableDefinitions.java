@@ -64,7 +64,7 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::constraints,
-            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.tableIdent().fqn()),
             InformationTableConstraintsTableInfo.expressions()
         ));
         tableDefinitions.put(InformationRoutinesTableInfo.IDENT, new StaticTableDefinition<>(
