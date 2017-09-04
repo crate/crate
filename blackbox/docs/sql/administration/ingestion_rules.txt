@@ -15,8 +15,8 @@
 Ingestion Rules
 ===============
 
-Ingestion rules define where and how the incoming data of a
-specific ingestion should be routed and stored.
+Ingestion rules define where and how the incoming data of a specific ingestion
+source should be routed and stored.
 
 This document will show you how to:
 
@@ -26,7 +26,7 @@ This document will show you how to:
 
 .. SEEALSO::
 
-   :doc:`Learn more about ingestion <../../ingestion/ingestion>`
+   :ref:`ingestion`
 
 Creating Ingestion Rules
 ========================
@@ -35,10 +35,16 @@ Use the :ref:`create-ingest-rule` statement to create ingestion rules.
 
 Suppose we have an ingestion source for an MQTT_ broker, that sends messages
 containing temperature and humidity measurements of our open space in the
-following data structure: ``client_id`` represents the id of the client
-sending the message, ``payload`` a json string containing the measurements,
-``topic`` a string hierarchically structured, in our example the topic can be
-either: ``openspace/temperature`` or ``openspace/humidity``.
+following data structure:
+
+- ``client_id`` represents the id of the client sending the message
+- ``payload`` a json string containing the measurements
+- ``topic`` a string hierarchically structured
+
+In our example, the topic can be either:
+
+- ``openspace/temperature``
+- ``openspace/humidity``
 
 The first thing we need to do is to create a target table that uses the same
 structure as our ingestion source::
@@ -74,6 +80,11 @@ you could do this::
     ... WHERE topic like '%humidity%'
     ... INTO mqtt_humidity;
     CREATE OK, 1 row affected (... sec)
+
+.. NOTE::
+
+   When the target table is dropped, all related rules become non functional.
+   If the target table is recreated, the rules become functional again.
 
 Listing Ingestion Rules
 =======================
@@ -115,6 +126,5 @@ For example::
 
 	cr> DROP TABLE mqtt_humidity;
 	DROP OK, 1 row affected (... sec)
-
 
 .. _MQTT: http://mqtt.org/
