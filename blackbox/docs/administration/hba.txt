@@ -4,10 +4,6 @@
 Host Based Authentication (HBA)
 ===============================
 
-.. NOTE::
-
-   *Host Based Authentication* (HBA) is an Enterprise Edition feature.
-
 This section explains how to configure CrateDB client connection and
 authentication.
 
@@ -20,6 +16,11 @@ the ``auth.host_based.enabled`` setting in the ``crate.yml`` to ``true`` and
 specify HBA entries in the ``auth.host_based.config`` group setting.
 
 See: :ref:`applying-cluster-settings`.
+
+.. NOTE::
+
+   Host Based Authentication is an
+   :ref:`enterprise feature <enterprise_features>`.
 
 Authentication Against CrateDB
 ==============================

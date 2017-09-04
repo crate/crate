@@ -5,24 +5,27 @@
 Privileges
 ==========
 
-.. NOTE::
-
-    Privileges are only part of the CrateDB `Enterprise Edition`_.
-    When the CrateDB Enterprise Edition is disabled, there will be
-    no user privilege checks, and every statement will be executed
-    without the validation of privileges.
-
 The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
 access to the resource. The privileges are either applied on the whole cluster
 or on instances of objects such as schema, or table.
 
 .. NOTE::
 
-    Superusers are allowed to execute any statement without any privilege
-    checks. Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be
-    granted. Any statements which are not allowed with those privileges,
-    such as ``GRANT``, ``DENY`` and ``REVOKE``, can only be issued by
-    a superuser.
+   Privileges are an
+   :ref:`enterprise feature <enterprise_features>`.
+
+   When the CrateDB Enterprise Edition is disabled, there will be no user
+   privilege checks, and every statement will be executed without the
+   validation of privileges.
+
+.. NOTE::
+
+   Superusers are allowed to execute any statement without any privilege
+   checks.
+
+   Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be granted. Any
+   statements which are not allowed with those privileges, such as ``GRANT``,
+   ``DENY`` and ``REVOKE``, can only be issued by a superuser.
 
 Privilege Types
 ===============

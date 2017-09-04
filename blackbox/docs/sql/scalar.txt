@@ -1648,7 +1648,8 @@ Example::
 
 .. NOTE::
 
-   ``CURRENT_USER`` is an Enterprise Edition feature.
+   ``CURRENT_USER`` is an
+   :ref:`enterprise feature <enterprise_features>`.
 
 The ``CURRENT_USER`` system information function returns the name of the
 current connected user or NULL if the user management module is disabled.
@@ -1676,7 +1677,8 @@ Example::
 
 .. NOTE::
 
-   ``USER`` is an Enterprise Edition feature.
+   ``USER`` is an
+   :ref:`enterprise feature <enterprise_features>`.
 
 Equivalent to `CURRENT_USER`_.
 
@@ -1703,7 +1705,8 @@ Example::
 
 .. NOTE::
 
-   ``SESSION_USER`` is an Enterprise Edition feature.
+   ``SESSION_USER`` is an
+   :ref:`enterprise feature <enterprise_features>`.
 
 The ``SESSION_USER`` system information function returns the name of the
 current connected user or NULL if the user management module is disabled.
