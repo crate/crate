@@ -34,8 +34,24 @@ Here's how it all hooks together:
 .. figure:: ingestion_01.png
    :alt: The Ingestion Framework Flow
 
-.. _MQTT: http://mqtt.org/
-
 .. SEEALSO::
 
-   :ref:`administration-ingestion-rules`
+    :ref:`administration-ingestion-rules` for more details on ingestion rules.
+
+    :ref:`information_schema_ingest` to list all existing ingestion rules
+
+    :ref:`create-ingest-rule` for more details on creating ingestion rules.
+
+    :ref:`drop-ingest-rule` for more details on deleting ingestion rules.
+
+Built-in ingestion implementation
+=================================
+
+.. toctree::
+   :maxdepth: 2
+
+   mqtt
+
+
+.. _MQTT: http://mqtt.org/
+.. _`Enterprise Edition`: https://crate.io/enterprise/
