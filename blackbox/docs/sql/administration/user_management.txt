@@ -3,10 +3,6 @@
 User Management
 ===============
 
-.. NOTE::
-
-    User Management is only part of the CrateDB `Enterprise Edition`_.
-
 A CrateDB cluster contains a set of database users. A database user is a
 principle at cluster level.
 
@@ -19,8 +15,12 @@ superusers.
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers
 
-
 Users cannot be backed up or restored.
+
+.. NOTE::
+
+   User management is an
+   :ref:`enterprise feature <enterprise_features>`.
 
 .. hide:
 

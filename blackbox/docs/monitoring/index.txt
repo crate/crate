@@ -4,9 +4,12 @@
 JMX Monitoring Plugin
 =====================
 
-The CrateDB monitoring plugin exposes query metrics via the `JMX`_ API.
+The JMX monitoring plugin exposes query metrics via the `JMX`_ API.
 
-This plugin is a component of the `Enterprise Edition`_ of CrateDB.
+.. NOTE::
+
+   The JMX monitoring plugin is an :ref:`enterprise feature
+   <enterprise_features>`.
 
 To use this plugin, you must:
 
@@ -133,7 +136,6 @@ Average duration:
  - ``DeleteQueryAverageDuration``
  - ``OverallQueryAverageDuration``
 
-.. _`enterprise edition`: https://crate.io/enterprise/
 .. _JMX: http://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
 .. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
