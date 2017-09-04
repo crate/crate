@@ -72,6 +72,51 @@ import java.util.TreeMap;
  *     A user table either maps to 1 lucene index (if not partitioned)
  *     Or to multiple indices (if partitioned, or an alias)
  * </p>
+ *
+ * <p>
+ *     See the following table for examples how the indexName is encoded.
+ *     Functions to encode/decode are in {@link io.crate.metadata.IndexParts}
+ * </p>
+ *
+ * <table>
+ *     <tr>
+ *         <th>schema</th>
+ *         <th>tableName</th>
+ *         <th>indices</th>
+ *         <th>partitioned</th>
+ *         <th>templateName</th>
+ *     </tr>
+ *
+ *     <tr>
+ *         <td>doc</td>
+ *         <td>t1</td>
+ *         <td>[ t1 ]</td>
+ *         <td>NO</td>
+ *         <td></td>
+ *     </tr>
+ *     <tr>
+ *         <td>doc</td>
+ *         <td>t1p</td>
+ *         <td>[ .partitioned.t1p.&lt;ident&gt; ]</td>
+ *         <td>YES</td>
+ *         <td>.partitioned.t1p.</td>
+ *     </tr>
+ *     <tr>
+ *         <td>custom</td>
+ *         <td>t1</td>
+ *         <td>[ custom.t1 ]</td>
+ *         <td>NO</td>
+ *         <td></td>
+ *     </tr>
+ *     <tr>
+ *         <td>custom</td>
+ *         <td>t1p</td>
+ *         <td>[ custom..partitioned.t1p.&lt;ident&gt; ]</td>
+ *         <td>YES</td>
+ *         <td>custom..partitioned.t1p.</td>
+ *     </tr>
+ * </table>
+ *
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
