@@ -56,6 +56,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | doc                | partitioned_table       |                4 | 0-1                |
     | doc                | quotes                  |                2 | 0                  |
     | information_schema | columns                 |                1 | 0                  |
+    | information_schema | ingestion_rules         |                1 | 0                  |
     | information_schema | key_column_usage        |                1 | 0                  |
     | information_schema | referential_constraints |                1 | 0                  |
     | information_schema | routines                |                1 | 0                  |
@@ -80,7 +81,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 |                1 | 0                  |
     | sys                | users                   |                1 | 0                  |
     +--------------------+-------------------------+------------------+--------------------+
-    SELECT 29 rows in set (... sec)
+    SELECT 30 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
@@ -649,3 +650,35 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 :comments:
     Either ``NULL`` or shows a comment about the supported status of the
     feature
+
+.. _information_schema_ingest:
+
+Ingestion Rules
+===============
+
+The ``ingestion_rules`` table contains rules created by
+:ref:`create-ingest-rule` statements.
+
+Columns
+-------
+
++--------------------+-------------+
+| Name               | Data Type   |
++====================+=============+
+| rule_name          | String      |
++--------------------+-------------+
+| source_ident       | String      |
++--------------------+-------------+
+| target_table       | String      |
++--------------------+-------------+
+| condition          | String      |
++--------------------+-------------+
+
+:rule_name:
+    The rule name
+:source_ident:
+    The ingestion source identifier
+:target_table:
+    The target table identifier
+:condition:
+    A boolean expression used to filter the source data
