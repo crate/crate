@@ -22,13 +22,27 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.FluentIterable;
-import io.crate.metadata.*;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.IngestionRuleInfo;
+import io.crate.metadata.IngestionRuleInfos;
+import io.crate.metadata.PartitionInfo;
+import io.crate.metadata.PartitionInfos;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RoutineInfo;
+import io.crate.metadata.RoutineInfos;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.collect.files.SqlFeaturesIterable;
 import io.crate.operation.reference.information.ColumnContext;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.types.DataTypes;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
@@ -37,25 +51,30 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
-public class InformationSchemaIterables {
+public class InformationSchemaIterables implements ClusterStateListener {
 
     private final Schemas schemas;
     private final FluentIterable<TableInfo> tablesIterable;
     private final PartitionInfos partitionInfos;
     private final FluentIterable<ColumnContext> columnsIterable;
     private final FluentIterable<TableInfo> constraints;
-    private final FluentIterable<RoutineInfo> routines;
     private final SqlFeaturesIterable sqlFeatures;
     private final FluentIterable<Void> keyColumnUsages;
     private final FluentIterable<Void> referentialConstraints;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+
+    private FluentIterable<RoutineInfo> routines;
+    private Iterable<IngestionRuleInfo> ingestionRules;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
-                                      FulltextAnalyzerResolver ftResolver,
+                                      FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) throws IOException {
         this.schemas = schemas;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         tablesIterable = FluentIterable.from(schemas)
             .transformAndConcat(schema -> FluentIterable.from(schema)
                 .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
@@ -64,11 +83,12 @@ public class InformationSchemaIterables {
 
         constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
 
-        RoutineInfos routineInfos = new RoutineInfos(ftResolver, clusterService);
-        routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         sqlFeatures = new SqlFeaturesIterable();
         keyColumnUsages = FluentIterable.from(Collections.emptyList());
         referentialConstraints = FluentIterable.from(Collections.emptyList());
+
+        createMetaDataBasedIterables(clusterService.state().getMetaData());
+        clusterService.addListener(this);
     }
 
     public Iterable<SchemaInfo> schemas() {
@@ -99,10 +119,30 @@ public class InformationSchemaIterables {
         return sqlFeatures;
     }
 
+    public Iterable<IngestionRuleInfo> ingestionRules() {
+        return ingestionRules;
+    }
+
     public Iterable<Void> keyColumnUsageInfos() { return keyColumnUsages; }
 
     public Iterable<Void> referentialConstraintsInfos() { return referentialConstraints; }
 
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
+        if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false &&
+            changedCustomMetaDataSet.contains(IngestRulesMetaData.TYPE) == false) {
+            return;
+        }
+        createMetaDataBasedIterables(event.state().getMetaData());
+    }
+
+    private void createMetaDataBasedIterables(MetaData metaData) {
+        RoutineInfos routineInfos = new RoutineInfos(fulltextAnalyzerResolver,
+            metaData.custom(UserDefinedFunctionsMetaData.TYPE));
+        routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
+        ingestionRules = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
+    }
 
     static class ColumnsIterable implements Iterable<ColumnContext> {
 

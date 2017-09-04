@@ -24,8 +24,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -41,8 +39,8 @@ import static java.util.Collections.emptyIterator;
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private static final Logger logger = Loggers.getLogger(RoutineInfos.class);
+    private final UserDefinedFunctionsMetaData functionsMetaData;
     private FulltextAnalyzerResolver ftResolver;
-    private final ClusterService clusterService;
 
     private enum RoutineType {
         ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
@@ -61,9 +59,9 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
-    public RoutineInfos(FulltextAnalyzerResolver ftResolver, ClusterService clusterService) {
+    public RoutineInfos(FulltextAnalyzerResolver ftResolver, UserDefinedFunctionsMetaData functionsMetaData) {
         this.ftResolver = ftResolver;
-        this.clusterService = clusterService;
+        this.functionsMetaData = functionsMetaData;
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
@@ -119,8 +117,6 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     }
 
     private Iterator<RoutineInfo> userDefinedFunctions() {
-        MetaData metaData = clusterService.state().getMetaData();
-        UserDefinedFunctionsMetaData functionsMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (functionsMetaData == null) {
             return emptyIterator();
         }

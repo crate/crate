@@ -41,6 +41,7 @@ import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
@@ -49,6 +50,7 @@ import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropIngestRule;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
@@ -114,6 +116,7 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
+    private final CreateIngestionRuleAnalyzer createIngestionRuleAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -159,6 +162,7 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
+        this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -402,5 +406,16 @@ public class Analyzer {
         protected AnalyzedStatement visitNode(Node node, Analysis context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot analyze statement: '%s'", node));
         }
+
+        @Override
+        public AnalyzedStatement visitDropIngestRule(DropIngestRule node, Analysis context) {
+            return new DropIngestionRuleAnalysedStatement(node.name(), node.ifExists());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateIngestRule(CreateIngestRule node, Analysis context) {
+            return createIngestionRuleAnalyzer.analyze(node, context);
+        }
+
     }
 }

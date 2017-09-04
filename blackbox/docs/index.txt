@@ -24,6 +24,7 @@ massive amounts of machine data in real-time.
    cli
    sql/index
    blob
+   ingestion
    plugins
    discovery
    udc
