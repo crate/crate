@@ -532,4 +532,12 @@ public abstract class AstVisitor<R, C> {
     public R visitCreateUser(CreateUser node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitCreateIngestRule(CreateIngestRule node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitDropIngestRule(DropIngestRule node, C context) {
+        return visitStatement(node, context);
+    }
 }
