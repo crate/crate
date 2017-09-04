@@ -51,6 +51,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -73,6 +74,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -313,6 +315,15 @@ public class TestingHelpers {
             @Override
             public void describeMismatch(Object item, Description description) {
                 description.appendText(SQLPrinter.print(item));
+            }
+        };
+    }
+
+    public static Matcher<SQLResponse> isPrintedTable(String expectedPrintedResponse) {
+        return new FeatureMatcher<SQLResponse, String>(equalTo(expectedPrintedResponse), "same output", "printedTable") {
+            @Override
+            protected String featureValueOf(SQLResponse actual) {
+                return printedTable(actual.rows());
             }
         };
     }
