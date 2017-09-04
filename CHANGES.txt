@@ -72,6 +72,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an error when trying to create a table with a
+   generated column expression of type array.
+
  - Fixed an issue when using GRANT/REVOKE/DENY statements on a table with a
    custom schema set. The statements would result in permission changed on the
    default ``doc`` schema.
