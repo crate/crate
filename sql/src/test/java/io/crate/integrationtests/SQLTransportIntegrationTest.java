@@ -79,6 +79,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
@@ -291,6 +292,29 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public SQLResponse execute(String stmt, Object[] args) {
         response = sqlExecutor.exec(stmt, args);
         return response;
+    }
+
+    /**
+     * Executes {@code statement} once for each entry in {@code setSessionStatementsList}
+     *
+     * The inner lists of {@code setSessionStatementsList} will be executed before the statement is executed.
+     * This is intended to change session settings using `SET ..` statements
+     *
+     * @param matcher matcher used to assert the result of {@code statement}
+     */
+    public void executeWith(List<List<String>> setSessionStatementsList,
+                            String statement,
+                            Matcher<SQLResponse> matcher) {
+        for (List<String> setSessionStatements : setSessionStatementsList) {
+            SQLOperations.Session session = sqlExecutor.newSession();
+
+            for (String setSessionStatement : setSessionStatements) {
+                sqlExecutor.exec(setSessionStatement, session);
+            }
+
+            SQLResponse resp = sqlExecutor.exec(statement, session);
+            assertThat(resp, matcher);
+        }
     }
 
     /**

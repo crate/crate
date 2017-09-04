@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isPrintedTable;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -39,6 +40,9 @@ import static org.hamcrest.Matchers.is;
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
+    private static final List<List<String>> NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED = Arrays.asList(
+        Collections.emptyList(),
+        Collections.singletonList("set semi_joins = true"));
 
     @Test
     public void testSubSelectOrderBy() throws Exception {
@@ -226,24 +230,29 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()),
             is("aa| 58\n"));
 
-        execute("select aa, xyi from (" +
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select aa, xyi from (" +
                 "  select (xy + i) as xyi, aa from (" +
                 "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
                 "    from t1 right join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
-                "order by aa, xyi");
+                "order by aa, xyi",
 
-        assertThat(printedTable(response.rows()),
-            is("aa| 58\n" +
-               "bb| NULL\n"));
+            isPrintedTable(
+                "aa| 58\n" +
+                "bb| NULL\n")
+        );
 
-        execute("select aa, xyi from (" +
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select aa, xyi from (" +
                 "  select (xy + i) as xyi, aa from (" +
                 "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
                 "    from t1 full join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
-                "order by aa, xyi");
+                "order by aa, xyi",
 
-        assertThat(printedTable(response.rows()),
-            is("aa| 58\n" +
+            isPrintedTable(
+                "aa| 58\n" +
                "bb| NULL\n"));
     }
 
@@ -563,12 +572,15 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSubqueryExpressionWithInPredicateLeftFieldSymbol() throws Exception {
         setup.setUpCharacters();
-        execute("select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(printedTable(response.rows()),
-            is( "1| Arthur\n" +
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id",
+            isPrintedTable(
+                "1| Arthur\n" +
                 "2| Ford\n" +
-                "3| Trillian\n"));
+                "3| Trillian\n"
+            )
+        );
     }
 
     @Test
@@ -594,7 +606,9 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpJobs();
         setup.setUpEmployees();
 
-        execute("select department, avg(income) from employees" +
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select department, avg(income) from employees" +
             "   where income <= ANY (" +
             "       select avg(min_salary) from jobs" +
             "       where id in (" +
@@ -602,11 +616,11 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             "       )" +
             "   )" +
             "   group by department" +
-            "   order by avg(income) desc");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(printedTable(response.rows()),
-            is( "engineering| 5000.0\n" +
-                "HR| 0.5\n"));
+            "   order by avg(income) desc",
+            isPrintedTable(
+                "engineering| 5000.0\n" +
+                "HR| 0.5\n")
+        );
     }
 
     @Test
@@ -635,16 +649,17 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpJobs();
         setup.setUpEmployees();
 
-        execute("select name, income from employees" +
+        executeWith(
+            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+            "select name, income from employees" +
             "   where hired <= ANY (" +
             "       select jh.from_ts from job_history jh" +
             "       join jobs j on jh.job_id = j.id" +
             "       where j.department = 'HR'" +
             "   )" +
             "   and department = 'HR'" +
-            "   order by income desc");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(printedTable(response.rows()),
-            is( "catbert| 9.9999999999E8\n"));
+            "   order by income desc",
+            isPrintedTable("catbert| 9.9999999999E8\n")
+        );
     }
 }

@@ -209,6 +209,19 @@ public class SQLTransportExecutor {
         ));
     }
 
+    public SQLOperations.Session newSession() {
+        return clientProvider.sqlOperations().createSession(
+            defaultSchema,
+            null,
+            Option.NONE,
+            DEFAULT_SOFT_LIMIT
+        );
+    }
+
+    public SQLResponse exec(String statement, SQLOperations.Session session) {
+        return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
+    }
+
     public static ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
         execute(stmt, args, actionFuture, session);
