@@ -76,11 +76,11 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGatherRewriteCandidatesTwo() throws Exception {
         Symbol query = asSymbol("a in (select 'foo') and a = 'foo' and x in (select 1)");
-        List<Function> candidates = SemiJoins.gatherRewriteCandidates(query);
+        List<SemiJoins.Candidate> candidates = SemiJoins.gatherRewriteCandidates(query);
         assertThat(candidates.size(), is(2));
 
-        for (Function candidate : candidates) {
-            assertThat(candidate.info().ident().name(), is("any_="));
+        for (SemiJoins.Candidate candidate : candidates) {
+            assertThat(candidate.function.info().ident().name(), is("any_="));
         }
     }
 
@@ -91,7 +91,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         Function query = (Function) rel.querySpec().where().query();
 
         SelectSymbol subquery = SemiJoins.getSubqueryOrNull(query.arguments().get(1));
-        Symbol joinCondition = SemiJoins.makeJoinCondition(query, rel.tableRelation(), subquery.relation());
+        Symbol joinCondition = SemiJoins.makeJoinCondition(new SemiJoins.Candidate(query, subquery), rel.tableRelation());
 
         assertThat(joinCondition, isSQL("(doc.t1.a = .empty_row.'foo')"));
     }

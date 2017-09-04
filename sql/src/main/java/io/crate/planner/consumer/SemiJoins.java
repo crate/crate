@@ -95,7 +95,7 @@ final class SemiJoins {
         if (!where.hasQuery()) {
             return null;
         }
-        List<Function> rewriteCandidates = gatherRewriteCandidates(where.query());
+        List<Candidate> rewriteCandidates = gatherRewriteCandidates(where.query());
         if (rewriteCandidates.isEmpty()) {
             return null;
         }
@@ -119,14 +119,13 @@ final class SemiJoins {
 
         ArrayList<JoinPair> semiJoinPairs = new ArrayList<>();
         int count = 0;
-        for (Function rewriteCandidate : rewriteCandidates) {
-            SelectSymbol selectSymbol = getSubqueryOrNull(rewriteCandidate.arguments().get(1));
-            assert selectSymbol != null : "rewriteCandidate must contain a selectSymbol";
+        for (Candidate rewriteCandidate : rewriteCandidates) {
+            SelectSymbol selectSymbol = rewriteCandidate.subQuery;
 
             // Avoid name clashes if the subquery is on the same relation; e.g.: select * from t1 where x in (select * from t1)
             QualifiedName subQueryName = selectSymbol.relation().getQualifiedName().withPrefix("S" + count);
             count++;
-            Symbol joinCondition = makeJoinCondition(rewriteCandidate, sourceRel, selectSymbol.relation());
+            Symbol joinCondition = makeJoinCondition(rewriteCandidate, sourceRel);
             semiJoinPairs.add(JoinPair.of(
                 rel.getQualifiedName(),
                 subQueryName,
@@ -156,17 +155,19 @@ final class SemiJoins {
         return null;
     }
 
-    private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Collection<Function> rewriteCandidates) {
+    private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Collection<Candidate> rewriteCandidates) {
         rel.querySpec().where().replace(FuncReplacer.mapNodes(f -> {
-            if (rewriteCandidates.contains(f)) {
-                return Literal.BOOLEAN_TRUE;
+            for (Candidate rewriteCandidate : rewriteCandidates) {
+                if (rewriteCandidate.function.equals(f)) {
+                    return Literal.BOOLEAN_TRUE;
+                }
             }
             return f;
         }));
     }
 
-    static List<Function> gatherRewriteCandidates(Symbol query) {
-        ArrayList<Function> candidates = new ArrayList<>();
+    static List<Candidate> gatherRewriteCandidates(Symbol query) {
+        ArrayList<Candidate> candidates = new ArrayList<>();
         RewriteCandidateGatherer.INSTANCE.process(query, candidates);
         return candidates;
     }
@@ -190,38 +191,46 @@ final class SemiJoins {
     /**
      * t1.x IN (select y from t2)  --> SEMI JOIN t1 on t1.x = t2.y
      */
-    static Symbol makeJoinCondition(Function rewriteCandidate, AnalyzedRelation sourceRel, QueriedRelation subRel) {
-        assert getSubqueryOrNull(rewriteCandidate.arguments().get(1)).relation() == subRel
-            : "subRel argument must match selectSymbol relation";
-
-        rewriteCandidate = RefReplacer.replaceRefs(
-            rewriteCandidate,
+    static Symbol makeJoinCondition(Candidate rewriteCandidate, AnalyzedRelation sourceRel) {
+        Function anyFunc = RefReplacer.replaceRefs(
+            rewriteCandidate.function,
             r -> sourceRel.getField(r.ident().columnIdent(), Operation.READ));
-        String name = rewriteCandidate.info().ident().name();
+        String name = anyFunc.info().ident().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "Can only create a join condition from any_";
 
-        List<Symbol> args = rewriteCandidate.arguments();
+        List<Symbol> args = anyFunc.arguments();
         Symbol firstArg = args.get(0);
         List<DataType> newArgTypes = ImmutableList.of(firstArg.valueType(), firstArg.valueType());
 
         FunctionIdent joinCondIdent = new FunctionIdent(AnyOperator.nameToNonAny(name), newArgTypes);
         return new Function(
             new FunctionInfo(joinCondIdent, DataTypes.BOOLEAN),
-            ImmutableList.of(firstArg, castIfNeededOrFail(subRel.fields().get(0), firstArg.valueType()))
+            ImmutableList.of(firstArg, castIfNeededOrFail(rewriteCandidate.subQuery.relation().fields().get(0), firstArg.valueType()))
         );
     }
 
-    private static class RewriteCandidateGatherer extends SymbolVisitor<List<Function>, Boolean> {
+    static class Candidate {
+
+        final Function function;
+        final SelectSymbol subQuery;
+
+        Candidate(Function function, SelectSymbol subQuery) {
+            this.function = function;
+            this.subQuery = subQuery;
+        }
+    }
+
+    private static class RewriteCandidateGatherer extends SymbolVisitor<List<Candidate>, Boolean> {
 
         static final RewriteCandidateGatherer INSTANCE = new RewriteCandidateGatherer();
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, List<Function> context) {
+        protected Boolean visitSymbol(Symbol symbol, List<Candidate> context) {
             return true;
         }
 
         @Override
-        public Boolean visitFunction(Function func, List<Function> candidates) {
+        public Boolean visitFunction(Function func, List<Candidate> candidates) {
             String funcName = func.info().ident().name();
 
             /* Cannot rewrite a `op ANY subquery` expression into a semi-join if it's beneath a OR because
@@ -248,13 +257,13 @@ final class SemiJoins {
             return true;
         }
 
-        private static void maybeAddSubQueryAsCandidate(Function func, List<Function> candidates) {
+        private static void maybeAddSubQueryAsCandidate(Function func, List<Candidate> candidates) {
             SelectSymbol subQuery = getSubqueryOrNull(func.arguments().get(1));
             if (subQuery == null) {
                 return;
             }
             if (subQuery.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES) {
-                candidates.add(func);
+                candidates.add(new Candidate(func, subQuery));
             }
         }
     }
