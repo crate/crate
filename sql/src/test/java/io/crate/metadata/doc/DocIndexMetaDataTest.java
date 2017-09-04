@@ -1358,4 +1358,11 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.versionCreated().esVersion.id, is(2040299));
         assertThat(md.versionUpgraded(), is(Version.CURRENT));
     }
+
+    @Test
+    public void testArrayAsGeneratedColumn() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t1 (x as ([10, 20]))");
+        GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
+        assertThat(generatedReference.valueType(), is(new ArrayType(DataTypes.LONG)));
+    }
 }

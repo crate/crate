@@ -39,8 +39,11 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -289,7 +292,14 @@ public class AnalyzedTableElements {
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType, false);
             formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         } else {
-            columnDefinition.dataType(function.valueType().getName());
+            if (valueType instanceof ArrayType) {
+                columnDefinition.collectionType("array");
+                columnDefinition.dataType(CollectionType.unnest(valueType).getName());
+            } else if (valueType instanceof SetType) {
+                throw new UnsupportedOperationException("SET type is not supported in CREATE TABLE statements");
+            } else {
+                columnDefinition.dataType(valueType.getName());
+            }
             formattedExpression = symbolPrinter.print(function, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         }
 

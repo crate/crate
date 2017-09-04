@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an error when trying to create a table with a
+   generated column expression of type array.
+
  - Fixed an issue that caused ``account_user``-column to be empty in the
    twitter tutorial plugin of the Admin UI.
 
