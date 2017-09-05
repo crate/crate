@@ -35,7 +35,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Test;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -49,6 +53,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(value = Scope.Benchmark)
 public class PreExecutionBenchmark {
 
@@ -99,29 +105,39 @@ public class PreExecutionBenchmark {
     }
 
     @Benchmark
-    public Statement benchParse() throws Exception {
+    public Statement measureParseSimpleSelect() throws Exception {
         return SqlParser.createStatement("select name from users");
     }
 
     @Benchmark
-    public AnalyzedStatement benchParseAndAnalyzeSelect() {
+    public AnalyzedStatement measureParseAndAnalyzeSimpleSelect() {
         return e.analyze("select name from users");
     }
 
     @Benchmark
-    public Plan benchParseAndAnalyzeAndPlan() {
+    public Plan measureParseAnalyzeAndPlanSimpleSelect() {
         return e.plan("select name from users");
     }
 
     @Benchmark
-    public Analysis benchAnalyze() {
+    public Analysis measureAnalyzeSimpleSelect() {
         return e.analyzer.boundAnalyze(selectStatement, SessionContext.create(), ParameterContext.EMPTY);
+    }
+    @Benchmark
+    public Plan measurePlanSimpleSelect() {
+        return e.planner.plan(selectAnalysis, jobId, 0, 0);
+    }
+
+    @Test
+    public Plan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() throws Exception {
+        return e.plan("select * from users where id = 1 or id = 2 or id = 3 or id = 4 order by id asc");
     }
 
     @Benchmark
-    public Plan benchPlan() {
-        return e.planner.plan(selectAnalysis, jobId, 0, 0);
+    public Plan measureParseAnalyzeAndPlanInsertFromValues() {
+        return e.plan("insert into users (id, name, text, date) values (1, 'Arthur', 'So long and thanks for all the fish', '2017-03-13')");
     }
+
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
