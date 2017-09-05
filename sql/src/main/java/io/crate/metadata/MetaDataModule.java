@@ -29,33 +29,21 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class MetaDataModule extends AbstractModule {
 
-    protected MapBinder<ReferenceIdent, ReferenceImplementation> referenceBinder;
-    protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    protected MapBinder<String, SchemaInfo> schemaBinder;
-
     @Override
     protected void configure() {
-        bindReferences();
         bindFunctions();
         bindSchemas();
-
         bind(DDLClusterStateService.class).asEagerSingleton();
     }
 
-    protected void bindReferences() {
-        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-        bind(ClusterReferenceResolver.class).asEagerSingleton();
-    }
-
-    protected void bindFunctions() {
-        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+    private void bindFunctions() {
         MapBinder.newMapBinder(binder(), String.class, FunctionResolver.class);
         MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
         bind(Functions.class).asEagerSingleton();
     }
 
-    protected void bindSchemas() {
-        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+    private void bindSchemas() {
+        MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         bind(Schemas.class).asEagerSingleton();
     }
 }
