@@ -2,11 +2,10 @@
 Using CrateDB
 =============
 
-CrateDB uses SQL to query documents. For concise synxtax documentation see
-:ref:`syntax-reference`. For general information about SQL please refer to
-`Wikipedia SQL`_.
+This section of the docs walks you through using the core components of
+CrateDB.
 
-.. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
+.. _`SQL`: http://en.wikipedia.org/wiki/Sql
 
 .. toctree::
    :maxdepth: 2
@@ -28,3 +27,7 @@ CrateDB uses SQL to query documents. For concise synxtax documentation see
    optimize
    features
    crate-standard-sql
+
+.. SEEALSO::
+
+   :ref:`syntax-reference` -- low level SQL_ syntax reference
