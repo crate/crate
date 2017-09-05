@@ -29,6 +29,8 @@ import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.handler.codec.mqtt.MqttMessage;
 import io.netty.handler.codec.mqtt.MqttQoS;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +44,8 @@ import java.util.concurrent.TimeoutException;
  * @author andrea
  */
 public class Client implements AutoCloseable {
+
+    private static final Logger LOGGER = Loggers.getLogger(Client.class);
 
     private final String host;
     private final int port;
@@ -57,7 +61,7 @@ public class Client implements AutoCloseable {
     }
 
     public void connect() {
-        System.out.println("[mqtt-client] connect");
+        LOGGER.debug("[mqtt-client] connect");
         handler = new ClientNettyMQTTHandler();
         workerGroup = new NioEventLoopGroup();
         try {
@@ -78,7 +82,7 @@ public class Client implements AutoCloseable {
             // Start the client.
             channel = b.connect(host, port).sync().channel();
         } catch (Exception ex) {
-            System.err.println("[mqtt-client] Error in client setup: " + ex.getMessage());
+            LOGGER.error("[mqtt-client] Error in client setup: " + ex.getMessage());
             ex.printStackTrace();
             workerGroup.shutdownGracefully();
         }
@@ -93,7 +97,7 @@ public class Client implements AutoCloseable {
     }
 
     public void sendMessage(MqttMessage msg) {
-        System.out.println("[mqtt-client] ==> send message");
+        LOGGER.debug("[mqtt-client] ==> send message");
         handler.initCallback();
         channel.writeAndFlush(msg);
     }
@@ -104,7 +108,7 @@ public class Client implements AutoCloseable {
 
     public MqttMessage lastReceivedMessage(long timeout) throws Exception {
         try {
-            System.out.println("[mqtt-client] <== receive message");
+            LOGGER.debug("[mqtt-client] <== receive message");
             return handler.lastMessage(timeout);
         } catch (TimeoutException e) {
             throw new NoMessageReceivedException(timeout);
@@ -119,11 +123,11 @@ public class Client implements AutoCloseable {
             throw new IllegalStateException("Invoked close on an Acceptor that wasn't initialized");
         }
         workerGroup.shutdownGracefully();
-        System.out.println("[mqtt-client] closed");
+        LOGGER.debug("[mqtt-client] closed");
     }
 
     public void disconnect() {
-        System.out.println("[mqtt-client] disconnect");
+        LOGGER.debug("[mqtt-client] disconnect");
         sendMessage(MqttMessageBuilders.disconnect()
             .qos(MqttQoS.AT_LEAST_ONCE)
             .build());
