@@ -443,49 +443,49 @@ def test_suite():
                      tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/ddl/basics.txt',
-               'sql/ddl/generated_columns.txt',
-               'sql/ddl/constraints.txt',
-               'sql/ddl/sharding.txt',
-               'sql/ddl/replication.txt',
-               'sql/ddl/column_policy.txt',
-               'sql/ddl/indices_full_search.txt',
-               'sql/administration/system_columns.txt',
-               'sql/ddl/alter_table.txt',
-               'sql/administration/set_reset.txt',
-               'sql/administration/show_create_table.txt',
-               'sql/administration/user_defined_functions.txt',
-               'sql/administration/user_management.txt',
-               'sql/administration/privileges.txt',
-               'sql/dql.txt',
-               'sql/refresh.txt',
-               'sql/optimize.txt',
-               'sql/fulltext.txt',
-               'sql/data_types.txt',
-               'sql/occ.txt',
-               'sql/information_schema.txt',
-               'sql/partitioned_tables.txt',
-               'sql/aggregation.txt',
-               'sql/arithmetic.txt',
-               'sql/scalar.txt',
-               'sql/table_functions.txt',
-               'sql/system.txt',
-               'sql/queries.txt',
+    for fn in ('use/ddl/basics.txt',
+               'use/ddl/generated_columns.txt',
+               'use/ddl/constraints.txt',
+               'use/ddl/sharding.txt',
+               'use/ddl/replication.txt',
+               'use/ddl/column_policy.txt',
+               'use/ddl/indices_full_search.txt',
+               'use/administration/system_columns.txt',
+               'use/ddl/alter_table.txt',
+               'use/administration/set_reset.txt',
+               'use/administration/show_create_table.txt',
+               'use/administration/user_defined_functions.txt',
+               'use/administration/user_management.txt',
+               'use/administration/privileges.txt',
+               'use/dql.txt',
+               'use/refresh.txt',
+               'use/optimize.txt',
+               'use/fulltext.txt',
+               'use/data_types.txt',
+               'use/occ.txt',
+               'use/information_schema.txt',
+               'use/partitioned_tables.txt',
+               'use/aggregation.txt',
+               'use/arithmetic.txt',
+               'use/scalar.txt',
+               'use/table_functions.txt',
+               'use/system.txt',
+               'use/queries.txt',
                'protocols/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
                      tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/geo.txt',):
+    for fn in ('use/geo.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpCountries,
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt',
-               'sql/subquery_expressions.txt',):
+    for fn in ('use/joins.txt',
+               'use/subquery_expressions.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,
@@ -493,14 +493,14 @@ def test_suite():
                      tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/dml.txt',):
+    for fn in ('use/dml.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsQuotesAndUserVisits,
                      tearDown=tearDownLocationsQuotesAndUserVisits)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/snapshot_restore.txt',):
+    for fn in ('use/snapshot_restore.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
