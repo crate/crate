@@ -53,8 +53,12 @@ is applied, (see :ref:`ref_clustered_clause`).
 Routing
 =======
 
+CrateDB algorithmically determines which shard each table row belongs to. It
+does this using the value of a routing column.
+
 The column used for routing can be freely defined using the ``CLUSTERED BY
 (<column>)`` statement and is used to route a row to a particular shard.
+
 Example::
 
     cr> create table my_table6 (
