@@ -2,8 +2,15 @@
 Constraints
 ===========
 
-``primary key``
-===============
+Columns can be constrained in two ways:
+
+.. contents::
+   :local:
+
+The values of a constrained column must comply with the constraint.
+
+Primary Key
+===========
 
 The primary key constraint combines a unique constraint and a not-null
 constraint. It also defines the default routing value used for sharding.
@@ -44,8 +51,8 @@ Or using a alternate syntax::
 
    See :ref:`primary_key_constraint`.
 
-``not null``
-============
+Not Null
+========
 
 The not null constraint can be used on any table column and it prevents null
 values from being inserted.
