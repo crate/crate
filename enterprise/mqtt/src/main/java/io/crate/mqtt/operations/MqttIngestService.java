@@ -126,14 +126,9 @@ public class MqttIngestService implements IngestRuleListener {
     }
 
     private static String mqttPayloadToString(ByteBuf content) {
-        byte[] rawBytes;
-        if (content.hasArray()) {
-            rawBytes = content.array();
-        } else {
-            int size = content.readableBytes();
-            rawBytes = new byte[size];
-            content.getBytes(content.readerIndex(), rawBytes);
-        }
+        int size = content.readableBytes();
+        byte[] rawBytes = new byte[size];
+        content.getBytes(content.readerIndex(), rawBytes);
         return new String(rawBytes, Charsets.UTF_8);
     }
 
