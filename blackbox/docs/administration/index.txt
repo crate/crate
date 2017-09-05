@@ -4,6 +4,8 @@
 Database Administration
 =======================
 
+.. rubric:: Table of Contents
+
 .. toctree::
     :maxdepth: 1
 

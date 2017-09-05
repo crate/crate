@@ -5,6 +5,8 @@
 Data Definition
 ===============
 
+.. rubric:: Table of Contents
+
 .. toctree::
    :maxdepth: 2
 
