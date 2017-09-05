@@ -21,11 +21,13 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.data.BatchConsumer;
-import io.crate.executor.transport.distributed.*;
+import io.crate.executor.transport.distributed.BroadcastingBucketBuilder;
+import io.crate.executor.transport.distributed.DistributingConsumer;
+import io.crate.executor.transport.distributed.ModuloBucketBuilder;
+import io.crate.executor.transport.distributed.MultiBucketBuilder;
+import io.crate.executor.transport.distributed.TransportDistributedResultAction;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
@@ -40,15 +42,14 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 
 @Singleton
 public class DistributingDownstreamFactory extends AbstractComponent {
 
-    @VisibleForTesting
-    public static final String RESPONSE_EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+    private static final String RESPONSE_EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final ClusterService clusterService;
     private final Executor responseExecutor;
@@ -76,10 +77,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
-        // TODO: set bucketIdx properly
-        ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().nodeIds());
-        Collections.sort(server);
-        int bucketIdx = Math.max(server.indexOf(clusterService.localNode().getId()), 0);
+        int bucketIdx = getBucketIdx(nodeOperation.executionPhase().nodeIds());
 
         MultiBucketBuilder multiBucketBuilder;
         switch (distributionInfo.distributionType()) {
@@ -111,5 +109,23 @@ public class DistributingDownstreamFactory extends AbstractComponent {
             streamers,
             pageSize
         );
+    }
+
+    /**
+     * @return bucketIdx (= idx of localNode in nodeIds)
+     *
+     * <p>
+     * This needs to be deterministic across all nodes involved in a query execution.
+     *
+     * Downstreams assume that each upstream uses a *different* bucketIdx,
+     * but they don't care which node ends up with which bucketIdx.
+     * </p>
+     *
+     * See {@link io.crate.jobs.PageBucketReceiver}
+     */
+    private int getBucketIdx(Collection<String> nodeIds) {
+        ArrayList<String> server = new ArrayList<>(nodeIds);
+        server.sort(null);
+        return Math.max(server.indexOf(clusterService.localNode().getId()), 0);
     }
 }

@@ -26,6 +26,34 @@ import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.operation.PageResultListener;
 
+import java.util.Collection;
+
+/**
+ * A component which receives buckets from one or more upstreams and merges them together.
+ *
+ * <pre>
+ *
+ *     +----+    +----+
+ *     | n1 |    | n2 |
+ *     +----+    +----+
+ *        \        /
+ *         Downstream ({@link io.crate.jobs.PageBucketReceiver} (usually created from {@link io.crate.planner.node.dql.MergePhase}))
+ *
+ *  For example:
+ *
+ *   PageBucketReceiver has 2 upstream, so it expects 2 buckets.
+ *
+ *   n1: sends bucket with bucketIdx=0
+ *   n2: sends bucket with bucketIdx=1
+ *
+ *  (bucketIdx definition is up to the upstreams, but it needs to be deterministic,
+ *  see {@link io.crate.operation.projectors.DistributingDownstreamFactory#getBucketIdx(Collection)}
+ *
+ *   Once PageBucketReceiver has received all parts of a "Page" (in this case 2 buckets),
+ *   it has to call {@link PageResultListener#needMore(boolean)} to indicate if it's done or that more data is needed.
+ * </pre>
+ *
+ */
 public interface PageBucketReceiver {
 
     void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener);
