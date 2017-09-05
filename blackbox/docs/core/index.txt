@@ -1,5 +1,5 @@
 =============
-Using CrateDB
+Core Features
 =============
 
 CrateDB uses SQL to query documents. For concise synxtax documentation see

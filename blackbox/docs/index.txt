@@ -22,14 +22,14 @@ massive amounts of machine data in real-time.
    installation
    configuration/index
    cli
-   use/index
+   core/index
+   enterprise/index
    syntax/index
    blob
    plugins
    discovery
    udc
    protocols/index
-   enterprise/index
    administration/index
    monitoring/index
 
