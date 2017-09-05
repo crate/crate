@@ -29,6 +29,7 @@ import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.fs.NodeFsExpression;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
@@ -39,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 
+@Singleton
 public class NodeSysExpression extends NestedObjectExpression {
 
     private final OsService osService;
