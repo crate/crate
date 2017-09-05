@@ -45,10 +45,8 @@ import io.crate.operation.reference.sys.shard.ShardPrimaryExpression;
 import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
 import io.crate.operation.reference.sys.shard.ShardRelocatingNodeExpression;
 import io.crate.operation.reference.sys.shard.ShardRoutingStateExpression;
-import io.crate.operation.reference.sys.shard.ShardSchemaNameExpression;
 import io.crate.operation.reference.sys.shard.ShardSizeExpression;
 import io.crate.operation.reference.sys.shard.ShardStateExpression;
-import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -74,6 +72,7 @@ public class ShardReferenceResolver {
         if (IndexParts.isPartitioned(index.getName())) {
             addPartitions(index, schemas, builder);
         }
+        IndexParts indexParts = new IndexParts(index.getName());
         builder.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.getId()));
         builder.put(SysShardsTableInfo.ReferenceIdents.SIZE, new ShardSizeExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new ShardNumDocsExpression(indexShard));
@@ -81,10 +80,11 @@ public class ShardReferenceResolver {
         builder.put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE,
             new ShardRelocatingNodeExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME,
-            new ShardSchemaNameExpression(shardId));
+            new LiteralReferenceImplementation<>(new BytesRef(indexParts.getSchema())));
         builder.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
-        builder.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, new ShardTableNameExpression(shardId));
+        builder.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME,
+            new LiteralReferenceImplementation<>(new BytesRef(indexParts.getTable())));
         builder.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
             new ShardPartitionIdentExpression(shardId));
         builder.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
