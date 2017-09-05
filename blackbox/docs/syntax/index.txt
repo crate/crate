@@ -4,7 +4,16 @@
 SQL Syntax
 ==========
 
-This section documents CrateDB SQL syntax.
+This section is the CrateDB SQL_ syntax reference.
+
+.. _`SQL`: http://en.wikipedia.org/wiki/Sql
+
+.. NOTE::
+
+   If you're just getting started with a particular part of CrateDB, we
+   recommend you consult the appropriate top-level section of the
+   documentation. The SQL syntax reference assumes a basic familiarity with the
+   relevant parts of CrateDB.
 
 Topics
 ======

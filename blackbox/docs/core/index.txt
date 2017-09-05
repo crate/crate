@@ -1,12 +1,18 @@
+.. _core_features:
+
 =============
 Core Features
 =============
 
-CrateDB uses SQL to query documents. For concise synxtax documentation see
-:ref:`syntax-reference`. For general information about SQL please refer to
-`Wikipedia SQL`_.
+This section walks you through the core features of CrateDB.
 
-.. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
+.. SEEALSO::
+
+   :ref:`enterprise_features` -- features only available in the Enterprise Edition
+
+   :ref:`syntax-reference` -- CrateDB SQL syntax reference
+
+.. rubric:: Tables of Contents
 
 .. toctree::
    :maxdepth: 2
