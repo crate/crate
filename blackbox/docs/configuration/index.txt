@@ -7,8 +7,8 @@ Configuration
 Overview
 ========
 
-CrateDB ships with sensible defaults, so no configuration is needed for basic
-use.
+CrateDB ships with sensible defaults, so no configuration is needed for basic,
+single node use.
 
 CrateDB is typically configured via a configuration file located at
 ``config/crate.yml`` within the install directory.
