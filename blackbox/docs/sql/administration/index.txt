@@ -5,6 +5,8 @@
 Database Administration Statements
 ==================================
 
+.. rubric:: Table of Contents
+
 .. toctree::
    :maxdepth: 2
 

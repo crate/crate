@@ -10,6 +10,8 @@ for writing expressions in CrateDB. Operators are reserved keywords that are
 primarily used in a :ref:`sql_dql_where_clause` to perform arithmetic operations or
 comparisons.
 
+.. rubric:: Table of Contents
+
 .. toctree::
   :maxdepth: 2
 
