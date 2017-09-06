@@ -160,6 +160,29 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testJoinOnSubSelectsWithGlobalAggregationsAndLimitNotPushedDown() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select count(*) from " +
+                                                    " (select a, i from (" +
+                                                    "     select * from t1 order by a desc limit 5) a" +
+                                                    "  order by a limit 10) t1 " +
+                                                    "join" +
+                                                    " (select b, i from t2 where b > 10) t2 " +
+                                                    "on t1.i = t2.i " +
+                                                    "order by 1 limit 10");
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.querySpec(),
+            isSQL("SELECT count() ORDER BY count() LIMIT 10"));
+        assertThat(relation.joinPairs().get(0).condition(),
+            isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+            isSQL("SELECT doc.t1.i ORDER BY doc.t1.a LIMIT 10"));
+        assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a DESC LIMIT 5"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+            isSQL("SELECT doc.t2.i WHERE (doc.t2.b > '10')"));
+    }
+
+    @Test
     public void testJoinOnSubSelectsWithOrderByPushedDown() throws Exception {
         SelectAnalyzedStatement statement = analyze("select * from " +
                                                     " (select a, i from t1 order by a) t1, " +
