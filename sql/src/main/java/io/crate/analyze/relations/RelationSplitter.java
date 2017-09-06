@@ -150,11 +150,12 @@ public final class RelationSplitter {
         // collect all fields from all join conditions
         FieldsVisitor.visitFields(joinConditions, addFieldToMap);
 
-        // push down the limit and offset only if there is no filtering or ordering after the join
-        // and only if the relations are not part of a join condition
+        // push down the limit + offset only if there is no filtering, ordering, global aggregation or grouping
+        // after the join and only if the relations are not part of a join condition.
         Optional<Symbol> limit = querySpec.limit();
         boolean filterNeeded = querySpec.where().hasQuery() && !(querySpec.where().query() instanceof Literal);
-        if (limit.isPresent() && !filterNeeded && !remainingOrderBy().isPresent()) {
+        if (limit.isPresent() &&  !groupBy.isPresent() && !querySpec.hasAggregates() && !filterNeeded
+            && !remainingOrderBy().isPresent()) {
             Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
                 if (!relationPartOfJoinConditions.contains(rel.getQualifiedName())) {

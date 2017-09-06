@@ -27,7 +27,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -91,13 +90,10 @@ class MultiSourceAggregationConsumer implements Consumer {
             JoinPairs.extractFieldsFromJoinConditions(mss.joinPairs()));
         querySpec.outputs(outputs);
         querySpec.hasAggregates(false);
-        // Limit & offset must be applied after the aggregation, so remove it from mss and sources.
+        // Limit & offset must be applied after the aggregation, so remove it from mss.
         // OrderBy can be ignored because it's also applied after aggregation but there is always only 1 row so it
         // wouldn't have any effect.
         removeLimitOffsetAndOrder(querySpec);
-        for (AnalyzedRelation relation : mss.sources().values()) {
-            removeLimitOffsetAndOrder(((QueriedRelation) relation).querySpec());
-        }
 
         // need to change the types on the fields of the MSS to match the new outputs
         ListIterator<Field> fieldsIt = mss.fields().listIterator();

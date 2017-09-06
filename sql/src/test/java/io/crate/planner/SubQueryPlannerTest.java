@@ -28,6 +28,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
@@ -242,6 +243,46 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Collect leftPlan = (Collect) nl.left();
         assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[false], nullsFirst=[null]}"));
+        assertThat(leftPlan.limit(), is(5));
+        assertThat(leftPlan.offset(), is(2));
+        assertThat(leftPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(7));
+        assertThat(topNProjection.offset(), is(0));
+
+        Collect rightPlan = (Collect) nl.right();
+        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[true], nullsFirst=[null]}"));
+        assertThat(rightPlan.limit(), is(10));
+        assertThat(rightPlan.offset(), is(5));
+        assertThat(rightPlan.collectPhase().projections().size(), is(1));
+        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(15));
+        assertThat(topNProjection.offset(), is(0));
+    }
+
+    @Test
+    @SuppressWarnings("ConstantConditions")
+    public void testJoinWithGlobalAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
+        NestedLoop nl = e.plan("select count(*) from " +
+                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                               "join" +
+                               " (select i from t2 order by i desc limit 10 offset 5) t2 " +
+                               "on t1.i = t2.i");
+        assertThat(nl.nestedLoopPhase().projections().size(), is(3));
+        assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(AggregationProjection.class));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
+        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(5));
+        assertThat(topNProjection.offset(), is(2));
+        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
+        assertThat(topNProjection.limit(), is(10));
+        assertThat(topNProjection.offset(), is(5));
+
+        Collect leftPlan = (Collect) nl.left();
+        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
         assertThat(leftPlan.limit(), is(5));
         assertThat(leftPlan.offset(), is(2));
         assertThat(leftPlan.collectPhase().projections().size(), is(1));
