@@ -144,7 +144,9 @@ public class PlanPrinter {
 
         @Override
         public ImmutableMap.Builder<String, Object> visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
-            ImmutableMap.Builder<String, Object> b = upstreamPhase(phase, visitExecutionPhase(phase, context));
+            ImmutableMap.Builder<String, Object> b = upstreamPhase(
+                phase,
+                visitExecutionPhase(phase, context).put("joinType", phase.joinType()));
             return dqlPlanNode(phase, b);
         }
     }
