@@ -64,6 +64,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         }
     }
 
+    @Override
     public String name() {
         return name;
     }
