@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 
 public class OutputNameFormatter {
 
-    private final static InnerOutputNameFormatter INSTANCE = new InnerOutputNameFormatter();
+    private static final InnerOutputNameFormatter INSTANCE = new InnerOutputNameFormatter();
 
     public static String format(Expression expression) {
         return INSTANCE.process(expression, null);

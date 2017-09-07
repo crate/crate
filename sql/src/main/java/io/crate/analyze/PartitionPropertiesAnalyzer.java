@@ -35,7 +35,11 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class PartitionPropertiesAnalyzer {
 

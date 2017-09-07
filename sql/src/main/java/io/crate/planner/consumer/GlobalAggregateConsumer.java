@@ -22,17 +22,30 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.*;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Merge;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
@@ -44,7 +57,11 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 
 class GlobalAggregateConsumer implements Consumer {
@@ -192,7 +209,7 @@ class GlobalAggregateConsumer implements Consumer {
         return createMerge(collect, plannerContext, postAggregationProjections);
     }
 
-    private static void validateAggregationOutputs( Collection<? extends Symbol> outputSymbols) {
+    private static void validateAggregationOutputs(Collection<? extends Symbol> outputSymbols) {
         OutputValidatorContext context = new OutputValidatorContext();
         for (Symbol outputSymbol : outputSymbols) {
             context.insideAggregation = false;

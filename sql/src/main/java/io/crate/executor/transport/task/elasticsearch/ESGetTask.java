@@ -79,7 +79,7 @@ import java.util.stream.StreamSupport;
 
 public class ESGetTask extends JobTask {
 
-    private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
+    private static final Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
     private final TransportActionProvider transportActionProvider;
     private final ESGet esGet;
@@ -89,7 +89,7 @@ public class ESGetTask extends JobTask {
     private final InputRow inputRow;
     private final Collection<CollectExpression<GetResponse, ?>> expressions;
 
-    static abstract class JobContext<Action extends TransportAction<Request, Response>,
+    abstract static class JobContext<Action extends TransportAction<Request, Response>,
         Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
         implements ActionListener<Response> {
 

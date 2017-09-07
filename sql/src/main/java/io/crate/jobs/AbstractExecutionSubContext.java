@@ -107,7 +107,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
         }
     }
 
-    final public void close() {
+    public final void close() {
         close(null);
     }
 
@@ -115,7 +115,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     }
 
     @Override
-    final public void kill(@Nullable Throwable t) {
+    public final void kill(@Nullable Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
             if (t == null) {
                 t = new InterruptedException(JobKilledException.MESSAGE);

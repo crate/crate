@@ -24,8 +24,8 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 
 class NodeIdExpression implements ReferenceImplementation<BytesRef> {
 

@@ -52,7 +52,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class SimplePortal extends AbstractPortal {
 
-    private final static Logger LOGGER = Loggers.getLogger(SimplePortal.class);
+    private static final Logger LOGGER = Loggers.getLogger(SimplePortal.class);
 
     private List<Object> params;
     private String query;

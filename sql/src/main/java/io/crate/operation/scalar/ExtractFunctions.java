@@ -46,9 +46,9 @@ import java.util.Locale;
 
 public class ExtractFunctions {
 
-    private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
-    private final static String NAME_PREFIX = "extract_";
-    public final static FunctionInfo GENERIC_INFO = new FunctionInfo(
+    private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
+    private static final String NAME_PREFIX = "extract_";
+    public static final FunctionInfo GENERIC_INFO = new FunctionInfo(
         new FunctionIdent("_extract", ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
 
     private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
@@ -105,12 +105,13 @@ public class ExtractFunctions {
                 return ExtractMinute.INSTANCE;
             case SECOND:
                 return ExtractSecond.INSTANCE;
+            // fall through
             case TIMEZONE_HOUR:
-                break;
             case TIMEZONE_MINUTE:
-                break;
+            default:
+                throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
         }
-        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
     }
 
     private static FunctionInfo createFunctionInfo(Extract.Field field) {

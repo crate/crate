@@ -22,9 +22,9 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.IndexMappings;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;

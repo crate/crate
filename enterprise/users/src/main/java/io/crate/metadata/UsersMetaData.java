@@ -121,7 +121,7 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        UsersMetaData that =(UsersMetaData)o;
+        UsersMetaData that = (UsersMetaData) o;
         return Objects.equals(users, that.users);
     }
 

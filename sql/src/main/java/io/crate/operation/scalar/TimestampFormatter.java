@@ -41,36 +41,36 @@ public class TimestampFormatter {
         String format(DateTime timestamp);
     }
 
-    private final static Locale LOCALE = Locale.ENGLISH;
-    private final static CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
+    private static final Locale LOCALE = Locale.ENGLISH;
+    private static final CharObjectMap<FormatTimestampPartFunction> PART_FORMATTERS = new CharObjectHashMap<>();
 
     private static void addFormatter(char character, FormatTimestampPartFunction fun) {
         PART_FORMATTERS.put(character, fun);
     }
 
     static {
-        // %a	Abbreviated weekday name (Sun..Sat)
+        // %a Abbreviated weekday name (Sun..Sat)
         addFormatter('a', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.dayOfWeek().getAsShortText(LOCALE);
             }
         });
-        // %b	Abbreviated month name (Jan..Dec)
+        // %b Abbreviated month name (Jan..Dec)
         addFormatter('b', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.monthOfYear().getAsShortText(LOCALE);
             }
         });
-        // %c	Month, numeric (0..12)
+        // %c Month, numeric (0..12)
         addFormatter('c', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return String.valueOf(timestamp.monthOfYear().get());
             }
         });
-        // %D	Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
+        // %D Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
         addFormatter('D', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -96,7 +96,7 @@ public class TimestampFormatter {
                 return builder.toString();
             }
         });
-        //  %d	Day of the month, numeric (00..31)
+        //  %d Day of the month, numeric (00..31)
         addFormatter('d', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -104,14 +104,14 @@ public class TimestampFormatter {
                 return zeroPadded(2, dayOfMonth);
             }
         });
-        //  %e	Day of the month, numeric (0..31)
+        //  %e Day of the month, numeric (0..31)
         addFormatter('e', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return String.valueOf(timestamp.dayOfMonth().get());
             }
         });
-        // %f	Microseconds (000000..999999)
+        // %f Microseconds (000000..999999)
         addFormatter('f', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -126,7 +126,7 @@ public class TimestampFormatter {
                 return zeroPadded(2, String.valueOf(hourOfDay));
             }
         };
-        // %H	Hour (00..23)
+        // %H Hour (00..23)
         addFormatter('H', padded24HourFunction);
 
         final FormatTimestampPartFunction padded12HourFunction = new FormatTimestampPartFunction() {
@@ -139,12 +139,12 @@ public class TimestampFormatter {
                 return zeroPadded(2, String.valueOf(hourOfDay));
             }
         };
-        // %h	Hour (01..12)
-        // %I	Hour (01..12)
+        // %h Hour (01..12)
+        // %I Hour (01..12)
         addFormatter('h', padded12HourFunction);
         addFormatter('I', padded12HourFunction);
 
-        // %i	Minutes, numeric (00..59)
+        // %i Minutes, numeric (00..59)
         addFormatter('i', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -152,21 +152,21 @@ public class TimestampFormatter {
             }
         });
 
-        // %j	Day of year (001..366)
+        // %j Day of year (001..366)
         addFormatter('j', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return zeroPadded(3, timestamp.dayOfYear().getAsShortText(LOCALE));
             }
         });
-        // %k	Hour (0..23)
+        // %k Hour (0..23)
         addFormatter('k', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.hourOfDay().getAsShortText(LOCALE);
             }
         });
-        // %l	Hour (1..12)
+        // %l Hour (1..12)
         addFormatter('l', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -177,14 +177,14 @@ public class TimestampFormatter {
                 return String.valueOf(hourOfDay);
             }
         });
-        // %M	Month name (January..December)
+        // %M Month name (January..December)
         addFormatter('M', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.monthOfYear().getAsText(LOCALE);
             }
         });
-        // %m	Month, numeric (00..12)
+        // %m Month, numeric (00..12)
         addFormatter('m', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -198,7 +198,7 @@ public class TimestampFormatter {
                 return timestamp.getHourOfDay() < 12 ? "AM" : "PM";
             }
         };
-        // %p	AM or PM
+        // %p AM or PM
         addFormatter('p', amPmFunc);
 
 
@@ -215,7 +215,7 @@ public class TimestampFormatter {
             }
         };
 
-        // %r	Time, 12-hour (hh:mm:ss followed by AM or PM)
+        // %r Time, 12-hour (hh:mm:ss followed by AM or PM)
         addFormatter('r', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -226,12 +226,12 @@ public class TimestampFormatter {
             }
         });
 
-        // %S	Seconds (00..59)
-        // %s	Seconds (00..59)
+        // %S Seconds (00..59)
+        // %s Seconds (00..59)
         addFormatter('s', paddedSecondFunction);
         addFormatter('S', paddedSecondFunction);
 
-        //  %T	Time, 24-hour (hh:mm:ss)
+        //  %T Time, 24-hour (hh:mm:ss)
         addFormatter('T', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -241,7 +241,7 @@ public class TimestampFormatter {
             }
         });
 
-        // %U	Week (00..53), where Sunday is the first day of the week; WEEK() mode 0
+        // %U Week (00..53), where Sunday is the first day of the week; WEEK() mode 0
         // with respect to the year that contains the first day of the week for the given date
         // if first week
         addFormatter('U', new FormatTimestampPartFunction() {
@@ -264,7 +264,7 @@ public class TimestampFormatter {
                 return zeroPadded(2, String.valueOf(week));
             }
         });
-        // %u	Week (00..53), where Monday is the first day of the week; WEEK() mode 1
+        // %u Week (00..53), where Monday is the first day of the week; WEEK() mode 1
         // weeks are numbered according to ISO 8601:1988
         addFormatter('u', new FormatTimestampPartFunction() {
             @Override
@@ -284,7 +284,7 @@ public class TimestampFormatter {
                 return zeroPadded(2, String.valueOf(week));
             }
         });
-        // %V	Week (01..53), where Sunday is the first day of the week; WEEK() mode 2; used with %X
+        // %V Week (01..53), where Sunday is the first day of the week; WEEK() mode 2; used with %X
         // with respect to the year that contains the first day of the week for the given date
         addFormatter('V', new FormatTimestampPartFunction() {
             @Override
@@ -305,7 +305,7 @@ public class TimestampFormatter {
                 return zeroPadded(2, String.valueOf(week));
             }
         });
-        // %v	Week (01..53), where Monday is the first day of the week; WEEK() mode 3; used with %x
+        // %v Week (01..53), where Monday is the first day of the week; WEEK() mode 3; used with %x
         // weeks are numbered according to ISO 8601:1988
         addFormatter('v', new FormatTimestampPartFunction() {
             @Override
@@ -327,14 +327,14 @@ public class TimestampFormatter {
             }
         });
 
-        // %W	Weekday name (Sunday..Saturday)
+        // %W Weekday name (Sunday..Saturday)
         addFormatter('W', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.dayOfWeek().getAsText(LOCALE);
             }
         });
-        // %w	Day of the week (0=Sunday..6=Saturday)
+        // %w Day of the week (0=Sunday..6=Saturday)
         addFormatter('w', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -344,7 +344,7 @@ public class TimestampFormatter {
             }
         });
 
-        // %X	Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V
+        // %X Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V
         addFormatter('X', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -356,7 +356,7 @@ public class TimestampFormatter {
             }
         });
 
-        // %x	Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v
+        // %x Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v
         addFormatter('x', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
@@ -368,14 +368,14 @@ public class TimestampFormatter {
             }
         });
 
-        // %Y	Year, numeric, four digits
+        // %Y Year, numeric, four digits
         addFormatter('Y', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {
                 return timestamp.year().getAsShortText(Locale.ENGLISH);
             }
         });
-        // %y	Year, numeric (two digits)
+        // %y Year, numeric (two digits)
         addFormatter('y', new FormatTimestampPartFunction() {
             @Override
             public String format(DateTime timestamp) {

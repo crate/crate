@@ -43,7 +43,7 @@ import java.util.List;
 public class SysJobsLogTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "jobs_log");
-    private final static List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
+    private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");

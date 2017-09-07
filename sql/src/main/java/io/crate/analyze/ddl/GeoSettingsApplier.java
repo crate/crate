@@ -34,7 +34,7 @@ import java.util.Set;
 
 public class GeoSettingsApplier {
 
-    private final static Set<String> SUPPORTED_OPTIONS = ImmutableSet.of(
+    private static final Set<String> SUPPORTED_OPTIONS = ImmutableSet.of(
         "precision", "distance_error_pct", "tree_levels");
 
     public static void applySettings(Map<String, Object> mapping, Settings geoSettings, @Nullable String geoTree) {

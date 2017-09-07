@@ -22,7 +22,13 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.*;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QueryClause;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
@@ -34,7 +40,12 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Merge;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.ReaderAllocations;
 import io.crate.planner.fetch.FetchRewriter;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
@@ -42,7 +53,11 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
@@ -65,7 +80,7 @@ public class QueryAndFetchConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private final static class Visitor extends RelationPlanningVisitor {
+    private static final  class Visitor extends RelationPlanningVisitor {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
@@ -362,7 +377,7 @@ public class QueryAndFetchConsumer implements Consumer {
         return qsOutputs;
     }
 
-    private final static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
+    private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
 
         private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 

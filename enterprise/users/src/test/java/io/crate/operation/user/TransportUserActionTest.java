@@ -19,7 +19,6 @@
 package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;

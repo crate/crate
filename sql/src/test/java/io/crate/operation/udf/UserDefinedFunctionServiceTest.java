@@ -33,7 +33,12 @@ import io.crate.metadata.Schemas;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 

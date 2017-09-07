@@ -21,7 +21,11 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.FilteringBatchIterator;
+import io.crate.data.Projector;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 
 import java.util.function.Predicate;
 

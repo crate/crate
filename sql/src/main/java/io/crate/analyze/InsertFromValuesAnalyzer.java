@@ -458,9 +458,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final EvaluatingNormalizer normalizer;
 
         private Object[] insertValues;
-        private
         @Nullable
-        String routingValue;
+        private String routingValue;
 
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,

@@ -78,9 +78,9 @@ public final class HashFunctions {
             byte[] hexString = new byte[input.length << 1];
             for (int temp, i = 0; i < input.length; i++) {
                 temp = (input[i] >> 4) & 0x0F;
-                hexString[2*i] = (byte) (temp < 10 ? temp + '0' : temp + 'W');
+                hexString[2 * i] = (byte) (temp < 10 ? temp + '0' : temp + 'W');
                 temp = input[i] & 0x0F;
-                hexString[2*i+1] = (byte) (temp < 10 ? temp + '0' : temp + 'W');
+                hexString[2 * i + 1] = (byte) (temp < 10 ? temp + '0' : temp + 'W');
             }
             return hexString;
         }

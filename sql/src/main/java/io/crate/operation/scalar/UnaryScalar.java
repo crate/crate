@@ -22,9 +22,9 @@
 
 package io.crate.operation.scalar;
 
+import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.data.Input;
 
 import java.util.function.Function;
 

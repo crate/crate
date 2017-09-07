@@ -23,7 +23,13 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Lists;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationNormalizer;
+import io.crate.analyze.relations.SubselectRewriter;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Functions;

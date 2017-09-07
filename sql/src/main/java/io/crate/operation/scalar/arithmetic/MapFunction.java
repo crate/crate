@@ -22,8 +22,14 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,9 +51,9 @@ import java.util.Map;
  */
 public class MapFunction extends Scalar<Object, Object> {
 
-    public final static String NAME = "_map";
+    public static final String NAME = "_map";
 
-    private final static FunctionResolver RESOLVER = new BaseFunctionResolver(
+    private static final FunctionResolver RESOLVER = new BaseFunctionResolver(
         // emtpy args or (string, any) pairs
         Signature.ofIterable(() -> new Iterator<Signature.ArgMatcher>() {
             private int pos = 0;

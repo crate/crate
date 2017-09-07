@@ -68,13 +68,14 @@ public class RemoteDigestBlob {
                     return EXISTS;
                 case 4:
                     return FAILED;
+                default:
+                    throw new IllegalArgumentException("No status match for [" + id + "]");
             }
-            throw new IllegalArgumentException("No status match for [" + id + "]");
         }
     }
 
 
-    private final static Logger logger = Loggers.getLogger(RemoteDigestBlob.class);
+    private static final Logger logger = Loggers.getLogger(RemoteDigestBlob.class);
 
     private final String digest;
     private final Client client;

@@ -455,7 +455,7 @@ public class AlterTableOperation {
         for (String key : mappingsToRemove.keySet()) {
             if (mapping.containsKey(key)) {
                 if (mapping.get(key) instanceof Map) {
-                    mapping.put(key, removeFromMapping( (Map<String, Object>) mapping.get(key),
+                    mapping.put(key, removeFromMapping((Map<String, Object>) mapping.get(key),
                                                  (Map<String, Object>) mappingsToRemove.get(key)));
                 } else {
                     mapping.remove(key);

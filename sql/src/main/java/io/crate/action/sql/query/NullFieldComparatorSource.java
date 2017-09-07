@@ -41,7 +41,7 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
 
     private final SortField.Type sortFieldType;
     private final Object missingValue;
-    private final static LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
+    private static final LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
         @Override
         public void setBottom(int slot) {
         }

@@ -22,7 +22,6 @@
 
 package io.crate.operation.collect.stats;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.operation.reference.sys.job.ContextLog;
@@ -39,7 +38,11 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;

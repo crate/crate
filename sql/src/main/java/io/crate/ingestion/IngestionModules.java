@@ -27,7 +27,6 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 
 import java.util.Collection;
-import java.util.List;
 
 public interface IngestionModules {
 

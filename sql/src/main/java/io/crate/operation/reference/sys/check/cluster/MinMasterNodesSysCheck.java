@@ -23,7 +23,11 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import io.crate.metadata.*;
+import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;

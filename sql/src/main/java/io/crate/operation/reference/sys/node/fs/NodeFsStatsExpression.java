@@ -59,10 +59,12 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
         total.setNextRow(this.row);
         disks.setNextRow(this.row);
         data.setNextRow(this.row);
-        return new HashMap<String, Object>() {{
-            put(TOTAL, total.value());
-            put(DISKS, disks.value());
-            put(DATA, data.value());
-        }};
+        return new HashMap<String, Object>() {
+            {
+                put(TOTAL, total.value());
+                put(DISKS, disks.value());
+                put(DATA, data.value());
+            }
+        };
     }
 }

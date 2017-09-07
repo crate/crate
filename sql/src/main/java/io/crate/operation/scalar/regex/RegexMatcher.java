@@ -54,7 +54,7 @@ public class RegexMatcher {
         this(regex, 0, false);
     }
 
-    private static void UTF8toUTF16(BytesRef bytes, CharsRef charsRef) {
+    private static void utf8toUtf16(BytesRef bytes, CharsRef charsRef) {
         if (charsRef.chars.length < bytes.length) {
             charsRef.chars = new char[bytes.length];
         }
@@ -62,7 +62,7 @@ public class RegexMatcher {
     }
 
     public boolean match(BytesRef term) {
-        UTF8toUTF16(term, utf16);
+        utf8toUtf16(term, utf16);
         return matcher.reset().find();
     }
 
@@ -90,7 +90,7 @@ public class RegexMatcher {
     }
 
     public BytesRef replace(BytesRef term, String replacement) {
-        UTF8toUTF16(term, utf16);
+        utf8toUtf16(term, utf16);
         if (globalFlag) {
             return new BytesRef(matcher.replaceAll(replacement));
         } else {

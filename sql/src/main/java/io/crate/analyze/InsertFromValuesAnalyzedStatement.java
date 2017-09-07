@@ -78,9 +78,8 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return map;
     }
 
-    public
     @Nullable
-    Map<String, String> currentPartitionMap() {
+    public Map<String, String> currentPartitionMap() {
         return partitionMaps.get(partitionMaps.size() - 1);
     }
 

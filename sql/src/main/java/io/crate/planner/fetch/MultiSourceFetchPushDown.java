@@ -127,7 +127,7 @@ class MultiSourceFetchPushDown {
             if (!canBeFetched.isEmpty()) {
 
                 Field fetchIdColumn = rel.getField(DocSysColumns.FETCHID);
-                assert fetchIdColumn != null: "_fetchId must be accessible";
+                assert fetchIdColumn != null : "_fetchId must be accessible";
                 mssOutputs.add(fetchIdColumn);
                 InputColumn fetchIdInput = new InputColumn(mssOutputs.size() - 1, fetchIdColumn.valueType());
 
@@ -206,7 +206,7 @@ class MultiSourceFetchPushDown {
         }
     }
 
-    private final static class FetchFields {
+    private static final class FetchFields {
 
         private final DocTableRelation tableRelation;
         private Set<Field> canBeFetchedParent = new LinkedHashSet<>();

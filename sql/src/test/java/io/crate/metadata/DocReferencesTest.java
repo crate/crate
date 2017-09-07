@@ -25,7 +25,7 @@ package io.crate.metadata;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class DocReferencesTest {
 

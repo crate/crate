@@ -44,8 +44,8 @@ public class RowBridging {
         }
     };
 
-    public static Object[] materialize(Columns inputs){
-        assert inputs != null: "inputs must not be null";
+    public static Object[] materialize(Columns inputs) {
+        assert inputs != null : "inputs must not be null";
         Object[] res = new Object[inputs.size()];
         for (int i = 0; i < res.length; i++) {
             res[i] = inputs.get(i).value();
@@ -53,8 +53,8 @@ public class RowBridging {
         return res;
     }
 
-    public static Row toRow(Columns inputs){
-        assert inputs != null: "inputs must not be null";
+    public static Row toRow(Columns inputs) {
+        assert inputs != null : "inputs must not be null";
         return new Row() {
             @Override
             public int numColumns() {

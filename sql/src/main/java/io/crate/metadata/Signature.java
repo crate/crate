@@ -365,7 +365,7 @@ public class Signature {
         }
 
         @Nullable
-        private List<DataType> normalize(List<DataType> dataTypes, ArgMatcher varArgMatcher){
+        private List<DataType> normalize(List<DataType> dataTypes, ArgMatcher varArgMatcher) {
             for (int i = 0; i < dataTypes.size(); i++) {
                 ArgMatcher matcher = i < matchers.length - 1 ? matchers[i] : varArgMatcher;
                 DataType dataType = dataTypes.get(i);

@@ -155,8 +155,7 @@ public class FulltextAnalyzerResolver {
 
     public Map<String, Settings> getCustomTokenizers() throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKENIZER).getAsMap
-            ().entrySet()) {
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKENIZER).getAsMap().entrySet()) {
             result.put(entry.getKey(), decodeSettings(entry.getValue()));
         }
         return result;
@@ -174,8 +173,7 @@ public class FulltextAnalyzerResolver {
 
     public Map<String, Settings> getCustomCharFilters() throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.CHAR_FILTER).getAsMap
-            ().entrySet()) {
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.CHAR_FILTER).getAsMap().entrySet()) {
             result.put(entry.getKey(), decodeSettings(entry.getValue()));
         }
         return result;
@@ -194,8 +192,7 @@ public class FulltextAnalyzerResolver {
 
     public Map<String, Settings> getCustomTokenFilters() throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKEN_FILTER).getAsMap
-            ().entrySet()) {
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKEN_FILTER).getAsMap().entrySet()) {
             result.put(entry.getKey(), decodeSettings(entry.getValue()));
         }
         return result;
@@ -252,8 +249,8 @@ public class FulltextAnalyzerResolver {
     }
 
     private Settings getCustomThingies(CustomType type) {
-        Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings
-            ().getGroups(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+        Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings()
+            .getGroups(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
         return result != null ? result : Settings.EMPTY;
     }

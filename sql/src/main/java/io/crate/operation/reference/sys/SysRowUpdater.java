@@ -22,9 +22,9 @@
 
 package io.crate.operation.reference.sys;
 
+import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowCollectExpression;
-import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collection;
@@ -73,7 +73,7 @@ public interface SysRowUpdater<TRow> {
      * @return a consumer which writes the values upon its invocation
      */
     default Consumer<Object> newRowWriter(List<ColumnIdent> idents, List<Input<?>> values, Collection<RowCollectExpression<?, ?>> expressions) {
-        assert idents.size() == values.size(): "the number of idents needs to match the number of values";
+        assert idents.size() == values.size() : "the number of idents needs to match the number of values";
         List<BiConsumer<TRow, Input<?>>> writers = idents.stream().map(this::getWriter).collect(Collectors.toList());
         return id -> {
             TRow row = getRow(id);

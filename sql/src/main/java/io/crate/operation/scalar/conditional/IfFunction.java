@@ -62,7 +62,7 @@ import java.util.Locale;
  */
 public class IfFunction extends Scalar<Object, Object> {
 
-    public final static String NAME = "if";
+    public static final String NAME = "if";
 
     private final FunctionInfo info;
 
@@ -103,7 +103,7 @@ public class IfFunction extends Scalar<Object, Object> {
     public static Symbol createChain(List<Symbol> operands, List<Symbol> results, @Nullable Symbol defaultValueSymbol) {
         Symbol lastSymbol = defaultValueSymbol;
         // process operands in reverse order
-        for (int i = operands.size() -1; i >= 0; i-- ) {
+        for (int i = operands.size() - 1 ; i >= 0; i--) {
             Symbol operand = operands.get(i);
             Symbol result = results.get(i);
             List<Symbol> arguments = Lists.newArrayList(operand, result);

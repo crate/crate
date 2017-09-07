@@ -62,7 +62,7 @@ import static io.crate.operation.reference.sys.node.Ports.portFromAddress;
 @Singleton
 public class NodeStatsContextFieldResolver {
 
-    private final static Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
+    private static final Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
     private final Supplier<DiscoveryNode> localNode;
     private final Supplier<TransportAddress> boundHttpAddress;
     private final ThreadPool threadPool;

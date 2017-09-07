@@ -47,8 +47,8 @@ public class ESGet extends UnnestablePlan {
     private final int offset;
     private final UUID jobId;
 
-    private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
-    private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
+    private static final boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
+    private static final Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
     private final DocKeys docKeys;
     private final List<Symbol> outputs;
     private final List<DataType> outputTypes;
@@ -72,7 +72,7 @@ public class ESGet extends UnnestablePlan {
 
         outputTypes = Symbols.typeView(outputs);
 
-        if (optOrderBY.isPresent()){
+        if (optOrderBY.isPresent()) {
             OrderBy orderBy = optOrderBY.get();
             this.sortSymbols = orderBy.orderBySymbols();
             this.reverseFlags = orderBy.reverseFlags();

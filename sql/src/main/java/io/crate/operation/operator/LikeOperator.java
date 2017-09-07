@@ -22,9 +22,9 @@
 package io.crate.operation.operator;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.data.Input;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
@@ -113,6 +113,7 @@ public class LikeOperator extends Operator<BytesRef> {
                     default:
                         // escape special regex characters
                         switch (currentChar) {
+                            // fall through
                             case '\\':
                             case '^':
                             case '$':
@@ -125,6 +126,8 @@ public class LikeOperator extends Operator<BytesRef> {
                             case '|':
                             case '+':
                                 regex.append('\\');
+                                break;
+                            default:
                         }
 
                         regex.append(currentChar);

@@ -28,7 +28,7 @@ import io.crate.data.ProxyInput;
 
 class CombinedColumn implements Columns {
 
-    private final static Input<Object> NULL_INPUT = () -> null;
+    private static final Input<Object> NULL_INPUT = () -> null;
 
     private final ProxyInput[] inputs;
     private final Columns left;

@@ -24,8 +24,8 @@ package io.crate.planner.node.management;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 
 public class KillPlan extends UnnestablePlan {
 

@@ -18,17 +18,28 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.CrateTableOption;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.PartitionedBy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.util.Collection;

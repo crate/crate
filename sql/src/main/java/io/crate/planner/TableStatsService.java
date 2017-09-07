@@ -112,7 +112,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     static class TableStatsResultReceiver extends BaseResultReceiver {
 
-        private final static Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
+        private static final Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
 
         private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
         private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();

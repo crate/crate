@@ -23,7 +23,12 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.Input;
+import io.crate.data.Projector;
+import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.Scalar;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;

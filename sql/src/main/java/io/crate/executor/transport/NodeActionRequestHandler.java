@@ -35,7 +35,7 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
     implements TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;
-    private final static Logger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
+    private static final Logger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
 
     public NodeActionRequestHandler(NodeAction<TRequest, TResponse> nodeAction) {
         this.nodeAction = nodeAction;

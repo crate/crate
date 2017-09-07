@@ -52,8 +52,8 @@ import java.util.List;
  */
 public class EmptyRowTableFunction {
 
-    private final static String NAME = "empty_row";
-    private final static TableIdent TABLE_IDENT = new TableIdent("", NAME);
+    private static final String NAME = "empty_row";
+    private static final TableIdent TABLE_IDENT = new TableIdent("", NAME);
 
     static class EmptyRowTableFunctionImplementation implements TableFunctionImplementation {
 

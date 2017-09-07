@@ -111,7 +111,7 @@ public final class BatchIteratorCollectorBridge {
             synchronized (consumer) {
                 if (killed == null) {
                     batchIterator = iterator;
-                } else if (throwable == null){
+                } else if (throwable == null) {
                     throwable = killed;
                 }
             }

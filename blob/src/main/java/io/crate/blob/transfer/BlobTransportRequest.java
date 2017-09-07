@@ -19,18 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.pending_transfer;
+package io.crate.blob.transfer;
 
-import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportRequest;
 
+import java.io.IOException;
 import java.util.UUID;
 
-public class TransferRestoreException extends ElasticsearchException {
+public abstract class BlobTransportRequest extends TransportRequest {
 
     public UUID transferId;
+    public String senderNodeId;
 
-    public TransferRestoreException(String msg, UUID transferId, Throwable cause) {
-        super(msg, cause);
+    public BlobTransportRequest() {
+    }
+
+    public BlobTransportRequest(String senderNodeId, UUID transferId) {
+        this.senderNodeId = senderNodeId;
         this.transferId = transferId;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        senderNodeId = in.readString();
+        transferId = new UUID(in.readLong(), in.readLong());
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(senderNodeId);
+        out.writeLong(transferId.getMostSignificantBits());
+        out.writeLong(transferId.getLeastSignificantBits());
     }
 }

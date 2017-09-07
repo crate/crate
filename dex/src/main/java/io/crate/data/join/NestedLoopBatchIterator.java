@@ -135,8 +135,9 @@ public class NestedLoopBatchIterator implements BatchIterator {
         if (left.moveNext()) {
             return right.moveNext();
         }
-        activeIt = left; // left is either out of rows or needs to load more data - whatever the case,
-                         // next moveNext must operate on left
+        // left is either out of rows or needs to load more data - whatever the case,
+        // next moveNext must operate on left
+        activeIt = left;
         return false;
     }
 

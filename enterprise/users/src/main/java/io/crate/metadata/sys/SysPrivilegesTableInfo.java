@@ -82,6 +82,7 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
             PRIMARY_KEY);
         this.clusterService = clusterService;
     }
+
     @Override
     public RowGranularity rowGranularity() {
         return GRANULARITY;

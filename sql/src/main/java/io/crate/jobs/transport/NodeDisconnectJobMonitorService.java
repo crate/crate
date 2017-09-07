@@ -22,7 +22,6 @@
 
 package io.crate.jobs.transport;
 
-import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -55,9 +54,9 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
     private final JobContextService jobContextService;
     private final TransportService transportService;
 
-    private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
+    private static final TimeValue DELAY = TimeValue.timeValueMinutes(1);
     private final TransportKillJobsNodeAction killJobsNodeAction;
-    private final static Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
+    private static final Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,

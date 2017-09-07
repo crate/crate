@@ -22,15 +22,18 @@
 
 package io.crate.operation.scalar.conditional;
 
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
 import java.util.List;
 
 public class NullIfFunction extends ConditionalFunction {
-    public final static String NAME = "nullif";
+    public static final String NAME = "nullif";
 
     private NullIfFunction(FunctionInfo info) {
         super(info);

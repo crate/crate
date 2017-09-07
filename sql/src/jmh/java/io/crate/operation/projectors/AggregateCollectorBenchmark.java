@@ -32,7 +32,13 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
 
 import java.util.Collections;
 import java.util.List;

@@ -28,8 +28,8 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import org.elasticsearch.action.ActionListener;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class InterceptingBatchConsumer implements BatchConsumer {
 
-    private final static Logger LOGGER = Loggers.getLogger(InterceptingBatchConsumer.class);
+    private static final Logger LOGGER = Loggers.getLogger(InterceptingBatchConsumer.class);
 
     private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;

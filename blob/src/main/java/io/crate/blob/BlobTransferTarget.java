@@ -23,10 +23,10 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
-import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
-import io.crate.blob.pending_transfer.BlobInfoRequest;
-import io.crate.blob.pending_transfer.BlobTransferInfoResponse;
-import io.crate.blob.pending_transfer.GetBlobHeadRequest;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
+import io.crate.blob.transfer.BlobInfoRequest;
+import io.crate.blob.transfer.BlobTransferInfoResponse;
+import io.crate.blob.transfer.GetBlobHeadRequest;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.apache.lucene.util.IOUtils;
@@ -39,13 +39,22 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.EmptyTransportResponseHandler;
+import org.elasticsearch.transport.FutureTransportResponseHandler;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class BlobTransferTarget extends AbstractComponent {
 

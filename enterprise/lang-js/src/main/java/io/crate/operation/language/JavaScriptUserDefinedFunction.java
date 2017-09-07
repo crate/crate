@@ -189,6 +189,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
                 break;
             case SetType.ID:
                 return new HashSet<>(scriptObject.values());
+            default:
         }
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
             "The return type of the function [%s] is not compatible with the type of the function evaluation result.",

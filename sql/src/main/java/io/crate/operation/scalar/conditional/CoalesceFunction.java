@@ -22,12 +22,12 @@
 
 package io.crate.operation.scalar.conditional;
 
-import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 
 public class CoalesceFunction extends ConditionalFunction {
-    public final static String NAME = "coalesce";
+    public static final String NAME = "coalesce";
 
     private CoalesceFunction(FunctionInfo info) {
         super(info);

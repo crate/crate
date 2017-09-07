@@ -32,8 +32,8 @@ import org.apache.lucene.util.BytesRef;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 

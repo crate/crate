@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 public abstract class PGType {
 
     static final int INT32_BYTE_SIZE = Integer.SIZE / 8;
-    private final static Logger LOGGER = Loggers.getLogger(PGType.class);
+    private static final Logger LOGGER = Loggers.getLogger(PGType.class);
 
     private final int oid;
     private final int typeLen;

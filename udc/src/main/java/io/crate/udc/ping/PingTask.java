@@ -45,7 +45,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,10 +122,12 @@ public class PingTask extends TimerTask {
     }
 
     private Map<String, Object> getCounters() {
-        return new HashMap<String, Object>() {{
-            put("success", successCounter.get());
-            put("failure", failCounter.get());
-        }};
+        return new HashMap<String, Object>() {
+            {
+                put("success", successCounter.get());
+                put("failure", failCounter.get());
+            }
+        };
     }
 
     @Nullable
@@ -140,7 +147,7 @@ public class PingTask extends TimerTask {
 
     private URL buildPingUrl() throws URISyntaxException, IOException, NoSuchAlgorithmException {
 
-        URI uri = new URI(this.pingUrl);
+        final URI uri = new URI(this.pingUrl);
 
         Map<String, String> queryMap = new HashMap<>();
         queryMap.put("cluster_id", getClusterId()); // block until clusterId is available

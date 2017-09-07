@@ -56,9 +56,9 @@ import java.util.function.Predicate;
 
 public class SQLExceptions {
 
-    private final static Logger LOGGER = Loggers.getLogger(SQLExceptions.class);
+    private static final Logger LOGGER = Loggers.getLogger(SQLExceptions.class);
 
-    private final static Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
+    private static final Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof CompletionException ||
@@ -136,7 +136,7 @@ public class SQLExceptions {
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
                 restStatus = RestStatus.BAD_REQUEST;
-            } else if (e instanceof UnauthorizedException){
+            } else if (e instanceof UnauthorizedException) {
                 errorCode = 4010 + crateException.errorCode();
                 restStatus = RestStatus.UNAUTHORIZED;
             } else if (e instanceof ReadOnlyException) {

@@ -38,12 +38,12 @@ import java.util.Collection;
  */
 public class OrderByWithAggregationValidator {
 
-    private final static String INVALID_FIELD_TEMPLATE = "ORDER BY expression '%s' must appear in the select clause " +
+    private static final  String INVALID_FIELD_TEMPLATE = "ORDER BY expression '%s' must appear in the select clause " +
                                                          "when grouping or global aggregation is used";
-    private final static String INVALID_FIELD_IN_DISTINCT_TEMPLATE = "ORDER BY expression '%s' must appear in the " +
+    private static final  String INVALID_FIELD_IN_DISTINCT_TEMPLATE = "ORDER BY expression '%s' must appear in the " +
                                                                      "select clause when SELECT DISTINCT is used";
 
-    private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final  InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol,
                                 Collection<? extends Symbol> outputSymbols,

@@ -148,7 +148,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     protected abstract WriteReplicaResult<Request> processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
 
-    static abstract class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
+    abstract static class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 
         protected AtomicBoolean killed = new AtomicBoolean(false);
 

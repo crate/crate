@@ -28,8 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class
-LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+public class LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;

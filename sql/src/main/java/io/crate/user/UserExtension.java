@@ -33,6 +33,7 @@ import java.util.List;
 public interface UserExtension {
 
     List<NamedWriteableRegistry.Entry> getNamedWriteables();
+
     List<NamedXContentRegistry.Entry> getNamedXContent();
 
     Collection<Module> getModules(Settings settings);

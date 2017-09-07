@@ -188,7 +188,7 @@ public class UnnestFunction {
         return length;
     }
 
-    public static void register(TableFunctionModule module){
+    public static void register(TableFunctionModule module) {
         module.register(NAME, new BaseFunctionResolver(
             Signature.withLenientVarArgs(Signature.ArgMatcher.ANY_ARRAY)) {
 

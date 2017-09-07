@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.HavingClause;
@@ -213,8 +212,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new FullQualifiedNameFieldProvider(context.sources(), context.parentSources(), sessionContext.defaultSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
-        Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-        WhereClause whereClause = new WhereClause(querySymbol);
 
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
             node.getSelect(), context.sources(), expressionAnalyzer, expressionAnalysisContext);
@@ -243,6 +240,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (groupBy != null && groupBy.isEmpty()) {
             groupBy = null;
         }
+        Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+        WhereClause whereClause = new WhereClause(querySymbol);
         QuerySpec querySpec = new QuerySpec()
             .orderBy(analyzeOrderBy(
                 selectAnalysis,
@@ -420,6 +419,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 case UNDEFINED:
                     nullsFirst[i] = null;
                     break;
+                default:
             }
             reverseFlags[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
         }

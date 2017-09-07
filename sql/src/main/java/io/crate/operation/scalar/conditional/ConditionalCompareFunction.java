@@ -22,8 +22,8 @@
 
 package io.crate.operation.scalar.conditional;
 
-import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionInfo;
 
 import java.util.Comparator;
 

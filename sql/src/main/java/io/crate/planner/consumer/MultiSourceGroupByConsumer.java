@@ -64,8 +64,8 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 return null;
             }
 
-            List<Symbol> groupKeys = querySpec.groupBy().get();
-            List<Symbol> outputs = querySpec.outputs();
+            final List<Symbol> groupKeys = querySpec.groupBy().get();
+            final List<Symbol> outputs = querySpec.outputs();
 
             // Planning the multiSourceSelect as subRelation mutates the querySpec.
             querySpec = querySpec.copyAndReplace(Symbols.DEEP_COPY);

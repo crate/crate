@@ -108,7 +108,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         }
 
         Map<String, Set<IngestRule>> ingestionRules = getIngestionRulesIfChangedOrNull(event.state().metaData());
-        if(ingestionRules == null) {
+        if (ingestionRules == null) {
             return;
         }
         removeRulesWithoutActiveTargetTable(ingestionRules);

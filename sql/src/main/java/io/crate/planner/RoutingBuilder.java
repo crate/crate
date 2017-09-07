@@ -46,7 +46,7 @@ final class RoutingBuilder {
     private ReaderAllocations readerAllocations;
 
     @VisibleForTesting
-    final static class TableRouting {
+    static final class TableRouting {
         final WhereClause where;
         final String preference;
         final Routing routing;

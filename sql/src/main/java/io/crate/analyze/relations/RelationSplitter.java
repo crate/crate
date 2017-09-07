@@ -295,7 +295,7 @@ public final class RelationSplitter {
         requiredForMerge.addAll(orderBy.orderBySymbols());
     }
 
-    private final static class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {
+    private static final class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {
 
         private static final JoinConditionValidator INSTANCE = new JoinConditionValidator();
 

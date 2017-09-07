@@ -22,9 +22,15 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.Reference;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.FeatureMatcher;
@@ -36,7 +42,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 
 public class SymbolMatchers {
 

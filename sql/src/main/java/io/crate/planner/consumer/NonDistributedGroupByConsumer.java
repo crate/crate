@@ -18,6 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
@@ -137,7 +138,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 table,
                 splitPoints.toCollect(),
                 ImmutableList.of(groupProjection));
-            Collect collect = new Collect(
+            final Collect collect = new Collect(
                 collectPhase,
                 TopN.NO_LIMIT,
                 0,

@@ -153,7 +153,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         //noinspection unchecked
         Map<String, Object> innerMap = (Map<String, Object>) parser.mapOrdered().get(innerMapper.simpleName());
 
-        assert innerMap != null: "innerMap was null";
+        assert innerMap != null : "innerMap was null";
 
         builder.startObject(name);
         builder.field("type", contentType);

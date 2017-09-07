@@ -42,7 +42,7 @@ import java.util.List;
 @Singleton
 public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor.Context, Void> {
 
-    private final static OrderByPositionVisitor INSTANCE = new OrderByPositionVisitor();
+    private static final  OrderByPositionVisitor INSTANCE = new OrderByPositionVisitor();
 
     public static class Context {
         final List<? extends Symbol> sourceSymbols;

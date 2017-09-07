@@ -167,8 +167,10 @@ public class Rewriter {
                     left.getKey(), (QueriedRelation) left.getValue(),
                     right.getKey(), (QueriedRelation) right.getValue()
                 );
+            default:
+                throw new AssertionError("Invalid joinType for outer-join -> inner-join rewrite: "
+                                         + joinType);
         }
-        throw new AssertionError("Invalid joinType for outer-join -> inner-join rewrite: " + joinType);
     }
 
     private static void applyOuterJoinRewrite(JoinPair joinPair,

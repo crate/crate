@@ -74,11 +74,9 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         if (returnType == DataTypes.FLOAT) {
             bytesSize = DataTypes.FLOAT.fixedSize();
-        }
-        else if (returnType == DataTypes.DOUBLE) {
+        } else if (returnType == DataTypes.DOUBLE) {
             bytesSize = DataTypes.DOUBLE.fixedSize();
-        }
-        else {
+        } else {
             bytesSize = DataTypes.LONG.fixedSize();
         }
 

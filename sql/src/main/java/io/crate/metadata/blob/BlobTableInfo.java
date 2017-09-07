@@ -27,7 +27,12 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
@@ -44,7 +49,15 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
@@ -65,7 +78,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
-    private final static List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
+    private static final List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
         .add(new Tuple<>("digest", DataTypes.STRING))
         .add(new Tuple<>("last_modified", DataTypes.TIMESTAMP))
         .build();

@@ -55,8 +55,12 @@ import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
-import static io.crate.testing.SymbolMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

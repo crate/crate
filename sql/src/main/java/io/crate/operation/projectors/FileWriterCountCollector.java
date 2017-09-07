@@ -168,7 +168,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
             if (rowWriter != null) {
                 rowWriter.close();
             }
-        } catch (IOException e) {
+        } catch (IOException ignored) {
 
         }
     }

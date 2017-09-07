@@ -63,7 +63,7 @@ import java.util.UUID;
 
 public final class UpdatePlanner {
 
-    private final static RelationVisitor RELATION_VISITOR = new RelationVisitor();
+    private static final  RelationVisitor RELATION_VISITOR = new RelationVisitor();
 
     private UpdatePlanner() {
     }

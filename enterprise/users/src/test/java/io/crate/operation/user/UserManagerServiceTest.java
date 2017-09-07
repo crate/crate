@@ -30,7 +30,11 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static io.crate.operation.user.UserManagerService.*;
+import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_EXCEPTION_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_STATEMENT_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.CRATE_USER;
+import static io.crate.operation.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.NOOP_STATEMENT_VALIDATOR;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;

@@ -21,7 +21,11 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
@@ -34,7 +38,7 @@ import java.util.Locale;
  */
 public class SemanticSortValidator {
 
-    private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws UnsupportedOperationException {
         INNER_VALIDATOR.process(symbol, new SortContext());

@@ -40,12 +40,16 @@ import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 
 public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
-    private final static Logger LOGGER = Loggers.getLogger(FetchBatchAccumulator.class);
+    private static final Logger LOGGER = Loggers.getLogger(FetchBatchAccumulator.class);
 
     private final FetchOperation fetchOperation;
     private final FetchProjectorContext context;

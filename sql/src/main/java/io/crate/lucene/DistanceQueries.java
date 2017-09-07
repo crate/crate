@@ -23,7 +23,11 @@
 package io.crate.lucene;
 
 import io.crate.analyze.symbol.Function;
-import io.crate.operation.operator.*;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.GtOperator;
+import io.crate.operation.operator.GteOperator;
+import io.crate.operation.operator.LtOperator;
+import io.crate.operation.operator.LteOperator;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -78,7 +82,7 @@ enum DistanceQueries {
                 if (distance - GeoUtils.TOLERANCE <= 0.0d) {
                     return Queries.newMatchAllQuery();
                 }
-                // fall-through
+                // fall through
             case GtOperator.NAME:
                 return Queries.not(LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], distance));
             case EqOperator.NAME:

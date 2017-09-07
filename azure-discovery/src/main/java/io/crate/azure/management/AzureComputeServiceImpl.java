@@ -38,7 +38,10 @@ import org.elasticsearch.common.settings.Settings;
 import java.io.IOException;
 import java.net.URI;
 
-import static io.crate.azure.management.AzureComputeService.Management.*;
+import static io.crate.azure.management.AzureComputeService.Management.APP_ID;
+import static io.crate.azure.management.AzureComputeService.Management.APP_SECRET;
+import static io.crate.azure.management.AzureComputeService.Management.SUBSCRIPTION_ID;
+import static io.crate.azure.management.AzureComputeService.Management.TENANT_ID;
 
 public class AzureComputeServiceImpl extends AbstractLifecycleComponent implements AzureComputeService {
 

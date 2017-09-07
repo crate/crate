@@ -704,7 +704,7 @@ public final class SqlFormatter {
             return null;
         }
 
-        private Void appendPrivilegesList(List<String> privilegeTypes){
+        private Void appendPrivilegesList(List<String> privilegeTypes) {
             int j = 0;
             for (String privilegeType : privilegeTypes) {
                 builder.append(privilegeType);
@@ -716,7 +716,7 @@ public final class SqlFormatter {
             return null;
         }
 
-        private void appendUsersList(List<String> userNames){
+        private void appendUsersList(List<String> userNames) {
             for (int i = 0; i < userNames.size(); i++) {
                 builder.append(quoteIdentifierIfNeeded(userNames.get(i)));
                 if (i < userNames.size() - 1) {
@@ -755,9 +755,9 @@ public final class SqlFormatter {
         }
 
         private String quoteIdentifierIfNeeded(String identifier) {
-           return Arrays.stream(identifier.split("\\."))
-               .map(Identifiers::quote)
-               .collect(Collectors.joining("."));
+            return Arrays.stream(identifier.split("\\."))
+                .map(Identifiers::quote)
+                .collect(Collectors.joining("."));
         }
 
         private Void appendFlatNodeList(List<? extends Node> nodes, Integer indent) {

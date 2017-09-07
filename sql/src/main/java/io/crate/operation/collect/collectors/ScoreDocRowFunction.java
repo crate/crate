@@ -23,8 +23,8 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Function;
-import io.crate.data.Row;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.operation.InputRow;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;

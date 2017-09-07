@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.pending_transfer;
+package io.crate.blob.transfer;
 
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;

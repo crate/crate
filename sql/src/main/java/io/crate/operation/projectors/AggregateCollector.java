@@ -92,7 +92,9 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
     @Override
     public BinaryOperator<Object[]> combiner() {
-        return (state1, state2) -> { throw new UnsupportedOperationException("combine not supported"); };
+        return (state1, state2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
     }
 
     @Override

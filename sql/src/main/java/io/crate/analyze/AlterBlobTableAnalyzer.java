@@ -26,7 +26,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.operation.user.User;
 import io.crate.sql.tree.AlterBlobTable;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;

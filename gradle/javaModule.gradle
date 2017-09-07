@@ -5,6 +5,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'me.champeau.gradle.jmh'
 apply plugin: 'findbugs'
 apply plugin: 'pmd'
+apply plugin: 'checkstyle'
 
 repositories {
     mavenCentral()
@@ -15,6 +16,10 @@ repositories {
 compileJava {
     options.warnings = true
     options.deprecation = true
+
+    doLast() {
+        checkstyleMain.execute()
+    }
 }
 
 sourceCompatibility = "8"
@@ -85,6 +90,15 @@ pmd {
 
 tasks.withType(Pmd) {
     pmdClasspath += files("$rootDir/gradle/pmd")
+}
+
+checkstyle {
+    toolVersion = "8.1"
+    def checkstyle_dir = new String("$rootDir/gradle/checkstyle/")
+    configProperties = [
+            'checkstyleDir' : checkstyle_dir
+    ]
+    configFile = file(checkstyle_dir + "rules.xml")
 }
 
 jmh {

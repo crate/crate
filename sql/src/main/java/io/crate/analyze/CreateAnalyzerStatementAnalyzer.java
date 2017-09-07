@@ -23,7 +23,19 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AnalyzerElement;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.CharFilters;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.NamedProperties;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.TokenFilters;
+import io.crate.sql.tree.Tokenizer;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 

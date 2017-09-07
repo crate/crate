@@ -30,14 +30,22 @@ package io.crate.beans;
 public interface QueryStatsMBean {
 
     double getSelectQueryFrequency();
+
     double getInsertQueryFrequency();
+
     double getUpdateQueryFrequency();
+
     double getDeleteQueryFrequency();
+
     double getOverallQueryFrequency();
 
     double getSelectQueryAverageDuration();
+
     double getInsertQueryAverageDuration();
+
     double getUpdateQueryAverageDuration();
+
     double getDeleteQueryAverageDuration();
+
     double getOverallQueryAverageDuration();
 }

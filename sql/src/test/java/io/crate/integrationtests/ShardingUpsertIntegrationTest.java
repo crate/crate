@@ -23,10 +23,8 @@ package io.crate.integrationtests;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)

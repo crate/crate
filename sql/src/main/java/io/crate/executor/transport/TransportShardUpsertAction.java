@@ -25,7 +25,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.ArrayRow;
@@ -91,6 +90,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -100,7 +100,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessage;
@@ -111,7 +110,7 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    private final static String ACTION_NAME = "indices:crate/data/write/upsert";
+    private static final String ACTION_NAME = "indices:crate/data/write/upsert";
 
     private final SchemaUpdateClient schemaUpdateClient;
     private final Schemas schemas;
@@ -579,7 +578,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             getResult,
             generatedReferences,
             null);
-        for(int i = 0; i < generatedReferences.size(); i++) {
+        for (int i = 0; i < generatedReferences.size(); i++) {
             final GeneratedReference reference = generatedReferences.get(i);
             // partitionedBy columns cannot be updated
             if (!tableInfo.partitionedByColumns().contains(reference)) {
@@ -705,15 +704,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 case DocSysColumns.Names.DOC:
                     return RowContextCollectorExpression.forFunction(GetResult::getSource);
 
+                default:
+                    return RowContextCollectorExpression.forFunction(response -> {
+                        if (response == null) {
+                            return null;
+                        }
+                        Map<String, Object> sourceAsMap = response.sourceAsMap();
+                        return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
+                    });
             }
-
-            return RowContextCollectorExpression.forFunction(response -> {
-                if (response == null) {
-                    return null;
-                }
-                Map<String, Object> sourceAsMap = response.sourceAsMap();
-                return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
-            });
         }
     }
 

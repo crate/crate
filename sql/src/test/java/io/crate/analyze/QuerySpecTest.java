@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
-import io.crate.testing.SQLExecutor;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 

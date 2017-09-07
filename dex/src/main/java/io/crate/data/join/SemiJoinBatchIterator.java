@@ -19,6 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 package io.crate.data.join;
 
 import io.crate.data.BatchIterator;

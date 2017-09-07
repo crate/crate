@@ -45,7 +45,12 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

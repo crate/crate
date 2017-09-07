@@ -73,18 +73,19 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
             case DocSysColumns.Names.DOC:
                 return RowContextCollectorExpression.forFunction(GetResponse::getSource);
 
-        }
-        if (docTableInfo.isPartitioned() && docTableInfo.partitionedBy().contains(columnIdent)) {
-            int pkPos = docTableInfo.primaryKey().indexOf(columnIdent);
-            if (pkPos >= 0) {
-                return RowContextCollectorExpression.forFunction(
-                    response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
-            }
-        }
+            default:
+                if (docTableInfo.isPartitioned() && docTableInfo.partitionedBy().contains(columnIdent)) {
+                    int pkPos = docTableInfo.primaryKey().indexOf(columnIdent);
+                    if (pkPos >= 0) {
+                        return RowContextCollectorExpression.forFunction(
+                            response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
+                    }
+                }
 
-        return RowContextCollectorExpression.forFunction(response -> {
-            Map<String, Object> sourceAsMap = response.getSourceAsMap();
-            return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
-        });
+                return RowContextCollectorExpression.forFunction(response -> {
+                    Map<String, Object> sourceAsMap = response.getSourceAsMap();
+                    return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
+                });
+        }
     }
 }

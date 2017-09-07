@@ -49,6 +49,6 @@ public abstract class CrateUnitTest extends ESTestCase {
     }
 
     public static boolean isRunningOnWindows() {
-        return System.getProperty( "os.name" ).startsWith( "Windows" );
+        return System.getProperty("os.name").startsWith("Windows");
     }
 }

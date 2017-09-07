@@ -50,7 +50,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
                                        "from sys.shards where min_lucene_version not like '" +
-                                       Version.LATEST.major+ ".%.%' " +
+                                       Version.LATEST.major + ".%.%' " +
                                        "order by 1";
     private static final int LIMIT = 50_000;
     private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";

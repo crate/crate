@@ -22,7 +22,14 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.blob.*;
+import io.crate.blob.BlobModule;
+import io.crate.blob.BlobService;
+import io.crate.blob.DeleteBlobAction;
+import io.crate.blob.PutChunkAction;
+import io.crate.blob.StartBlobAction;
+import io.crate.blob.TransportDeleteBlobAction;
+import io.crate.blob.TransportPutChunkAction;
+import io.crate.blob.TransportStartBlobAction;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.action.ActionRequest;
@@ -34,7 +41,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 
 public class BlobPlugin extends Plugin implements ActionPlugin {

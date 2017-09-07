@@ -250,7 +250,6 @@ public class ProjectionToProjectorVisitor
             ctx.add(projection.inputs());
             inputs = ctx.topLevelInputs();
         }
-        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), ctx, context.transactionContext);
 
         projection = projection.normalize(normalizer, context.transactionContext);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
@@ -270,6 +269,9 @@ public class ProjectionToProjectorVisitor
             sb.append(".gz");
         }
         uri = sb.toString();
+
+        Map<ColumnIdent, Object> overwrites =
+            symbolMapToObject(projection.overwrites(), ctx, context.transactionContext);
 
         return new FileWriterProjector(
             threadPool.generic(),

@@ -23,7 +23,6 @@
 package io.crate.analyze.user;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.Schemas;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;

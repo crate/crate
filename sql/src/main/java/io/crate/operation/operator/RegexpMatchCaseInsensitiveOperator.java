@@ -21,8 +21,8 @@
 
 package io.crate.operation.operator;
 
-import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 

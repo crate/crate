@@ -38,8 +38,22 @@ import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.IndexShardState;
-import org.elasticsearch.indices.recovery.*;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.indices.recovery.BlobFinalizeRecoveryRequest;
+import org.elasticsearch.indices.recovery.BlobRecoveryChunkRequest;
+import org.elasticsearch.indices.recovery.BlobRecoveryDeleteRequest;
+import org.elasticsearch.indices.recovery.BlobRecoveryStartTransferRequest;
+import org.elasticsearch.indices.recovery.BlobRecoveryTarget;
+import org.elasticsearch.indices.recovery.BlobStartPrefixResponse;
+import org.elasticsearch.indices.recovery.BlobStartPrefixSyncRequest;
+import org.elasticsearch.indices.recovery.BlobStartRecoveryRequest;
+import org.elasticsearch.indices.recovery.RecoverySourceHandler;
+import org.elasticsearch.indices.recovery.RecoveryTargetHandler;
+import org.elasticsearch.indices.recovery.StartRecoveryRequest;
+import org.elasticsearch.transport.EmptyTransportResponseHandler;
+import org.elasticsearch.transport.FutureTransportResponseHandler;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -114,7 +128,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     protected void phase1Hook() throws Exception {
         logger.debug("[{}][{}] recovery [phase1] to {}: start",
             request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
-        StopWatch stopWatch = new StopWatch().start();
+        final StopWatch stopWatch = new StopWatch().start();
         blobTransferTarget.startRecovery();
         blobTransferTarget.createActiveTransfersSnapshot();
         sendStartRecoveryRequest();

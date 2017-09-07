@@ -24,7 +24,14 @@ package io.crate.external;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.*;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.AnonymousAWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -39,7 +46,7 @@ import java.net.URI;
 @NotThreadSafe
 public class S3ClientHelper {
 
-    private final static AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
+    private static final AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
         new AWSCredentialsProviderChain(
             new EnvironmentVariableCredentialsProvider(),
             new SystemPropertiesCredentialsProvider(),
@@ -57,14 +64,14 @@ public class S3ClientHelper {
             }
         };
 
-    private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTPS);
+    private static final ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTPS);
 
     static {
         CLIENT_CONFIGURATION.setRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(5));
         CLIENT_CONFIGURATION.setUseTcpKeepAlive(true);
     }
 
-    private final static String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
+    private static final String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";
 
     private final IntObjectMap<AmazonS3> clientMap = new IntObjectHashMap<>(1);
 

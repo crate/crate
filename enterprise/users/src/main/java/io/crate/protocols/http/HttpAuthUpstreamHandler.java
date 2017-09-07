@@ -19,9 +19,9 @@
 package io.crate.protocols.http;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
-import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
 import io.crate.protocols.SSL;

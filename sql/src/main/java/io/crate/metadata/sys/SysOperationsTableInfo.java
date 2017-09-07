@@ -47,11 +47,11 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     private final ClusterService clusterService;
 
     public static class Columns {
-        public final static ColumnIdent ID = new ColumnIdent("id");
-        final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
-        public final static ColumnIdent NAME = new ColumnIdent("name");
-        public final static ColumnIdent STARTED = new ColumnIdent("started");
-        final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        public static final ColumnIdent NAME = new ColumnIdent("name");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions() {

@@ -51,15 +51,17 @@ public class NodeThreadPoolsExpression
 
     @Override
     protected Object valueForItem(final Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-        return new HashMap<String, Object>() {{
-            put(POOL_NAME, input.getKey());
-            put(ACTIVE, input.getValue().activeCount());
-            put(COMPLETED, input.getValue().completedTaskCount());
-            put(REJECTED, input.getValue().rejectedCount());
-            put(LARGEST, input.getValue().largestPoolSize());
-            put(QUEUE, input.getValue().queueSize());
-            put(THREADS, input.getValue().poolSize());
-        }};
+        return new HashMap<String, Object>() {
+            {
+                put(POOL_NAME, input.getKey());
+                put(ACTIVE, input.getValue().activeCount());
+                put(COMPLETED, input.getValue().completedTaskCount());
+                put(REJECTED, input.getValue().rejectedCount());
+                put(LARGEST, input.getValue().largestPoolSize());
+                put(QUEUE, input.getValue().queueSize());
+                put(THREADS, input.getValue().poolSize());
+            }
+        };
     }
 
     @Override

@@ -22,7 +22,11 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -39,7 +43,7 @@ import java.util.Optional;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
-    private final static SortValidator SORT_VALIDATOR = new SortValidator();
+    private static final SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
 

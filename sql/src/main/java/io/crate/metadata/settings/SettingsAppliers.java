@@ -23,7 +23,11 @@
 package io.crate.metadata.settings;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.expressions.*;
+import io.crate.analyze.expressions.ExpressionToByteSizeValueVisitor;
+import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.expressions.ExpressionToTimeValueVisitor;
 import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
@@ -40,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SettingsAppliers {
 
-    public static abstract class AbstractSettingsApplier implements SettingsApplier {
+    public abstract static class AbstractSettingsApplier implements SettingsApplier {
         protected final String name;
         final Settings defaultSettings;
 
@@ -85,7 +89,7 @@ public class SettingsAppliers {
         }
     }
 
-    public static abstract class NumberSettingsApplier extends AbstractSettingsApplier {
+    public abstract static class NumberSettingsApplier extends AbstractSettingsApplier {
 
         protected final Setting setting;
 

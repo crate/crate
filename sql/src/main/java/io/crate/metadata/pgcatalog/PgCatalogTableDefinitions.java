@@ -20,20 +20,31 @@
  * agreement.
  */
 
-package io.crate.metadata.pg_catalog;
+package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.table.SchemaInfo;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.metadata.TableIdent;
+import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.protocols.postgres.types.PGTypes;
 
-public class PgCatalogModule extends AbstractModule {
+import java.util.HashMap;
+import java.util.Map;
 
-    protected MapBinder<String, SchemaInfo> schemaBinder;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
-    @Override
-    protected void configure() {
-        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        schemaBinder.addBinding(PgCatalogSchemaInfo.NAME).to(PgCatalogSchemaInfo.class).asEagerSingleton();
-        bind(PgCatalogTableDefinitions.class).asEagerSingleton();
+public class PgCatalogTableDefinitions {
+
+    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions;
+
+    public PgCatalogTableDefinitions() {
+        tableDefinitions = new HashMap<>(1);
+
+        tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(PGTypes.pgTypes()),
+            PgTypeTable.expressions()
+        ));
+    }
+
+    public StaticTableDefinition<?> get(TableIdent tableIdent) {
+        return tableDefinitions.get(tableIdent);
     }
 }

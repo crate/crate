@@ -278,19 +278,19 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 }))
             .put(InformationTablesTableInfo.Columns.PARTITIONED_BY,
                 () -> RowContextCollectorExpression.forFunction(row -> {
-                        if (row instanceof DocTableInfo) {
-                            List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
-                            if (partitionedBy == null || partitionedBy.isEmpty()) {
-                                return null;
-                            }
-
-                            BytesRef[] partitions = new BytesRef[partitionedBy.size()];
-                            for (int i = 0; i < partitions.length; i++) {
-                                partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
-                            }
-                            return partitions;
+                    if (row instanceof DocTableInfo) {
+                        List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
+                        if (partitionedBy == null || partitionedBy.isEmpty()) {
+                            return null;
                         }
-                        return null;
+
+                        BytesRef[] partitions = new BytesRef[partitionedBy.size()];
+                        for (int i = 0; i < partitions.length; i++) {
+                            partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
+                        }
+                        return partitions;
+                    }
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.COLUMN_POLICY,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
@@ -301,25 +301,25 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 }))
             .put(InformationTablesTableInfo.Columns.BLOBS_PATH,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
-                        if (row instanceof BlobTableInfo) {
-                            return ((BlobTableInfo) row).blobsPath();
-                        }
-                        return null;
+                    if (row instanceof BlobTableInfo) {
+                        return ((BlobTableInfo) row).blobsPath();
+                    }
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
-                        if (row instanceof ShardedTable) {
-                            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
-                                ((ShardedTable) row).routingHashFunction()));
-                        }
-                        return null;
+                    if (row instanceof ShardedTable) {
+                        return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
+                            ((ShardedTable) row).routingHashFunction()));
+                    }
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.CLOSED,
                 () -> RowContextCollectorExpression.forFunction(row -> {
-                        if (row instanceof ShardedTable) {
-                            return ((ShardedTable) row).isClosed();
-                        }
-                        return null;
+                    if (row instanceof ShardedTable) {
+                        return ((ShardedTable) row).isClosed();
+                    }
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> SELF_REFERENCING_COLUMN_NAME))

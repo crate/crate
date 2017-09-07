@@ -29,7 +29,22 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AddColumnDefinition;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnConstraint;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.IndexColumnConstraint;
+import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.PrimaryKeyColumnConstraint;
+import io.crate.sql.tree.PrimaryKeyConstraint;
+import io.crate.sql.tree.TableElement;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
@@ -40,7 +55,7 @@ import java.util.Locale;
 
 public class TableElementsAnalyzer {
 
-    private final static InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
+    private static final InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
 
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 Row parameters,
@@ -117,7 +132,7 @@ public class TableElementsAnalyzer {
             assert context.analyzedTableElements.columns().size() == 0 :
                 "context.analyzedTableElements.columns().size() must be 0";
 
-            AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
+            final AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
             if (!ident.path().isEmpty()) {
                 AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition leaf = parent;
@@ -179,6 +194,7 @@ public class TableElementsAnalyzer {
                 case "ignored":
                     context.analyzedColumnDefinition.objectType("false");
                     break;
+                default:
             }
 
             for (ColumnDefinition columnDefinition : node.nestedColumns()) {

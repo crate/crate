@@ -1,9 +1,16 @@
 package io.crate.operation.operator;
 
-import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.operation.operator.any.*;
+import io.crate.metadata.FunctionResolver;
+import io.crate.operation.operator.any.AnyEqOperator;
+import io.crate.operation.operator.any.AnyGtOperator;
+import io.crate.operation.operator.any.AnyGteOperator;
+import io.crate.operation.operator.any.AnyLikeOperator;
+import io.crate.operation.operator.any.AnyLtOperator;
+import io.crate.operation.operator.any.AnyLteOperator;
+import io.crate.operation.operator.any.AnyNeqOperator;
+import io.crate.operation.operator.any.AnyNotLikeOperator;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 

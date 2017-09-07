@@ -40,8 +40,8 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -50,8 +50,8 @@ import java.util.UUID;
 
 public class RemoteCollector implements CrateCollector {
 
-    private final static Logger LOGGER = Loggers.getLogger(RemoteCollector.class);
-    private final static int RECEIVER_PHASE_ID = 1;
+    private static final Logger LOGGER = Loggers.getLogger(RemoteCollector.class);
+    private static final int RECEIVER_PHASE_ID = 1;
 
     private final UUID jobId;
     private final String localNode;

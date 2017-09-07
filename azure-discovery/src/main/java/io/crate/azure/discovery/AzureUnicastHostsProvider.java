@@ -23,7 +23,12 @@
 package io.crate.azure.discovery;
 
 import com.microsoft.azure.management.network.NetworkResourceProviderClient;
-import com.microsoft.azure.management.network.models.*;
+import com.microsoft.azure.management.network.models.NetworkInterface;
+import com.microsoft.azure.management.network.models.NetworkInterfaceIpConfiguration;
+import com.microsoft.azure.management.network.models.PublicIpAddress;
+import com.microsoft.azure.management.network.models.ResourceId;
+import com.microsoft.azure.management.network.models.Subnet;
+import com.microsoft.azure.management.network.models.VirtualNetwork;
 import io.crate.azure.AzureConfiguration;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
@@ -260,6 +265,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                                 logger.trace("no public ip provided. ignoring [{}]...", nic.getName());
                             }
                             break;
+                        default:
+                            throw new IllegalArgumentException("Supplied HostType is invalid: " + hostType);
                     }
 
                     if (networkAddress == null) {

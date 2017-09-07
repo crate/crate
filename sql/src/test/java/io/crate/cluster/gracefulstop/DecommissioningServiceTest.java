@@ -43,7 +43,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest {
 

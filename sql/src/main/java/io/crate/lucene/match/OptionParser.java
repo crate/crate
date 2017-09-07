@@ -100,6 +100,7 @@ public class OptionParser {
                 parsedOptions.tieBreaker(floatValue(options, OPTIONS.TIE_BREAKER, null));
                 parsedOptions.rewrite(rewrite(options.remove(OPTIONS.REWRITE)));
                 break;
+            default:
         }
         if (!options.isEmpty()) {
             raiseIllegalOptions(matchType, options);

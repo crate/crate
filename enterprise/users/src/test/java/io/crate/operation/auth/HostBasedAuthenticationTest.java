@@ -230,7 +230,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         Map<String, String> sslConfig;
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
@@ -240,7 +240,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
@@ -250,7 +250,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
                 not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
@@ -276,19 +276,19 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         Map<String, String> sslConfig;
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(authService.getEntry("crate", noSslConnProperties), is(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
+            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), is(Optional.empty()));

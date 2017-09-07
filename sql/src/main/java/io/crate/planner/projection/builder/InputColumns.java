@@ -22,14 +22,24 @@
 package io.crate.planner.projection.builder;
 
 import com.google.common.base.MoreObjects;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
 
 @Singleton
 public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.Context, Symbol> {

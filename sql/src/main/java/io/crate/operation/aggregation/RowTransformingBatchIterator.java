@@ -22,7 +22,12 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Columns;
+import io.crate.data.ForwardingBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;

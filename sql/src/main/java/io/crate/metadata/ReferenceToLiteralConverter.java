@@ -28,7 +28,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
-import java.util.*;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class ReferenceToLiteralConverter implements Function<Reference, Symbol> {

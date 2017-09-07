@@ -39,7 +39,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.information.MetaDataInformationModule;
-import io.crate.metadata.pg_catalog.PgCatalogModule;
+import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
@@ -216,7 +216,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.add(new UserFallbackModule());
         }
 
-        if(ingestionModules != null) {
+        if (ingestionModules != null) {
             modules.addAll(ingestionModules.getModules());
         }
         return modules;

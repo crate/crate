@@ -23,7 +23,6 @@ package io.crate.operation.reference.file;
 
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.files.LineCollectorExpression;
-import io.crate.operation.reference.doc.lucene.CollectorContext;
 
 import java.util.Map;
 

@@ -154,7 +154,7 @@ public class CrateRestMainAction implements RestHandler {
     }
 
     static boolean isBrowser(String headerValue) {
-        if (headerValue == null){
+        if (headerValue == null) {
             return false;
         }
         String engine = headerValue.split("\\s+")[0];

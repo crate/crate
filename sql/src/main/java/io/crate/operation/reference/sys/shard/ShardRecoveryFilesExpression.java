@@ -21,6 +21,7 @@
  */
 
 package io.crate.operation.reference.sys.shard;
+
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.RecoveryState;

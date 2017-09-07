@@ -22,7 +22,11 @@
 
 package io.crate.operation.projectors.fetch;
 
-import com.carrotsearch.hppc.*;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.analyze.symbol.FetchReference;
@@ -40,7 +44,13 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 

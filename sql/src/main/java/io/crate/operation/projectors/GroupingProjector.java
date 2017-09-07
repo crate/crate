@@ -23,7 +23,11 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Projector;
+import io.crate.data.Row;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;

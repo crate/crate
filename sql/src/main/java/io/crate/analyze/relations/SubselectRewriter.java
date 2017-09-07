@@ -51,7 +51,7 @@ import java.util.function.Function;
 
 public final class SubselectRewriter {
 
-    private final static Visitor INSTANCE = new Visitor();
+    private static final Visitor INSTANCE = new Visitor();
 
     private SubselectRewriter() {
     }
@@ -60,7 +60,7 @@ public final class SubselectRewriter {
         return INSTANCE.process(relation, null);
     }
 
-    private final static class Visitor extends AnalyzedRelationVisitor<QueriedSelectRelation, AnalyzedRelation> {
+    private static final class Visitor extends AnalyzedRelationVisitor<QueriedSelectRelation, AnalyzedRelation> {
 
         @Override
         protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, QueriedSelectRelation parent) {
@@ -287,7 +287,7 @@ public final class SubselectRewriter {
         return true;
     }
 
-    private final static class FieldReplacer extends FunctionCopyVisitor<Void> implements Function<Symbol, Symbol> {
+    private static final class FieldReplacer extends FunctionCopyVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final List<? extends Symbol> outputs;
         final Map<Symbol, Field> fieldByQSOutputSymbol = new HashMap<>();

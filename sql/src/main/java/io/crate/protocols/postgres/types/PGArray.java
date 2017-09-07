@@ -64,7 +64,7 @@ class PGArray extends PGType {
         buildDimensions((Object[]) value, dimensionsList, dimensions, 1);
 
         int bytesWritten = 4 + 4 + 4;
-        int lenIndex = buffer.writerIndex();
+        final int lenIndex = buffer.writerIndex();
         buffer.writeInt(0);
         buffer.writeInt(dimensions);
         buffer.writeInt(1); // flags bit 0: 0=no-nulls, 1=has-nulls
@@ -237,6 +237,8 @@ class PGArray extends PGType {
                             return i + 2;
                         }
                     }
+                // fall through
+                default:
             }
         }
         return endIdx;

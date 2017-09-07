@@ -208,8 +208,8 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .build();
     }
 
-    private final static Integer NUMERIC_PRECISION_RADIX = 2; // Binary
-    private final static Integer DATETIME_PRECISION = 3; // Milliseconds
+    private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
+    private static final Integer DATETIME_PRECISION = 3; // Milliseconds
 
     /**
      * For floating point numbers please refer to:

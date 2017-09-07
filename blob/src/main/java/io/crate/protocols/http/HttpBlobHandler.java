@@ -496,6 +496,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             case FAILED:
                 exitStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 break;
+            default:
+                throw new IllegalArgumentException("Unknown status: " + status);
         }
 
         assert exitStatus != null : "exitStatus should not be null";

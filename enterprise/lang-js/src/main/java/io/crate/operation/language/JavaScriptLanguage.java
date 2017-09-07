@@ -30,7 +30,9 @@ import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
-import javax.script.*;
+import javax.script.Bindings;
+import javax.script.CompiledScript;
+import javax.script.ScriptException;
 import java.util.Locale;
 import java.util.stream.Collectors;
 

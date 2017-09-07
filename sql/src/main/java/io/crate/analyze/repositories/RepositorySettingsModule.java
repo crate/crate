@@ -23,7 +23,12 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.settings.*;
+import io.crate.metadata.settings.BoolSetting;
+import io.crate.metadata.settings.ByteSizeSetting;
+import io.crate.metadata.settings.IntSetting;
+import io.crate.metadata.settings.SettingsApplier;
+import io.crate.metadata.settings.SettingsAppliers;
+import io.crate.metadata.settings.StringSetting;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;

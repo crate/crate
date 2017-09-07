@@ -47,7 +47,7 @@ import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
-    private final static String ACTION_NAME = "indices:crate/data/write/delete";
+    private static final String ACTION_NAME = "indices:crate/data/write/delete";
 
     @Inject
     public TransportShardDeleteAction(Settings settings,

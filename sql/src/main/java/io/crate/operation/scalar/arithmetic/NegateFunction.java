@@ -24,10 +24,22 @@ package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.UndefinedType;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -37,7 +49,7 @@ import java.util.List;
 public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
 
     private final FunctionInfo info;
-    private final static String NAME = "_negate";
+    private static final String NAME = "_negate";
 
     private NegateFunction(FunctionInfo info) {
         this.info = info;
@@ -63,8 +75,9 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
                     return new NegateInteger();
                 case LongType.ID:
                     return new NegateLong();
+                default:
+                    throw new IllegalArgumentException("Cannot negate values of type " + dataType.getName());
             }
-            throw new IllegalArgumentException("Cannot negate values of type " + dataType.getName());
         }
 
         @Nullable

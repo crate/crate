@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
 
 public class TransportPrivilegesActionTest extends CrateUnitTest {
 

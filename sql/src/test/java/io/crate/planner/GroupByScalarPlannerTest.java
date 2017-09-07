@@ -3,33 +3,23 @@ package io.crate.planner;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.OrderedTopNProjection;
-import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 

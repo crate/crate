@@ -32,7 +32,7 @@ public class InputRow implements Row {
     private final List<? extends Input<?>> inputs;
 
     public InputRow(List<? extends Input<?>> inputs) {
-        assert inputs != null: "inputs must not be null";
+        assert inputs != null : "inputs must not be null";
         this.inputs = inputs;
     }
 

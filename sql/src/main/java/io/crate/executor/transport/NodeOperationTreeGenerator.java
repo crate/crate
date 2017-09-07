@@ -39,7 +39,12 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Class used to generate a NodeOperationTree
@@ -82,7 +87,7 @@ import java.util.*;
  */
 public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
-    private final static NodeOperationTreeGenerator INSTANCE = new NodeOperationTreeGenerator();
+    private static final NodeOperationTreeGenerator INSTANCE = new NodeOperationTreeGenerator();
 
     private NodeOperationTreeGenerator() {
     }

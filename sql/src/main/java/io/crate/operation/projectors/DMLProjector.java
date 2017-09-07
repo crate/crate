@@ -22,7 +22,9 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Projector;
 
 class DMLProjector implements Projector {
 

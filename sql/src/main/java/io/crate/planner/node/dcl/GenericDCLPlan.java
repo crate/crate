@@ -23,7 +23,6 @@
 package io.crate.planner.node.dcl;
 
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.DDLStatement;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 

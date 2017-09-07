@@ -154,7 +154,7 @@ import static org.elasticsearch.common.geo.GeoUtils.TOLERANCE;
 public class LuceneQueryBuilder {
 
     private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
-    private final static Visitor VISITOR = new Visitor();
+    private static final Visitor VISITOR = new Visitor();
     private final Functions functions;
 
     @Inject
@@ -250,7 +250,7 @@ public class LuceneQueryBuilder {
          * If a filtered field is encountered the value of the literal is written into filteredFieldValues
          * (only applies to Function with 2 arguments and if left == reference and right == literal)
          */
-        final static Set<String> FILTERED_FIELDS = ImmutableSet.of("_score");
+        static final Set<String> FILTERED_FIELDS = ImmutableSet.of("_score");
 
         /**
          * key = columnName
@@ -259,7 +259,7 @@ public class LuceneQueryBuilder {
          * (in the _version case if the primary key is present a GetPlan is built from the planner and
          * the LuceneQueryBuilder is never used)
          */
-        final static Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
+        static final Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
             .put("_version", "\"_version\" column is not valid in the WHERE clause")
             .build();
 
@@ -299,6 +299,8 @@ public class LuceneQueryBuilder {
                             case '*':
                             case '?':
                                 regex.append('\\');
+                                break;
+                            default:
                         }
                         regex.append(currentChar);
                         escaped = false;
@@ -320,7 +322,7 @@ public class LuceneQueryBuilder {
             Query apply(Function input, Context context) throws IOException;
         }
 
-        static abstract class CmpQuery implements FunctionToQuery {
+        abstract static class CmpQuery implements FunctionToQuery {
 
             @Nullable
             protected Tuple<Reference, Literal> prepare(Function input) {
@@ -339,7 +341,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        static abstract class AbstractAnyQuery implements FunctionToQuery {
+        abstract static class AbstractAnyQuery implements FunctionToQuery {
 
             @Override
             public Query apply(Function function, Context context) throws IOException {
@@ -874,8 +876,9 @@ public class LuceneQueryBuilder {
                         return new SpatialArgs(SpatialOperation.IsDisjointTo, shape);
                     case WITHIN:
                         return new SpatialArgs(SpatialOperation.IsWithin, shape);
+                    default:
+                        throw invalidMatchType(relation.getRelationName());
                 }
-                throw invalidMatchType(relation.getRelationName());
             }
 
             private AssertionError invalidMatchType(String matchType) {
@@ -1118,15 +1121,12 @@ public class LuceneQueryBuilder {
                 }
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
-                String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
-                BaseGeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
-                    fieldName, context.mapperService);
-                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
                 Version indexVersionCreated = context.indexCache.getIndexSettings().getIndexVersionCreated();
 
                 String parentName = functionLiteralPair.functionName();
                 Input geoPointInput = distanceRefLiteral.input();
+                String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
                 Double[] pointValue = (Double[]) geoPointInput.value();
                 if (indexVersionCreated.onOrAfter(LatLonPointFieldMapper.LAT_LON_FIELD_VERSION)) {
                     return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
@@ -1177,6 +1177,9 @@ public class LuceneQueryBuilder {
                 if (to == null) {
                     to = GeoUtils.maxRadialDistanceMeters(geoPoint.lat(), geoPoint.lon());
                 }
+                BaseGeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
+                    fieldName, context.mapperService);
+                IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 return new XGeoPointDistanceRangeQuery(
                     fieldData.index().getName(),
                     GeoPointField.TermEncoding.PREFIX,

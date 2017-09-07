@@ -18,11 +18,16 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.operation.udf;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;

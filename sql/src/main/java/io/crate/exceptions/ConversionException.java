@@ -30,7 +30,7 @@ import java.util.Locale;
 
 public class ConversionException extends IllegalArgumentException {
 
-    private final static String ERROR_MESSAGE = "Cannot cast %s to type %s";
+    private static final String ERROR_MESSAGE = "Cannot cast %s to type %s";
 
     public ConversionException(Symbol symbol, DataType targetType) {
         super(generateMessage(symbol, targetType));
@@ -44,6 +44,7 @@ public class ConversionException extends IllegalArgumentException {
         return String.format(Locale.ENGLISH, ERROR_MESSAGE,
             SymbolPrinter.INSTANCE.printSimple(value), type.toString());
     }
+
     private static String generateMessage(Object value, DataType type) {
         if (value instanceof Symbol) {
             return generateMessage((Symbol) value, type);

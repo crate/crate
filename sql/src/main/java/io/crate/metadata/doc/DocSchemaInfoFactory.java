@@ -24,8 +24,8 @@ package io.crate.metadata.doc;
 
 import io.crate.metadata.Functions;
 import io.crate.metadata.table.SchemaInfo;
-import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

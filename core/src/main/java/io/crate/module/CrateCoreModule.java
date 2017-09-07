@@ -38,7 +38,7 @@ public class CrateCoreModule extends AbstractModule {
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.indexEventListenerProxy = indexEventListenerProxy;
         if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
-            "".equals(SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings))){
+            "".equals(SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings))) {
             logger.info("CrateDB Enterprise features are active. Please request a license before deploying in " +
                         "production or deactivate the Enterprise features. https://crate.io/enterprise");
         }

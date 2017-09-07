@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 
 class RetryOnFailureResultReceiver implements ResultReceiver {
 
-    private final static Logger LOGGER = Loggers.getLogger(RetryOnFailureResultReceiver.class);
+    private static final Logger LOGGER = Loggers.getLogger(RetryOnFailureResultReceiver.class);
 
     private final ResultReceiver delegate;
     private final UUID jobId;

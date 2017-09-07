@@ -22,8 +22,13 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -33,7 +38,7 @@ import java.util.List;
 
 public class ArrayFunction extends Scalar<Object, Object> {
 
-    public final static String NAME = "_array";
+    public static final String NAME = "_array";
     private final FunctionInfo info;
 
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {

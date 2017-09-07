@@ -22,7 +22,12 @@
 package io.crate.operation.projectors.writer;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -68,15 +73,15 @@ public class OutputS3 extends Output {
 
     private static class S3OutputStream extends OutputStream {
 
-        private final static int PART_SIZE = 5 * 1024 * 1024;
+        private static final int PART_SIZE = 5 * 1024 * 1024;
 
         private final AmazonS3 client;
         private final InitiateMultipartUploadResult multipartUpload;
         private final String bucketName;
         private final String key;
         private final ListeningExecutorService executorService;
-        final private List<PartETag> etags = Collections.<PartETag>synchronizedList(new ArrayList<PartETag>());
-        final private List<ListenableFuture<?>> pendingUploads = new ArrayList<>();
+        private final List<PartETag> etags = Collections.<PartETag>synchronizedList(new ArrayList<PartETag>());
+        private final List<ListenableFuture<?>> pendingUploads = new ArrayList<>();
 
         private ByteArrayOutputStream outputStream;
         long currentPartBytes = 0;

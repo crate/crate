@@ -58,11 +58,11 @@ public enum Operation {
     public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE,
         ALTER_BLOCKS, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
-    ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
+        ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
 
     private final String representation;
 
-    Operation (String representation) {
+    Operation(String representation) {
         this.representation = representation;
     }
 
@@ -98,8 +98,7 @@ public enum Operation {
             } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
                        tableInfo.supportedOperations().equals(READ_ONLY)) {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";
-            }
-            else {
+            } else {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations.";
             }
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,

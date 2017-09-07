@@ -35,7 +35,11 @@ import io.crate.data.CollectingBatchConsumer;
 import io.crate.data.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.jobs.*;
+import io.crate.jobs.DownstreamExecutionSubContext;
+import io.crate.jobs.ExecutionSubContext;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.PageBucketReceiver;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.planner.node.ExecutionPhase;
@@ -48,7 +52,13 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 

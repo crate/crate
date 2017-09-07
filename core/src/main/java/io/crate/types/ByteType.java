@@ -30,8 +30,8 @@ import java.io.IOException;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
-    public final static ByteType INSTANCE = new ByteType();
-    public final static int ID = 2;
+    public static final ByteType INSTANCE = new ByteType();
+    public static final int ID = 2;
 
     private ByteType() {
     }

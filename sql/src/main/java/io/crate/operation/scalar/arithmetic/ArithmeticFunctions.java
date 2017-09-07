@@ -3,7 +3,12 @@ package io.crate.operation.scalar.arithmetic;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -15,7 +20,7 @@ import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
 
-    private final static Set<DataType> NUMERIC_WITH_DECIMAL = Sets.newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
+    private static final Set<DataType> NUMERIC_WITH_DECIMAL = Sets.newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
 
     public static class Names {
         public static final String ADD = "add";
@@ -73,7 +78,7 @@ public class ArithmeticFunctions {
         ));
     }
 
-    final static class DoubleFunctionResolver extends BaseFunctionResolver {
+    static final class DoubleFunctionResolver extends BaseFunctionResolver {
 
         private static final Signature.ArgMatcher ARITHMETIC_TYPE = Signature.ArgMatcher.of(
             DataTypes.NUMERIC_PRIMITIVE_TYPES::contains, DataTypes.TIMESTAMP::equals);
@@ -93,7 +98,7 @@ public class ArithmeticFunctions {
     }
 
 
-    final static class ArithmeticFunctionResolver extends BaseFunctionResolver {
+    static final class ArithmeticFunctionResolver extends BaseFunctionResolver {
 
         private static final Signature.ArgMatcher ARITHMETIC_TYPE = Signature.ArgMatcher.of(
             DataTypes.NUMERIC_PRIMITIVE_TYPES::contains, DataTypes.TIMESTAMP::equals);

@@ -27,7 +27,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class StaticTableInfo implements TableInfo {
 

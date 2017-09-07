@@ -123,9 +123,14 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return ingestionRules;
     }
 
-    public Iterable<Void> keyColumnUsageInfos() { return keyColumnUsages; }
+    public Iterable<Void> keyColumnUsageInfos() {
+        return keyColumnUsages;
+    }
 
-    public Iterable<Void> referentialConstraintsInfos() { return referentialConstraints; }
+
+    public Iterable<Void> referentialConstraintsInfos() {
+        return referentialConstraints;
+    }
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {

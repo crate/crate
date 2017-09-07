@@ -21,7 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.predicate.NotPredicate;

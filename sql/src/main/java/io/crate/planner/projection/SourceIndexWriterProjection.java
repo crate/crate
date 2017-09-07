@@ -47,8 +47,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final Reference rawSourceReference;
     private final InputColumn rawSourceSymbol;
 
-    private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
-    private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
+    private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
+    private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
 
     @Nullable
     private String[] includes;

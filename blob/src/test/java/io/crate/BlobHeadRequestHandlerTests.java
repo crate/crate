@@ -23,13 +23,18 @@ package io.crate;
 
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.DigestBlob;
-import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
-import io.crate.blob.pending_transfer.HeadChunkFileTooSmallException;
-import io.crate.blob.pending_transfer.PutHeadChunkRunnable;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
+import io.crate.blob.transfer.HeadChunkFileTooSmallException;
+import io.crate.blob.transfer.PutHeadChunkRunnable;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.EmptyTransportResponseHandler;
+import org.elasticsearch.transport.TransportFuture;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import java.io.File;
@@ -42,7 +47,10 @@ import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class BlobHeadRequestHandlerTests extends CrateUnitTest {
 

@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @NotThreadSafe
 public class SharedShardContext {
 
-    private final static Logger LOGGER = Loggers.getLogger(SharedShardContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(SharedShardContext.class);
 
     private final IndicesService indicesService;
     private final ShardId shardId;

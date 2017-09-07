@@ -23,7 +23,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.Lists;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.sources.ShardCollectSource;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;

@@ -22,7 +22,12 @@
 
 package io.crate.planner.fetch;
 
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 

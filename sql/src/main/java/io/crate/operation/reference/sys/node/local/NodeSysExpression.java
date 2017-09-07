@@ -102,7 +102,9 @@ public class NodeSysExpression extends NestedObjectExpression {
 
             case SysNodesTableInfo.SYS_COL_FS:
                 return new NodeFsExpression(extendedNodeInfo.fsStats());
+
+            default:
+                return super.getChildImplementation(name);
         }
-        return super.getChildImplementation(name);
     }
 }

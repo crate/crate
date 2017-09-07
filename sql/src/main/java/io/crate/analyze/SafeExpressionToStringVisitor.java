@@ -33,7 +33,7 @@ import java.util.Locale;
 
 public class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
 
-    private final static SafeExpressionToStringVisitor INSTANCE = new SafeExpressionToStringVisitor();
+    private static final SafeExpressionToStringVisitor INSTANCE = new SafeExpressionToStringVisitor();
 
     private SafeExpressionToStringVisitor() {
     }

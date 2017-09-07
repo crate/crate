@@ -29,7 +29,11 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Select;
+import io.crate.sql.tree.SingleColumn;
 
 import java.util.List;
 import java.util.Locale;

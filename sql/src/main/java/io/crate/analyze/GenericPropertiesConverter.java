@@ -29,7 +29,11 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 public class GenericPropertiesConverter {
 

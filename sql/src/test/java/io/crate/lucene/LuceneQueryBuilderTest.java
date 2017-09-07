@@ -22,7 +22,6 @@
 package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;

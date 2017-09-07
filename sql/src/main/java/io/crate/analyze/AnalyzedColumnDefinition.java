@@ -44,20 +44,20 @@ import java.util.Set;
 
 public class AnalyzedColumnDefinition {
 
-    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+    private static final Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
         DataTypes.OBJECT.getName(),
         DataTypes.GEO_POINT.getName(),
         DataTypes.GEO_SHAPE.getName()
     );
 
-    private final static Set<String> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
+    private static final Set<String> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
         "array",
         DataTypes.OBJECT.getName(),
         DataTypes.GEO_POINT.getName(),
         DataTypes.GEO_SHAPE.getName()
     );
 
-    private final static Set<String> STRING_TYPES = ImmutableSet.of("string", "keyword", "text");
+    private static final Set<String> STRING_TYPES = ImmutableSet.of("string", "keyword", "text");
 
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
@@ -268,6 +268,7 @@ public class AnalyzedColumnDefinition {
                     mapping.put("analyzer", analyzer);
                 }
                 break;
+            default:
         }
         return dataType;
     }

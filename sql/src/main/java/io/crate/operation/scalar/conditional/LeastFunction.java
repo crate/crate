@@ -32,9 +32,9 @@ import java.util.Arrays;
 
 public class LeastFunction extends ConditionalCompareFunction {
 
-    public final static String NAME = "least";
+    public static final String NAME = "least";
 
-    public final static FunctionInfo TWO_LONG_INFO = new FunctionInfo(
+    public static final FunctionInfo TWO_LONG_INFO = new FunctionInfo(
         new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)), DataTypes.LONG);
 
     private LeastFunction(FunctionInfo info) {

@@ -21,7 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.sql.tree.Insert;
 
 import java.util.ArrayList;

@@ -25,7 +25,11 @@ package io.crate.operation.merge;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.UnmodifiableIterator;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 import static com.google.common.collect.Iterators.peekingIterator;
 

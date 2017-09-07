@@ -69,12 +69,12 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().name()))
             .put(Columns.CONSTRAINT_NAME,
                 () -> RowContextCollectorExpression.forFunction(row -> {
-                        BytesRef[] values = new BytesRef[row.primaryKey().size()];
-                        List<ColumnIdent> primaryKey = row.primaryKey();
-                        for (int i = 0, primaryKeySize = primaryKey.size(); i < primaryKeySize; i++) {
-                            values[i] = new BytesRef(primaryKey.get(i).fqn());
-                        }
-                        return values;
+                    BytesRef[] values = new BytesRef[row.primaryKey().size()];
+                    List<ColumnIdent> primaryKey = row.primaryKey();
+                    for (int i = 0, primaryKeySize = primaryKey.size(); i < primaryKeySize; i++) {
+                        values[i] = new BytesRef(primaryKey.get(i).fqn());
+                    }
+                    return values;
                 }))
             .put(Columns.CONSTRAINT_TYPE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> PRIMARY_KEY))

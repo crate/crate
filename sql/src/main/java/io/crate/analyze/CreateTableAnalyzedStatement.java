@@ -22,7 +22,11 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -134,9 +138,8 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.routingColumn = routingColumn;
     }
 
-    public
     @Nullable
-    ColumnIdent routing() {
+    public ColumnIdent routing() {
         return routingColumn;
     }
 

@@ -22,7 +22,11 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dcl.GenericDCLPlan;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.DropTablePlan;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
@@ -32,8 +36,8 @@ import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.common.Nullable;
 

@@ -30,7 +30,21 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.ReferenceResolver;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.BooleanType;
+import io.crate.types.ByteType;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
+import io.crate.types.GeoShapeType;
+import io.crate.types.IntegerType;
+import io.crate.types.IpType;
+import io.crate.types.LongType;
+import io.crate.types.ObjectType;
+import io.crate.types.SetType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -49,7 +63,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     @Override
     public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
-        assert refInfo.granularity() == RowGranularity.DOC: "lucene collector expressions are required to be on DOC granularity";
+        assert refInfo.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
 
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         String name = columnIdent.name();

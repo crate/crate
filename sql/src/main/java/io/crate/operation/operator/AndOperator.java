@@ -24,9 +24,9 @@ package io.crate.operation.operator;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.data.Input;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;

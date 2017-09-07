@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.metadata.pg_catalog;
+package io.crate.metadata.pgcatalog;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;

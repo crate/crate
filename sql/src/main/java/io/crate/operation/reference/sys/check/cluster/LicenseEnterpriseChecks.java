@@ -53,13 +53,7 @@ public class LicenseEnterpriseChecks extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        if (licenseEnterprise){
-            if (licenseIdent == null || "".equals(licenseIdent)){
-                return false;
-            }
-            return true;
-        }
-        return true;
+        return !licenseEnterprise || licenseIdent != null && !"".equals(licenseIdent);
     }
 
     @Override

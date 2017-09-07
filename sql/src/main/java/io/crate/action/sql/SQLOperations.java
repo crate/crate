@@ -61,11 +61,11 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class SQLOperations {
 
-    public final static Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
+    public static final Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
         "node.sql.read_only",
         false,
         Setting.Property.NodeScope);
-    private final static Logger LOGGER = Loggers.getLogger(SQLOperations.class);
+    private static final Logger LOGGER = Loggers.getLogger(SQLOperations.class);
 
     // Parser can't handle empty statement but postgres requires support for it.
     // This rewrite is done so that bind/describe calls on an empty statement will work as well
@@ -303,8 +303,9 @@ public class SQLOperations {
                         return null;
                     }
                     return analyzedRelation.fields();
+                default:
+                    throw new AssertionError("Unsupported type: " + type);
             }
-            throw new AssertionError("Unsupported type: " + type);
         }
 
         public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
@@ -332,9 +333,10 @@ public class SQLOperations {
                     pendingExecutions.clear();
                     clearState();
                     return portal.sync(planner, jobsLogs);
+                default:
+                    throw new IllegalStateException(
+                        "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
             }
-            throw new IllegalStateException(
-                "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
         }
 
         public void clearState() {
@@ -398,8 +400,9 @@ public class SQLOperations {
                 case 'S':
                     preparedStatements.remove(name);
                     return;
+                default:
+                    throw new IllegalArgumentException("Invalid type: " + type);
             }
-            throw new IllegalArgumentException("Invalid type: " + type);
         }
 
         public void close() {

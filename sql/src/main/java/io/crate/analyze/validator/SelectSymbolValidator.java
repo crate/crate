@@ -32,7 +32,7 @@ import java.util.Locale;
 
 public class SelectSymbolValidator {
 
-    private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Collection<Symbol> symbols) {
         for (Symbol symbol : symbols) {

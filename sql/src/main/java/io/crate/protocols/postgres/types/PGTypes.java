@@ -25,7 +25,11 @@ package io.crate.protocols.postgres.types;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
 import java.util.HashSet;
 import java.util.Locale;

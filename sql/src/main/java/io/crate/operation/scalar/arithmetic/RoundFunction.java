@@ -22,8 +22,8 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

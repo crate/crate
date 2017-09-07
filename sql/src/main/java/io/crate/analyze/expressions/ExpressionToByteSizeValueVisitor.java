@@ -22,7 +22,12 @@
 package io.crate.analyze.expressions;
 
 import io.crate.data.Row;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.StringLiteral;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.unit.ByteSizeValue;
 

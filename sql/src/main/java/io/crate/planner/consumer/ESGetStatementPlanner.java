@@ -44,9 +44,8 @@ public class ESGetStatementPlanner {
         assert !querySpec.groupBy().isPresent() : "Can't create ESGet plan for queries with group by";
         assert optKeys.isPresent() : "Can't create ESGet without docKeys";
 
-        DocTableInfo tableInfo = table.tableRelation().tableInfo();
         DocKeys docKeys = optKeys.get();
-        if (docKeys.withVersions()){
+        if (docKeys.withVersions()) {
             throw new VersionInvalidException();
         }
         Limits limits = context.getLimits(querySpec);
@@ -54,6 +53,7 @@ public class ESGetStatementPlanner {
             return new NoopPlan(context.jobId());
         }
         table.tableRelation().validateOrderBy(querySpec.orderBy());
+        DocTableInfo tableInfo = table.tableRelation().tableInfo();
         return new ESGet(
             context.nextExecutionPhaseId(),
             tableInfo,

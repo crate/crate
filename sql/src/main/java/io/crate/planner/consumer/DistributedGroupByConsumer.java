@@ -36,7 +36,11 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Merge;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -102,7 +106,7 @@ class DistributedGroupByConsumer implements Consumer {
             SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null,
                 sessionContext);
-            RoutedCollectPhase collectPhase = new RoutedCollectPhase(
+            final RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "distributing collect",

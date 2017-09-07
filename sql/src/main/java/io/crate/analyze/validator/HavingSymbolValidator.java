@@ -34,7 +34,7 @@ import java.util.List;
 
 public class HavingSymbolValidator {
 
-    private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol, @Nullable List<Symbol> groupBySymbols) throws IllegalArgumentException {
         INNER_VALIDATOR.process(symbol, new HavingContext(groupBySymbols));

@@ -24,7 +24,11 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
-import io.crate.data.*;
+import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;

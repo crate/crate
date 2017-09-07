@@ -24,12 +24,10 @@ package io.crate.analyze;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.allOf;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

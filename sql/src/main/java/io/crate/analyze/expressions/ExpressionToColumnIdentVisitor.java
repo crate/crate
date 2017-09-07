@@ -36,7 +36,7 @@ import java.util.Locale;
 
 public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List<String>> {
 
-    private final static ExpressionToColumnIdentVisitor INSTANCE = new ExpressionToColumnIdentVisitor();
+    private static final ExpressionToColumnIdentVisitor INSTANCE = new ExpressionToColumnIdentVisitor();
 
     private ExpressionToColumnIdentVisitor() {
     }

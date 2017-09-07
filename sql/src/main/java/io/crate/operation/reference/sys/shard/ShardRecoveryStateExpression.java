@@ -36,7 +36,7 @@ public abstract class ShardRecoveryStateExpression<T> implements ReferenceImplem
 
     @Override
     public T value() {
-        if (indexShard.recoveryState() == null){
+        if (indexShard.recoveryState() == null) {
             return null;
         }
         return innerValue(indexShard.recoveryState());

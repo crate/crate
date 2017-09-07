@@ -23,7 +23,20 @@ package io.crate.analyze.expressions;
 
 
 import io.crate.data.Row;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubscriptExpression;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -31,7 +44,7 @@ import java.util.Map;
 
 public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
-    private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
+    private static final ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
 
     private ExpressionToObjectVisitor() {
     }

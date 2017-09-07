@@ -1,8 +1,8 @@
 package io.crate.operation.operator;
 
 import io.crate.core.collections.MapComparator;
-import io.crate.metadata.FunctionInfo;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionInfo;
 
 import java.util.Map;
 import java.util.Objects;

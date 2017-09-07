@@ -24,15 +24,6 @@ package io.crate.metadata.sys;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.sys.SysChecksTableInfo;
-import io.crate.metadata.sys.SysJobsLogTableInfo;
-import io.crate.metadata.sys.SysJobsTableInfo;
-import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import io.crate.metadata.sys.SysOperationsLogTableInfo;
-import io.crate.metadata.sys.SysOperationsTableInfo;
-import io.crate.metadata.sys.SysRepositoriesTableInfo;
-import io.crate.metadata.sys.SysSnapshotsTableInfo;
-import io.crate.metadata.sys.SysSummitsTableInfo;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.reference.StaticTableDefinition;

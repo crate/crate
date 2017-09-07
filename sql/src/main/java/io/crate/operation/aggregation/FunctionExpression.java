@@ -21,8 +21,8 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.metadata.Scalar;
 import io.crate.data.Input;
+import io.crate.metadata.Scalar;
 
 import java.util.Arrays;
 

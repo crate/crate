@@ -26,7 +26,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.ShowColumns;
+import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.ShowTransaction;
+import io.crate.sql.tree.Statement;
 import org.elasticsearch.common.collect.Tuple;
 
 /**

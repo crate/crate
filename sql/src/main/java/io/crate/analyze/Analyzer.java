@@ -18,6 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
@@ -125,12 +126,12 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
-        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
             schemas,
             fulltextAnalyzerResolver,

@@ -34,7 +34,7 @@ import java.util.Locale;
 
 public class GroupBySymbolValidator {
 
-    private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
         INNER_VALIDATOR.process(symbol, null);

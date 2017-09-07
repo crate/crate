@@ -22,12 +22,18 @@
 package io.crate.analyze;
 
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.TryCast;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 
 public class SubscriptValidatorTest extends CrateUnitTest {
@@ -42,7 +48,7 @@ public class SubscriptValidatorTest extends CrateUnitTest {
     @Test
     public void testVisitSubscriptExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a['x']['y']");
-        assertThat("a", context.qName().getSuffix(), is("a"));
+        assertThat("a", context.qualifiedName().getSuffix(), is("a"));
         assertThat("x", context.parts().get(0), is("x"));
         assertThat("y", context.parts().get(1), is("y"));
     }
@@ -93,7 +99,7 @@ public class SubscriptValidatorTest extends CrateUnitTest {
     @Test
     public void testVisitSubscriptWithIndexExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a[1+2]");
-        assertThat(context.qName().getSuffix(), is("a"));
+        assertThat(context.qualifiedName().getSuffix(), is("a"));
         assertThat(context.index(), isSQL("1 + 2"));
     }
 
@@ -101,9 +107,9 @@ public class SubscriptValidatorTest extends CrateUnitTest {
     @Test
     public void testVisitSubscriptWithNestedIndexExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a[a[abs(2-3)]]");
-        assertThat(context.qName().getSuffix(), is("a"));
+        assertThat(context.qualifiedName().getSuffix(), is("a"));
         context = analyzeSubscript(context.index().toString());
-        assertThat(context.qName().getSuffix(), is("a"));
+        assertThat(context.qualifiedName().getSuffix(), is("a"));
         assertThat(context.index(), isSQL("abs((2 - 3))"));
     }
 

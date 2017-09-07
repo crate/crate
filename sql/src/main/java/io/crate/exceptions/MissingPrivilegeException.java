@@ -19,6 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
+
 package io.crate.exceptions;
 
 import io.crate.analyze.user.Privilege;

@@ -22,7 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.*;
+import io.crate.exceptions.PartitionAlreadyExistsException;
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.RepositoryUnknownException;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -40,8 +45,16 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.analyze.TableDefinitions.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

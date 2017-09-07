@@ -35,7 +35,12 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -146,7 +151,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
 
     @Override
     public BinaryOperator<Map<K, Object[]>> combiner() {
-        return (state1, state2) -> { throw new UnsupportedOperationException("combine not supported"); };
+        return (state1, state2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
     }
 
     @Override
@@ -182,7 +189,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             states[i] = mode.onRow(
                 ramAccountingContext, aggregation, aggregation.newState(ramAccountingContext), inputs[i]);
         }
-        ramAccountingContext.addBytes( // key size + 32 bytes for entry + 4 bytes for increased capacity
+        // key size + 32 bytes for entry + 4 bytes for increased capacity
+        ramAccountingContext.addBytes(
             RamAccountingContext.roundUp(keySizeEstimator.estimateSize(key) + 36L));
         statesByKey.put(key, states);
     }

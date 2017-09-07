@@ -263,7 +263,7 @@ public class SnapshotRestoreDDLDispatcher {
                     if (name.equals(index)) {
                         ctx.addIndex(index);
                         return;
-                    } else if(isIndexPartitionOfTable(index, table.tableIdent())) {
+                    } else if (isIndexPartitionOfTable(index, table.tableIdent())) {
                         String templateName = table.partitionTemplate();
                         // add a partitions wildcard
                         // to match all partitions if a partitioned table was meant

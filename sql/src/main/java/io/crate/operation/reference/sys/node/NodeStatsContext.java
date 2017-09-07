@@ -24,7 +24,11 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.monitor.*;
+import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.ExtendedNetworkStats;
+import io.crate.monitor.ExtendedOsStats;
+import io.crate.monitor.ExtendedProcessCpuStats;
+import io.crate.monitor.ThreadPools;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;

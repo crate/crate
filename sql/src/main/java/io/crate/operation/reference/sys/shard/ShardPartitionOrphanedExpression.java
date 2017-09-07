@@ -18,6 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;

@@ -121,8 +121,9 @@ public class NodeStatsIterator implements BatchIterator {
             case 2:
                 return toCollect.contains(SysNodesTableInfo.Columns.ID) &&
                        toCollect.contains(SysNodesTableInfo.Columns.NAME);
+            default:
+                return false;
         }
-        return false;
     }
 
     private CompletableFuture<List<NodeStatsContext>> getNodeStatsContextFromLocalState() {

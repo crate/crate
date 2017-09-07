@@ -23,7 +23,11 @@
 package io.crate.operation;
 
 import com.google.common.base.Joiner;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;

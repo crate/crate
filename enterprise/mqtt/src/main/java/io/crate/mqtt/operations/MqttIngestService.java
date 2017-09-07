@@ -18,7 +18,6 @@
 
 package io.crate.mqtt.operations;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
@@ -191,18 +190,17 @@ public class MqttIngestService implements IngestRuleListener {
                     session.bind(SQLOperations.Session.UNNAMED, ingestRule.getName(), argsAsList, null);
                     BaseResultReceiver resultReceiver = new BaseResultReceiver();
                     insertOperationsFuture.add(resultReceiver.completionFuture().exceptionally(t -> {
-                            if (SQLExceptions.isDocumentAlreadyExistsException(t)) {
-                                if(msg.fixedHeader().isDup()) {
-                                    // we are dealing with QoS1, so redeliveries and duplicate insert exceptions are
-                                    // normal in case of a duplicate message - indicated by the isDup flag
-                                    return null;
-                                }
+                        if (SQLExceptions.isDocumentAlreadyExistsException(t)) {
+                            if (msg.fixedHeader().isDup()) {
+                                // we are dealing with QoS1, so redeliveries and duplicate insert exceptions are
+                                // normal in case of a duplicate message - indicated by the isDup flag
+                                return null;
                             }
+                        }
 
-                            Exceptions.rethrowUnchecked(t);
-                            return null;
-                        })
-                    );
+                        Exceptions.rethrowUnchecked(t);
+                        return null;
+                    }));
                     session.execute(SQLOperations.Session.UNNAMED, 0, resultReceiver);
                     session.sync();
                 } catch (SQLActionException e) {

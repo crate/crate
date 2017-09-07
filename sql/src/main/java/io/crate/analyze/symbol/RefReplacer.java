@@ -30,7 +30,7 @@ import static java.util.Objects.requireNonNull;
 
 public final class RefReplacer extends FunctionCopyVisitor<Function<? super Reference, ? extends Symbol>> {
 
-    private final static RefReplacer REPLACER = new RefReplacer();
+    private static final RefReplacer REPLACER = new RefReplacer();
 
     private RefReplacer() {
         super();

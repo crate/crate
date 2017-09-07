@@ -25,13 +25,21 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.Schemas;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.ShowColumns;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowTables;
 import org.elasticsearch.common.collect.Tuple;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 class ShowStatementAnalyzer {
 

@@ -128,6 +128,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Note: User can only set at the beginning of session.
      */
     public static SessionContext create(User user) {
-        return new SessionContext(null, user, s -> {}, t -> {});
+        return new SessionContext(null, user, s -> { }, t -> { });
     }
 }

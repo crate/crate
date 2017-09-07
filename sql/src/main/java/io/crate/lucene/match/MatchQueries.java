@@ -56,7 +56,6 @@ public final class MatchQueries {
         MultiMatchQueryBuilder.Type type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
-        MatchQuery.Type matchQueryType = type.matchQueryType();
         MatchQuery matchQuery = new MatchQuery(queryShardContext);
 
         matchQuery.setAnalyzer(parsedOptions.analyzer());
@@ -69,6 +68,7 @@ public final class MatchQueries {
         matchQuery.setTranspositions(parsedOptions.transpositions());
         matchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
 
+        MatchQuery.Type matchQueryType = type.matchQueryType();
         return matchQuery.parse(matchQueryType, fieldName, queryString.utf8ToString());
     }
 

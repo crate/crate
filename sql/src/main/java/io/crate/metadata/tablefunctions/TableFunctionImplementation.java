@@ -23,9 +23,9 @@
 package io.crate.metadata.tablefunctions;
 
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.data.Input;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Collection;

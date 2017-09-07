@@ -51,7 +51,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private final ClusterService clusterService;
-    private final static Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
+    private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");

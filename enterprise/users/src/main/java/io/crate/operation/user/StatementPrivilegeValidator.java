@@ -91,7 +91,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         VISITOR.process(statement, user);
     }
 
-    private final static class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
+    private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
 
         private static final RelationVisitor RELATION_VISITOR = new RelationVisitor();
 
@@ -453,7 +453,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
     }
 
 
-    private final static class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
+    private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
 
         @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {

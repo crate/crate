@@ -26,9 +26,15 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
-import io.crate.exceptions.ConversionException;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 

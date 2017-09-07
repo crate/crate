@@ -120,6 +120,7 @@ class UserPrivileges implements Iterable<Privilege> {
                         foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     }
                     break;
+                default:
             }
         }
 

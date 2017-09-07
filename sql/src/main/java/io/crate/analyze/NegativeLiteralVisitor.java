@@ -18,6 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
@@ -25,7 +26,12 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.operation.scalar.arithmetic.NegateFunction;
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
 
 public class NegativeLiteralVisitor extends SymbolVisitor<Void, Symbol> {
 

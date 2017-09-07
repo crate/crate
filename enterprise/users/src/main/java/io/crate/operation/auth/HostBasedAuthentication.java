@@ -44,7 +44,7 @@ public class HostBasedAuthentication implements Authentication {
     public static final String KEY_METHOD = "method";
     public static final String KEY_PROTOCOL = "protocol";
 
-    enum SSL_OPTIONS {
+    enum SSL {
         REQUIRED("on"),
         NEVER("off"),
         OPTIONAL("optional");
@@ -52,7 +52,7 @@ public class HostBasedAuthentication implements Authentication {
         static final String KEY = "ssl";
         final String VALUE;
 
-        SSL_OPTIONS(String value) {
+        SSL(String value) {
             this.VALUE = value;
         }
     }
@@ -127,7 +127,7 @@ public class HostBasedAuthentication implements Authentication {
             .filter(e -> Matchers.isValidUser(e, user))
             .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address()))
             .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), connectionProperties.protocol()))
-            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL_OPTIONS.KEY), connectionProperties))
+            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL.KEY), connectionProperties))
             .findFirst();
     }
 
@@ -159,9 +159,9 @@ public class HostBasedAuthentication implements Authentication {
         static boolean isValidConnection(String hbaConnectionMode, ConnectionProperties connectionProperties) {
             return hbaConnectionMode == null ||
                    hbaConnectionMode.isEmpty() ||
-                   hbaConnectionMode.equals(SSL_OPTIONS.OPTIONAL.VALUE) ||
-                   (hbaConnectionMode.equals(SSL_OPTIONS.NEVER.VALUE) && !connectionProperties.hasSSL()) ||
-                   (hbaConnectionMode.equals(SSL_OPTIONS.REQUIRED.VALUE) && connectionProperties.hasSSL());
+                   hbaConnectionMode.equals(SSL.OPTIONAL.VALUE) ||
+                   (hbaConnectionMode.equals(SSL.NEVER.VALUE) && !connectionProperties.hasSSL()) ||
+                   (hbaConnectionMode.equals(SSL.REQUIRED.VALUE) && connectionProperties.hasSSL());
         }
     }
 

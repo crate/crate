@@ -21,7 +21,11 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.*;
+import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.TwoTableJoin;
 
 import javax.annotation.Nullable;
 import java.util.Locale;

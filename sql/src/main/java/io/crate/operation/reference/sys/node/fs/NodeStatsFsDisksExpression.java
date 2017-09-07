@@ -43,16 +43,18 @@ public class NodeStatsFsDisksExpression extends NodeStatsArrayTypeExpression<Ext
 
     @Override
     protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
-        return new HashMap<String, Object>() {{
-            put(NodeFsStatsExpression.DEV, input.dev());
-            put(NodeFsStatsExpression.SIZE, input.total());
-            put(NodeFsStatsExpression.USED, input.used());
-            put(NodeFsStatsExpression.AVAILABLE, input.available());
-            put(NodeFsStatsExpression.READS, input.diskReads());
-            put(NodeFsStatsExpression.BYTES_READ, input.diskReadSizeInBytes());
-            put(NodeFsStatsExpression.WRITES, input.diskWrites());
-            put(NodeFsStatsExpression.BYTES_WRITTEN, input.diskWriteSizeInBytes());
-        }};
+        return new HashMap<String, Object>() {
+            {
+                put(NodeFsStatsExpression.DEV, input.dev());
+                put(NodeFsStatsExpression.SIZE, input.total());
+                put(NodeFsStatsExpression.USED, input.used());
+                put(NodeFsStatsExpression.AVAILABLE, input.available());
+                put(NodeFsStatsExpression.READS, input.diskReads());
+                put(NodeFsStatsExpression.BYTES_READ, input.diskReadSizeInBytes());
+                put(NodeFsStatsExpression.WRITES, input.diskWrites());
+                put(NodeFsStatsExpression.BYTES_WRITTEN, input.diskWriteSizeInBytes());
+            }
+        };
     }
 }
 

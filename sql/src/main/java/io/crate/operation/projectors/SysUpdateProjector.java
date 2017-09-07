@@ -48,7 +48,9 @@ class SysUpdateProjector implements Projector {
                     state.rowWriter.accept(row.get(0));
                     state.rowCount++;
                 },
-                (state1, state2) -> { throw new UnsupportedOperationException("Combine not supported"); },
+                (state1, state2) -> {
+                    throw new UnsupportedOperationException("Combine not supported");
+                },
                 state -> Collections.singletonList(new Row1(state.rowCount))
             ), 1);
     }

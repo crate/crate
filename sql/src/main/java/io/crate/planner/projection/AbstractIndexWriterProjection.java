@@ -40,10 +40,10 @@ import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
-    private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(new Value(DataTypes.LONG));  // number of rows imported
+    private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(new Value(DataTypes.LONG));  // number of rows imported
 
-    private final static String BULK_SIZE = "bulk_size";
-    private final static int BULK_SIZE_DEFAULT = 10000;
+    private static final String BULK_SIZE = "bulk_size";
+    private static final int BULK_SIZE_DEFAULT = 10000;
 
     private Integer bulkActions;
     protected TableIdent tableIdent;

@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.kill;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;

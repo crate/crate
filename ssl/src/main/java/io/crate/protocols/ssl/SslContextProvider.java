@@ -56,24 +56,24 @@ public class SslContextProvider implements Provider<SslContext> {
     }
 
     private static SslContext load(Settings settings) {
-            ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-            try {
-                final Object value = classLoader
-                    .loadClass(SSL_CONTEXT_CLAZZ)
-                    .getDeclaredMethod(SSL_CONTEXT_METHOD_NAME, Settings.class)
-                    .invoke(null, settings);
-                Class<SslContext> returnType = SslContext.class;
-                if (!returnType.isAssignableFrom(value.getClass())) {
-                    throw new SslHandlerLoadingException("Returned type did not match the expected type: " + returnType);
-                }
-                //noinspection unchecked
-                return (SslContext) value;
-            } catch (Throwable e) {
-                // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
-                // which we need to unpack first to see if we have an SslConfigurationException.
-                tryUnwrapSslConfigurationException(e);
-                throw new SslHandlerLoadingException(e);
+        ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+        try {
+            final Object value = classLoader
+                .loadClass(SSL_CONTEXT_CLAZZ)
+                .getDeclaredMethod(SSL_CONTEXT_METHOD_NAME, Settings.class)
+                .invoke(null, settings);
+            Class<SslContext> returnType = SslContext.class;
+            if (!returnType.isAssignableFrom(value.getClass())) {
+                throw new SslHandlerLoadingException("Returned type did not match the expected type: " + returnType);
             }
+            //noinspection unchecked
+            return (SslContext) value;
+        } catch (Throwable e) {
+            // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
+            // which we need to unpack first to see if we have an SslConfigurationException.
+            tryUnwrapSslConfigurationException(e);
+            throw new SslHandlerLoadingException(e);
+        }
     }
 
 
@@ -87,9 +87,11 @@ public class SslContextProvider implements Provider<SslContext> {
     }
 
     private static class SslHandlerLoadingException extends RuntimeException {
+
         SslHandlerLoadingException(String msg) {
             super(msg);
         }
+
         SslHandlerLoadingException(Throwable cause) {
             super("Loading the SslConfiguringHandler failed although enterprise is enabled.", cause);
         }

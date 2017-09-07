@@ -440,7 +440,7 @@ public class ManyTableConsumer implements Consumer {
 
         // Find the last join pair that contains a filtering
         int index = 0;
-        for (int i = twoTableJoinList.size() - 1; i >=0; i--) {
+        for (int i = twoTableJoinList.size() - 1; i >= 0; i--) {
             index = i;
             WhereClause where = twoTableJoinList.get(i).querySpec().where();
             if (where.hasQuery() && !(where.query() instanceof Literal)) {
@@ -678,7 +678,7 @@ public class ManyTableConsumer implements Consumer {
                 Map<Set<QualifiedName>, Symbol> splitted = QuerySplitter.split(joinPair.condition());
                 for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitted.entrySet()) {
                     conditionsMap.merge(entry.getKey(), entry.getValue(),
-                                        (a, b) -> AndOperator.join(Arrays.asList(a, b)));
+                        (a, b) -> AndOperator.join(Arrays.asList(a, b)));
                 }
             }
         }

@@ -50,7 +50,7 @@ import java.util.function.Consumer;
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    public final static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
+    public static final User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
     @VisibleForTesting
     static final StatementAuthorizedValidator NOOP_STATEMENT_VALIDATOR = s -> {

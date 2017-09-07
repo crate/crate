@@ -87,6 +87,7 @@ public final class StaticSite {
             channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
         }
     }
+
     private static String guessMimeType(String path) {
         int lastDot = path.lastIndexOf('.');
         if (lastDot == -1) {

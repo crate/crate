@@ -24,11 +24,11 @@ package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataTypes;
 
@@ -39,7 +39,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     public static final String NAME = "random";
 
-    protected final static FunctionInfo info = new FunctionInfo(
+    protected static final FunctionInfo info = new FunctionInfo(
         new FunctionIdent(NAME, Collections.emptyList()), DataTypes.DOUBLE,
         FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 

@@ -31,7 +31,9 @@ import org.mockito.Answers;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnitTest {
 

@@ -24,7 +24,11 @@ package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.Query;
 
 public class ExplainStatementAnalyzer {
 

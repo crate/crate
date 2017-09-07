@@ -84,7 +84,7 @@ public class SysClusterTableInfo extends StaticTableInfo {
             List<String> namePath = crateSetting.path();
             createParentColumnIfMissing(columnRegistrar, namePath);
             // don't register empty groups
-            if (namePath.get(namePath.size()-1).isEmpty() == false) {
+            if (namePath.get(namePath.size() - 1).isEmpty() == false) {
                 columnRegistrar.register(ClusterSettingsExpression.NAME, crateSetting.dataType(), namePath);
             }
         }

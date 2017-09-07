@@ -105,7 +105,9 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
 
     @Override
     public BinaryOperator<RowPriorityQueue<Object[]>> combiner() {
-        return (pq1, pq2) -> { throw new UnsupportedOperationException("combine not supported"); };
+        return (pq1, pq2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
     }
 
     @Override

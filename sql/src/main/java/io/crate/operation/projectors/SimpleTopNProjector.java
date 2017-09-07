@@ -22,7 +22,12 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.LimitingBatchIterator;
+import io.crate.data.Projector;
+import io.crate.data.Row;
+import io.crate.data.SkippingBatchIterator;
 import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
 

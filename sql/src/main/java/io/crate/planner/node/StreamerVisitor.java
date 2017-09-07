@@ -22,7 +22,11 @@
 package io.crate.planner.node;
 
 import io.crate.Streamer;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.types.DataTypes;
 

@@ -34,7 +34,7 @@ import java.security.cert.Certificate;
 
 public class ConnectionProperties {
 
-    private final static Logger LOGGER = Loggers.getLogger(ConnectionProperties.class);
+    private static final Logger LOGGER = Loggers.getLogger(ConnectionProperties.class);
 
     private final InetAddress address;
     private final Protocol protocol;

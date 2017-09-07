@@ -64,7 +64,7 @@ import java.util.List;
 
 class NestedLoopConsumer implements Consumer {
 
-    private final static Logger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
+    private static final  Logger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
     NestedLoopConsumer(ClusterService clusterService, TableStats tableStats) {

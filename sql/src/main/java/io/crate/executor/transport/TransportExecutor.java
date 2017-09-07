@@ -160,7 +160,10 @@ public class TransportExecutor implements Executor {
         CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
         planFuture
             .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(consumer, parameters))
-            .exceptionally(t -> { consumer.accept(null, t); return null; });
+            .exceptionally(t -> {
+                consumer.accept(null, t);
+                return null;
+            });
     }
 
     @Override

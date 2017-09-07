@@ -29,9 +29,9 @@ import java.util.List;
 
 public final class Aggregations {
 
-    private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
-    private final static AggregationOrScalarSearcher AGGREGATION_OR_SCALAR_SEARCHER = new AggregationOrScalarSearcher();
-    private final static GroupBySymbolMatcher GROUP_BY_MATCHER = new GroupBySymbolMatcher();
+    private static final AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
+    private static final AggregationOrScalarSearcher AGGREGATION_OR_SCALAR_SEARCHER = new AggregationOrScalarSearcher();
+    private static final GroupBySymbolMatcher GROUP_BY_MATCHER = new GroupBySymbolMatcher();
 
     /**
      * @return true if the symbol is an aggregation or function which contains an aggregation.

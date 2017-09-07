@@ -53,7 +53,7 @@ import java.util.Set;
 
 public class WhereClauseAnalyzer {
 
-    private final static GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
+    private static final GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
 
     private final Functions functions;
     private final DocTableInfo tableInfo;

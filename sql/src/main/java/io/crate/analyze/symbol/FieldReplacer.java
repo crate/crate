@@ -26,7 +26,7 @@ import java.util.function.Function;
 
 public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Field, ? extends Symbol>> {
 
-    private final static FieldReplacer REPLACER = new FieldReplacer();
+    private static final FieldReplacer REPLACER = new FieldReplacer();
 
     private FieldReplacer() {
         super();

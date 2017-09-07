@@ -64,7 +64,9 @@ public class StreamBucketCollector implements Collector<Row, StreamBucket.Builde
 
     @Override
     public BinaryOperator<StreamBucket.Builder> combiner() {
-        return (builder1, builder2) -> { throw new UnsupportedOperationException("combine not supported"); };
+        return (builder1, builder2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
     }
 
     @Override

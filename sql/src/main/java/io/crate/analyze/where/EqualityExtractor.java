@@ -24,8 +24,17 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.operator.any.AnyEqOperator;
@@ -36,7 +45,16 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 class EqualityExtractor {
 

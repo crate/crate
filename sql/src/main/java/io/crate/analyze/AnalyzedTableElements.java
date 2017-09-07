@@ -78,9 +78,9 @@ public class AnalyzedTableElements {
 
 
     public Map<String, Object> toMapping() {
-        Map<String, Object> mapping = new HashMap<>();
-        Map<String, Object> meta = new HashMap<>();
-        Map<String, Object> properties = new HashMap<>(columns.size());
+        final Map<String, Object> mapping = new HashMap<>();
+        final Map<String, Object> meta = new HashMap<>();
+        final Map<String, Object> properties = new HashMap<>(columns.size());
 
         Map<String, String> generatedColumns = new HashMap<>();
         Map<String, Object> indicesMap = new HashMap<>();

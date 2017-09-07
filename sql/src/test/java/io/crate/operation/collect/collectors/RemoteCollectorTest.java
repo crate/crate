@@ -53,7 +53,9 @@ import java.util.UUID;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 

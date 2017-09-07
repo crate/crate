@@ -29,9 +29,8 @@ import java.util.Map;
 
 public class StringObjectMaps {
 
-    public static
     @Nullable
-    Object getByPath(Map<String, Object> map, String path) {
+    public static Object getByPath(Map<String, Object> map, String path) {
         assert path != null : "path should not be null";
         Object tmp;
         List<String> splittedPath = StringUtils.PATH_SPLITTER.splitToList(path);

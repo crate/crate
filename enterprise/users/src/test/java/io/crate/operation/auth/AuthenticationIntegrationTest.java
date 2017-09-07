@@ -53,16 +53,16 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
                 "d", new String[]{"user", "method", "address"}, new String[]{"arthur", "trust", "127.0.0.1"})
             .put("auth.host_based.config",
                 "e",
-                new String[]{"user", HostBasedAuthentication.SSL_OPTIONS.KEY},
-                new String[]{"requiredssluser", HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE})
+                new String[]{"user", HostBasedAuthentication.SSL.KEY},
+                new String[]{"requiredssluser", HostBasedAuthentication.SSL.REQUIRED.VALUE})
             .put("auth.host_based.config",
                 "f",
-                new String[]{"user", HostBasedAuthentication.SSL_OPTIONS.KEY},
-                new String[]{"optionalssluser", HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE})
+                new String[]{"user", HostBasedAuthentication.SSL.KEY},
+                new String[]{"optionalssluser", HostBasedAuthentication.SSL.OPTIONAL.VALUE})
             .put("auth.host_based.config",
                 "g",
-                new String[]{"user", HostBasedAuthentication.SSL_OPTIONS.KEY},
-                new String[]{"neverssluser", HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE})
+                new String[]{"user", HostBasedAuthentication.SSL.KEY},
+                new String[]{"neverssluser", HostBasedAuthentication.SSL.NEVER.VALUE})
             .build();
     }
 

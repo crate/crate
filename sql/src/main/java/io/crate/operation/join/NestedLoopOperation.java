@@ -22,7 +22,13 @@
 package io.crate.operation.join;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.*;
+import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.Columns;
+import io.crate.data.FilteringBatchIterator;
+import io.crate.data.ListenableBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
 
@@ -82,8 +88,9 @@ public class NestedLoopOperation implements CompletionListenable {
 
             case SEMI:
                 return NestedLoopBatchIterator.semiJoin(left, right, getJoinCondition(joinCondition));
+            default:
+                throw new AssertionError("Invalid joinType: " + joinType);
         }
-        throw new AssertionError("Invalid joinType: " + joinType);
     }
 
     private static Function<Columns, BooleanSupplier> getJoinCondition(Predicate<Row> joinCondition) {

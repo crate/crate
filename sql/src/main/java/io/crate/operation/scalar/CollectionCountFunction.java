@@ -21,8 +21,14 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

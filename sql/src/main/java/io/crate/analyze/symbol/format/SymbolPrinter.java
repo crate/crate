@@ -23,8 +23,21 @@
 package io.crate.analyze.symbol.format;
 
 import io.crate.analyze.relations.RelationPrinter;
-import io.crate.analyze.symbol.*;
-import io.crate.metadata.*;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.LiteralValueFormatter;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.operator.any.AnyOperator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -33,7 +46,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
-import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.*;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.ANY;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.COMMA;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.DOT;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
+import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.WS;
 
 @Singleton
 public class SymbolPrinter {

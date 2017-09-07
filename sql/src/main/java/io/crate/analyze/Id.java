@@ -40,13 +40,13 @@ import static io.crate.collections.Lists2.getOnlyElement;
 
 public class Id {
 
-    private final static Function<List<BytesRef>, String> RANDOM_ID = ignored -> UUIDs.base64UUID();
+    private static final Function<List<BytesRef>, String> RANDOM_ID = ignored -> UUIDs.base64UUID();
 
-    private final static Function<List<BytesRef>, String> ONLY_ITEM_NULL_VALIDATION = keyValues -> {
+    private static final Function<List<BytesRef>, String> ONLY_ITEM_NULL_VALIDATION = keyValues -> {
         return ensureNonNull(getOnlyElement(keyValues)).utf8ToString();
     };
 
-    private final static Function<List<BytesRef>, String> ONLY_ITEM = keyValues -> {
+    private static final Function<List<BytesRef>, String> ONLY_ITEM = keyValues -> {
         BytesRef element = getOnlyElement(keyValues);
         if (element == null) {
             return null;

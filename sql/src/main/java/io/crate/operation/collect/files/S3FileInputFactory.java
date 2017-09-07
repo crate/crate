@@ -26,7 +26,7 @@ import java.io.IOException;
 
 public class S3FileInputFactory implements FileInputFactory {
 
-    public final static String NAME = "s3";
+    public static final String NAME = "s3";
 
     @Override
     public FileInput create() throws IOException {

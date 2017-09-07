@@ -56,7 +56,7 @@ import java.util.Locale;
  */
 public class Messages {
 
-    private final static Logger LOGGER = Loggers.getLogger(Messages.class);
+    private static final Logger LOGGER = Loggers.getLogger(Messages.class);
 
     private static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
     private static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);

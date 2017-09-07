@@ -21,7 +21,15 @@
 
 package io.crate.breaker;
 
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.FixedWidthType;
+import io.crate.types.GeoShapeType;
+import io.crate.types.IpType;
+import io.crate.types.ObjectType;
+import io.crate.types.SetType;
+import io.crate.types.StringType;
+import io.crate.types.UndefinedType;
 
 import java.util.Locale;
 

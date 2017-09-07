@@ -40,11 +40,11 @@ public class SubscriptContext {
     public SubscriptContext() {
     }
 
-    public QualifiedName qName() {
+    public QualifiedName qualifiedName() {
         return qName;
     }
 
-    public void qName(QualifiedName qName) {
+    public void qualifiedName(QualifiedName qName) {
         this.qName = qName;
     }
 

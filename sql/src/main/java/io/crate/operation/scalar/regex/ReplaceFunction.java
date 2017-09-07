@@ -25,7 +25,13 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -141,7 +147,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
     @Nullable
     @Override
     public List<DataType> getSignature(List<DataType> dataTypes) {
-        if (dataTypes.size() < 3 || dataTypes.size() > 4){
+        if (dataTypes.size() < 3 || dataTypes.size() > 4) {
             return null;
         }
         return Signature.SIGNATURES_ALL_OF_SAME.apply(dataTypes);

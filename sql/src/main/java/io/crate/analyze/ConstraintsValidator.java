@@ -35,7 +35,7 @@ import java.util.Map;
 public final class ConstraintsValidator {
 
     public static void validate(Object value, Reference targetColumn, Collection<ColumnIdent> notNullColumns) {
-        assert targetColumn != null: "targetColumn is required to be able to validate it";
+        assert targetColumn != null : "targetColumn is required to be able to validate it";
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,

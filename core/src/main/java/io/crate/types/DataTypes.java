@@ -45,37 +45,37 @@ import java.util.function.Supplier;
 
 public final class DataTypes {
 
-    private final static Logger logger = Loggers.getLogger(DataTypes.class);
+    private static final Logger logger = Loggers.getLogger(DataTypes.class);
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
      */
-    public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
-    public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
+    public static final UndefinedType UNDEFINED = UndefinedType.INSTANCE;
+    public static final NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 
-    public final static ByteType BYTE = ByteType.INSTANCE;
-    public final static BooleanType BOOLEAN = BooleanType.INSTANCE;
+    public static final ByteType BYTE = ByteType.INSTANCE;
+    public static final BooleanType BOOLEAN = BooleanType.INSTANCE;
 
-    public final static StringType STRING = StringType.INSTANCE;
-    public final static IpType IP = IpType.INSTANCE;
+    public static final StringType STRING = StringType.INSTANCE;
+    public static final IpType IP = IpType.INSTANCE;
 
-    public final static DoubleType DOUBLE = DoubleType.INSTANCE;
-    public final static FloatType FLOAT = FloatType.INSTANCE;
+    public static final DoubleType DOUBLE = DoubleType.INSTANCE;
+    public static final FloatType FLOAT = FloatType.INSTANCE;
 
-    public final static ShortType SHORT = ShortType.INSTANCE;
-    public final static IntegerType INTEGER = IntegerType.INSTANCE;
-    public final static LongType LONG = LongType.INSTANCE;
-    public final static TimestampType TIMESTAMP = TimestampType.INSTANCE;
+    public static final ShortType SHORT = ShortType.INSTANCE;
+    public static final IntegerType INTEGER = IntegerType.INSTANCE;
+    public static final LongType LONG = LongType.INSTANCE;
+    public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
-    public final static ObjectType OBJECT = ObjectType.INSTANCE;
+    public static final ObjectType OBJECT = ObjectType.INSTANCE;
 
-    public final static GeoPointType GEO_POINT = GeoPointType.INSTANCE;
-    public final static GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
+    public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
+    public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
-    public final static DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
-    public final static DataType OBJECT_ARRAY = new ArrayType(OBJECT);
+    public static final DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
+    public static final DataType OBJECT_ARRAY = new ArrayType(OBJECT);
 
-    public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
+    public static final ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
         BYTE,
         BOOLEAN,
         STRING,
@@ -88,7 +88,7 @@ public final class DataTypes {
         TIMESTAMP
     );
 
-    public final static ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.of(
+    public static final ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.of(
         DOUBLE,
         FLOAT,
         BYTE,

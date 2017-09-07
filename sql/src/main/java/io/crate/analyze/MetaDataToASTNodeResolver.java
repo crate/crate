@@ -21,14 +21,51 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.*;
-import io.crate.types.*;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnConstraint;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CrateTableOption;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.IndexColumnConstraint;
+import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.PartitionedBy;
+import io.crate.sql.tree.PrimaryKeyConstraint;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.TableElement;
+import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.common.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 
 public class MetaDataToASTNodeResolver {
 
@@ -93,7 +130,6 @@ public class MetaDataToASTNodeResolver {
                     columnType = new ColumnType(info.valueType().getName());
                 }
 
-                String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size() - 1);
                 List<ColumnConstraint> constraints = new ArrayList<>();
                 if (!info.isNullable()) {
                     constraints.add(new NotNullColumnConstraint());
@@ -130,6 +166,7 @@ public class MetaDataToASTNodeResolver {
                     expression = SqlParser.createExpression(formattedExpression);
                 }
 
+                String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size() - 1);
                 ColumnDefinition column = new ColumnDefinition(columnName, expression, columnType, constraints);
                 elements.add(column);
             }

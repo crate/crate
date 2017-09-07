@@ -29,10 +29,10 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     private final Object value;
     private final DataType type;
 
-    public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
-    public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
-    public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
-    public final static Literal<Integer> ZERO = Literal.of(0);
+    public static final Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
+    public static final Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
+    public static final Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
+    public static final Literal<Integer> ZERO = Literal.of(0);
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.<String, Object>emptyMap());
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {

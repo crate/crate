@@ -26,7 +26,6 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -103,7 +102,6 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
             }
-            AnalyzedRelation sourceRelation = entry.getValue();
 
             if (columnSchema != null && sourceSchema != null && !columnSchema.equals(sourceSchema)) {
                 continue;
@@ -114,6 +112,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             }
             tableNameMatched = true;
 
+            AnalyzedRelation sourceRelation = entry.getValue();
             Field newField = sourceRelation.getField(columnIdent, operation);
             if (newField != null) {
                 if (lastField != null) {

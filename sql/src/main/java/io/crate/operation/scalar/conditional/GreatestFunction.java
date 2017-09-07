@@ -26,7 +26,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 
 public class GreatestFunction extends ConditionalCompareFunction {
-    public final static String NAME = "greatest";
+    public static final String NAME = "greatest";
 
     private GreatestFunction(FunctionInfo info) {
         super(info);

@@ -22,7 +22,11 @@
 package io.crate.operation;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;

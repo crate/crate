@@ -63,13 +63,13 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
 
     @Override
     public SysNodeCheck getRow(Object id) {
-        assert id instanceof BytesRef: "an integer is required as id";
+        assert id instanceof BytesRef : "an integer is required as id";
         return checks.get(id);
     }
 
     @Override
     public BiConsumer<SysNodeCheck, Input<?>> getWriter(ColumnIdent ci) {
-        if (SysNodeChecksTableInfo.Columns.ACKNOWLEDGED.equals(ci)){
+        if (SysNodeChecksTableInfo.Columns.ACKNOWLEDGED.equals(ci)) {
             return ackWriter;
         }
         return null;

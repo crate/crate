@@ -28,7 +28,13 @@ import io.crate.operation.reference.sys.node.SimpleNodeStatsExpression;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.*;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.AVAILABLE;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.BYTES_READ;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.BYTES_WRITTEN;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.READS;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.SIZE;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.USED;
+import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.WRITES;
 
 public class NodeFsTotalStatsExpression extends SimpleNodeStatsExpression<Map<String, Long>> {
 

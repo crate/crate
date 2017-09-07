@@ -22,7 +22,20 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.TryCast;
 
 import java.util.Locale;
 
@@ -50,7 +63,7 @@ public final class SubscriptValidator {
 
         @Override
         protected Void visitQualifiedNameReference(QualifiedNameReference node, SubscriptContext context) {
-            context.qName(node.getName());
+            context.qualifiedName(node.getName());
             return null;
         }
 

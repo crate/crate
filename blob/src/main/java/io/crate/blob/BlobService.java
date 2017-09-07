@@ -22,12 +22,12 @@
 package io.crate.blob;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
-import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.recovery.BlobRecoveryHandler;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.http.HttpBlobHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
@@ -41,7 +41,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.indices.recovery.*;
+import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
+import org.elasticsearch.indices.recovery.RecoverySourceHandler;
+import org.elasticsearch.indices.recovery.RecoverySourceHandlerProvider;
+import org.elasticsearch.indices.recovery.RemoteRecoveryTargetHandler;
+import org.elasticsearch.indices.recovery.StartRecoveryRequest;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.function.Function;

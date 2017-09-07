@@ -116,6 +116,9 @@ public class MqttMessageLogger extends ChannelDuplexHandler {
                     logger.trace("{} SUBACK <{}> packetID <{}>, grantedQoses {}",
                         direction, clientID, messageId(msg), grantedQoSLevels);
                     break;
+                default:
+                    logger.trace("{} {} <{}> Unknown message type received.",
+                        direction, messageType, clientID);
             }
         }
     }

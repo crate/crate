@@ -26,7 +26,14 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.RefReplacer;
+import io.crate.analyze.symbol.RefVisitor;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
@@ -35,7 +42,12 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 public final class FetchRewriter {
@@ -85,7 +97,7 @@ public final class FetchRewriter {
         return new InputColumn(indexOf, preFetchOutputs.get(indexOf).valueType());
     }
 
-    public final static class FetchDescription {
+    public static final class FetchDescription {
 
         private final TableIdent tableIdent;
         private final List<Reference> partitionedByColumns;
@@ -211,14 +223,15 @@ public final class FetchRewriter {
         assert FetchFeasibility.isFetchFeasible(querySpec.outputs(), querySymbols)
             : "Fetch rewrite shouldn't be done if it's not feasible";
 
-        SymbolForFetchConverter symbolForFetchConverter = new SymbolForFetchConverter(querySymbols);
-        List<Symbol> postFetchOutputs = Lists2.copyAndReplace(querySpec.outputs(), symbolForFetchConverter);
 
         DocTableInfo tableInfo = query.tableRelation().tableInfo();
         Reference fetchId = DocSysColumns.forTable(tableInfo.ident(), DocSysColumns.FETCHID);
         ArrayList<Symbol> preFetchOutputs = new ArrayList<>(1 + querySymbols.size());
         preFetchOutputs.add(fetchId);
         preFetchOutputs.addAll(querySymbols);
+
+        SymbolForFetchConverter symbolForFetchConverter = new SymbolForFetchConverter(querySymbols);
+        List<Symbol> postFetchOutputs = Lists2.copyAndReplace(querySpec.outputs(), symbolForFetchConverter);
 
         Reference scoreRef = symbolForFetchConverter.scoreRef;
         if (scoreRef != null) {
@@ -242,7 +255,7 @@ public final class FetchRewriter {
      *  - Keeps a reference to a _score Reference if it is encountered (_score can't be fetched)
      *  - Adds references that will need to be fetched to {@link SymbolForFetchConverter#fetchRefs}
      */
-    private final static class SymbolForFetchConverter implements Function<Symbol, Symbol> {
+    private static final class SymbolForFetchConverter implements Function<Symbol, Symbol> {
 
         private final Set<Symbol> querySymbols;
         private final Set<Reference> fetchRefs = new LinkedHashSet<>();

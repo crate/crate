@@ -37,7 +37,9 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

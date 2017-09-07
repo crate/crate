@@ -23,8 +23,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import io.crate.data.Row;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.operation.InputRow;
 
 import javax.annotation.Nullable;

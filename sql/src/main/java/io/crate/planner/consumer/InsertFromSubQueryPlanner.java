@@ -44,12 +44,13 @@ import java.util.List;
 public final class InsertFromSubQueryPlanner {
 
     private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
+
     private InsertFromSubQueryPlanner() {
     }
 
     public static Plan plan(InsertFromSubQueryAnalyzedStatement statement, ConsumerContext context) {
 
-        ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
+        final ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
             null,
             statement.tableInfo().primaryKey(),
@@ -64,7 +65,6 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().isPartitioned()
         );
 
-        Planner.Context plannerContext = context.plannerContext();
         QueriedRelation subRelation = statement.subQueryRelation();
         QuerySpec subQuerySpec = subRelation.querySpec();
 
@@ -76,6 +76,7 @@ public final class InsertFromSubQueryPlanner {
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
         context.setFetchMode(FetchMode.NEVER);
+        Planner.Context plannerContext = context.plannerContext();
         Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
         if (plannedSubQuery == null) {
             return null;

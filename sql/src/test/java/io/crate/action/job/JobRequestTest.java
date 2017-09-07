@@ -24,7 +24,6 @@ package io.crate.action.job;
 
 import io.crate.operation.NodeOperation;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Collections;

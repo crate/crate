@@ -150,7 +150,7 @@ public class BatchIteratorBackpressureExecutor<R> {
                 executeFunction.get().whenComplete(continueConsumptionOrFinish);
             } else {
                 batchIterator.loadNextBatch()
-                     // consumption can only be continued after loadNextBatch completes; so keep permit until then.
+                    // consumption can only be continued after loadNextBatch completes; so keep permit until then.
                     .whenComplete((r, f) -> {
                         semaphore.release();
                         continueConsumptionOrFinish.accept(r, f);

@@ -47,7 +47,8 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class NodeStatsContextTest extends CrateUnitTest {
 

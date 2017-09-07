@@ -30,7 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;

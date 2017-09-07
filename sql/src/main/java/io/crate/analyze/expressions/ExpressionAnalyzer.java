@@ -145,7 +145,7 @@ import java.util.regex.Pattern;
  */
 public class ExpressionAnalyzer {
 
-    private final static Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE =
+    private static final Map<ComparisonExpression.Type, ComparisonExpression.Type> SWAP_OPERATOR_TABLE =
         ImmutableMap.<ComparisonExpression.Type, ComparisonExpression.Type>builder()
             .put(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN)
             .put(ComparisonExpression.Type.LESS_THAN, ComparisonExpression.Type.GREATER_THAN)
@@ -153,7 +153,7 @@ public class ExpressionAnalyzer {
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
-    private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
+    private static final NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final SessionContext sessionContext;
     private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
@@ -510,8 +510,8 @@ public class ExpressionAnalyzer {
             // TODO: support nested subscripts as soon as DataTypes.OBJECT elements can be typed
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
-            if (subscriptContext.qName() != null && subscriptExpression == null) {
-                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qName(), subscriptContext.parts(), operation);
+            if (subscriptContext.qualifiedName() != null && subscriptExpression == null) {
+                subscriptSymbol = fieldProvider.resolveField(subscriptContext.qualifiedName(), subscriptContext.parts(), operation);
             } else if (subscriptExpression != null) {
                 subscriptSymbol = subscriptExpression.accept(this, context);
             } else {
@@ -531,7 +531,7 @@ public class ExpressionAnalyzer {
                     ImmutableList.of(subscriptSymbol, indexSymbol)
                 );
             } else if (parts != null && subscriptExpression != null) {
-                FunctionInfo info = getBuiltinFunctionInfo( SubscriptObjectFunction.NAME,
+                FunctionInfo info = getBuiltinFunctionInfo(SubscriptObjectFunction.NAME,
                     ImmutableList.of(subscriptSymbol.valueType(), DataTypes.STRING));
 
                 Symbol function = context.allocateFunction(info, ImmutableList.of(subscriptSymbol, Literal.of(parts.get(0))));
@@ -912,8 +912,8 @@ public class ExpressionAnalyzer {
                 operatorName = Operator.PREFIX + type.getValue();
             }
             Symbol tmp = left;
-            DataType tmpType = leftType;
             left = right;
+            DataType tmpType = leftType;
             leftType = rightType;
             right = tmp;
             rightType = tmpType;

@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 
 public class SrvPlugin extends Plugin implements DiscoveryPlugin {
 
-    private final static String DISCOVERY_NAME = "srv";
+    private static final String DISCOVERY_NAME = "srv";
 
     private final Settings settings;
 

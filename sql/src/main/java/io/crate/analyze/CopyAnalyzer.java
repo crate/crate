@@ -180,11 +180,6 @@ class CopyAnalyzer {
             tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
-
-        WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
-        WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
 
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
         uri = normalizer.normalize(uri, analysis.transactionContext());
@@ -237,6 +232,14 @@ class CopyAnalyzer {
             outputs = ImmutableList.of(sourceRef);
         }
         querySpec.outputs(outputs);
+
+        Settings settings = GenericPropertiesConverter.settingsFromProperties(
+            node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
+
+        WriterProjection.CompressionType compressionType =
+            settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
+        WriterProjection.OutputFormat outputFormat =
+            settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
 
         if (!columnsDefined && outputFormat == WriterProjection.OutputFormat.JSON_ARRAY) {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");

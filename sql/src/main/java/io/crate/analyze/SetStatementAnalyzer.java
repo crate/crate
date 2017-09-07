@@ -26,11 +26,25 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.SetStatement;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 class SetStatementAnalyzer {
 

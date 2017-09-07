@@ -854,9 +854,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return new Intersect(ImmutableList.of(left, right), distinct);
             case SqlBaseLexer.EXCEPT:
                 return new Except(left, right, distinct);
+            default:
+                throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
     }
 
     @Override
@@ -1378,7 +1378,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitIfPresent(ctx.where(), Expression.class));
     }
 
-// Data types
+    // Data types
 
     @Override
     public Node visitDataType(SqlBaseParser.DataTypeContext context) {
@@ -1403,9 +1403,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return type.getText().toLowerCase(Locale.ENGLISH);
             case SqlBaseLexer.IGNORED:
                 return type.getText().toLowerCase(Locale.ENGLISH);
+            default:
+                throw new UnsupportedOperationException("Unsupported object type: " + type.getText());
         }
-
-        throw new UnsupportedOperationException("Unsupported object type: " + type.getText());
     }
 
     // Helpers
@@ -1486,9 +1486,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return ArithmeticExpression.Type.DIVIDE;
             case SqlBaseLexer.PERCENT:
                 return ArithmeticExpression.Type.MODULUS;
+            default:
+                throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
         }
-
-        throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
     }
 
     private static ComparisonExpression.Type getComparisonOperator(Token symbol) {
@@ -1513,9 +1513,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return ComparisonExpression.Type.REGEX_MATCH_CI;
             case SqlBaseLexer.REGEX_NO_MATCH_CI:
                 return ComparisonExpression.Type.REGEX_NO_MATCH_CI;
+            default:
+                throw new UnsupportedOperationException("Unsupported operator: " + symbol.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported operator: " + symbol.getText());
     }
 
     private static CurrentTime.Type getDateTimeFunctionType(Token token) {
@@ -1526,9 +1526,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return CurrentTime.Type.TIME;
             case SqlBaseLexer.CURRENT_TIMESTAMP:
                 return CurrentTime.Type.TIMESTAMP;
+            default:
+                throw new UnsupportedOperationException("Unsupported special function: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported special function: " + token.getText());
     }
 
     private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
@@ -1537,9 +1537,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return LogicalBinaryExpression.Type.AND;
             case SqlBaseLexer.OR:
                 return LogicalBinaryExpression.Type.OR;
+            default:
+                throw new IllegalArgumentException("Unsupported operator: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
     }
 
     private static SortItem.NullOrdering getNullOrderingType(Token token) {
@@ -1548,9 +1548,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return SortItem.NullOrdering.FIRST;
             case SqlBaseLexer.LAST:
                 return SortItem.NullOrdering.LAST;
+            default:
+                throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
 
     private static SortItem.Ordering getOrderingType(Token token) {
@@ -1559,9 +1559,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return SortItem.Ordering.ASCENDING;
             case SqlBaseLexer.DESC:
                 return SortItem.Ordering.DESCENDING;
+            default:
+                throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
 
     private static String getClazz(Token token) {
@@ -1570,9 +1570,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return SCHEMA;
             case SqlBaseLexer.TABLE:
                 return TABLE;
-        }
+            default:
+                throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
 
-        throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
+        }
     }
 
     private static ArrayComparisonExpression.Quantifier getComparisonQuantifier(Token symbol) {
@@ -1583,9 +1584,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return ArrayComparisonExpression.Quantifier.ANY;
             case SqlBaseLexer.SOME:
                 return ArrayComparisonExpression.Quantifier.ANY;
+            default:
+                throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
 
     private List<QualifiedName> getIdents(List<SqlBaseParser.QnameContext> qnames) {

@@ -25,14 +25,23 @@ package io.crate.operation.scalar;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 

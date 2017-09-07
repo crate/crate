@@ -19,39 +19,42 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.pending_transfer;
+package io.crate.blob.transfer;
 
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
+import java.util.UUID;
 
-public class BlobTransferInfoResponse extends TransportResponse {
+public class PutBlobHeadChunkRequest extends TransportRequest {
 
-    public String digest;
-    public String index;
+    public UUID transferId;
+    public BytesReference content;
 
-    public BlobTransferInfoResponse() {
-
+    public PutBlobHeadChunkRequest() {
     }
 
-    public BlobTransferInfoResponse(String index, String digest) {
-        this.index = index;
-        this.digest = digest;
+    public PutBlobHeadChunkRequest(UUID transferId, BytesArray bytesArray) {
+        this.transferId = transferId;
+        this.content = bytesArray;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        digest = in.readString();
-        index = in.readString();
+        transferId = new UUID(in.readLong(), in.readLong());
+        content = in.readBytesReference();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(digest);
-        out.writeString(index);
+        out.writeLong(transferId.getMostSignificantBits());
+        out.writeLong(transferId.getLeastSignificantBits());
+        out.writeBytesReference(content);
     }
 }

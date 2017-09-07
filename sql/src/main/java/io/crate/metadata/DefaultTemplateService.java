@@ -47,9 +47,9 @@ import java.io.IOException;
  */
 public class DefaultTemplateService extends AbstractComponent {
 
-    final static String TEMPLATE_NAME = "crate_defaults";
+    static final String TEMPLATE_NAME = "crate_defaults";
 
-    private final static String DEFAULT_MAPPING_SOURCE = createDefaultMappingSource();
+    private static final String DEFAULT_MAPPING_SOURCE = createDefaultMappingSource();
     private final ClusterService clusterService;
 
 

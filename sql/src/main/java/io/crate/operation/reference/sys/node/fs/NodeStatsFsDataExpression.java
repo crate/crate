@@ -43,10 +43,12 @@ public class NodeStatsFsDataExpression extends NodeStatsArrayTypeExpression<Exte
 
     @Override
     protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
-        return new HashMap<String, Object>() {{
-            put(NodeFsStatsExpression.DEV, input.dev());
-            put(NodeFsStatsExpression.PATH, input.path());
-        }};
+        return new HashMap<String, Object>() {
+            {
+                put(NodeFsStatsExpression.DEV, input.dev());
+                put(NodeFsStatsExpression.PATH, input.path());
+            }
+        };
     }
 }
 

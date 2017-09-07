@@ -284,8 +284,9 @@ class PostgresWireProtocol {
                     }
                     dispatchMessage(buffer, channel);
                     return;
+                default:
+                    throw new IllegalStateException("Illegal state: " + state);
             }
-            throw new IllegalStateException("Illegal state: " + state);
         }
 
         private void dispatchMessage(ByteBuf buffer, Channel channel) {
@@ -671,8 +672,9 @@ class PostgresWireProtocol {
                 case MSG_BODY:
                 case STARTUP_BODY:
                     return nullOrBuffer(buffer, state);
+                default:
+                    throw new IllegalStateException("Invalid state " + state);
             }
-            throw new IllegalStateException("Invalid state " + state);
         }
 
         /**

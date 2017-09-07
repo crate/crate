@@ -40,7 +40,9 @@ import java.net.Inet4Address;
 import java.net.UnknownHostException;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;

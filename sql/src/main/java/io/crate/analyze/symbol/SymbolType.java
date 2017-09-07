@@ -36,7 +36,9 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation::new),
     REFERENCE(Reference::new),
-    RELATION_OUTPUT(in -> { throw new UnsupportedOperationException("Field is not streamable"); }),
+    RELATION_OUTPUT(in -> {
+        throw new UnsupportedOperationException("Field is not streamable");
+    }),
     FUNCTION(Function::new),
     LITERAL(Literal::new),
     INPUT_COLUMN(InputColumn::new),
@@ -48,7 +50,9 @@ public enum SymbolType {
     GEO_REFERENCE(GeoReference::new),
     GENERATED_REFERENCE(GeneratedReference::new),
     PARAMETER(ParameterSymbol::new),
-    SELECT_SYMBOL(in -> { throw new UnsupportedOperationException("SelectSymbol is not streamable"); });
+    SELECT_SYMBOL(in -> {
+        throw new UnsupportedOperationException("SelectSymbol is not streamable");
+    });
 
     public static final List<SymbolType> VALUES = ImmutableList.copyOf(values());
 
