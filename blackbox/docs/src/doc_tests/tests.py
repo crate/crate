@@ -443,49 +443,49 @@ def test_suite():
                      tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/ddl/basics.txt',
-               'sql/ddl/generated_columns.txt',
-               'sql/ddl/constraints.txt',
-               'sql/ddl/sharding.txt',
-               'sql/ddl/replication.txt',
-               'sql/ddl/column_policy.txt',
-               'sql/ddl/indices_full_search.txt',
-               'sql/administration/system_columns.txt',
-               'sql/ddl/alter_table.txt',
-               'sql/administration/set_reset.txt',
-               'sql/administration/show_create_table.txt',
-               'sql/administration/user_defined_functions.txt',
-               'sql/administration/user_management.txt',
-               'sql/administration/privileges.txt',
-               'sql/dql.txt',
-               'sql/refresh.txt',
-               'sql/optimize.txt',
-               'sql/fulltext.txt',
-               'sql/data_types.txt',
-               'sql/occ.txt',
-               'sql/information_schema.txt',
-               'sql/partitioned_tables.txt',
-               'sql/aggregation.txt',
-               'sql/arithmetic.txt',
-               'sql/scalar.txt',
-               'sql/table_functions.txt',
-               'sql/system.txt',
-               'sql/queries.txt',
+    for fn in ('core/ddl/basics.txt',
+               'core/ddl/generated_columns.txt',
+               'core/ddl/constraints.txt',
+               'core/ddl/sharding.txt',
+               'core/ddl/replication.txt',
+               'core/ddl/column_policy.txt',
+               'core/ddl/indices_full_search.txt',
+               'core/administration/system_columns.txt',
+               'core/ddl/alter_table.txt',
+               'core/administration/set_reset.txt',
+               'core/administration/show_create_table.txt',
+               'core/administration/user_defined_functions.txt',
+               'core/administration/user_management.txt',
+               'core/administration/privileges.txt',
+               'core/dql.txt',
+               'core/refresh.txt',
+               'core/optimize.txt',
+               'core/fulltext.txt',
+               'core/data_types.txt',
+               'core/occ.txt',
+               'core/information_schema.txt',
+               'core/partitioned_tables.txt',
+               'core/aggregation.txt',
+               'core/arithmetic.txt',
+               'core/scalar.txt',
+               'core/table_functions.txt',
+               'core/system.txt',
+               'core/queries.txt',
                'protocols/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
                      tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/geo.txt',):
+    for fn in ('core/geo.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpCountries,
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt',
-               'sql/subquery_expressions.txt',):
+    for fn in ('core/joins.txt',
+               'core/subquery_expressions.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,
@@ -493,14 +493,14 @@ def test_suite():
                      tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/dml.txt',):
+    for fn in ('core/dml.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsQuotesAndUserVisits,
                      tearDown=tearDownLocationsQuotesAndUserVisits)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/snapshot_restore.txt',):
+    for fn in ('core/snapshot_restore.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,

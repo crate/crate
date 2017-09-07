@@ -1,9 +1,10 @@
-===========
-CrateDB SQL
-===========
+=============
+Core Features
+=============
 
-CrateDB uses SQL to query documents. For concise reference documentation see
-:doc:`sql`. For general information about SQL please refer to `Wikipedia SQL`_.
+CrateDB uses SQL to query documents. For concise synxtax documentation see
+:ref:`syntax-reference`. For general information about SQL please refer to
+`Wikipedia SQL`_.
 
 .. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
 
@@ -25,6 +26,5 @@ CrateDB uses SQL to query documents. For concise reference documentation see
    kill
    snapshot_restore
    optimize
-   sql
    features
    crate-standard-sql

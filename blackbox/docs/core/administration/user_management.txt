@@ -34,15 +34,14 @@ Users cannot be backed up or restored.
 ---------------
 
 To create a new user for the CrateDB database cluster use the
-:doc:`/sql/reference/create_user` SQL statement::
+:ref:`ref-create-user` SQL statement::
 
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
 
-The newly created user does not have any special :doc:`/sql/administration/privileges`.
-It can be used to connect to the database cluster using available authentication
-methods.
-
+The newly created user does not have any special
+:ref:`administration-privileges`. It can be used to connect to the database
+cluster using available authentication methods.
 
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters
@@ -66,7 +65,7 @@ statement returns an error::
     CREATE OK, 1 row affected (... sec)
 
 To remove an existing user from the CrateDB database cluster use the
-:doc:`/sql/reference/drop_user` SQL statement::
+:ref:`ref-drop-user` SQL statement::
 
     cr> DROP USER user_b;
     DROP OK, 1 row affected (... sec)
