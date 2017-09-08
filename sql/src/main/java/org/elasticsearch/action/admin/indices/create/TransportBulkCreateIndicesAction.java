@@ -379,7 +379,7 @@ public class TransportBulkCreateIndicesAction
 
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
             DiscoveryNodes nodes = currentState.nodes();
-            final Version createdVersion = Version.smallest(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
+            final Version createdVersion = Version.min(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
             indexSettingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, createdVersion);
         }
 
