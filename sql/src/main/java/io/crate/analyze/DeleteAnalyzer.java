@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -63,12 +62,11 @@ class DeleteAnalyzer {
         int numNested = 1;
 
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
-        SessionContext sessionContext = analysis.sessionContext();
+        TransactionContext transactionContext = analysis.transactionContext();
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            sessionContext,
             convertParamFunction,
             Operation.DELETE,
-            analysis.transactionContext());
+            transactionContext);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
@@ -82,10 +80,12 @@ class DeleteAnalyzer {
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             convertParamFunction,
             new FullQualifiedNameFieldProvider(
-                relationAnalysisContext.sources(), relationAnalysisContext.parentSources(), sessionContext.defaultSchema()),
+                relationAnalysisContext.sources(),
+                relationAnalysisContext.parentSources(),
+                transactionContext.sessionContext().defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
@@ -94,7 +94,6 @@ class DeleteAnalyzer {
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();
         }
-        TransactionContext transactionContext = analysis.transactionContext();
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
             Symbol query = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);

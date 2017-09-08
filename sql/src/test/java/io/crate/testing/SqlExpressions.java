@@ -94,19 +94,21 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        SessionContext sessionContext = SessionContext.create(user);
+        transactionContext = new TransactionContext(SessionContext.create(user));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(
+                sources,
+                ParentRelations.NO_PARENTS,
+                transactionContext.sessionContext().defaultSchema()),
             null
         );
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
-        transactionContext = new TransactionContext(sessionContext);
     }
 
     public Symbol asSymbol(String expression) {

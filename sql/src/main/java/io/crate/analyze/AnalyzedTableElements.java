@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -38,6 +37,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
@@ -238,9 +238,9 @@ public class AnalyzedTableElements {
                              Collection<? extends Reference> existingColumns,
                              Functions functions,
                              ParameterContext parameterContext,
-                             SessionContext sessionContext) {
+                             TransactionContext transactionContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, existingColumns, functions, parameterContext, sessionContext);
+        validateGeneratedColumns(tableIdent, existingColumns, functions, parameterContext, transactionContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -253,7 +253,7 @@ public class AnalyzedTableElements {
                                           Collection<? extends Reference> existingColumns,
                                           Functions functions,
                                           ParameterContext parameterContext,
-                                          SessionContext sessionContext) {
+                                          TransactionContext transactionContext) {
         List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(tableIdent, columnDefinition, tableReferences);
@@ -262,7 +262,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, tableIdent);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, sessionContext, parameterContext, tableReferenceResolver, null);
+            functions, transactionContext, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(functions);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {

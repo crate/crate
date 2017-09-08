@@ -38,6 +38,7 @@ import io.crate.types.DataTypes;
 import org.joda.time.DateTimeUtils;
 
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
@@ -46,7 +47,10 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     public static final int DEFAULT_PRECISION = 3;
 
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)), DataTypes.TIMESTAMP);
+        new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)),
+        DataTypes.TIMESTAMP,
+        FunctionInfo.Type.SCALAR,
+        Collections.emptySet());
 
     public static void register(ScalarFunctionModule function) {
         function.register(new CurrentTimestampFunction());
@@ -94,9 +98,6 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
-        if (transactionContext == null) {
-            return eval(function, DateTimeUtils.currentTimeMillis());
-        }
         // use evaluatedFunctions map to make sure multiple occurrences of current_timestamp within a query result in the same result
         return eval(function, transactionContext.currentTimeMillis());
     }

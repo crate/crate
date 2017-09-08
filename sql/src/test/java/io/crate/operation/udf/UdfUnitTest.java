@@ -62,6 +62,9 @@ public abstract class UdfUnitTest extends CrateUnitTest {
     };
 
     static class DummyFunction extends Scalar<Integer, Integer> {
+
+        public static final Integer RESULT = -42;
+
         private FunctionInfo info;
 
         DummyFunction(FunctionInfo info) {
@@ -75,7 +78,7 @@ public abstract class UdfUnitTest extends CrateUnitTest {
 
         @Override
         public Integer evaluate(Input<Integer>[] args) {
-            return null;
+            return RESULT;
         }
     }
 }

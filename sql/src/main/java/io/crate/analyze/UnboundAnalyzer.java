@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Explain;
@@ -74,32 +75,33 @@ class UnboundAnalyzer {
 
         @Override
         protected AnalyzedRelation visitQuery(Query node, Analysis context) {
-            return relationAnalyzer.analyzeUnbound(node, context.sessionContext(), context.paramTypeHints());
+            return relationAnalyzer.analyzeUnbound(node, context.transactionContext(), context.paramTypeHints());
         }
 
         @Override
         public AnalyzedRelation visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowTransaction();
-            return relationAnalyzer.analyzeUnbound(query, context.sessionContext(), ParamTypeHints.EMPTY);
+            return relationAnalyzer.analyzeUnbound(query, context.transactionContext(), ParamTypeHints.EMPTY);
         }
 
         @Override
         protected AnalyzedRelation visitShowTables(ShowTables node, Analysis context) {
             Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node);
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.sessionContext(), tuple.v2().typeHints());
+            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.transactionContext(), tuple.v2().typeHints());
         }
 
         @Override
         protected AnalyzedRelation visitShowSchemas(ShowSchemas node, Analysis context) {
             Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node);
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.sessionContext(), tuple.v2().typeHints());
+            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.transactionContext(), tuple.v2().typeHints());
         }
 
         @Override
         protected AnalyzedRelation visitShowColumns(ShowColumns node, Analysis context) {
-            SessionContext sessionContext = context.sessionContext();
-            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node, sessionContext.defaultSchema());
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), sessionContext, tuple.v2().typeHints());
+            TransactionContext transactionContext = context.transactionContext();
+            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(
+                node, transactionContext.sessionContext().defaultSchema());
+            return relationAnalyzer.analyzeUnbound(tuple.v1(), transactionContext, tuple.v2().typeHints());
         }
 
         @Override

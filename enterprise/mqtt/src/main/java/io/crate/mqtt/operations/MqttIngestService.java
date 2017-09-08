@@ -37,6 +37,7 @@ import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.InputFactory;
@@ -117,7 +118,12 @@ public class MqttIngestService implements IngestRuleListener {
                 return new InputColumn(MQTT_FIELDS_ORDER.get(qualifiedName));
             }
         };
-        this.expressionAnalyzer = new ExpressionAnalyzer(functions, null, null, mqttSourceFieldsProvider, null);
+        this.expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            new TransactionContext(),
+            null,
+            mqttSourceFieldsProvider,
+            null);
         this.ingestionService = ingestionService;
         this.crateUser = userLookup.findUser("crate");
     }

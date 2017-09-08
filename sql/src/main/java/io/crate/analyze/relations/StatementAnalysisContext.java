@@ -35,15 +35,12 @@ public class StatementAnalysisContext {
 
     private final Operation currentOperation;
     private final TransactionContext transactionContext;
-    private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
-    public StatementAnalysisContext(SessionContext sessionContext,
-                                    Function<ParameterExpression, Symbol> convertParamFunction,
+    public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
                                     Operation currentOperation,
                                     TransactionContext transactionContext) {
-        this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.currentOperation = currentOperation;
         this.transactionContext = transactionContext;
@@ -69,7 +66,8 @@ public class StatementAnalysisContext {
             RelationAnalysisContext parentCtx = lastRelationContextQueue.get(lastRelationContextQueue.size() - 1);
             parentRelations = parentCtx.parentSources().newLevel(parentCtx.sources());
         }
-        RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(aliasedRelation, parentRelations);
+        RelationAnalysisContext currentRelationContext =
+            new RelationAnalysisContext(aliasedRelation, parentRelations);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }
@@ -86,7 +84,7 @@ public class StatementAnalysisContext {
     }
 
     public SessionContext sessionContext() {
-        return sessionContext;
+        return transactionContext.sessionContext();
     }
 
     public Function<ParameterExpression,Symbol> convertParamFunction() {

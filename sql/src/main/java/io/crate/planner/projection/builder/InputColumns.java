@@ -29,7 +29,6 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
@@ -67,7 +66,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                 if (!input.symbolType().isValueSymbol()) {
                     DataType valueType = input.valueType();
                     if (input.symbolType() == SymbolType.FUNCTION
-                        && !((Function) input).info().features().contains(FunctionInfo.Feature.DETERMINISTIC)) {
+                        && !((Function) input).info().isDeterministic()) {
                         nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
                     } else {
                         this.inputs.put(input, new InputColumn(i, valueType));
@@ -116,7 +115,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     @Override
     public Symbol visitFunction(Function symbol, final Context context) {
         Symbol replacement;
-        if (symbol.info().features().contains(FunctionInfo.Feature.DETERMINISTIC)) {
+        if (symbol.info().isDeterministic()) {
             replacement = context.inputs.get(symbol);
         } else {
             replacement = context.nonDeterministicFunctions.get(symbol);

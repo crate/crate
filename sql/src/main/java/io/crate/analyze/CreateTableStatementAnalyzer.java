@@ -30,6 +30,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -91,11 +92,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     public CreateTableAnalyzedStatement analyze(CreateTable createTable,
                                                 ParameterContext parameterContext,
-                                                SessionContext sessionContext) {
+                                                TransactionContext transactionContext) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
 
-        TableIdent tableIdent = getTableIdent(createTable, sessionContext);
+        TableIdent tableIdent = getTableIdent(createTable, transactionContext.sessionContext());
         statement.table(tableIdent, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,
@@ -116,7 +117,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             Collections.emptyList(),
             functions,
             parameterContext,
-            sessionContext);
+            transactionContext);
 
         // update table settings
         statement.tableParameter().settingsBuilder().put(tableElements.settings());

@@ -1845,8 +1845,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectFromNonTableFunction() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Non table function abs is not supported in from clause");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Non table function 'abs' is not supported in from clause");
         analyze("select * from abs(1)");
     }
 

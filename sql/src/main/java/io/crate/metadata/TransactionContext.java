@@ -25,6 +25,8 @@ package io.crate.metadata;
 import io.crate.action.sql.SessionContext;
 import org.joda.time.DateTimeUtils;
 
+import java.util.Objects;
+
 /**
  * TransactionContext is a context that is used to keep state which is valid during a transaction.
  *
@@ -36,8 +38,12 @@ public class TransactionContext {
     private final SessionContext sessionContext;
     private Long currentTimeMillis = null;
 
+    public TransactionContext() {
+        this(SessionContext.create());
+    }
+
     public TransactionContext(SessionContext sessionContext) {
-        this.sessionContext = sessionContext;
+        this.sessionContext = Objects.requireNonNull(sessionContext);
     }
 
     /**

@@ -32,6 +32,7 @@ import io.crate.data.Row1;
 import io.crate.ingestion.IngestRuleListener;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.InputFactory;
@@ -95,7 +96,8 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
             this.expressionAnalysisContext = new ExpressionAnalysisContext();
-            this.expressionAnalyzer = new ExpressionAnalyzer(functions, null, null, inputColumnProvider, null);
+            this.expressionAnalyzer = new ExpressionAnalyzer(
+                functions, null, null, inputColumnProvider, null);
         }
 
         void registerListener() {
