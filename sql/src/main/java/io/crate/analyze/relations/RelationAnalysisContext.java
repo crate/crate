@@ -49,10 +49,11 @@ public class RelationAnalysisContext {
     @Nullable
     private List<JoinPair> joinPairs;
 
-    RelationAnalysisContext(boolean aliasedRelation, ParentRelations parents) {
+    RelationAnalysisContext(boolean aliasedRelation,
+                            ParentRelations parents) {
         this.aliasedRelation = aliasedRelation;
         this.parents = parents;
-        expressionAnalysisContext = new ExpressionAnalysisContext();
+        this.expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 
     boolean isAliasedRelation() {

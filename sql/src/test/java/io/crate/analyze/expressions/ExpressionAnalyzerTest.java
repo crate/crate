@@ -43,6 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -64,6 +65,7 @@ import java.util.EnumSet;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
@@ -81,6 +83,7 @@ import static org.mockito.Mockito.when;
 public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
+    private TransactionContext transactionContext;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
     private Functions functions;
@@ -91,6 +94,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
+        transactionContext = new TransactionContext();
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
         executor = SQLExecutor.builder(clusterService)
@@ -105,8 +109,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Unsupported expression current_time");
         SessionContext sessionContext = SessionContext.create();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, sessionContext, paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            functions, transactionContext, paramTypeHints,
+            new FullQualifiedNameFieldProvider(
+                dummySources,
+                ParentRelations.NO_PARENTS,
+                sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -119,9 +126,12 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            new TransactionContext(sessionContext),
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(
+                dummySources,
+                ParentRelations.NO_PARENTS,
+                sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -159,9 +169,12 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            new TransactionContext(sessionContext),
             paramTypeHints,
-            new FullQualifiedNameFieldProvider(dummySources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(
+                dummySources,
+                ParentRelations.NO_PARENTS,
+                sessionContext.defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         FunctionCall subscriptFunctionCall = new FunctionCall(
@@ -170,8 +183,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 new ArrayLiteral(ImmutableList.of(new StringLiteral("obj"))),
                 new LongLiteral("1")));
 
-        Function function = (Function) expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
-        assertEquals("subscript(_array('obj'), 1)", function.toString());
+        Symbol symbol = expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
+        assertThat(symbol, isLiteral("obj"));
     }
 
     @Test
@@ -188,9 +201,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new QualifiedName("t2"), tr2
         );
         SessionContext sessionContext = SessionContext.create();
+        TransactionContext transactionContext = new TransactionContext(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             null
@@ -216,14 +230,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Symbol symbol = expressions.asSymbol("10 between 1 and 10");
-        assertThat(symbol, isSQL("((10 >= 1) AND (10 <= 10))"));
+        assertThat(symbol, isSQL("(true AND true)"));
     }
 
     @Test
     public void testBetweenNullIsRewrittenToLteAndGte() throws Exception {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Symbol symbol = expressions.asSymbol("10 between 1 and NULL");
-        assertThat(symbol, isSQL("((10 >= 1) AND (10 <= NULL))"));
+        assertThat(symbol, isSQL("(true AND NULL)"));
     }
 
     @Test
@@ -235,9 +249,24 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             FunctionInfo.Type.SCALAR,
             FunctionInfo.NO_FEATURES
         );
-        Function fn1 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_FALSE));
-        Function fn2 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_FALSE));
-        Function fn3 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_TRUE));
+        Symbol fn1 = ExpressionAnalyzer.allocateFunction(
+            info1,
+            Collections.singletonList(Literal.BOOLEAN_FALSE),
+            localContext,
+            functions,
+            new TransactionContext());
+        Symbol fn2 = ExpressionAnalyzer.allocateFunction(
+            info1,
+            Collections.singletonList(Literal.BOOLEAN_FALSE),
+            localContext,
+            functions,
+            new TransactionContext());
+        Symbol fn3 = ExpressionAnalyzer.allocateFunction(
+            info1,
+            Collections.singletonList(Literal.BOOLEAN_TRUE),
+            localContext,
+            functions,
+            new TransactionContext());
 
         // different instances
         assertThat(fn1, allOf(

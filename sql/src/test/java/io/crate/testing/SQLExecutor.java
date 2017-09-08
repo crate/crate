@@ -301,17 +301,19 @@ public class SQLExecutor {
      *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
      */
     public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
+        TransactionContext transactionContext = new TransactionContext(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             ParamTypeHints.EMPTY,
             new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.defaultSchema()),
             new SubqueryAnalyzer(
                 relAnalyzer,
-                new StatementAnalysisContext(sessionContext, ParamTypeHints.EMPTY, Operation.READ, new TransactionContext(sessionContext))
+                new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, transactionContext)
             )
         );
-        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext());
+        return expressionAnalyzer.convert(
+            SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }
 
 

@@ -86,6 +86,14 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
         return features;
     }
 
+    public boolean hasFeature(Feature feature) {
+        return features.contains(feature);
+    }
+
+    public boolean isDeterministic() {
+        return hasFeature(Feature.DETERMINISTIC);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

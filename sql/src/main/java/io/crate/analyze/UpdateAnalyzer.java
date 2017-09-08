@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Iterables;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -86,11 +85,11 @@ public class UpdateAnalyzer {
     }
 
     public AnalyzedStatement analyze(Update node, Analysis analysis) {
+        final TransactionContext transactionContext = analysis.transactionContext();
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            analysis.sessionContext(),
             analysis.parameterContext(),
             Operation.UPDATE,
-            analysis.transactionContext());
+            transactionContext);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
@@ -103,7 +102,7 @@ public class UpdateAnalyzer {
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            analysis.sessionContext(),
+            transactionContext,
             analysis.parameterContext(),
             columnFieldProvider,
             null);
@@ -111,13 +110,14 @@ public class UpdateAnalyzer {
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation :
             "currentRelationContext.sources().values() must have one element and equal to analyzedRelation";
-        SessionContext sessionContext = analysis.sessionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             analysis.parameterContext(),
             new FullQualifiedNameFieldProvider(
-                currentRelationContext.sources(), currentRelationContext.parentSources(), sessionContext.defaultSchema()),
+                currentRelationContext.sources(),
+                currentRelationContext.parentSources(),
+                transactionContext.sessionContext().defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -137,10 +137,10 @@ public class UpdateAnalyzer {
             analysis.parameterContext().setBulkIdx(i);
 
             Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.whereClause(), expressionAnalysisContext);
-            WhereClause whereClause = new WhereClause(normalizer.normalize(querySymbol, analysis.transactionContext()));
+            WhereClause whereClause = new WhereClause(normalizer.normalize(querySymbol, transactionContext));
 
             if (whereClauseAnalyzer != null) {
-                whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.transactionContext());
+                whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);
             }
 
             if (!whereClause.docKeys().isPresent() &&
@@ -160,7 +160,7 @@ public class UpdateAnalyzer {
                     expressionAnalyzer,
                     columnExpressionAnalyzer,
                     expressionAnalysisContext,
-                    analysis.transactionContext()
+                    transactionContext
                 );
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);

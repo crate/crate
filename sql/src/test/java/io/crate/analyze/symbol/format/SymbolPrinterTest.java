@@ -124,13 +124,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testSubstrFunction() throws Exception {
         Symbol f = sqlExpressions.asSymbol("substr('foobar', 4)");
-        assertPrint(f, "substr('foobar', 4)");
+        assertPrint(f, "'bar'");
     }
 
     @Test
     public void testSubstrFunctionWithLength() throws Exception {
         Symbol f = sqlExpressions.asSymbol("substr('foobar', 4, 1)");
-        assertPrint(f, "substr('foobar', 4, 1)");
+        assertPrint(f, "'b'");
     }
 
     @Test
@@ -227,8 +227,8 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testExtract() throws Exception {
-        assertPrintIsParseable("extract(century from '1970-01-01')");
-        assertPrintIsParseable("extract(day_of_week from 0)");
+        assertPrintIsParseable("to_long(extract(century from '1970-01-01'))");
+        assertPrintIsParseable("to_long(extract(day_of_week from 0))");
     }
 
     @Test
@@ -279,7 +279,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testMaxDepthEllipsis() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
-        assertThat(printer.print(nestedFn, 5, true, false), is("abs(sqrt(ln(((... + ...) + 1))))"));
+        assertThat(printer.print(nestedFn, 5, true, false), is("1.442026886600883"));
     }
 
     @Test
@@ -287,7 +287,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
         expectedException.expect(MaxDepthReachedException.class);
         expectedException.expectMessage("max depth of 5 reached while traversing symbol");
 
-        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
+        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+current_timestamp(3)+1+1+1+1)))");
         printer.print(nestedFn, 5, true, true);
     }
 
@@ -334,13 +334,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testPrintAnyEqOperator() throws Exception {
-        assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(_array('a', 'b', 'c')))");
+        assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(['a', 'b', 'c']))");
         assertPrintingRoundTrip("foo = ANY(s_arr)", "(doc.formatter.foo = ANY(doc.formatter.s_arr))");
     }
 
     @Test
     public void testAnyNeqOperator() throws Exception {
-        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(_array('a', 'b', 'c'))))");
+        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(['a', 'b', 'c'])))");
         assertPrintingRoundTrip("not foo != ANY(s_arr)", "(NOT (doc.formatter.foo <> ANY(doc.formatter.s_arr)))");
     }
 
@@ -352,6 +352,6 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testAnyLikeOperator() throws Exception {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
-        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(_array('a', 'b', 'c')))");
+        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
     }
 }

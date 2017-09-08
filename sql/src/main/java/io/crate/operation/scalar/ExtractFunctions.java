@@ -147,7 +147,6 @@ public class ExtractFunctions {
                 String field = ValueSymbolVisitor.STRING.process(arg1);
 
                 Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
-                //noinspection ArraysAsListWithZeroOrOneArgument # need mutable list as arg to function
                 Function function = new Function(scalar.info(), ImmutableList.of(symbol.arguments().get(1)));
                 return scalar.normalizeSymbol(function, transactionContext);
             }

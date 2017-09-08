@@ -33,6 +33,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Locale;
 
 public class UserFunction extends Scalar<BytesRef, Object> implements FunctionFormatSpec {
@@ -45,7 +46,11 @@ public class UserFunction extends Scalar<BytesRef, Object> implements FunctionFo
 
     public UserFunction(String name) {
         this.name = name;
-        this.functionInfo = new FunctionInfo(new FunctionIdent(name, ImmutableList.of()), DataTypes.STRING);
+        this.functionInfo = new FunctionInfo(
+            new FunctionIdent(name, ImmutableList.of()),
+            DataTypes.STRING,
+            FunctionInfo.Type.SCALAR,
+            Collections.emptySet());
     }
 
     @Override

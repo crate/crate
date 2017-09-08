@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -43,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class UserDefinedFunctionsTest extends UdfUnitTest {
@@ -81,8 +82,6 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
     public void testOverloadingBuiltinFunctions() throws Exception {
         registerUserDefinedFunction(DUMMY_LANG.name(), "test", "subtract", DataTypes.INTEGER, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER), "function subtract(a, b) { return a + b; }");
         String expr = "test.subtract(2::integer, 1::integer)";
-        Function function = (Function) sqlExpressions.asSymbol(expr);
-        FunctionImplementation impl = functions.getQualified(function.info().ident());
-        assertTrue("function implementation must be of type DummyFunction", impl instanceof DummyFunction);
+        assertThat(sqlExpressions.asSymbol(expr), isLiteral(DummyFunction.RESULT));
     }
 }

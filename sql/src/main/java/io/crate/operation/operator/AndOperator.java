@@ -116,8 +116,10 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     public static Function of(Symbol first, Symbol second) {
-        assert first.valueType().equals(DataTypes.BOOLEAN) : "first symbol must have BOOLEAN return type to create AND function";
-        assert second.valueType().equals(DataTypes.BOOLEAN) : "second symbol must have BOOLEAN return type to create AND function";
+        assert first.valueType().equals(DataTypes.BOOLEAN) || first.valueType().equals(DataTypes.UNDEFINED) :
+            "first symbol must have BOOLEAN return type to create AND function";
+        assert second.valueType().equals(DataTypes.BOOLEAN) || second.valueType().equals(DataTypes.UNDEFINED) :
+            "second symbol must have BOOLEAN return type to create AND function";
 
         return new Function(INFO, Arrays.asList(first, second));
     }

@@ -73,7 +73,7 @@ class AlterTableAddColumnAnalyzer {
             tableInfo.columns(),
             functions,
             analysis.parameterContext(),
-            analysis.sessionContext());
+            analysis.transactionContext());
 
         int numCurrentPks = tableInfo.primaryKey().size();
         if (tableInfo.primaryKey().contains(DocSysColumns.ID)) {

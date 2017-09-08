@@ -42,6 +42,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -287,9 +288,10 @@ public class TestingTableInfo extends DocTableInfo {
         }
 
         private void initializeGeneratedExpressions(Functions functions, Collection<Reference> columns) {
+            TransactionContext transactionContext = new TransactionContext();
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns, ident);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                functions, SessionContext.create(), null, tableReferenceResolver, null);
+                functions, transactionContext, null, tableReferenceResolver, null);
             for (GeneratedReference generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext();

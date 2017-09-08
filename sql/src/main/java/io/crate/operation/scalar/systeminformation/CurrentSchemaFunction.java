@@ -37,6 +37,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 
 
 public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements FunctionFormatSpec {
@@ -44,7 +45,10 @@ public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements F
     public static final String NAME = "current_schema";
 
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, ImmutableList.of()), DataTypes.STRING);
+        new FunctionIdent(NAME, ImmutableList.of()),
+        DataTypes.STRING,
+        FunctionInfo.Type.SCALAR,
+        Collections.emptySet());
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(new CurrentSchemaFunction());

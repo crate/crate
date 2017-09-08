@@ -21,26 +21,27 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionInfo;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
 
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 
+/**
+ * State which is passed during translation in the {@link ExpressionAnalyzer}.
+ */
 public class ExpressionAnalysisContext {
 
     private final Map<Expression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
-    public boolean hasAggregates = false;
+    private boolean hasAggregates;
 
-    Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
-        Function newFunction = new Function(functionInfo, arguments);
-        hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
-        return newFunction;
+    void indicateAggregates() {
+        hasAggregates = true;
+    }
+
+    public boolean hasAggregates() {
+        return hasAggregates;
     }
 
     /**

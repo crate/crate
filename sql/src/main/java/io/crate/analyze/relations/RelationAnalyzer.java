@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.MultiSourceSelect;
@@ -59,6 +58,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -122,15 +122,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return relationNormalizer.normalize(rewrittenRelation, statementContext.transactionContext());
     }
 
-    public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        return process(query, new StatementAnalysisContext(sessionContext, paramTypeHints, Operation.READ, null));
+    public AnalyzedRelation analyzeUnbound(Query query,
+                                           TransactionContext transactionContext,
+                                           ParamTypeHints paramTypeHints) {
+        return process(query,
+            new StatementAnalysisContext(paramTypeHints, Operation.READ, transactionContext));
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
         return analyze(
             node,
             new StatementAnalysisContext(
-                analysis.sessionContext(),
                 analysis.parameterContext(),
                 Operation.READ,
                 analysis.transactionContext())
@@ -168,13 +170,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
-                SessionContext sessionContext = statementContext.sessionContext();
+                final TransactionContext transactionContext = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
-                    sessionContext,
+                    transactionContext,
                     statementContext.convertParamFunction(),
                     new FullQualifiedNameFieldProvider(
-                        relationContext.sources(), relationContext.parentSources(), sessionContext.defaultSchema()),
+                        relationContext.sources(),
+                        relationContext.parentSources(),
+                        transactionContext.sessionContext().defaultSchema()),
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
@@ -204,12 +208,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
-        SessionContext sessionContext = statementContext.sessionContext();
+        TransactionContext transactionContext = statementContext.transactionContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            sessionContext,
+            transactionContext,
             statementContext.convertParamFunction(),
-            new FullQualifiedNameFieldProvider(context.sources(), context.parentSources(), sessionContext.defaultSchema()),
+            new FullQualifiedNameFieldProvider(
+                context.sources(),
+                context.parentSources(),
+                transactionContext.sessionContext().defaultSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
 
@@ -222,7 +229,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
 
-        if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
+        if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
         }
 
@@ -248,7 +255,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
+                expressionAnalysisContext.hasAggregates() || groupBy != null, isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,
@@ -259,7 +266,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             .outputs(selectAnalysis.outputSymbols())
             .where(whereClause)
             .groupBy(groupBy)
-            .hasAggregates(expressionAnalysisContext.hasAggregates);
+            .hasAggregates(expressionAnalysisContext.hasAggregates());
 
         QueriedRelation relation;
         if (context.sources().size() == 1) {
@@ -445,7 +452,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                        ExpressionAnalyzer expressionAnalyzer,
                                        ExpressionAnalysisContext expressionAnalysisContext) {
         if (having.isPresent()) {
-            if (!expressionAnalysisContext.hasAggregates && (groupBy == null || groupBy.isEmpty())) {
+            if (!expressionAnalysisContext.hasAggregates() && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
@@ -608,7 +615,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            statementContext.sessionContext(),
+            statementContext.transactionContext(),
             statementContext.convertParamFunction(),
             new FieldProvider() {
                 @Override
@@ -624,12 +631,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             null
         );
 
-        Function function = (Function) expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
+        Symbol symbol = expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
+        if (!(symbol instanceof Function)) {
+            throw new UnsupportedOperationException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Non table function '%s' is not supported in from clause", node.name()));
+        }
+        Function function = (Function) symbol;
         FunctionIdent ident = function.info().ident();
         FunctionImplementation functionImplementation = functions.getQualified(ident);
         if (functionImplementation.info().type() != FunctionInfo.Type.TABLE) {
-            String message = "Non table function " + ident.name() + " is not supported in from clause";
-            throw new UnsupportedFeatureException(message);
+            throw new UnsupportedOperationException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Non table function '%s' is not supported in from clause", ident.name()));
         }
         TableFunctionImplementation tableFunction = (TableFunctionImplementation) functionImplementation;
         TableInfo tableInfo = tableFunction.createTableInfo(clusterService);

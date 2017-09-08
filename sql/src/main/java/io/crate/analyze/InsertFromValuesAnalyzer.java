@@ -114,7 +114,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            analysis.sessionContext(),
+            analysis.transactionContext(),
             convertParamFunction,
             fieldProvider,
             null
@@ -125,7 +125,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
             functions,
-            analysis.sessionContext(),
+            analysis.transactionContext(),
             convertParamFunction,
             fieldProvider,
             valuesResolver);
