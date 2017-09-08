@@ -380,7 +380,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent =
-            XContentHelper.convertToMap(getResult.internalSourceRef(), true);
+            XContentHelper.convertToMap(getResult.internalSourceRef(), true, XContentType.JSON);
         final XContentType updateSourceContentType = sourceAndContent.v1();
         final Map<String, Object> updatedSourceAsMap = sourceAndContent.v2();
 
@@ -554,7 +554,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Map<String, Object> sourceAsMap;
         if (isRawSourceInsert) {
             BytesRef source = (BytesRef) insertValues[0];
-            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), true).v2();
+            sourceAsMap = XContentHelper.convertToMap(new BytesArray(source), true, XContentType.JSON).v2();
         } else {
             sourceAsMap = new LinkedHashMap<>(insertColumns.length);
             for (int i = 0; i < insertColumns.length; i++) {

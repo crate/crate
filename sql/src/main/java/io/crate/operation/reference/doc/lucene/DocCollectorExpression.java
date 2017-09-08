@@ -27,6 +27,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Map;
@@ -49,7 +50,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public Map<String, Object> value() {
-        return XContentHelper.convertToMap(visitor.source(), false).v2();
+        return XContentHelper.convertToMap(visitor.source(), false, XContentType.JSON).v2();
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {
