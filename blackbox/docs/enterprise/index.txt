@@ -19,6 +19,8 @@ Current features:
 - :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
   functions in JavaScript
 - :ref:`jmx_monitoring_plugin`: monitor your query stats with JMX
+- :ref:`ingest_mqtt`: ingest data using MQTT_ without any 3rd party tools
 
 .. _`enterprise edition`: https://crate.io/enterprise-edition/
 .. _`enterprise license`: https://crate.io/enterprise-edition/
+.. _MQTT: http://mqtt.org/

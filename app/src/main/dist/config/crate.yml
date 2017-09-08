@@ -165,6 +165,17 @@
 # The password used to decrypt the truststore_file.jks
 #ssl.truststore_password: myTrustStorePasswd
 
+#/////////////////////// Ingestion Implementations ///////////////////////////
+
+#//////// MQTT ////////
+# Enable the MQTT ingestion implementation
+#ingestion.mqtt.enabled: false
+
+# Set a custom port for the mqtt implementation to connect to
+#ingestion.mqtt.port: 1883
+
+# The time of no activity after which the mqtt connection is closed
+#ingestion.mqtt.timeout: 10s
 
 ################################### Cluster ##################################
 

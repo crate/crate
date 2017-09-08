@@ -1,0 +1,157 @@
+.. highlight:: psql
+.. _ingest_mqtt:
+
+=====================
+MQTT Ingestion Source
+=====================
+
+The MQTT_ ingestion source allows CrateDB to function as an MQTT broker for
+data ingestion.
+
+.. NOTE::
+
+   The MQTT ingestion source an
+   :ref:`enterprise feature <enterprise_features>`.
+
+.. SEEALSO::
+
+   :ref:`ingestion`
+
+.. _ingest_mqtt_config:
+
+Configuration
+=============
+
+This ingestion source adds a few additional settings that you can configure.
+
+These node settings can be :ref:`configured like usual <configuration>`, via
+the ``crate.yml`` configuration file or as command line parameters using the
+``-C`` option.
+
+
+Node Settings
+-------------
+
+.. NOTE::
+
+   Node settings only affect the node they are configured on.
+
+**ingestion.mqtt.enabled**
+  | *Default:*   ``false``
+  | *Runtime:*  ``no``
+
+  Enables the MQTT_ ingestion source on this node.
+
+**ingestion.mqtt.port**
+  | *Default:*   ``1883``
+  | *Runtime:*  ``no``
+
+  TCP port on which the broker is exposed.
+
+  Can either be a number, or a string defining a port range. The first free
+  port of this range is used.
+
+**ingestion.mqtt.timeout**
+  | *Default:*   ``10s``
+  | *Runtime:*  ``no``
+
+  The default keep-alive timeout for establised connections.
+
+  This timeout is used if the client does not specify a ``keepAlive`` option
+  when sending the ``CONNECT`` message.
+
+.. _ingest_mqtt_usage:
+
+Usage
+=====
+
+Quality of Service
+------------------
+
+This ingestion source only implements MQTT Quality of Service (QoS) `level
+one`_, meaning that messages will be delivered at least once to the broker and
+stored in the database.
+
+Other QoS levels are not supported and messages sent with those levels are
+discared and an error is logged.
+
+.. _level one: http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718101
+
+Data Ingestion
+--------------
+
+The ingestion of data is controlled with :ref:`administration-ingestion-rules`.
+
+Without any defined valid rule, no data will be ingested at all and messages
+will not be acknowledged. The ``PUBLISH`` messages will receive the
+corresponding ``PUBACK`` reply only after the message is stored in all matching 
+ingest rules target tables (as there can be multiple ingestion rules configured 
+for this source). If at least one matching ingestion rule fails to store the 
+incoming message, the client will not receive any reply and will have to resend 
+the request message. 
+Ingest rules execution failures will usually be temporary (eg. a mismatch 
+between a rule target table schema and ingestion source payload structure) and 
+the administrator will have the opportunity to fix the rule execution between 
+message retransmissions (eg. alter the target table schema). 
+
+The ``source_ident`` of this implementation is: ``mqtt``
+
+Rule conditions and the target table must match the `MQTT data structure`_.
+
+The default user for the ``INSERT`` operations in the ``target_table`` is the
+superuser ``crate``.
+
+.. _ingest_mqtt_data_structure:
+
+MQTT Data Structure
+...................
+
++------------+------------+-------------------------------------------------+
+| Name       | Type       | Description                                     |
++============+============+=================================================+
+| client_id  | STRING     | ID of the client that sent the MQTT message.    |
++------------+------------+-------------------------------------------------+
+| packet_id  | STRING     | ``packet_id`` of the ``PUBLISH`` message.       |
++------------+------------+-------------------------------------------------+
+| topic      | STRING     | ``topic`` of the ``PUBLISH`` message.           |
++------------+------------+-------------------------------------------------+
+| ts         | TIMESTAMP  | Insert timestamp (``CURRENT_TIMESTAP``).        |
++------------+------------+-------------------------------------------------+
+| payload    | OBJECT     | ``payload`` of the ``PUBLISH`` message.         |
+|            |            | **Must be a valid JSON string!**                |
++------------+------------+-------------------------------------------------+
+
+Example
+.......
+
+To start ingesting with the MQTT data ingestion source, first create a target
+table matching the `MQTT data structure`_, like so::
+
+    cr> CREATE TABLE mqtt_temperature (
+    ...  "client_id" STRING,
+    ...  "packet_id" INTEGER,
+    ...  "topic" STRING,
+    ...  "ts" TIMESTAMP,
+    ...  "payload" OBJECT(IGNORED),
+    ...  PRIMARY KEY ("client_id", "packet_id")
+    ... )
+    CREATE OK, 1 row affected (... sec)
+
+The structure of this target table is very important, as it can prevent or
+allow duplicates in case of message retransmission.
+
+In this example, if a message is delivered multiple times, the message will
+only be stored once in the ``mqtt_temperature`` table because the ``PRIMARY
+KEY`` includes both the ``client_id`` and ``packet_id``. If the ``packet_id``
+were to be omitted from the primary key, a message arriving at CrateDB multiple
+times will be stored multiple times.
+
+Once you have done that, you can create :ref:`ingestion rules
+<administration-ingestion-rules>`, like so::
+
+    cr> CREATE INGEST RULE temperature ON mqtt
+    ...  WHERE topic like 'temperature/%'
+    ...  INTO mqtt_temperature;
+    CREATE OK, 1 row affected (... sec)
+
+.. _MQTT: http://mqtt.org/
