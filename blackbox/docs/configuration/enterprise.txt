@@ -179,6 +179,13 @@ Layer Security (TLS).
   Set this to true to enable secure communication between the CrateDB node
   and the client through SSL via the PostgreSQL wire protocol.
 
+**ssl.ingestion.mqtt.enabled**
+  | *Runtime:*  ``no``
+  | *Default:* ``false``
+
+  Set this to true to enable secure communication between the CrateDB node 
+  and the client through SSL via the MQTT protocol.
+
 **ssl.keystore_filepath**
   | *Runtime:* ``no``
 

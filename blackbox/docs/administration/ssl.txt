@@ -9,14 +9,17 @@ Secured Communications (SSL/TLS)
    *Secured Communications* is an Enterprise Edition feature.
 
 Secured communication allows you to encrypt traffic between the CrateDB node
-and a client. This applies to connections using HTTP (i.e. Admin UI, Crash, Rest)
-as well as connections using the PostgreSQL Wire Protocol (i.e. JDBC, psql).
+and a client. This applies to connections using HTTP (i.e. Admin UI, Crash, Rest),
+the PostgreSQL Wire Protocol (i.e. JDBC, psql), and MQTT (i.e. :ref:`MQTT 
+ingestion source <ingest_mqtt>`)
+
 Connections are secured using Transport Layer Security (TLS).
 
 Note that once SSL is enabled for HTTP connections, only connections using
-HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol which
-still allows non-encrypted connections when SSL is enabled. If you want to
-enforce SSL usage, please have a look at :ref:`administration_hba`.
+HTTPS are allowed. Same applies to secure MQTT connections.
+This is in contrast to the PostgreSQL Wire Protocol which still allows 
+non-encrypted connections when SSL is enabled. If you want to enforce SSL 
+usage, please have a look at :ref:`administration_hba`.
 
 SSL/TLS Configuration
 =====================
@@ -31,7 +34,8 @@ create a ``keystore``.
 Once the ``keystore`` (and optional ``truststore``) is created, continue with
 the following steps:
 
- - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
+ - Set ``ssl.psql.enabled``, ``ssl.http.enabled`` or ``ssl.ingestion.mqtt.enabled`` 
+   to ``true``.
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 
@@ -179,6 +183,12 @@ information including the different SSL modes please visit the
 .. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html
 
 
+Connecting to a CrateDB MQTT Broker With SSL/TLS
+------------------------------------------------
+A CrateDB node configured to run as :ref:`MQTT broker <ingest_mqtt>` can 
+accept encrypted connections if ssl ingestion is enabled, namely if the 
+``ssl.ingestion.mqtt.enabled`` configuration is set to ``true`` and the 
+configured port ``ingestion.mqtt.port`` is ``8883``.
 
 Setting up a Keystore/Truststore With a Certificate Chain
 =========================================================
