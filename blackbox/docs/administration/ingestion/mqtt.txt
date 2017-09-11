@@ -47,6 +47,8 @@ Node Settings
 
   Enables the MQTT_ ingestion source on this node.
 
+.. _ingestion_mqtt_port:
+
 **ingestion.mqtt.port**
   | *Default:*   ``1883``
   | *Runtime:*  ``no``
@@ -64,6 +66,21 @@ Node Settings
 
   This timeout is used if the client does not specify a ``keepAlive`` option
   when sending the ``CONNECT`` message.
+
+SSL Support
+...........
+
+SSL support is available for the MQTT connections and can be enabled using the 
+``ssl.ingestion.mqtt.enabled`` setting. When SSL is enabled for the MQTT 
+connection, consider changing ``ingestion.mqtt.port`` to ``8883`` which is 
+the TCP/IP registered port for MQTT over SSL. 
+
+Once CrateDB is configured to use encrypted MQTT connections, unencrypted 
+connections will not be supported anymore.
+
+.. SEEALSO::
+
+  :ref:`administration_ssl`
 
 .. _ingest_mqtt_usage:
 

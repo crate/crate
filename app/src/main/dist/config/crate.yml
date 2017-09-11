@@ -147,6 +147,9 @@
 # Enable encrypted communication for the PostgreSQL wire protocol:
 #ssl.psql.enabled: true
 
+# Enable encrypted communication for the MQTT endpoints:
+#ssl.ingestion.mqtt.enabled: true
+
 # The full path to the node keystore file
 #ssl.keystore_filepath: /path/to/keystore_file.jks
 
