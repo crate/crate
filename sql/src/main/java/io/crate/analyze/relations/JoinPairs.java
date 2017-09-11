@@ -81,7 +81,8 @@ public final class JoinPairs {
             ListIterator<JoinPair> it = pairs.listIterator();
             while (it.hasNext()) {
                 JoinPair pair = it.next();
-                if (pair.joinType() != JoinType.SEMI && pair.equalsNames(rhs, lhs)) {
+                JoinType joinType = pair.joinType();
+                if (joinType.supportsInversion() && pair.equalsNames(rhs, lhs)) {
                     JoinPair reversed = pair.reverse();
                     it.set(reversed); // change list entry so that the found entry can be removed from pairs
                     return reversed;

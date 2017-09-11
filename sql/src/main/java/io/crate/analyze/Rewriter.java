@@ -104,7 +104,7 @@ public class Rewriter {
 
         JoinType joinType = joinPair.joinType();
         // SEMI JOINS *can* be re-written to inner join if the RHS results are unique - but we don't optimize this yet
-        if (!joinType.isOuter() || joinType == JoinType.SEMI) {
+        if (!joinType.isOuter() || joinType == JoinType.SEMI || joinType == JoinType.ANTI) {
             return;
         }
         tryRewrite(normalizer, mss, where, left, right, joinPair, joinType);

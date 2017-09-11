@@ -32,15 +32,19 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.Plan;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.T3.T1;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
@@ -75,13 +79,14 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGatherRewriteCandidatesTwo() throws Exception {
-        Symbol query = asSymbol("a in (select 'foo') and a = 'foo' and x in (select 1)");
+        Symbol query = asSymbol("a in (select 'foo') and a = 'foo' and x not in (select 1)");
         List<SemiJoins.Candidate> candidates = SemiJoins.gatherRewriteCandidates(query);
         assertThat(candidates.size(), is(2));
 
-        for (SemiJoins.Candidate candidate : candidates) {
-            assertThat(candidate.function.info().ident().name(), is("any_="));
-        }
+        assertThat(candidates.get(0).joinType, is(JoinType.SEMI));
+        assertThat(candidates.get(0).function.info().ident().name(), is("any_="));
+        assertThat(candidates.get(1).joinType, is(JoinType.ANTI));
+        assertThat(candidates.get(1).function.info().ident().name(), is("op_not"));
     }
 
     @Test
@@ -91,31 +96,49 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         Function query = (Function) rel.querySpec().where().query();
 
         SelectSymbol subquery = SemiJoins.getSubqueryOrNull(query.arguments().get(1));
-        Symbol joinCondition = SemiJoins.makeJoinCondition(new SemiJoins.Candidate(query, subquery), rel.tableRelation());
+        Symbol joinCondition = SemiJoins.makeJoinCondition(
+            new SemiJoins.SemiJoinCandidate(query, subquery),
+            rel.tableRelation());
 
         assertThat(joinCondition, isSQL("(doc.t1.a = .empty_row.'foo')"));
     }
 
     @Test
-    public void testRewriteOfWhereClause() throws Exception {
+    public void testSemiJoinRewriteOfWhereClause() throws Exception {
         SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
         QueriedRelation rel = stmt.relation();
-        MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
+        MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
+            rel, new TransactionContext(SessionContext.create()));
 
         assertThat(
             semiJoin.querySpec().where(),
             isSQL("WhereClause{MATCH_ALL=true}"));
+        assertThat(((QueriedRelation) semiJoin.sources().get(T1)).querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
+        assertThat(((QueriedRelation) semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
+            .querySpec(), isSQL("SELECT 'foo'"));
 
         assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = .empty_row.'foo')"));
+        assertThat(semiJoin.joinPairs().get(0).joinType(), is(JoinType.SEMI));
     }
 
     @Test
-    public void testNotInIsNotRewritten() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a not in (select 'foo')");
+    public void testAntiJoinRewriteOfWhereClause() throws Exception {
+        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
         QueriedRelation rel = stmt.relation();
-        QueriedRelation semiJoin = semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
+        MultiSourceSelect antiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
+            rel, new TransactionContext(SessionContext.create()));
 
-        assertThat(semiJoin, nullValue());
+        assertThat(
+            antiJoin.querySpec().where(),
+            isSQL("WhereClause{MATCH_ALL=true}"));
+        assertThat(((QueriedRelation) antiJoin.sources().get(T1)).querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
+        assertThat(((QueriedRelation) antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
+            .querySpec(), isSQL("SELECT 'foo'"));
+
+        assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = .empty_row.'foo')"));
+        assertThat(antiJoin.joinPairs().get(0).joinType(), is(JoinType.ANTI));
     }
 
     @Test
@@ -138,12 +161,14 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         SelectAnalyzedStatement stmt = executor.analyze("select * from t1 " +
                                                         "where " +
                                                         "   x in (select * from unnest([1, 2])) " +
-                                                        "   and x in (select 1)");
+                                                        "   and x not in (select 1)");
         QueriedRelation rel = stmt.relation();
         QueriedRelation semiJoins = this.semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
 
         assertThat(semiJoins, instanceOf(MultiSourceSelect.class));
         MultiSourceSelect mss = (MultiSourceSelect) semiJoins;
         assertThat(mss.sources().size(), is(3));
+        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.SEMI));
+        assertThat(mss.joinPairs().get(1).joinType(), is(JoinType.ANTI));
     }
 }

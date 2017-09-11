@@ -22,6 +22,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTableRelation;
@@ -67,7 +68,7 @@ final class SemiJoins {
 
     private final RelationNormalizer relationNormalizer;
 
-    public SemiJoins(Functions functions) {
+    SemiJoins(Functions functions) {
         relationNormalizer = new RelationNormalizer(functions);
     }
 
@@ -129,7 +130,7 @@ final class SemiJoins {
             semiJoinPairs.add(JoinPair.of(
                 rel.getQualifiedName(),
                 subQueryName,
-                JoinType.SEMI,
+                rewriteCandidate.joinType,
                 joinCondition
             ));
             sources.put(subQueryName, selectSymbol.relation());
@@ -167,9 +168,9 @@ final class SemiJoins {
     }
 
     static List<Candidate> gatherRewriteCandidates(Symbol query) {
-        ArrayList<Candidate> candidates = new ArrayList<>();
-        RewriteCandidateGatherer.INSTANCE.process(query, candidates);
-        return candidates;
+        GatherRewriteCandidatesContext context = new GatherRewriteCandidatesContext();
+        RewriteCandidateGatherer.INSTANCE.process(query, context);
+        return context.candidates;
     }
 
     @Nullable
@@ -193,7 +194,7 @@ final class SemiJoins {
      */
     static Symbol makeJoinCondition(Candidate rewriteCandidate, AnalyzedRelation sourceRel) {
         Function anyFunc = RefReplacer.replaceRefs(
-            rewriteCandidate.function,
+            rewriteCandidate.getAnyOpFunction(),
             r -> sourceRel.getField(r.ident().columnIdent(), Operation.READ));
         String name = anyFunc.info().ident().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "Can only create a join condition from any_";
@@ -209,61 +210,120 @@ final class SemiJoins {
         );
     }
 
-    static class Candidate {
+    @VisibleForTesting
+    abstract static class Candidate {
 
         final Function function;
         final SelectSymbol subQuery;
+        final JoinType joinType;
 
-        Candidate(Function function, SelectSymbol subQuery) {
+        Candidate(Function function, SelectSymbol subQuery, JoinType joinType) {
             this.function = function;
             this.subQuery = subQuery;
+            this.joinType = joinType;
+        }
+
+        protected Function getAnyOpFunction() {
+            return function;
         }
     }
 
-    private static class RewriteCandidateGatherer extends SymbolVisitor<List<Candidate>, Boolean> {
+    @VisibleForTesting
+    static class SemiJoinCandidate extends Candidate {
+
+        SemiJoinCandidate(Function function, SelectSymbol subQuery) {
+            super(function, subQuery, JoinType.SEMI);
+        }
+    }
+
+    @VisibleForTesting
+    static class AntiJoinCandidate extends Candidate {
+
+        AntiJoinCandidate(Function function, SelectSymbol subQuery) {
+            super(function, subQuery, JoinType.ANTI);
+        }
+
+        @Override
+        protected Function getAnyOpFunction() {
+            return (Function) function.arguments().get(0);
+        }
+    }
+
+    static Candidate buildCandidate(Function func, SelectSymbol subQuery, Function notPredicate) {
+        if (notPredicate != null) {
+            return new AntiJoinCandidate(notPredicate, subQuery);
+        } else {
+            return new SemiJoinCandidate(func, subQuery);
+        }
+    }
+
+    private static class GatherRewriteCandidatesContext {
+
+        private Function notPredicate;
+        private final List<Candidate> candidates;
+
+        private GatherRewriteCandidatesContext() {
+            candidates = new ArrayList<>();
+        }
+    }
+
+    private static class RewriteCandidateGatherer extends SymbolVisitor<GatherRewriteCandidatesContext, Boolean> {
 
         static final RewriteCandidateGatherer INSTANCE = new RewriteCandidateGatherer();
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, List<Candidate> context) {
+        protected Boolean visitSymbol(Symbol symbol, GatherRewriteCandidatesContext context) {
             return true;
         }
 
         @Override
-        public Boolean visitFunction(Function func, List<Candidate> candidates) {
+        public Boolean visitFunction(Function func, GatherRewriteCandidatesContext context) {
             String funcName = func.info().ident().name();
 
             /* Cannot rewrite a `op ANY subquery` expression into a semi-join if it's beneath a OR because
              * `op ANY subquery` has different semantics in case of NULL values than a semi-join would have
              */
-            if (funcName.equals(OrOperator.NAME) || funcName.equals(NotPredicate.NAME) || funcName.equals(AnyNeqOperator.NAME)) {
-                candidates.clear();
+            if (funcName.equals(OrOperator.NAME) || funcName.equals(AnyNeqOperator.NAME)) {
+                context.candidates.clear();
+                context.notPredicate = null;
                 return false;
+            }
+
+            if (funcName.equals(NotPredicate.NAME)) {
+                context.notPredicate = func;
+                Boolean continueTraversal = process(func.arguments().get(0), context);
+                context.notPredicate = null;
+                return continueTraversal;
             }
 
             if (LOGICAL_OPERATORS.contains(funcName)) {
                 for (Symbol arg : func.arguments()) {
-                    Boolean continueTraversal = process(arg, candidates);
+                    Boolean continueTraversal = process(arg, context);
                     if (!continueTraversal) {
+                        context.notPredicate = null;
                         return false;
                     }
                 }
+                context.notPredicate = null;
                 return true;
             }
 
             if (funcName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
-                maybeAddSubQueryAsCandidate(func, candidates);
+                maybeAddSubQueryAsCandidate(func, context.notPredicate, context.candidates);
             }
+            context.notPredicate = null;
             return true;
         }
 
-        private static void maybeAddSubQueryAsCandidate(Function func, List<Candidate> candidates) {
+        private static void maybeAddSubQueryAsCandidate(Function func,
+                                                        Function notPredicate,
+                                                        List<Candidate> candidates) {
             SelectSymbol subQuery = getSubqueryOrNull(func.arguments().get(1));
             if (subQuery == null) {
                 return;
             }
             if (subQuery.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES) {
-                candidates.add(new Candidate(func, subQuery));
+                candidates.add(buildCandidate(func, subQuery, notPredicate));
             }
         }
     }
