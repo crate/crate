@@ -12,8 +12,8 @@ User Defined Functions
 .. NOTE::
 
    The :ref:`udf_lang_js` language is an experimental feature and is disabled
-   by default. You can enable the
-   :ref:`conf_lang_js_enabled` via the configuration file.
+   by default. You can enable the :ref:`conf_lang_js_enabled` via the
+   configuration file.
 
 ``CREATE OR REPLACE``
 =====================
@@ -218,6 +218,12 @@ are are not available.
 
    The JavaScript language is an :ref:`enterprise feature
    <enterprise_features>`.
+
+.. NOTE::
+
+   The :ref:`udf_lang_js` language is an experimental feature and is disabled
+   by default. You can enable the :ref:`conf_lang_js_enabled` via the
+   configuration file.
 
 Supported Types
 ...............
