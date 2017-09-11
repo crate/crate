@@ -73,8 +73,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -373,7 +371,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, false);
 
-        validateMapOrder(sourceMap, Arrays.asList("ts", "user.name"));
+        assertThat(sourceMap.size(), is(2));
+        assertThat(sourceMap.get("ts"), is(1448274317000L));
+        assertThat(sourceMap.get("user.name"), is("Ford"));
     }
 
     @Test
@@ -392,20 +392,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         Map<String, Object> sourceMap = transportShardUpsertAction.buildMapFromSource(insertColumns, insertValues, true);
 
-        validateMapOrder(sourceMap, Arrays.asList("ts", "user.name"));
-    }
-
-    private void validateMapOrder(Map<String, Object> map, List<String> keys) {
-        assertThat(map, instanceOf(LinkedHashMap.class));
-
-        Iterator<String> it = map.keySet().iterator();
-        int idx = 0;
-        while (it.hasNext()) {
-            String key = it.next();
-            assertThat(key, is(keys.get(idx)));
-            idx++;
-        }
-
+        assertThat(sourceMap.size(), is(2));
+        assertThat(sourceMap.get("ts"), is(1448274317000L));
+        assertThat(sourceMap.get("user.name"), is("Ford"));
     }
 
     @Test
