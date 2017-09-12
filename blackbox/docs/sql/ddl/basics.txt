@@ -32,7 +32,10 @@ Schemas
 
 Tables can be created in different schemas. These are created implicitly on
 table creation and cannot be created explicitly. If a schema did not exist yet,
-it will be created::
+it will be created.
+
+You can create a table called ``my_table`` in a schema called ``my_schema``
+schema like so::
 
     cr> create table my_schema.my_table (
     ...   pk int primary key,
@@ -41,7 +44,8 @@ it will be created::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-::
+We can confirm this by looking up this table in the
+:ref:`information_schema.tables <information_schema_tables>` table::
 
     cr> select table_schema, table_name from information_schema.tables
     ... where table_name='my_table';
@@ -54,9 +58,9 @@ it will be created::
 
 The following schema names are reserved and may not be used:
 
-        * blob
-        * information_schema
-        * sys
+ - blob
+ - information_schema
+ - sys
 
 .. NOTE::
 

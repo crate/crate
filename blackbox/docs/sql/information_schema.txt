@@ -24,6 +24,8 @@ cluster.
     ``SELECT * FROM information_schema.tables`` statement, the tables information
     related to the ``doc.locations`` table will not be returned.
 
+.. _information_schema_tables:
+
 Tables
 ======
 
