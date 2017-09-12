@@ -4,11 +4,20 @@ archivesBaseName = 'mqtt'
 group = 'io.crate'
 description = 'MQTT ingestion implementation'
 
+
+repositories {
+    maven {
+        url "https://repo.eclipse.org/content/repositories/paho-releases/"
+    }
+}
+
 dependencies {
     compile project(':sql')
     compile "io.netty:netty-codec-mqtt:${versions.netty4}"
 
     testCompile project(':integration-testing')
+    testCompile project(':enterprise:ssl-impl')
+    testCompile('org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0')
     testCompile project(path: ':sql', configuration: 'testOutput')
     testCompile project(path: ':dex', configuration: 'testOutput')
     testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {

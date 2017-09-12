@@ -79,7 +79,7 @@ import java.util.function.Predicate;
 public class MqttIngestService implements IngestRuleListener {
 
     private static final Logger LOGGER = Loggers.getLogger(MqttIngestService.class);
-    static final String SOURCE_IDENT = "mqtt";
+    public static final String SOURCE_IDENT = "mqtt";
     private static final Map<QualifiedName, Integer> MQTT_FIELDS_ORDER = ImmutableMap.of(new QualifiedName("client_id"), 0,
         new QualifiedName("packet_id"), 1,
         new QualifiedName("topic"), 2,

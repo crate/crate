@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
+import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.operation.auth.Authentication;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -35,11 +36,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
@@ -57,7 +54,6 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -70,8 +66,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
@@ -97,7 +91,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
     @Nullable
-    private  BoundTransportAddress boundAddress = null;
+    private BoundTransportAddress boundAddress;
 
     @Inject
     public PostgresNetty(Settings settings,
@@ -126,35 +120,24 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        EventLoopGroup boss = new NioEventLoopGroup(
-            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-boss"));
-        EventLoopGroup worker = new NioEventLoopGroup(
-            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
-        Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
+        bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
+
         final SslContext sslContext;
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {
             sslContext = sslContextProvider.get();
         } else {
             sslContext = null;
         }
-        bootstrap = new ServerBootstrap()
-            .channel(NioServerSocketChannel.class)
-            .group(boss, worker)
-            .option(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
-            .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings))
-            .childHandler(new ChannelInitializer<Channel>() {
-                @Override
-                protected void initChannel(Channel ch) throws Exception {
-                    ChannelPipeline pipeline = ch.pipeline();
-                    PostgresWireProtocol postgresWireProtocol =
-                        new PostgresWireProtocol(sqlOperations, authentication, sslContext);
-                    pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
-                    pipeline.addLast("handler", postgresWireProtocol.handler);
-                }
-            });
-
+        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+            @Override
+            protected void initChannel(Channel ch) throws Exception {
+                ChannelPipeline pipeline = ch.pipeline();
+                PostgresWireProtocol postgresWireProtocol =
+                    new PostgresWireProtocol(sqlOperations, authentication, sslContext);
+                pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
+                pipeline.addLast("handler", postgresWireProtocol.handler);
+            }
+        });
         bootstrap.validate();
 
         boolean success = false;
@@ -168,7 +151,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             }
         }
     }
-
 
     static int resolvePublishPort(List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
         for (InetSocketTransportAddress boundAddress : boundAddresses) {
@@ -187,8 +169,9 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return ports.iterator().next().value;
         }
 
-        throw new BindHttpException("Failed to auto-resolve psql publish port, multiple bound addresses " + boundAddresses +
-                                    " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). ");
+        throw new BindHttpException(
+            "Failed to auto-resolve psql publish port, multiple bound addresses " + boundAddresses +
+            " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). ");
     }
 
     private BoundTransportAddress resolveBindAddress() {

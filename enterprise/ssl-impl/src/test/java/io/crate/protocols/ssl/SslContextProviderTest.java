@@ -48,30 +48,6 @@ public class SslContextProviderTest extends CrateUnitTest {
     }
 
     @Test
-    public void testClassLoadingFallback() {
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-                .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-                .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-                .build();
-            PipelineRegistry pipelineRegistry = new PipelineRegistry();
-            SslContextProvider sslContextProvider = new SslContextProvider(settings, pipelineRegistry);
-            assertThat(sslContextProvider.get(), is(nullValue()));
-        }
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-                .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), false)
-                .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), false)
-                .build();
-            PipelineRegistry pipelineRegistry = new PipelineRegistry();
-            SslContextProvider sslContextProvider = new SslContextProvider(settings, pipelineRegistry);
-            assertThat(sslContextProvider.get(), is(nullValue()));
-        }
-    }
-
-    @Test
     public void testClassLoadingWithInvalidConfiguration() {
         // empty ssl configuration which is invalid
         Settings settings = Settings.builder()
@@ -82,7 +58,7 @@ public class SslContextProviderTest extends CrateUnitTest {
         PipelineRegistry pipelineRegistry = new PipelineRegistry();
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
-        new SslContextProvider(settings, pipelineRegistry);
+        new SslContextProvider(settings, pipelineRegistry).get();
     }
 
     @Test
@@ -100,6 +76,6 @@ public class SslContextProviderTest extends CrateUnitTest {
         PipelineRegistry pipelineRegistry = Mockito.mock(PipelineRegistry.class);
         SslContext sslContext = new SslContextProvider(settings, pipelineRegistry).get();
         assertThat(sslContext, instanceOf(SslContext.class));
-        Mockito.verify(pipelineRegistry).registerSslContext(any(SslContext.class));
+        Mockito.verify(pipelineRegistry).registerSslContextProvider(any());
     }
 }
