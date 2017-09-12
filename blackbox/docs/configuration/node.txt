@@ -42,8 +42,9 @@ Basics
 Node Types
 ==========
 
-CrateDB supports different kinds of nodes. The following settings can be used
-to differentiate nodes upon startup:
+CrateDB supports different kinds of nodes.
+
+The following settings can be used to differentiate nodes upon startup:
 
 **node.master**
   | *Default:* ``true``
@@ -58,52 +59,24 @@ to differentiate nodes upon startup:
 
   Whether or not this node will store data.
 
-**node.client**
-  | *Default:* ``false``
-  | *Runtime:* ``no``
+Using different combinations of these two settings, you can create four
+different types of node. Each type of node is differentiate by what types of
+load it will handle.
 
-  Shorthand for: ``node.data=false`` and ``node.master=false``.
+The four types of node possible are:
 
-**node.local**
-  | *Default:* ``false``
-  | *Runtime:* ``no``
++---------------+----------------------------+------------------------------+
+|               | **Master**                 | **No Master**                |
++---------------+----------------------------+------------------------------+
+| **Data**      | Can handle all loads.      | Handles request handling and |
+|               |                            | query execution loads.       |
++---------------+----------------------------+------------------------------+
+| **No Data**   | Can handle cluster         | Handles request handling     |
+|               | management loads.          | loads.                       |
++---------------+----------------------------+------------------------------+
 
-  If set to ``true``, the node will use a *JVM-local* transport and discovery.
-  *Used primarily for testing purposes.*
-
-Examples
---------
-
-A node by default is eligible as *master* and contains *data*.
-
-Nodes that only contain *data* but cannot become *master* will mainly execute
-and respond to queries:
-
-.. code-block::
-   yaml
-
-   node:
-     data: true
-     master: false
-
-*Master-only*-nodes that do not contain *data* but are able to become *master*
-can be used to separate cluster-management loads from the query execution loads:
-
-.. code-block::
-   yaml
-
-   node:
-     data: false
-     master: true
-
-Nodes that do not contain *data* and are not eligible as *master* are called
-*client*-nodes. They can be used to separate request handling loads:
-
-.. code-block::
-   yaml
-
-   node:
-     client: true
+Nodes marked as ``node.master`` will only handle cluster management loads if
+they are elected as the cluster master. All other loads are shared equally.
 
 Read-only node
 ==============
@@ -218,19 +191,8 @@ Ports
   range is used. If this is set to an integer value it is considered as an
   explicit single port.
 
-.. _conf-node-attributes:
-
-Node Attributes
-===============
-
-It is possible to apply generic attributes to a node, with configuration
-settings like ``node.key: value``. These attributes can be used for customized
-shard allocation.
-
-See also :ref:`conf-routing-allocation-awareness` Settings.
-
 Paths
------
+=====
 
 **path.conf**
   | *Runtime:* ``no``
@@ -488,3 +450,19 @@ Queries
     Increasing this value to a large number (e.g. 10M) and applying  those
     ``ANY`` operators on arrays of that length can lead to heavy memory,
     consumption which could cause nodes to crash with OutOfMemory exceptions.
+
+.. _conf-node-attributes:
+
+Custom Attributes
+=================
+
+The ``node.attr`` namespace is a bag of custom attributes.
+
+You can create any attribute you want under this namespace, like
+``node.attr.key: value``. These attributes use the ``node.attr`` namespace to
+distinguish them from core node attribute like ``node.name``.
+
+Custom attributes are not validated by CrateDB, unlike core node attributes.
+
+Custom attributes can, however, be :ref:`used to control shard allocation
+<conf-routing-allocation-awareness>`.

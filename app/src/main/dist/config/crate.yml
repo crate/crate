@@ -53,7 +53,7 @@
 # Any element in the configuration can be replaced with environment variables
 # by placing them in ${...} notation. For example:
 #
-#node.rack: ${RACK_ENV_VAR}
+#node.attr.rack: ${RACK_ENV_VAR}
 
 
 ############################# Enterprise Features ############################
@@ -253,9 +253,9 @@
 
 # A node can have generic attributes associated with it, which can later be
 # used for customized shard allocation filtering, or allocation awareness.
-# An attribute is a simple key value pair, similar to node.key: value, here is
-# an example:
-#node.rack: rack314
+# An attribute is a simple key value pair, similar to node.attr.key: value,
+# here is an example:
+#node.attr.rack: rack314
 
 # By default, multiple nodes are not allowed to start from the same
 # installation location. To allow it, set the following to a higher value:
@@ -809,11 +809,11 @@
 # a query.
 
 # Specifies the limit for the query breaker.
-#node.breaker.query.limit: 60%
+#indices.breaker.query.limit: 60%
 
 # A constant that all query data estimations are multiplied with to
 # determine a final estimation.
-#node.breaker.query.overhead: 1.09
+#indices.breaker.query.overhead: 1.09
 
 
 ##################################### UDC ####################################
