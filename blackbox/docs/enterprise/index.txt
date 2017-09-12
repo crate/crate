@@ -4,11 +4,17 @@
 Enterprise Features
 ===================
 
-CrateDB provides an `Enterprise Edition`_, which is activated by default. The
-source code remains open, but if you want to use one of the enterprise features
-in production you need to purchase a `enterprise license`_.
+CrateDB provides an `Enterprise Edition`_, which is activated by default.
 
-Current features:
+.. NOTE::
+
+   If you want to use one of the enterprise features in production you need to
+   purchase a `enterprise license`_.
+
+.. _`enterprise edition`: https://crate.io/enterprise-edition/
+.. _`enterprise license`: https://crate.io/enterprise-edition/
+
+Current enterprise features:
 
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
@@ -20,5 +26,8 @@ Current features:
   functions in JavaScript
 - :ref:`jmx_monitoring_plugin`: monitor your query stats with JMX
 
-.. _`enterprise edition`: https://crate.io/enterprise-edition/
-.. _`enterprise license`: https://crate.io/enterprise-edition/
+.. SEEALSO::
+
+   :ref:`core_features` -- core features in every version of CrateDB
+
+   :ref:`syntax-reference` -- CrateDB SQL syntax reference
