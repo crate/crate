@@ -25,8 +25,10 @@ import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.crate.mqtt.protocol.MqttProcessor;
+import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.operation.user.UserManager;
 import io.crate.protocols.postgres.BindPostgresException;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
@@ -35,13 +37,10 @@ import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -59,7 +58,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -71,13 +69,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
-
 @Singleton
 public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
     public static final CrateSetting<Boolean> MQTT_ENABLED_SETTING = CrateSetting.of(
         Setting.boolSetting("ingestion.mqtt.enabled", false, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
+
+    public static final CrateSetting<Boolean> SSL_MQTT_ENABLED = CrateSetting.of(
+        Setting.boolSetting("ssl.ingestion.mqtt.enabled", false, Setting.Property.NodeScope),
         DataTypes.BOOLEAN);
 
     public static final CrateSetting<String> MQTT_PORT_SETTING = CrateSetting.of(new Setting<>(
@@ -88,6 +88,11 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         "ingestion.mqtt.timeout", TimeValue.timeValueSeconds(10L), TimeValue.timeValueSeconds(1L),
         Setting.Property.NodeScope), DataTypes.STRING);
 
+    static boolean isMQTTSslEnabled(Settings settings) {
+        return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
+               SSL_MQTT_ENABLED.setting().get(settings);
+    }
+
     private final NetworkService networkService;
     private final String port;
     private final Logger logger;
@@ -97,9 +102,10 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private final MqttMessageLogger mqttMessageLogger;
     private final List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
-
+    private final SslContextProvider sslContextProvider;
     private ServerBootstrap serverBootstrap;
     private final MqttIngestService mqttIngestService;
+
     private BoundTransportAddress boundAddress;
 
     @Inject
@@ -108,7 +114,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
                                      Functions functions,
                                      SQLOperations sqlOperations,
                                      UserManager userManager,
-                                     IngestionService ingestionService) {
+                                     IngestionService ingestionService,
+                                     SslContextProvider sslContextProvider) {
         super(settings);
         this.networkService = networkService;
         logger = Loggers.getLogger("mqtt", settings);
@@ -118,6 +125,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
         mqttMessageLogger = new MqttMessageLogger(settings);
         mqttIngestService = new MqttIngestService(functions, sqlOperations, userManager, ingestionService);
+        this.sslContextProvider = sslContextProvider;
     }
 
     @Override
@@ -126,38 +134,31 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
             return;
         }
 
-        EventLoopGroup boss = new NioEventLoopGroup(
-            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-boss"));
-        EventLoopGroup worker = new NioEventLoopGroup(
-            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "mqtt-netty-worker"));
-        Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
         mqttIngestService.initialize();
-        serverBootstrap = new ServerBootstrap()
-            .channel(NioServerSocketChannel.class)
-            .group(boss, worker)
-            .option(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
-            .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings))
-            .childHandler(new ChannelInitializer<Channel>() {
-                @Override
-                protected void initChannel(Channel ch) throws Exception {
-                    ChannelPipeline pipeline = ch.pipeline();
-                    final MqttProcessor processor = new MqttProcessor(mqttIngestService);
-                    final MqttNettyHandler handler = new MqttNettyHandler(processor);
-                    final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
-                    final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,
-                        defaultIdleTimeout.seconds(), TimeUnit.SECONDS);
+        serverBootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("mqtt", settings);
+        serverBootstrap.childHandler(new ChannelInitializer<Channel>() {
+            @Override
+            protected void initChannel(Channel ch) throws Exception {
+                ChannelPipeline pipeline = ch.pipeline();
+                final MqttProcessor processor = new MqttProcessor(mqttIngestService);
+                final MqttNettyHandler handler = new MqttNettyHandler(processor);
+                final MqttNettyIdleTimeoutHandler timeoutHandler = new MqttNettyIdleTimeoutHandler();
+                final IdleStateHandler defaultIdleHandler = new IdleStateHandler(0L, 0L,
+                    defaultIdleTimeout.seconds(), TimeUnit.SECONDS);
 
-                    pipeline.addFirst("idleStateHandler", defaultIdleHandler)
-                        .addAfter("idleStateHandler", "idleEventHandler", timeoutHandler)
-                        .addLast("decoder", new MqttDecoder())
-                        .addLast("encoder", MqttEncoder.INSTANCE)
-                        .addLast("messageLogger", mqttMessageLogger)
-                        .addLast("handler", handler);
+                pipeline.addFirst("idleStateHandler", defaultIdleHandler)
+                    .addAfter("idleStateHandler", "idleEventHandler", timeoutHandler)
+                    .addLast("decoder", new MqttDecoder())
+                    .addLast("encoder", MqttEncoder.INSTANCE)
+                    .addLast("messageLogger", mqttMessageLogger)
+                    .addLast("handler", handler);
+
+                if (isMQTTSslEnabled(settings)) {
+                    SslHandler sslHandler = sslContextProvider.get().newHandler(pipeline.channel().alloc());
+                    pipeline.addFirst(sslHandler);
                 }
-            });
-
+            }
+        });
         serverBootstrap.validate();
 
         boolean success = false;
@@ -269,5 +270,4 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     @Override
     protected void doClose() {
     }
-
 }

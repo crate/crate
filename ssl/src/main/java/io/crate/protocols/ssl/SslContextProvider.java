@@ -42,16 +42,14 @@ public class SslContextProvider implements Provider<SslContext> {
     private static final String SSL_CONTEXT_CLAZZ = "io.crate.protocols.ssl.SslConfiguration";
     private static final String SSL_CONTEXT_METHOD_NAME = "buildSslContext";
 
+    private final Settings settings;
     private SslContext sslContext;
 
-    @SuppressWarnings("WeakerAccess")
     @Inject
     public SslContextProvider(Settings settings, PipelineRegistry pipelineRegistry) {
-        if (SslConfigSettings.isSslEnabled(settings)) {
-            this.sslContext = load(settings);
-            if (SslConfigSettings.isHttpsEnabled(settings)) {
-                pipelineRegistry.registerSslContext(sslContext);
-            }
+        this.settings = settings;
+        if (SslConfigSettings.isHttpsEnabled(settings)) {
+            pipelineRegistry.registerSslContextProvider(this);
         }
     }
 
@@ -99,6 +97,11 @@ public class SslContextProvider implements Provider<SslContext> {
 
     @Override
     public SslContext get() {
+        synchronized (this) {
+            if (sslContext == null) {
+                sslContext = load(settings);
+            }
+        }
         return sslContext;
     }
 }

@@ -35,8 +35,8 @@ public class SslConfigSettings {
 
     private SslConfigSettings() {}
 
-    static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";
-    static final String SSL_PSQL_ENABLED_SETTING_NAME = "ssl.psql.enabled";
+    private static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";
+    private static final String SSL_PSQL_ENABLED_SETTING_NAME = "ssl.psql.enabled";
 
     static final String SSL_TRUSTSTORE_FILEPATH_SETTING_NAME = "ssl.truststore_filepath";
     static final String SSL_TRUSTSTORE_PASSWORD_SETTING_NAME = "ssl.truststore_password";
@@ -71,11 +71,7 @@ public class SslConfigSettings {
         Setting.simpleString(SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
         DataTypes.STRING);
 
-    public static boolean isSslEnabled(Settings settings) {
-        return isHttpsEnabled(settings) || isPSQLSslEnabled(settings);
-    }
-
-    public static boolean isHttpsEnabled(Settings settings) {
+    static boolean isHttpsEnabled(Settings settings) {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
                 SSL_HTTP_ENABLED.setting().get(settings);
     }
@@ -83,6 +79,5 @@ public class SslConfigSettings {
     public static boolean isPSQLSslEnabled(Settings settings) {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
                SSL_PSQL_ENABLED.setting().get(settings);
-
     }
 }

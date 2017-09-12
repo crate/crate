@@ -27,6 +27,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -47,7 +48,7 @@ public class PipelineRegistry {
     private static final Logger LOG = Loggers.getLogger(PipelineRegistry.class);
 
     private final List<ChannelPipelineItem> addBeforeList;
-    private SslContext sslContext;
+    private Provider<SslContext> sslContextProvider;
 
     public PipelineRegistry() {
         this.addBeforeList = new ArrayList<>();
@@ -88,22 +89,24 @@ public class PipelineRegistry {
         }
     }
 
-    public void registerSslContext(SslContext sslContext) {
-        this.sslContext = sslContext;
-        if (sslContext != null) {
-            LOG.info("HTTP SSL support is enabled.");
-        } else {
-            LOG.info("HTTP SSL support is disabled.");
-        }
+    public void registerSslContextProvider(Provider<SslContext> sslContextProvider) {
+        this.sslContextProvider = sslContextProvider;
     }
 
     public void registerItems(ChannelPipeline pipeline) {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
         }
-        if (sslContext != null) {
-            SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
-            pipeline.addFirst(sslHandler);
+
+        if (sslContextProvider != null) {
+            SslContext sslContext = sslContextProvider.get();
+            if (sslContext != null) {
+                LOG.info("HTTP SSL support is enabled.");
+                SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
+                pipeline.addFirst(sslHandler);
+            } else {
+                LOG.info("HTTP SSL support is disabled.");
+            }
         }
     }
 
