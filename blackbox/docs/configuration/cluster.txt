@@ -639,12 +639,12 @@ across generic attributes associated with nodes.
 
   Define node attributes which will be used to do awareness based on the
   allocation of a shard and its replicas. For example, let's say we have
-  defined an attribute ``rack_id`` and we start 2 nodes with ``node.rack_id``
-  set to rack_one, and deploy a single table with 5 shards and 1 replica. The
-  table will be fully deployed on the current nodes (5 shards and 1 replica
-  each, total of 10 shards).
+  defined an attribute ``rack_id`` and we start 2 nodes with
+  ``node.attr.rack_id`` set to rack_one, and deploy a single table with 5
+  shards and 1 replica. The table will be fully deployed on the current nodes
+  (5 shards and 1 replica each, total of 10 shards).
 
-  Now, if we start two more nodes, with ``node.rack_id`` set to rack_two,
+  Now, if we start two more nodes, with ``node.attr.rack_id`` set to rack_two,
   shards will relocate to even the number of shards across the nodes, but a
   shard and its replica will not be allocated in the same rack_id value.
 
@@ -659,10 +659,10 @@ across generic attributes associated with nodes.
   for the awareness attribute, which can be defined using the
   `cluster.routing.allocation.awareness.attributes`_ setting. Let's say we
   configured an awareness attribute ``zone`` and the values ``zone1, zone2``
-  here, start 2 nodes with ``node.zone`` set to ``zone1`` and create a table
-  with 5 shards and 1 replica. The table will be created, but only 5 shards
-  will be allocated (with no replicas). Only when we start more shards with
-  ``node.zone`` set to ``zone2`` the replicas will be allocated.
+  here, start 2 nodes with ``node.attr.zone`` set to ``zone1`` and create a
+  table with 5 shards and 1 replica. The table will be created, but only 5
+  shards will be allocated (with no replicas). Only when we start more shards
+  with ``node.attr.zone`` set to ``zone2`` the replicas will be allocated.
 
 Balanced Shards
 ...............
