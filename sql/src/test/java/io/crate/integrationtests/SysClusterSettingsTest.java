@@ -27,7 +27,6 @@ import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
-import io.crate.testing.UseJdbc;
 import io.crate.udc.service.UDCService;
 import org.apache.lucene.store.StoreRateLimiting;
 import org.elasticsearch.common.settings.Setting;
@@ -45,7 +44,6 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope
-@UseJdbc
 public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Override

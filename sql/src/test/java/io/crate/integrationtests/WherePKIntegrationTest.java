@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -31,7 +30,6 @@ import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

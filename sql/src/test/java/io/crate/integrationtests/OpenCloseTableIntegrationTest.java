@@ -22,12 +22,10 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.junit.Before;
 import org.junit.Test;
 
-@UseJdbc
 public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before

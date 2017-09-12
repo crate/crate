@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -35,7 +34,6 @@ import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(
     numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false, autoMinMasterNodes = false)
-@UseJdbc
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

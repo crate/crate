@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.common.settings.Settings;
@@ -44,6 +45,7 @@ import java.util.Locale;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc(0) // create/drop repository/snapshot has no rowcount
 public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String REPOSITORY_NAME = "my_repo";

@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
@@ -30,8 +29,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
 
-
-@UseJdbc
 public class CastIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,7 +30,6 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
 public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test

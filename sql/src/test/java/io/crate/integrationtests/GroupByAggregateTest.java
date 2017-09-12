@@ -27,7 +27,6 @@ import io.crate.data.ArrayBucket;
 import io.crate.operation.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -42,7 +41,6 @@ import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-@UseJdbc
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -669,7 +667,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("column 'details_ignored['lol']' must appear in the GROUP BY clause or be used in an aggregation function");
         execute("select details_ignored['lol'] from characters group by race");
     }
-    
+
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();

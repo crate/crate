@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -47,7 +46,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
-@UseJdbc
 public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     private static FulltextAnalyzerResolver fulltextAnalyzerResolver;

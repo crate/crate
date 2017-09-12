@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -128,7 +129,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    @UseJdbc(0) // avoid casting errors: Timestamp instead of Long
     public void testInsertCoreTypesAsArray() throws Exception {
         execute("create table test (" +
                 "\"boolean\" array(boolean), " +
@@ -288,6 +289,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // inserting object array equires special treatment for PostgreSQL
     public void testInsertEmptyObjectArray() throws Exception {
         execute("create table test (" +
                 "  id integer primary key," +
@@ -609,6 +611,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // inserting geo-point array requires special treatment for PostgreSQL
     public void testInsertIntoGeoPointArray() throws Exception {
         execute("create table t (id int, points array(geo_point)) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
@@ -704,8 +707,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // set all 'female' values back to their original values
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
-                "on duplicate key update female = values(female)",
-            new Object[]{true});
+                "on duplicate key update female = values(female)");
         assertThat(response.rowCount(), is(4L));
         refresh();
 

@@ -23,12 +23,10 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.SQLBulkResponse;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

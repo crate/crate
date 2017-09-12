@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.analyze.UpdateAnalyzer;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -31,7 +30,6 @@ import java.io.IOException;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

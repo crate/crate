@@ -22,13 +22,11 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
 public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

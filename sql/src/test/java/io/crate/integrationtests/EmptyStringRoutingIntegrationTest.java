@@ -38,7 +38,6 @@ import static org.hamcrest.core.Is.is;
  * the contract of having the same value of the routing field on only one shard. So in Crate the behaviour is
  * different and is asserted via tests in this class.
  */
-@UseJdbc
 public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

@@ -22,12 +22,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
-
-@UseJdbc
 public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     @Before

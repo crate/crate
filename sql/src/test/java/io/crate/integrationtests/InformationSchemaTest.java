@@ -27,7 +27,6 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -44,9 +43,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
-
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
-@UseJdbc
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     private final Joiner commaJoiner = Joiner.on(", ");

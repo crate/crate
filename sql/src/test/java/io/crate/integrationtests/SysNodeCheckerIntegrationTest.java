@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -44,7 +43,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-@UseJdbc
 public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     private static List<String> dirs = new ArrayList<>();

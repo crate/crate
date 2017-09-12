@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import io.crate.data.CollectionBucket;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,7 +33,6 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
 
     @Before

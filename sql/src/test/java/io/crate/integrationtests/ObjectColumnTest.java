@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -88,6 +89,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
     public void testAddColumnToIgnoredObject() throws Exception {
         Map<String, Object> detailMap = new HashMap<String, Object>() {{
             put("num_pages", 240);

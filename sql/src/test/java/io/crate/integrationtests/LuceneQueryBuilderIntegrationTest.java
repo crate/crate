@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.DataTypeTesting;
-import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.search.SearchModule;
@@ -38,7 +37,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, randomDynamicTemplates = false, transportClientRatio = 0)
-@UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;

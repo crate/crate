@@ -34,6 +34,7 @@ import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -108,6 +109,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0) // create table has no rowcount
     public void testCreateTableWithOrphanedAlias() throws Exception {
         String partitionName = new PartitionName("test", Collections.singletonList(new BytesRef("foo"))).asIndexName();
         client().admin().indices().prepareCreate(partitionName)

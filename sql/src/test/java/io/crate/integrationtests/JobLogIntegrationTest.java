@@ -32,7 +32,6 @@ import org.junit.Test;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-@UseJdbc
 public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
     @After

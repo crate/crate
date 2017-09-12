@@ -25,6 +25,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.After;
@@ -40,6 +41,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
+@UseJdbc(0) // create ingest rule has no rowcount
 public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final String INGEST_RULE_NAME = "testingestrule";

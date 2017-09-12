@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
@@ -31,7 +30,6 @@ import static io.crate.integrationtests.SubSelectIntegrationTest.NO_SESSION_SETT
 import static io.crate.testing.TestingHelpers.isPrintedTable;
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

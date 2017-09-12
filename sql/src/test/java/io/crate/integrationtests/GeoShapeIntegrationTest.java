@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,7 +36,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final Map GEO_SHAPE1 = ImmutableMap.of(

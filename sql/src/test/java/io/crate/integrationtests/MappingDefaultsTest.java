@@ -22,14 +22,12 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.Test;
 
-@UseJdbc
 public class MappingDefaultsTest extends SQLTransportIntegrationTest {
 
     @Test

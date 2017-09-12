@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -40,7 +39,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
-@UseJdbc
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     private void setUpSimple() throws IOException {

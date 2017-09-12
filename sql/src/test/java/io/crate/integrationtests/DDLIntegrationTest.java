@@ -49,7 +49,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
-@UseJdbc
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

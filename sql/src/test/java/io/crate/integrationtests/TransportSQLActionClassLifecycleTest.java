@@ -65,7 +65,6 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-@UseJdbc
 public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegrationTest {
 
     @Rule

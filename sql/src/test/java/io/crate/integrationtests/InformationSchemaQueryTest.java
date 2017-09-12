@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-@UseJdbc
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     @Test

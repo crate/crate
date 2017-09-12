@@ -22,14 +22,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
 public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before

@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -37,7 +36,6 @@ import static io.crate.operation.reference.sys.check.AbstractSysCheck.LINK_PATTE
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-@UseJdbc
 public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest {
 
     private void startUpNodeWithDataDir(String dataPath) throws IOException {

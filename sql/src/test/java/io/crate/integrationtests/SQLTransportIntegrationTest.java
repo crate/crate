@@ -59,6 +59,7 @@ import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -106,6 +107,7 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESS
 import static org.hamcrest.Matchers.is;
 
 @Listeners({SystemPropsTestLoggingListener.class})
+@UseJdbc
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Rule

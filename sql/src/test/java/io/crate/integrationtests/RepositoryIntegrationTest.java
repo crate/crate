@@ -34,7 +34,6 @@ import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
 public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
 
     @ClassRule

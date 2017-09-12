@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -33,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-@UseJdbc
 public class JobContextIntegrationTest extends SQLTransportIntegrationTest {
 
     Setup setup = new Setup(sqlExecutor);

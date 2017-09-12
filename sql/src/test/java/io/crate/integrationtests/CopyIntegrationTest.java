@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,6 +59,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
+@UseJdbc(0) // Copy has no row count
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private final String copyFilePath =
