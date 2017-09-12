@@ -109,15 +109,15 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return exec(false, statement, null, REQUEST_TIMEOUT);
+        return exec(false, false, statement, null, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(boolean isJdbcEnabled, String statement, Object... params) {
-        return exec(isJdbcEnabled, statement, params, REQUEST_TIMEOUT);
+    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object... params) {
+        return exec(isJdbcEnabled, isSemiJoinsEnabled, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return exec(false, statement, params, REQUEST_TIMEOUT);
+        return exec(false, false, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
@@ -128,14 +128,34 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
-    private SQLResponse exec(boolean isJdbcEnabled, String stmt, @Nullable Object[] args, TimeValue timeout) {
+    private SQLResponse exec(boolean isJdbcEnabled,
+                             boolean isSemiJoinsEnabled,
+                             String stmt,
+                             @Nullable Object[] args,
+                             TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
+
+        boolean semiJoinsEnabled = isSemiJoinsEnabled;
+        if (semiJoinsEnabled) {
+            LOGGER.trace("Executing with semi_joins=true: {}", stmt);
+        }
+
         if (pgUrl != null && isJdbcEnabled) {
             LOGGER.trace("Executing with pgJDBC: {}", stmt);
-            return executeWithPg(stmt, args, pgUrl, random);
+            return executeWithPg(
+                stmt,
+                args,
+                pgUrl,
+                random,
+                semiJoinsEnabled ? Collections.singletonList("set semi_joins=true") : Collections.emptyList());
         }
         try {
+            if (semiJoinsEnabled) {
+                SQLOperations.Session session = newSession();
+                exec("set semi_joins=true", session);
+                return execute(stmt, args, session).actionGet(timeout);
+            }
             return execute(stmt, args).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {}", e, stmt);
@@ -259,7 +279,11 @@ public class SQLTransportExecutor {
         }
     }
 
-    private SQLResponse executeWithPg(String stmt, @Nullable Object[] args, String pgUrl, Random random) {
+    private SQLResponse executeWithPg(String stmt,
+                                      @Nullable Object[] args,
+                                      String pgUrl,
+                                      Random random,
+                                      List<String> setSessionStatementsList) {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {
@@ -267,6 +291,9 @@ public class SQLTransportExecutor {
             }
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
+                for (String setSessionStmt : setSessionStatementsList) {
+                    conn.createStatement().execute(setSessionStmt);
+                }
                 PreparedStatement preparedStatement = conn.prepareStatement(stmt);
                 if (args != null) {
                     for (int i = 0; i < args.length; i++) {

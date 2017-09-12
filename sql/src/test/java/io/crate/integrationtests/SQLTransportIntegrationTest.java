@@ -61,6 +61,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -111,6 +112,7 @@ import static org.hamcrest.Matchers.is;
 
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
+@UseSemiJoins
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
@@ -298,7 +300,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = sqlExecutor.exec(isJdbcEnabled(), stmt, args);
+        response = sqlExecutor.exec(isJdbcEnabled(), isSemiJoinsEnabled(), stmt, args);
         return response;
     }
 
@@ -569,6 +571,38 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             UseJdbc annotation = method.getAnnotation(UseJdbc.class);
             if (annotation == null) {
                 annotation = clazz.getAnnotation(UseJdbc.class);
+                if (annotation == null) {
+                    return false;
+                }
+            }
+            double ratio = annotation.value();
+            assert ratio >= 0.0 && ratio <= 1.0;
+            if (ratio == 0) {
+                return false;
+            }
+            if (ratio == 1) {
+                return true;
+            }
+            return RandomizedContext.current().getRandom().nextDouble() < ratio;
+        } catch (NoSuchMethodException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * If the Test class or method contains a @UseSemiJoins annotation then,
+     * based on the ratio provided, a random value of true or false is returned.
+     * For more details on the ratio see {@link UseSemiJoins}
+     * <p>
+     * Method annotations have higher priority than class annotations.
+     */
+    private boolean isSemiJoinsEnabled() {
+        try {
+            Class<?> clazz = this.getClass();
+            Method method = clazz.getMethod(testName.getMethodName());
+            UseSemiJoins annotation = method.getAnnotation(UseSemiJoins.class);
+            if (annotation == null) {
+                annotation = clazz.getAnnotation(UseSemiJoins.class);
                 if (annotation == null) {
                     return false;
                 }

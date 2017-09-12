@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseSemiJoins;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
@@ -105,6 +106,7 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
     public void testAnyWithSubselect() throws Exception {
         execute("select 2 where 1 = ANY(select 2)");
         assertThat(response.rowCount(), is(0L));

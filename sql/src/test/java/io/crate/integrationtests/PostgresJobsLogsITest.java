@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -41,6 +42,7 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc(1)
+@UseSemiJoins(0) // Avoid set session stmt to interfere with tests
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Override
