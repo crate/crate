@@ -7,6 +7,11 @@
 
 Restore a snapshot into the cluster.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -45,8 +50,11 @@ Parameters
 
 :partition_column: Column name by which the table is partitioned
 
-``WITH`` Clause
-===============
+Clauses
+=======
+
+``WITH``
+--------
 
 ::
 

@@ -19,6 +19,11 @@ Enterprise Features
 .. _request an Enterprise Edition license: https://crate.io/enterprise-edition/
 .. _Enterprise Subscription Agreement: https://crate.io/subscription_agreement/
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _conf_enterprise_license:
 
 Enterprise License

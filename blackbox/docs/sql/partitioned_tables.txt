@@ -5,6 +5,14 @@
 Partitioned Tables
 ==================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 A partitioned table is a virtual table that can be created by naming one or
 more columns by which it is split into separate internal tables, called
 ``partitions``.

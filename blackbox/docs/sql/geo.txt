@@ -5,6 +5,14 @@
 Geo Search
 ==========
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB can be used to store and query geographical information of many kinds
 using the :ref:`geo_point_data_type` and :ref:`geo_shape_data_type` types. With
 these it is possible to store geographical locations, ways, shapes, areas and

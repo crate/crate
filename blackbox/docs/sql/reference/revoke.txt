@@ -4,7 +4,13 @@
 ``REVOKE``
 ==========
 
-Revokes a previously granted privilege on the whole cluster or on a specific object.
+Revokes a previously granted privilege on the whole cluster or on a specific
+object.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 Synopsis
 ========

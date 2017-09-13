@@ -5,6 +5,14 @@
 Optimistic Concurrency Control with CrateDB
 ===========================================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 Even though CrateDB does not support transactions, `Optimistic Concurrency
 Control`_ can be achieved by using the internal system column :ref:`_version
 <sql_administration_system_column_version>`.

@@ -7,6 +7,11 @@
 
 Create new rows in a table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _insert_synopsis:
 
 Synopsis
@@ -40,8 +45,8 @@ type conversion will be attempted.
 
 .. _on_duplicate_key_update:
 
-On Duplicate Key Update
------------------------
+``ON DUPLICATE KEY UPDATE``
+---------------------------
 
 If ``ON DUPLICATE KEY UPDATE`` is specified and a row is inserted that would
 cause a duplicate-key conflict, an update of the existing row is performed.

@@ -5,29 +5,39 @@
 Information Schema
 ==================
 
-The Information Schema is a special schema that contains virtual tables which
+``information_schema`` is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. NOTE::
+.. rubric:: Table of Contents
 
-    When the user management is enabled, accessing the ``information_schema``
-    is open to all users and it does not require any privileges.
+.. contents::
+   :local:
 
-    However, being able to query ``information_schema`` tables will not allow the
-    user to retrieve all the rows in the table, as it can contain information
-    related to tables over which the connected user does not have any privileges.
-    The only rows that will be returned will be the ones the user is allowed to access.
+Access
+======
 
-    For example, if the user ``john`` has any privilege on the ``doc.books`` table
-    but no privilege at all on ``doc.locations``, when ``john`` issues a
-    ``SELECT * FROM information_schema.tables`` statement, the tables information
-    related to the ``doc.locations`` table will not be returned.
+When the user management is enabled, accessing the ``information_schema`` is
+open to all users and it does not require any privileges.
+
+However, being able to query ``information_schema`` tables will not allow the
+user to retrieve all the rows in the table, as it can contain information
+related to tables over which the connected user does not have any privileges.
+The only rows that will be returned will be the ones the user is allowed to
+access.
+
+For example, if the user ``john`` has any privilege on the ``doc.books`` table
+but no privilege at all on ``doc.locations``, when ``john`` issues a ``SELECT *
+FROM information_schema.tables`` statement, the tables information related to
+the ``doc.locations`` table will not be returned.
+
+Virtual Tables
+==============
 
 .. _information_schema_tables:
 
-Tables
-======
+``tables``
+----------
 
 The information schema contains a table called `tables`.
 
@@ -105,8 +115,7 @@ columns::
     +-------------------+--------------+----------------+--------...-+
     SELECT 5 rows in set (... sec)
 
-Tables Specification
---------------------
+.. rubric:: Schema
 
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | Name                             | Description                                                                        | Data Type   |
@@ -144,9 +153,51 @@ Tables Specification
 | ``version``                      | A collection of version numbers relevent to the table                              | ``Object``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 
+``settings``
+............
 
-Columns
-=======
+Table settings specify configuration parameters for tables. Some settings can
+be set during Cluster runtime and others are only applied on cluster restart.
+
+This list of table settings in :ref:`with_clause` shows detailed information
+of each parameter.
+
+Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
+With ``ALTER TABLE`` they can be set on already existing tables.
+
+The following statement creates a new table and sets the refresh interval of
+shards to 500 ms and sets the shard allocation for primary shards only::
+
+    cr> create table parameterized_table (id int, content string)
+    ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
+    CREATE OK, 1 row affected (... sec)
+
+The settings can be verified by querying ``information_schema.tables``::
+
+    cr> select settings['routing']['allocation']['enable'] as alloc_enable,
+    ...   settings['refresh_interval'] as refresh_interval
+    ... from information_schema.tables
+    ... where table_name='parameterized_table';
+    +--------------+------------------+
+    | alloc_enable | refresh_interval |
+    +--------------+------------------+
+    | primaries    |              500 |
+    +--------------+------------------+
+    SELECT 1 row in set (... sec)
+
+On existing tables this needs to be done with ``ALTER TABLE`` statement::
+
+    cr> alter table parameterized_table
+    ... set ("routing.allocation.enable"='none');
+    ALTER OK, -1 rows affected (... sec)
+
+.. hide:
+
+    cr> drop table parameterized_table;
+    DROP OK, 1 row affected (... sec)
+
+``columns``
+-----------
 
 This table can be queried to get a list of all available columns of all tables
 and their definition like data type and ordinal position inside the table::
@@ -232,9 +283,7 @@ infinite recursion of your mind, beware!)::
   order they were defined on table creation. Thus the ``ordinal_position``
   reflects the alphabetical position.
 
-
-Columns Specification
----------------------
+.. rubric:: Schema
 
 +-------------------------------+-----------------------------------------------+---------------+
 |            Name               |                Description                    |   Data Type   |
@@ -328,8 +377,8 @@ Columns Specification
 +-------------------------------+-----------------------------------------------+---------------+
 
 
-Table Constraints
-=================
+``table_constraints``
+---------------------
 
 This table can be queried to get a list of all defined table constraints, their
 type, name and which table they are defined in.
@@ -357,8 +406,8 @@ type, name and which table they are defined in.
 
 .. _is_table_partitions:
 
-Table Partitions
-================
+``table_partitions``
+--------------------
 
 This table can be queried to get information about all partitioned tables, Each
 partition of a table is represented as one row. The row contains the
@@ -421,51 +470,8 @@ instead of ``4``::
     +---------------------+--------------------+------------------+--------------------+
     SELECT 2 rows in set (... sec)
 
-Table Settings
-==============
-
-Table settings specify configuration parameters for tables. Some settings can
-be set during Cluster runtime and others are only applied on cluster restart.
-
-This list of table settings in :ref:`with_clause` shows detailed information
-of each parameter.
-
-Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
-With ``ALTER TABLE`` they can be set on already existing tables.
-
-The following statement creates a new table and sets the refresh interval of
-shards to 500 ms and sets the shard allocation for primary shards only::
-
-    cr> create table parameterized_table (id int, content string)
-    ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
-    CREATE OK, 1 row affected (... sec)
-
-The settings can be verified by querying ``information_schema.tables``::
-
-    cr> select settings['routing']['allocation']['enable'] as alloc_enable,
-    ...   settings['refresh_interval'] as refresh_interval
-    ... from information_schema.tables
-    ... where table_name='parameterized_table';
-    +--------------+------------------+
-    | alloc_enable | refresh_interval |
-    +--------------+------------------+
-    | primaries    |              500 |
-    +--------------+------------------+
-    SELECT 1 row in set (... sec)
-
-On existing tables this needs to be done with ``ALTER TABLE`` statement::
-
-    cr> alter table parameterized_table
-    ... set ("routing.allocation.enable"='none');
-    ALTER OK, -1 rows affected (... sec)
-
-.. hide:
-
-    cr> drop table parameterized_table;
-    DROP OK, 1 row affected (... sec)
-
-Routines
-========
+``routines``
+------------
 
 The routines table contains tokenizers, token-filters, char-filters, custom
 analyzers created by ``CREATE ANALYZER`` statements (see
@@ -525,8 +531,7 @@ Or get an overview of how many routines and routine types are available::
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 
-Columns
--------
+.. rubric:: Schema
 
 +--------------------+-------------+
 | Name               | Data Type   |
@@ -574,8 +579,8 @@ Columns
     arguments. As the format might change in the future, it should be only used
     to compare it to other instances of ``specific_name``.
 
-Schemata
-========
+``schemata``
+------------
 
 The schemata table lists all existing schemas. These schemas are always
 available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
@@ -594,8 +599,8 @@ available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
 
 .. _sql_features:
 
-SQL Features
-============
+``sql_features``
+----------------
 
 The ``sql_features`` table outlines supported and unsupported SQL features of
 CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
@@ -655,14 +660,13 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 
 .. _information_schema_ingest:
 
-Ingestion Rules
-===============
+``ingestion_rules``
+-------------------
 
 The ``ingestion_rules`` table contains rules created by
 :ref:`create-ingest-rule` statements.
 
-Columns
--------
+.. rubric:: Schema
 
 +--------------------+-------------+
 | Name               | Data Type   |

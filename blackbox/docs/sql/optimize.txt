@@ -5,6 +5,14 @@
 Optimize
 ========
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 In CrateDB every table (or if partitioned every partition) consists of
 segments. When inserting/deleting/updating data new segments are created
 following as an append-only strategy, which gives the advantage of fast writes

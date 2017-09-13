@@ -14,6 +14,11 @@ This page documents the most basic sort of CrateDB installation.
 
    To learn more, check out the `install section`_ of the CrateDB Guide.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Prerequisites
 =============
 

@@ -4,7 +4,13 @@
 ``DENY``
 ========
 
-Denies privilege to an existing user on the whole cluster or on a specific object.
+Denies privilege to an existing user on the whole cluster or on a specific
+object.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 Synopsis
 ========

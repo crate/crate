@@ -9,19 +9,10 @@ CrateDB provides the ``sys`` schema which contains virtual tables. These tables
 are read-only and can be queried to get statistical real-time information about
 the cluster, its nodes and their shards:
 
- * :ref:`sys.checks <sys-checks>`
- * :ref:`sys.cluster <sys-cluster>`
- * :ref:`sys.jobs <sys-jobs>`
- * :ref:`sys.jobs_log <sys-logs>`
- * :ref:`sys.nodes <sys-nodes>`
- * :ref:`sys.node_checks <sys-node-checks>`
- * :ref:`sys.operations <sys-operations>`
- * :ref:`sys.operations_log <sys-logs>`
- * :ref:`sys.repositories <sys-repositories>`
- * :ref:`sys.shards <sys-shards>`
- * :ref:`sys.snapshots <sys-snapshots>`
- * :ref:`sys.summits <sys-summits>`
+.. rubric:: Table of Contents
 
+.. contents::
+   :local:
 
 .. _sys-cluster:
 

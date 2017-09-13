@@ -4,6 +4,11 @@
 Backup With Snapshot and Restore
 ================================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Snapshot
 --------
 

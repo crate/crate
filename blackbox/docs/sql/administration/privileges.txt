@@ -5,6 +5,14 @@
 Privileges
 ==========
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
 access to the resource. The privileges are either applied on the whole cluster
 or on instances of objects such as schema, or table.

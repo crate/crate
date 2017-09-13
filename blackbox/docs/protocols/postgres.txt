@@ -4,6 +4,14 @@
 Postgres Wire Protocol
 ======================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port

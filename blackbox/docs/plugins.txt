@@ -16,6 +16,11 @@ A plugin must at least:
 
 See our `CrateDB example plugin`_ for details about that.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _plugins_crate_dep:
 
 Plugin CrateDB Dependency

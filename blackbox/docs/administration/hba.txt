@@ -22,6 +22,11 @@ See: :ref:`applying-cluster-settings`.
    Host Based Authentication is an
    :ref:`enterprise feature <enterprise_features>`.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Authentication Against CrateDB
 ==============================
 

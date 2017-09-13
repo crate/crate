@@ -7,6 +7,11 @@
 
 Register a new repository used to store, manage and restore snapshots.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -29,15 +34,17 @@ Repositories are declared using a ``repository_name`` and ``type``.
 
 Further configuration parameters are given in the WITH Clause.
 
-Parameters
-==========
+.. rubric:: Parameters
 
 :repository_name: the name of the repository as identifier
 
 :type: the type of the repository, see :ref:`ref-create-repository-types`.
 
-``WITH`` Clause
-===============
+Clauses
+=======
+
+``WITH``
+--------
 
 ::
 
@@ -82,8 +89,7 @@ accessible by all master and data nodes in the cluster.
    possible locations for repositories inside the ``crate.yml`` file under
    ``path.repo`` as list of strings.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 .. _ref-create-repository-types-fs-location:
 
@@ -125,8 +131,7 @@ Parameters
 
 A repository that stores its snapshot inside an HDFS file-system.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 **uri**
   | *Type:*    ``string``
@@ -190,8 +195,7 @@ Parameters
 
 A repository that stores its snapshot on the Amazon S3 service.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 **bucket**
   | *Type:*    ``string``
@@ -307,8 +311,7 @@ A read-only repository that points to the location of a
 ``ftp``, ``file`` and ``jar`` urls. It only allows for
 :ref:`ref-restore-snapshot` operations.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 **read_only**
   | *Type:*    ``string``

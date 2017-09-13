@@ -7,6 +7,11 @@
 
 Update rows of a table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -24,7 +29,7 @@ condition. Only the columns to be modified need be mentioned in the SET clause;
 columns not explicitly modified retain their previous values.
 
 Parameters
-----------
+==========
 
 :table_ident: The identifier (optionally schema-qualified) of an
               existing table.

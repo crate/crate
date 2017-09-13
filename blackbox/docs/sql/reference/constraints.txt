@@ -1,22 +1,24 @@
 .. highlight:: psql
 .. _table_constraints:
 
-=================
-Table Constraints
-=================
+===========
+Constraints
+===========
 
-Table constraints are constraints that are applied to more than one column or
-to the table as a whole.
+.. rubric:: Table of Contents
 
-The supported table constraints currently are:
-
- * :ref:`primary_key_constraint`
- * :ref:`index-constraint`
+.. contents::
+   :local:
 
 .. _primary_key_constraint:
 
-``PRIMARY KEY`` Constraint
-==========================
+Tables Constraints
+==================
+
+Table constraints are constraints that are applied to the table as a whole.
+
+``PRIMARY KEY``
+---------------
 
 The PRIMARY KEY constraint specifies that a column or columns of a table can
 contain only unique (non-duplicate), non-null values.
@@ -40,8 +42,8 @@ Adding a PRIMARY KEY column is only possible if the table is empty.
 
 .. _index-constraint:
 
-``INDEX`` Constraint
-====================
+``INDEX``
+---------
 
 The INDEX constraint specifies a specific index method on one or more columns.
 
@@ -66,8 +68,8 @@ The supported column constraints are:
 
 .. _not_null_constraint:
 
-``NOT NULL`` Constraint
------------------------
+``NOT NULL``
+------------
 
 The NOT NULL constraint specifies that a column of a table can contain only
 non-null values.

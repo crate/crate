@@ -17,6 +17,11 @@ There are multiple ways to authenticate against CrateDB.
    failed authentication. If you're receiving an error trying to authenticate,
    first make sure that the user exists.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _auth_trust:
 
 Trust Method

@@ -5,6 +5,14 @@
 Command Line Interface
 ======================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+The Basics
+==========
+
 After downloading and extracting the tarball (see :ref:`install_targz`) you
 will be able to invoke the CrateDB command in the ``bin`` directory. The
 excutable is named ``crate``.

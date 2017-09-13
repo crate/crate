@@ -7,6 +7,11 @@ Scalar Functions
 
 Scalar functions return a single value (not a table).
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 String Functions
 ================
 

@@ -6,6 +6,11 @@
 
 Explain the plan for a given statement.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

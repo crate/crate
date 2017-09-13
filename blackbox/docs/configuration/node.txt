@@ -6,6 +6,14 @@
 Node Specific Settings
 ======================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Basics
+======
+
 .. _cluster.name:
 
 **cluster.name**
@@ -32,7 +40,7 @@ Node Specific Settings
   the same configured data path defined via `path.data`_.
 
 Node Types
-----------
+==========
 
 CrateDB supports different kinds of nodes. The following settings can be used
 to differentiate nodes upon startup:
@@ -64,7 +72,7 @@ to differentiate nodes upon startup:
   *Used primarily for testing purposes.*
 
 Examples
-........
+--------
 
 A node by default is eligible as *master* and contains *data*.
 
@@ -98,7 +106,7 @@ Nodes that do not contain *data* and are not eligible as *master* are called
      client: true
 
 Read-only node
---------------
+==============
 
 **node.sql.read_only**
   | *Default:* ``false``
@@ -110,7 +118,7 @@ Read-only node
 .. _conf_hosts:
 
 Hosts
------
+=====
 
 .. _network.host:
 
@@ -153,7 +161,7 @@ Hosts
 .. _conf_ports:
 
 Ports
------
+=====
 
 .. _http.port:
 
@@ -213,7 +221,7 @@ Ports
 .. _conf-node-attributes:
 
 Node Attributes
----------------
+===============
 
 It is possible to apply generic attributes to a node, with configuration
 settings like ``node.key: value``. These attributes can be used for customized
@@ -275,7 +283,7 @@ Paths
   repository type ``fs``.
 
 Plugins
--------
+=======
 
 **plugin.mandatory**
   | *Runtime:* ``no``
@@ -285,7 +293,7 @@ Plugins
   If any plugin listed here is missing, the CrateDB node will fail to start.
 
 Memory
-------
+======
 
 **bootstrap.memory_lock**
   | *Runtime:* ``no``
@@ -297,7 +305,7 @@ Memory
   are locked into RAM.
 
 Garbage Collection
-------------------
+==================
 
 CrateDB logs if JVM garbage collection on different memory pools takes too
 long. The following settings can be used to adjust these timeouts:
@@ -347,7 +355,7 @@ long. The following settings can be used to adjust these timeouts:
 .. _es_api_setting:
 
 Elasticsearch HTTP REST API
----------------------------
+===========================
 
 **es.api.enabled**
   | *Default:* ``false``
@@ -361,7 +369,7 @@ Elasticsearch HTTP REST API
     in inconsistent data. You have been warned!
 
 Cross-Origin Resource Sharing (CORS)
-------------------------------------
+====================================
 
 Many browsers support the `same-origin policy`_ which requires web applications
 to explicitly allow requests across origins. The `cross-origin resource
@@ -411,7 +419,7 @@ sharing`_ settings in CrateDB allow for configuring these.
 .. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
 
 Blobs
------
+=====
 
 **blobs.path**
   | *Runtime:* ``no``
@@ -425,7 +433,7 @@ Blobs
 .. _ref-configuration-repositories:
 
 Repositories
-------------
+============
 
 Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
@@ -463,7 +471,7 @@ See also the :ref:`path.repo <conf-path-repo>` Setting.
 .. _`JarURLConnection documentation`: http://docs.oracle.com/javase/8/docs/api/java/net/JarURLConnection.html
 
 Queries
--------
+=======
 
 .. _conf-indices-query-bool.max_clause_count:
 

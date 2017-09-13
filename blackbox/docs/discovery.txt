@@ -4,6 +4,11 @@
 Cloud Discovery
 ===============
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Amazon EC2 Discovery
 ====================
 

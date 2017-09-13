@@ -5,6 +5,14 @@
 Aggregation
 ===========
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 An *aggregation function* operates on multiple values of the specified column
 of your `SELECT`. For example, ``SELECT avg(temperature)`` will return the
 average value of the ``temperature`` column across all rows being considered.

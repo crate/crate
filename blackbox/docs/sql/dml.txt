@@ -4,6 +4,11 @@
 Data Manipulation
 =================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _inserting_data:
 
 Inserting Data

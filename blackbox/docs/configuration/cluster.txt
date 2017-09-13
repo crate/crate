@@ -12,6 +12,11 @@ cluster settings can be changed at runtime using the
 :ref:`SET/RESET<administration-set-reset>` statement. This is documented at
 :each setting.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _applying-cluster-settings:
 
 Non-Runtime Cluster Wide Settings

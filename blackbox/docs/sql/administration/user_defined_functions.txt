@@ -15,6 +15,11 @@ User Defined Functions
    by default. You can enable the :ref:`conf_lang_js_enabled` via the
    configuration file.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 ``CREATE OR REPLACE``
 =====================
 
