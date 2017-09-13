@@ -32,6 +32,17 @@ if (project.hasProperty('testLogging')) {
     }
 }
 
+
+if (project.hasProperty('lint-unchecked')) {
+    compileJava.options.compilerArgs = compileJava.options.compilerArgs << '-Xlint:unchecked'
+    compileTestJava.options.compilerArgs = compileTestJava.options.compilerArgs << '-Xlint:unchecked'
+}
+
+if (project.hasProperty('lint-deprecation')) {
+    compileJava.options.compilerArgs = compileJava.options.compilerArgs << '-Xlint:deprecation'
+    compileTestJava.options.compilerArgs = compileTestJava.options.compilerArgs << '-Xlint:deprecation'
+}
+
 forbiddenApisMain {
     bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
     signaturesFiles = files("$rootDir/gradle/forbidden-signatures.txt")

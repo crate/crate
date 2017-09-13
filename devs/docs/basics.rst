@@ -136,6 +136,13 @@ try resetting everything and re-compiling::
     $ git clean -xdff
     $ ./gradlew compileTestJava
 
+If you want to get more information for unchecked or deprecation warnings run
+build like so::
+
+    $ ./gradlew -Plint-unchecked compileTestJava
+    $ ./gradlew -Plint-deprecation compileTestJava
+    $ ./gradlew -Plint-unchecked -Plint-deprecation compileTestJava
+
 
 .. _Java: http://www.java.com/
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
