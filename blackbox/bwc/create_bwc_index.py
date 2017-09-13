@@ -23,6 +23,16 @@ LOGGER = logging.getLogger('bwc')
 
 
 INDICES = {
+    'legacy_ip': '''
+        CREATE TABLE legacy_ip (
+            fqdn STRING,
+            addr IP
+        ) CLUSTERED INTO 1 SHARDS WITH (
+            number_of_replicas=0,
+            "translog.flush_threshold_ops"=0
+        );
+        INSERT INTO legacy_ip (fqdn, addr) VALUES ('localhost', '127.0.0.1');
+        REFRESH TABLE legacy_ip;''',
     'legacy_geo_point': '''
         CREATE TABLE legacy_geo_point (
             id int primary key,

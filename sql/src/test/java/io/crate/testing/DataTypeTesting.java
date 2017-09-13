@@ -26,6 +26,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
@@ -74,11 +75,13 @@ public class DataTypeTesting {
                 return () -> (T) RandomizedTest.randomAsciiOfLength(random.nextInt(10));
 
             case IpType.ID:
-                return () -> (T) (
-                    Integer.toString(RandomizedTest.randomIntBetween(1, 255)) + "." +
-                    Integer.toString(RandomizedTest.randomIntBetween(0, 255)) + "." +
-                    Integer.toString(RandomizedTest.randomIntBetween(0, 255)) + "." +
-                    Integer.toString(RandomizedTest.randomIntBetween(0, 255)));
+                return () -> {
+                    if (random.nextBoolean()) {
+                        return (T) randomIPv4Address(random);
+                    } else {
+                        return (T) randomIPv6Address(random);
+                    }
+                };
 
             case DoubleType.ID:
                 return () -> (T) (Double) random.nextDouble();
@@ -116,5 +119,20 @@ public class DataTypeTesting {
         }
 
         throw new AssertionError("No data generator for type " + type.getName());
+    }
+
+    private static String randomIPv6Address(Random random) {
+        String[] parts = new String[8];
+        for (int i = 0; i < 8; i++) {
+            parts[i] = Integer.toHexString(random.nextInt(2 ^ 16));
+        }
+        return Joiner.on(":").join(parts);
+    }
+
+    private static String randomIPv4Address(Random random) {
+        return Integer.toString(random.nextInt(255) + 1) + "." +
+               Integer.toString(random.nextInt(256)) + "." +
+               Integer.toString(random.nextInt(256)) + "." +
+               Integer.toString(random.nextInt(256));
     }
 }

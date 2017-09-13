@@ -31,53 +31,6 @@ import static org.hamcrest.Matchers.nullValue;
 public class IpTypeTest extends CrateUnitTest {
 
     @Test
-    public void testValidation() throws Exception {
-        BytesRef[] validIps = {
-            new BytesRef("199.199.199.200"),
-            new BytesRef("192.168.0.255"),
-            new BytesRef("127.0.0.1"),
-            new BytesRef("123.34.243.23"),
-            new BytesRef("211.121.112.111"),
-            new BytesRef("0.0.0.0"),
-            new BytesRef("255.255.255.255")
-        };
-        for (BytesRef ip : validIps) {
-            assertThat(IpType.isValid(ip), is(true));
-            assertThat(IpType.isValid(TypeTestUtils.addOffset(ip)), is(true));
-        }
-        BytesRef[] invalidIps = {
-            new BytesRef("192.168.0.2555"),
-            new BytesRef("127.0.350.1"),
-            new BytesRef("127.00.350.1"),
-            new BytesRef("500.34.243.23"),
-            new BytesRef("211.121.1b12.111"),
-            new BytesRef("00.0.0.l"),
-            new BytesRef("0.255.-.255"),
-            new BytesRef("0./.1.255"),
-            new BytesRef("0./.1.2550"),
-            new BytesRef("0.01.01.01"),
-            new BytesRef("A.01.01.01"),
-            new BytesRef(".192.168.0.255"),
-            new BytesRef("..168.0.255"),
-            new BytesRef("..168.00.255"),
-            new BytesRef(".192.168.0.255."),
-            new BytesRef("192.168.1.500"),
-            new BytesRef("192.0000.1.1"),
-            new BytesRef("192.168.1."),
-            new BytesRef("192.168.."),
-            new BytesRef("192.100.1"),
-            new BytesRef("192.168"),
-            new BytesRef("192."),
-            new BytesRef(""),
-
-        };
-        for (BytesRef ip : invalidIps) {
-            assertThat(IpType.isValid(ip), is(false));
-            assertThat(IpType.isValid(TypeTestUtils.addOffset(ip)), is(false));
-        }
-    }
-
-    @Test
     public void testValue() throws Exception {
         assertThat(DataTypes.IP.value(null), is(nullValue()));
         assertThat(DataTypes.IP.value("127.0.0.1"), is(new BytesRef("127.0.0.1")));

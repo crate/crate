@@ -159,7 +159,7 @@ These special numeric values can also be inserted into a column of type
 ``ip``
 ======
 
-The ``ip`` type allows to store an IPv4 address by inserting its string
+The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their string
 representation. Internally it maps to a ``long`` allowing expected sorting,
 filtering, and aggregation.
 
@@ -174,8 +174,9 @@ Example::
 ::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
-    ... values ('localhost', '127.0.0.1');
-    INSERT OK, 1 row affected (... sec)
+    ... values ('localhost', '127.0.0.1'),
+    ...        ('router.local', '0:0:0:0:0:ffff:c0a8:64');
+    INSERT OK, 2 rows affected (... sec)
 
 ::
 

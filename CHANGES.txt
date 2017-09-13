@@ -38,6 +38,8 @@ Breaking Changes
 Changes
 =======
 
+ - Allow IPv6 addresses in IP column type.
+
  - Upgraded Elasticsearch to v5.5.2.
 
  - Added new tab in Enterprise Edition of the Admin UI to display users

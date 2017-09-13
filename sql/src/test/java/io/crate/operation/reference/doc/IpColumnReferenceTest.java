@@ -64,6 +64,12 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
             }
             writer.addDocument(doc);
         }
+        for (int i = 10; i < 20; i++) {
+            Document doc = new Document();
+            InetAddress address = InetAddresses.forString("7bd0:8082:2df8:487e:e0df:e7b5:9362:" + Integer.toHexString(i));
+            doc.add(new SortedSetDocValuesField(column, new BytesRef(InetAddressPoint.encode(address))));
+            writer.addDocument(doc);
+        }
     }
 
     @Test
@@ -76,7 +82,11 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             columnReference.setNextDocId(doc.doc);
-            assertThat(columnReference.value(), is(new BytesRef("192.168.0." + i)));
+            if (i < 10) {
+                assertThat(columnReference.value(), is(new BytesRef("192.168.0." + i)));
+            } else {
+                assertThat(columnReference.value(), is(new BytesRef("7bd0:8082:2df8:487e:e0df:e7b5:9362:" + Integer.toHexString(i))));
+            }
             i++;
         }
     }

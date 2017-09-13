@@ -123,6 +123,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("o_array", new ArrayType(DataTypes.OBJECT))
             .add("shape", DataTypes.GEO_SHAPE)
             .add("point", DataTypes.GEO_POINT)
+            .add("addr", DataTypes.IP)
             .build();
         TableRelation usersTr = new TableRelation(users);
         sources = ImmutableMap.of(new QualifiedName("users"), usersTr);
@@ -149,6 +150,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                     .startObject("d").field("type", "double").endObject()
                     .startObject("point").field("type", "geo_point").endObject()
                     .startObject("shape").field("type", "geo_shape").endObject()
+                    .startObject("addr").field("type", "ip").endObject()
                     .startObject("d_array")
                         .field("type", "array")
                         .startObject("inner")
@@ -583,5 +585,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testIsNullOnGeoPoint() throws Exception {
         Query query = convert("point is null");
         assertThat(query.toString(), is("+*:* -ConstantScore(_field_names:point)"));
+    }
+
+    @Test
+    public void testIpRange() throws Exception {
+        Query query = convert("addr between '192.168.0.1' and '192.168.0.255'");
+        assertThat(query.toString(), is("+addr:[192.168.0.1 TO ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff] +addr:[0:0:0:0:0:0:0:0 TO 192.168.0.255]"));
+
+        query = convert("addr < 'fe80::1'");
+        assertThat(query.toString(), is("addr:[0:0:0:0:0:0:0:0 TO fe80:0:0:0:0:0:0:0]"));
     }
 }

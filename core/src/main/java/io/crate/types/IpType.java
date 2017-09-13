@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 
 import java.util.Locale;
@@ -46,13 +47,12 @@ public class IpType extends StringType {
         }
         if (value instanceof BytesRef) {
             BytesRef ip = (BytesRef) value;
-            validate(ip);
+            validate(ip.utf8ToString());
             return ip;
         }
         if (value instanceof String) {
-            BytesRef ip = new BytesRef((String) value);
-            validate(ip);
-            return ip;
+            validate((String) value);
+            return new BytesRef((String) value);
         } else {
             Long longIp = ((Number) value).longValue();
             if (longIp < 0) {
@@ -64,10 +64,10 @@ public class IpType extends StringType {
         }
     }
 
-    private void validate(BytesRef ip) {
-        if (!isValid(ip)) {
+    private void validate(String ip) {
+        if (!InetAddresses.isInetAddress(ip)) {
             throw new IllegalArgumentException(
-                "Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
+                "Failed to validate ip [" + ip + "], not a valid ipv4 address");
         }
     }
 
@@ -76,43 +76,4 @@ public class IpType extends StringType {
         return "ip";
     }
 
-    static boolean isValid(BytesRef ip) {
-        if (ip.length < 7 || ip.length > 15) { // min/max length of a valid ip address
-            return false;
-        }
-        boolean precededByZero = false;
-        short symbolsInOctet = 0;
-        short numberOfDots = 0;
-        int segmentValue = 0;
-        for (int i = ip.offset; i < ip.length + ip.offset; i++) {
-            int sym = ip.bytes[i] & 0xff;
-            if (sym < 46 || sym > 57 || sym == 47) {  // digits and dot symbol range a slash in a symbol range
-                return false;
-            }
-            if (isDigit(sym) && symbolsInOctet < 3 && !precededByZero) {
-                precededByZero = (sym == 48 && symbolsInOctet == 0);
-                segmentValue = segmentValue * 10 + (sym - '0');
-                symbolsInOctet++;
-            } else if (sym == 46 && i < ip.length + ip.offset - 1) {
-                numberOfDots++;
-                if (numberOfDots > 3) {
-                    return false;
-                }
-                segmentValue = 0;
-                symbolsInOctet = 0;
-                precededByZero = false;
-            } else {
-                return false;
-            }
-
-            if (segmentValue > 255) {
-                return false;
-            }
-        }
-        return numberOfDots == 3;
-    }
-
-    private static boolean isDigit(int sym) {
-        return sym >= 48 && sym < 58;
-    }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
