@@ -4,6 +4,14 @@
 Sharding
 ========
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 Every table partition (see :ref:`partitioned_tables`) is split into a
 configured number of shards. Shards are then distributed across the cluster. As
 nodes are added to the cluster, CrateDB will move shards around to achieve

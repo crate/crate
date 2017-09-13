@@ -2,6 +2,14 @@
 Table Basics
 ============
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 To create a table use the ``CREATE TABLE`` command. You must at least specify a
 name for the table and names and types of the columns.
 

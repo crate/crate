@@ -7,6 +7,11 @@
 
 Define a new table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -145,16 +150,16 @@ Parameters
                         time a row is inserted or the referenced base columns
                         are updated.
 
-``IF NOT EXISTS`` Clause
-========================
+``IF NOT EXISTS``
+=================
 
 If the optional IF NOT EXISTS clause is used this statement won't do anything
 if the table exists already.
 
 .. _ref_clustered_clause:
 
-``CLUSTERED`` Clause
-====================
+``CLUSTERED``
+=============
 
 The optional CLUSTERED clause specifies how a table should be distributed
 accross a cluster.
@@ -182,8 +187,8 @@ accross a cluster.
 
 .. _partitioned_by_clause:
 
-``PARTITIONED BY`` Clause
-=========================
+``PARTITIONED BY``
+==================
 
 The PARTITIONED clause splits the created table into separate partitions for
 every distinct combination of values in the listed columns.
@@ -211,8 +216,8 @@ Several restrictions apply to columns that can be used here:
 
 .. _with_clause:
 
-``WITH`` Clause
----------------
+``WITH``
+--------
 
 The optional WITH clause can specify parameters for tables.
 

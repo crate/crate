@@ -17,6 +17,11 @@ data ingestion.
 
    :ref:`ingestion`
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _ingest_mqtt_config:
 
 Configuration
@@ -84,15 +89,15 @@ The ingestion of data is controlled with :ref:`administration-ingestion-rules`.
 
 Without any defined valid rule, no data will be ingested at all and messages
 will not be acknowledged. The ``PUBLISH`` messages will receive the
-corresponding ``PUBACK`` reply only after the message is stored in all matching 
-ingest rules target tables (as there can be multiple ingestion rules configured 
-for this source). If at least one matching ingestion rule fails to store the 
-incoming message, the client will not receive any reply and will have to resend 
-the request message. 
-Ingest rules execution failures will usually be temporary (eg. a mismatch 
-between a rule target table schema and ingestion source payload structure) and 
-the administrator will have the opportunity to fix the rule execution between 
-message retransmissions (eg. alter the target table schema). 
+corresponding ``PUBACK`` reply only after the message is stored in all matching
+ingest rules target tables (as there can be multiple ingestion rules configured
+for this source). If at least one matching ingestion rule fails to store the
+incoming message, the client will not receive any reply and will have to resend
+the request message.
+Ingest rules execution failures will usually be temporary (eg. a mismatch
+between a rule target table schema and ingestion source payload structure) and
+the administrator will have the opportunity to fix the rule execution between
+message retransmissions (eg. alter the target table schema).
 
 The ``source_ident`` of this implementation is: ``mqtt``
 

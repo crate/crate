@@ -6,6 +6,14 @@
 SQL HTTP Endpoint
 =================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
 

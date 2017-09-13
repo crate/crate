@@ -5,6 +5,14 @@
 Refresh
 =======
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB is `eventually consistent`_. Data written with a former statement is
 not guaranteed to be fetched with the next following select statement for the
 affected rows.

@@ -12,6 +12,11 @@ The syntax of a command defines its set of valid tokens. A token can be a key
 word, an identifier, a quoted identifier, a literal (or constant), or a special
 character symbol.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _string_literal:
 
 String Literal

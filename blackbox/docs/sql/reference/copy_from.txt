@@ -7,6 +7,11 @@
 
 Copy data from files into a table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -149,8 +154,11 @@ Parameters
       supported schemes are listed above. The last part of the path may also
       contain ``*`` wildcards to match multiple files.
 
-``PARTITION`` Clause
-====================
+Clauses
+=======
+
+``PARTITION``
+-------------
 
 For partitioned tables this clause can be used to import data into the
 specified partition. This clause takes one or more partition columns and for
@@ -173,8 +181,8 @@ each column a value.
    row, hence every row will be imported into the specified partition
    regardless of the value provided for the partition columns.
 
-``WITH`` Clause
-===============
+``WITH``
+--------
 
 The optional ``WITH`` clause can specify options for the COPY FROM statement.
 
@@ -183,17 +191,17 @@ The optional ``WITH`` clause can specify options for the COPY FROM statement.
     [ WITH ( option = value [, ...] ) ]
 
 Options
--------
+.......
 
 ``bulk_size``
-.............
+'''''''''''''
 
 CrateDB will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of one batch. The provided value must be greater than 0, the
 default value is 10000.
 
 ``shared``
-..........
+''''''''''
 
 This option should be set to true if the URI's location is accessible by more
 than one CrateDB node to prevent them from importing the same file.
@@ -204,7 +212,7 @@ If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
 
 ``node_filters``
-................
+''''''''''''''''
 
 A filter expression to select the nodes to run the *read* operation.
 
@@ -230,7 +238,7 @@ To verify which nodes match the filter, run the statement with
 :doc:`EXPLAIN <explain>`.
 
 ``num_readers``
-...............
+'''''''''''''''
 
 The number of nodes that will read the resources specified in the URI. Defaults
 to the number of nodes available in the cluster. If the option is set to a
@@ -243,12 +251,12 @@ exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
 the files.
 
 ``compression``
-...............
+'''''''''''''''
 
 The default value is ``null``, set to ``gzip`` to read gzipped files.
 
 ``overwrite_duplicates``
-........................
+''''''''''''''''''''''''
 
 Default: false
 

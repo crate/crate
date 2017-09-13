@@ -1,11 +1,16 @@
 .. highlight:: psql
 .. _ref-alter-table:
 
-===========
-ALTER TABLE
-===========
+===============
+``ALTER TABLE``
+===============
 
-Alter an existing table
+Alter an existing table.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 Synopsis
 ========
@@ -61,7 +66,7 @@ the ``ADD COLUMN`` keyword won't work.
 While altering a partitioned table, using ``ONLY`` will apply changes for the
 table **only** and not for any possible existing partitions. So these changes
 will only be applied to new partitions. The ``ONLY`` keyword cannot be used
-together with a `PARTITION Clause`_.
+together with a `PARTITION`_ clause.
 
 Parameters
 ==========
@@ -79,8 +84,11 @@ See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
 
 .. _ref-alter-table-partition-clause:
 
-``PARTITION`` Clause
-====================
+Clauses
+=======
+
+``PARTITION``
+-------------
 
 If the table is partitioned this clause can be used to alter only a single
 partition.

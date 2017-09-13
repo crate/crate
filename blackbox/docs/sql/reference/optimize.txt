@@ -7,6 +7,11 @@
 
 Optimize one or more tables explicitly.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -47,8 +52,11 @@ Parameters
 
 :partition_column: Column name by which the table is partitioned.
 
-``PARTITION`` Clause
-====================
+Clauses
+=======
+
+``PARTITION``
+-------------
 
 ::
 
@@ -61,8 +69,8 @@ Parameters
 
 :value: The columns value.
 
-``WITH`` Clause
-===============
+``WITH``
+--------
 
 The optional WITH clause can specify parameters for the optimization request.
 

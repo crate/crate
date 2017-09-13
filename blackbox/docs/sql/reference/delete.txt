@@ -6,6 +6,11 @@
 
 Delete rows of a table
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

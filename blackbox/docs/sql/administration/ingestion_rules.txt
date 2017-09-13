@@ -18,15 +18,14 @@ Ingestion Rules
 Ingestion rules define where and how the incoming data of a specific ingestion
 source should be routed and stored.
 
-This document will show you how to:
-
-- Create ingestion rules
-- List existing ingestion rules
-- Delete ingestion rules
-
 .. SEEALSO::
 
    :ref:`ingestion`
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 Creating Ingestion Rules
 ========================

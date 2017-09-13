@@ -9,27 +9,10 @@ Value expressions are expressions which return a single value.
 
 They can be used in many contexts of many statements.
 
-A value expression can be:
+.. rubric:: Table of Contents
 
-- A literal value
-
-- A column reference
-
-- A parameter reference
-
-- A operator invocation
-
-- A subscript expression
-
-- A function call
-
-- A type cast
-
-- An object constructor
-
-- An array constructor
-
-- A scalar subquery
+.. contents::
+   :local:
 
 Literal value
 =============

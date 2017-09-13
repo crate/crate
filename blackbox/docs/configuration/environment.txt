@@ -6,10 +6,15 @@
 Environment Variables
 =====================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _env-crate-home:
 
 ``CRATE_HOME``
---------------
+==============
 
 Specifies the home directory of the installation, it is used to find default
 file paths like e.g. ``config/crate.yml`` or the default data directory
@@ -22,7 +27,7 @@ containing the ``bin/crate`` executable.
              configured relative paths will use this directory as a parent.
 
 ``CRATE_JAVA_OPTS``
--------------------
+===================
 
 This variable allows you to set `Java options`_ for CrateDB, such as as the
 thread stack size.
@@ -37,7 +42,7 @@ exceptions::
 .. _crate-heap-size:
 
 ``CRATE_HEAP_SIZE``
--------------------
+===================
 
 This variable specifies the amount of memory that can be used by the JVM.
 
@@ -54,7 +59,7 @@ So it's important to choose a value high enough for the intended use-case. But
 there are two limitations:
 
 Use max. 50% of available RAM
-.............................
+-----------------------------
 
 Be aware that there is also another user of memory besides CrateDB's HEAP: our
 underlying storage engine `Lucene`_. It leverages the underlying OS for caching
@@ -74,7 +79,7 @@ performance impacts.
 .. _Lucene: https://lucene.apache.org/
 
 Never use more than 30.5 Gigabyte
-.................................
+---------------------------------
 
 In order to save on precious memory on x64 systems the Hotspot Java Virtual
 Machine uses a technique called `Compressed Ordinary object pointers (oops)
@@ -102,7 +107,7 @@ application.
 .. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
 
 Running CrateDB on machines with huge RAM
-.........................................
+-----------------------------------------
 
 If hardware with much more RAM is available, it is suggested to run more than
 one CrateDB instance on that machine with each one having a heap size of around

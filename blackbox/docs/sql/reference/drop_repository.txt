@@ -7,6 +7,11 @@
 
 Unregister a repository.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

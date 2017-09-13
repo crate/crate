@@ -4,10 +4,6 @@
 Secured Communications (SSL/TLS)
 ================================
 
-.. NOTE::
-
-   *Secured Communications* is an Enterprise Edition feature.
-
 Secured communication allows you to encrypt traffic between the CrateDB node
 and a client. This applies to connections using HTTP (i.e. Admin UI, Crash, Rest)
 as well as connections using the PostgreSQL Wire Protocol (i.e. JDBC, psql).
@@ -17,6 +13,15 @@ Note that once SSL is enabled for HTTP connections, only connections using
 HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol which
 still allows non-encrypted connections when SSL is enabled. If you want to
 enforce SSL usage, please have a look at :ref:`administration_hba`.
+
+.. NOTE::
+
+   *Secured Communications* is an Enterprise Edition feature.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
 
 SSL/TLS Configuration
 =====================

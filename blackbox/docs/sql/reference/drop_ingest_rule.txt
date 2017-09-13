@@ -8,6 +8,11 @@
 
 Deletes an existing ingestion rule.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

@@ -1,7 +1,29 @@
 .. _administration_user_management:
 
+===============
 User Management
 ===============
+
+.. NOTE::
+
+   User management is an
+   :ref:`enterprise feature <enterprise_features>`.
+
+.. hide:
+
+    This document is not included in the doctest suite and therefore the
+    following statements are not executed.
+
+    The reason for that is, that the HTTP protocol does not support user
+    authentication yet.
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
 
 A CrateDB cluster contains a set of database users. A database user is a
 principle at cluster level.
@@ -17,21 +39,8 @@ user is called ``crate``. It is not possible to create any other superusers
 
 Users cannot be backed up or restored.
 
-.. NOTE::
-
-   User management is an
-   :ref:`enterprise feature <enterprise_features>`.
-
-.. hide:
-
-    This document is not included in the doctest suite and therefore the
-    following statements are not executed.
-
-    The reason for that is, that the HTTP protocol does not support user
-    authentication yet.
-
 ``CREATE USER``
----------------
+===============
 
 To create a new user for the CrateDB database cluster use the
 :doc:`/sql/reference/create_user` SQL statement::
@@ -58,7 +67,7 @@ statement returns an error::
     SQLActionException[UserAlreadyExistsException: User 'Custom User' already exists]
 
 ``DROP USER``
--------------
+=============
 
 .. hide:
 
@@ -80,7 +89,7 @@ statement returns an error::
 It is not possible to drop the built-in superuser ``crate``.
 
 List Users
-----------
+==========
 
 CrateDB exposes database users via the read-only ``sys.users`` system table.
 The ``sys.users`` table shows all users in the cluster which can be used for

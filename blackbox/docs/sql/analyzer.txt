@@ -4,6 +4,11 @@
 Builtin Tools for Fulltext Search in Crate
 ==========================================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 .. _analyzer-overview:
 
 Overview
@@ -76,8 +81,7 @@ into the following tokens
 
     quick, brown, fox, jumps, lazy, dog
 
-Parameters
-..........
+.. rubric:: Parameters
 
 stopwords
     A list of stopwords to initialize the :ref:`stop-tokenfilter` filter with.
@@ -124,8 +128,7 @@ Uses a :ref:`whitespace-tokenizer` tokenizer
 Uses a :ref:`lowercase-tokenizer` Tokenizer, with :ref:`stop-tokenfilter` Token
 Filter.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 stopwords
     A list of stopwords to initialize the :ref:'stop-tokenfilter` filter with.
@@ -154,8 +157,7 @@ Creates one single token from the field-contents.
 An analyzer of type pattern that can flexibly separate text into terms via a
 regular expression.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 lowercase
     Should terms be lowercased or not. Defaults to true.
@@ -190,8 +192,7 @@ The following types are supported:
 ``lithuanian``, ``norwegian``, ``persian``, ``portuguese``, ``romanian``,
 ``russian``, ``sorani``, ``spanish``, ``swedish``, ``turkish``, ``thai``.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 stopwords
     A list of stopwords to initialize the stop filter with. Defaults to the
@@ -220,8 +221,7 @@ Uses the :ref:`standard-tokenizer` Tokenizer, with :ref:`standard-tokenfilter`
 filter, :ref:`lowercase-tokenfilter` filter, :ref:`stop-tokenfilter` filter,
 and :ref:`snowball-tokenfilter` filter.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 stopwords
     A list of stopwords to initialize the stop filter with. Defaults to the
@@ -245,8 +245,7 @@ removed. It uses the :ref:`standard-tokenizer` Tokenizer and the following
 filters: :ref:`lowercase-tokenfilter`, :ref:`asciifolding-tokenfilter`,
 :ref:`fingerprint-tokenfilter` and ref:`stop-tokenfilter`.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 separator
     The character to use to concatenate the terms. Defaults to a space.
@@ -279,8 +278,7 @@ good tokenizer for most European language documents. The tokenizer implements
 the Unicode Text Segmentation algorithm, as specified in Unicode Standard Annex
 #29.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 max_token_length
     The maximum token length. If a token is seen that exceeds this length then
@@ -299,8 +297,7 @@ company names, email addresses, and internet host names. However, these rules
 don't always work, and the tokenizer doesn't work well for most languages other
 than English.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 max_token_length
     The maximum token length. If a token is seen that exceeds this length then
@@ -316,8 +313,7 @@ max_token_length
 This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams
 which start at the beginning of a token.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 min_gram
     Minimum size in codepoints of a single n-gram. default: 1
@@ -340,8 +336,7 @@ token_chars
 
 Emits the entire input as a single token.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 buffer_size
     The term buffer size. Defaults to ``256``.
@@ -373,8 +368,7 @@ converts them to lower case.
 
 ``type='ngram'``
 
-Parameters
-..........
+.. rubric:: Parameters
 
 min_gram
     Minimum size in codepoints of a single n-gram. default 1.
@@ -406,8 +400,7 @@ Divides text at whitespace.
 
 Separates text into terms via a regular expression.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 pattern
     The regular expression pattern, defaults to \\W+.
@@ -446,8 +439,7 @@ Splits Thai text correctly, treats all other languages like the
 Exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as
 single tokens.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 max_token_length
     The maximum token length. If a token is seen that exceeds this length then
@@ -470,8 +462,7 @@ And produces tokens::
     /something/something
     /something/something/else
 
-Parameters
-..........
+.. rubric:: Parameters
 
 delimiter
     The character delimiter to use, defaults to /.
@@ -542,8 +533,7 @@ ASCII equivalents, if one exists.
 
 Removes words that are too long or too short for the stream.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 min
     The minimum number. Defaults to 0.
@@ -560,8 +550,7 @@ max
 
 Normalizes token text to lower case.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 language
     For options, see :ref:`language-analyzer` Analyzer.
@@ -573,8 +562,7 @@ language
 
 ``type='ngram'``
 
-Parameters
-..........
+.. rubric:: Parameters
 
 min_gram
     Defaults to 1.
@@ -589,8 +577,7 @@ max_gram
 
 ``type='edge_ngram'``
 
-Parameters
-..........
+.. rubric:: Parameters
 
 min_gram
     Defaults to 1.
@@ -628,8 +615,7 @@ Transforms the token stream as per the Porter stemming algorithm.
 Constructs shingles (token n-grams), combinations of tokens as a single token,
 from a token stream.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 max_shingle_size
     The maximum shingle size. Defaults to 2.
@@ -659,8 +645,7 @@ token_separator
 
 Removes stop words from token streams.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 stopwords
     A list of stop words to use. Defaults to english stop words.
@@ -687,8 +672,7 @@ remove_trailing
 Splits words into subwords and performs optional transformations on subword
 groups.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 generate_word_parts
     If true causes parts of words to be generated: "PowerShot" ⇒ "Power"
@@ -746,8 +730,7 @@ type_table
 A filter that stems words (similar to :ref:`snowball-tokenfilter`, but with
 more options).
 
-Parameters
-..........
+.. rubric:: Parameters
 
 language/name
     arabic, armenian, basque, brazilian, bulgarian, catalan, czech, danish,
@@ -769,8 +752,7 @@ language/name
 Protects words from being modified by stemmers. Must be placed before any
 stemming filters.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 keywords
     A list of words to use.
@@ -803,8 +785,7 @@ for this filter to work correctly.
 
 A filter that stems words using a Snowball-generated stemmer.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 language
     Possible values: Armenian, Basque, Catalan, Danish, Dutch, English,
@@ -822,8 +803,7 @@ language
 Allows to easily handle synonyms during the analysis process. Synonyms are
 configured using a configuration file.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 synonyms_path
     Path to synonyms configuration file
@@ -843,8 +823,7 @@ expand
 
 Decomposes compound words.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 word_list
     A list of words to use.
@@ -883,8 +862,7 @@ Reverses each token.
 
 Removes elisions.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 articles
     A set of stop words articles, for example ``['j', 'l']`` for content like
@@ -899,8 +877,7 @@ articles
 
 Truncates tokens to a specific length.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 length
     Number of characters to truncate to. default 10
@@ -915,8 +892,7 @@ length
 Used to only index unique tokens during analysis. By default it is applied on
 all the token stream.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 only_on_same_position
     If set to true, it will only remove duplicate tokens on the same position.
@@ -930,8 +906,7 @@ only_on_same_position
 
 Emits a token for every capture group in the regular expression
 
-Parameters
-..........
+.. rubric:: Parameters
 
 preserve_original
     If set to true (the default) then it would also emit the original token
@@ -945,8 +920,7 @@ preserve_original
 
 Handle string replacements based on a regular expression.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 pattern
     Regular expression whose matches will be replaced.
@@ -973,8 +947,7 @@ Trims the whitespace surrounding a token.
 
 Limits the number of tokens that are indexed per document and field.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 max_token_count
     The maximum number of tokens that should be indexed per document and field.
@@ -997,8 +970,7 @@ expected to have its own directory named after its associated locale
 (language). This dictionary directory is expected to hold both the \*.aff and
 \*.dic files (all of which will automatically be picked up).
 
-Parameters
-..........
+.. rubric:: Parameters
 
 ignore_case
     If true, dictionary matching will be case insensitive (defaults to false)
@@ -1034,8 +1006,7 @@ Generates bigrams for frequently occuring terms. Single terms are still
 indexed. It can be used as an alternative to the :ref:`stop-tokenfilter` Token
 filter when we don't want to completely ignore common terms.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 common_words
     A list of common words to use.
@@ -1100,8 +1071,7 @@ Split tokens up by delimiter (default ``|``) into the real token being indexed
 and the payload stored additionally into the index. For example
 ``Trillian|65535`` will be indexed as ``Trillian`` with ``65535`` as payload.
 
-Parameter
-.........
+.. rubric:: Parameters
 
 encoding
     How the payload should be interpreted, possible values are ``float`` for
@@ -1124,8 +1094,7 @@ variations.
 All other tokens will be filtered. This filter works like an inverse
 `stop-tokenfilter`_ filter.
 
-Parameter
-.........
+.. rubric:: Parameters
 
 keep_words
     A list of words to keep and index as tokens.
@@ -1147,8 +1116,7 @@ keep_words_path
 Override any previous stemmer that recognizes keywords with a custom mapping,
 defined by ``rules`` or ``rules_path``. One of these settings has to be set.
 
-Parameter
-.........
+.. rubric:: Parameters
 
 rules
     A list of rules for overriding, in the form of ``[<source>=><replacement>]
@@ -1166,8 +1134,7 @@ rules_path
 
 Handle Chinese, Japanese and Korean (CJK) bigrams.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 output_bigrams
     Boolean flag to enable a combined unigram+bigram approach.
@@ -1224,8 +1191,7 @@ Builtin Char Filter
 
 ``type='mapping'``
 
-Parameters
-..........
+.. rubric:: Parameters
 
 mappings
     A list of mappings as strings of the form ``[<source>=><replacement>] e.g.
@@ -1252,8 +1218,7 @@ Strips out HTML elements from an analyzed text.
 
 Manipulates the characters in a string before analysis with a regex.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 pattern
     Regex whose matches will be replaced
@@ -1271,8 +1236,7 @@ replacement
 
 Keeps only the tokens with a token type contained in a predefined set.
 
-Parameter
-.........
+.. rubric:: Parameters
 
 types
     A list of token types to keep.
@@ -1288,8 +1252,7 @@ Hashes each token of the token stream and divides the resulting hashes into
 buckets, keeping the lowest-valued hashes per bucket. It then returns these
 hashes as tokens.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 hash_count
     The number of hashes to hash the token stream with. Defaults to ``1``.
@@ -1317,8 +1280,7 @@ with_rotation
  providing a token that can be clustered on. It does this by sorting the
  tokens, deduplicating and then concatenating them back into a single token.
 
-Parameters
-..........
+.. rubric:: Parameters
 
 separator
     Separator which is used for concatenating the tokens. Defaults to a space.

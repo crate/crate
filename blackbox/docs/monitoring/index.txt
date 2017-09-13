@@ -11,11 +11,10 @@ The JMX monitoring plugin exposes query metrics via the `JMX`_ API.
    The JMX monitoring plugin is an :ref:`enterprise feature
    <enterprise_features>`.
 
-To use this plugin, you must:
+.. rubric:: Table of Contents
 
-- `Enable the Enterprise License`_
-- `Enable Collecting Stats`_
-- `Enable the JMX API`_
+.. contents::
+   :local:
 
 Enable the Enterprise License
 -----------------------------

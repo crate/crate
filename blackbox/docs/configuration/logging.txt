@@ -6,6 +6,14 @@
 Logging
 =======
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration file is
 at ``config/log4j2.properties``.
@@ -46,8 +54,8 @@ You get the point.
 
 .. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
 
-Logger Settings
----------------
+Settings
+========
 
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the log level

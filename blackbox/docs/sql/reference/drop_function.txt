@@ -7,6 +7,11 @@
 
 Drop a function.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

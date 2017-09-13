@@ -7,6 +7,11 @@
 
 Define a new table for storing binary large objects.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 

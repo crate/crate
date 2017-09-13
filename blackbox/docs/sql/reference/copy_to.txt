@@ -7,6 +7,11 @@
 
 Export table contents to files on CrateDB node machines.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -47,8 +52,11 @@ Parameters
     Declaring columns changes the output to JSON list format, which is
     currently not supported by the COPY FROM statement.
 
-``WHERE`` Clause
-----------------
+Clauses
+-------
+
+``WHERE``
+.........
 
 `WHERE` clauses use the same syntax as `SELECT` statements, allowing partial
 exports. (see :ref:`sql_dql_where_clause` for more information).
@@ -85,8 +93,11 @@ will be used.
   connections are using the HTTPS protocol. Please make sure you update your
   firewall rules to allow outgoing connections on port ``443``.
 
-``PARTITION`` Clause
-====================
+Clauses
+=======
+
+``PARTITION``
+-------------
 
 If the table is partitioned this clause can be used to only export data from a
 specific partition.
@@ -112,8 +123,8 @@ not part of the partitioned tables.
     the exported files. If a partition column is a generated column, it will
     not be included even if the ``PARTITION`` clause is missing.
 
-``WITH`` Clause
-===============
+``WITH``
+--------
 
 The optional WITH clause can specify parameters for the copy statement.
 
@@ -127,7 +138,7 @@ Possible copy_parameters are:
 ..
 
 ``compression``
----------------
+...............
 
 Define if and how the exported data should be compressed.
 
@@ -140,7 +151,7 @@ Possible values for the ``compression`` setting are:
 .. _format:
 
 ``format``
-----------
+..........
 
 Optional parameter to override default output behavior.
 

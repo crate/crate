@@ -6,6 +6,11 @@
 
 ``SHOW COLUMNS`` displays information about columns in a given table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -29,15 +34,18 @@ Parameters
 :table_schema: The name of the schema the tables are appropriate to. If no
                schema name is specified the default schema is set to ``doc``.
 
-``LIKE`` Clause
-===============
+Clauses
+=======
+
+``LIKE``
+--------
 
 The optional ``LIKE`` clause indicates which column names to match. It takes a
 string pattern as a filter and has an equivalent behavior to
 :ref:`sql_dql_like`.
 
-``WHERE`` Clause
-================
+``WHERE``
+---------
 
 The optional WHERE clause defines the condition to be met for a row to be
 returned.

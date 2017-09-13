@@ -4,6 +4,14 @@
 CrateDB SQL and PostgreSQL
 ==========================
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Introduction
+============
+
 CrateDB uses the PostgreSQL Wire Protocol (since CrateDB 0.56), which makes it
 easy to use many PostgreSQL compatible tools and libraries directly with
 CrateDB. However, many of these tools assume that they are talking to

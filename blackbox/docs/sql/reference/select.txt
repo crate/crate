@@ -7,6 +7,11 @@
 
 Retrieve rows from a table.
 
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
 Synopsis
 ========
 
@@ -56,8 +61,8 @@ follows:
 Parameters
 ==========
 
-``SELECT`` List
----------------
+The ``SELECT`` List
+-------------------
 
 The SELECT list specifies expressions that form the output rows of the SELECT
 statement. The expressions can (and usually do) refer to columns computed in
@@ -89,8 +94,11 @@ table_name.* as a shorthand for the columns coming from just that table. In
 these cases it is not possible to specify new names with AS; the output column
 names will be the same as the table columns' names.
 
-``FROM`` Clause
----------------
+Clauses
+-------
+
+``FROM``
+........
 
 The FROM clause specifies the source relation for the SELECT::
 
@@ -99,7 +107,7 @@ The FROM clause specifies the source relation for the SELECT::
 The relation can be any of the following relations.
 
 Table Reference
-...............
+'''''''''''''''
 
 A ``table_reference`` is a table ident with an optional table alias::
 
@@ -118,7 +126,7 @@ A ``table_reference`` is a table ident with an optional table alias::
 .. _sql_reference_joined_tables:
 
 Joined Relation
-...............
+'''''''''''''''
 
 A ``joined_relation`` is a relation which joins two relations together. See
 :ref:`sql_dql_joins` ::
@@ -133,7 +141,7 @@ A ``joined_relation`` is a relation which joins two relations together. See
                  ``boolean``.
 
 Table Function
-..............
+''''''''''''''
 
 ``table_function`` is a function that produces a set of rows and has columns.
 
@@ -153,7 +161,7 @@ Available functions are documented in the :doc:`table functions
 .. _sql_reference_subselect:
 
 Sub Select
-..........
+''''''''''
 
 A ``sub_select`` is another ``SELECT`` statement surrounded by parentheses with
 an alias:
@@ -170,8 +178,8 @@ the inner ``SELECT`` statement.
 
 :alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
 
-``WHERE`` Clause
-----------------
+``WHERE``
+.........
 
 The optional WHERE clause defines the condition to be met for a row to be
 returned::
@@ -186,8 +194,8 @@ returned::
 
 .. _sql_reference_group_by:
 
-``GROUP BY`` Clause
--------------------
+``GROUP BY``
+............
 
 The optional GROUP BY clause will condense into a single row all selected rows
 that share the same values for the grouped expressions.
@@ -212,8 +220,8 @@ each group, producing a separate value for each group.
 
 .. _sql_reference_having:
 
-``HAVING`` Clause
-.................
+``HAVING``
+''''''''''
 
 The optional HAVING clause defines the condition to be met for values whitin a
 resulting row of a group by clause.
@@ -236,8 +244,8 @@ resulting row of a group by clause.
 
 .. _sql_reference_order_by:
 
-``ORDER BY`` Clause
--------------------
+``ORDER BY``
+............
 
 The ORDER BY clause causes the result rows to be sorted according to the
 specified expression(s).
@@ -277,8 +285,8 @@ Character-string data is sorted by its UTF-8 representation.
   Sorting on :ref:`geo_point_data_type`, :ref:`geo_shape_data_type`,
   :ref:`data-type-array`, and :ref:`object_data_type` is not supported.
 
-``LIMIT`` Clause
-----------------
+``LIMIT``
+.........
 
 The optional LIMIT Clause allows to limit the number or retured result rows::
 
@@ -295,8 +303,8 @@ The optional LIMIT Clause allows to limit the number or retured result rows::
    different subsets of the rows of a table, if there is not an ORDER BY to
    enforce selection of a deterministic subset.
 
-``OFFSET`` Clause
------------------
+``OFFSET``
+..........
 
 The optional OFFSET Clause allows to skip result rows at the beginning::
 
