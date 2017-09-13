@@ -367,7 +367,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
-                if (output.symbolType().isValueSymbol()) {
+                if (output.isValue()) {
                     // values are allowed even if not present in group by
                     continue;
                 }
@@ -492,7 +492,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
         }
         symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        if (symbol.symbolType().isValueSymbol()) {
+        if (symbol.isValue()) {
             Literal longLiteral;
             try {
                 longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
@@ -525,7 +525,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         Symbol symbol;
         try {
             symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-            if (symbol.symbolType().isValueSymbol()) {
+            if (symbol.isValue()) {
                 Literal longLiteral;
                 try {
                     longLiteral = Literal.convert(symbol, DataTypes.LONG);

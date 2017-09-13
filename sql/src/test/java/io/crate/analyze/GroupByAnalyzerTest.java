@@ -183,7 +183,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         SelectAnalyzedStatement analyzedStatement = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
         assertThat(analyzedStatement.relation().querySpec().groupBy().isPresent(), is(true));
         List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy().get();
-        assertThat(groupBySymbols.get(0).symbolType().isValueSymbol(), is(true));
+        assertThat(groupBySymbols.get(0).isValue(), is(true));
     }
 
     @Test

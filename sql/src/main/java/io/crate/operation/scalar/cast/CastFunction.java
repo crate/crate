@@ -78,7 +78,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         assert symbol.arguments().size() == 1 : "Number of arguments must be 1";
         Symbol argument = symbol.arguments().get(0);
-        if (argument.symbolType().isValueSymbol()) {
+        if (argument instanceof Input) {
             Object value = ((Input) argument).value();
             try {
                 return Literal.of(returnType, returnType.value(value));

@@ -382,7 +382,7 @@ class EqualityExtractor {
                     }
                 }
             } else if (functionName.equals(AnyEqOperator.NAME) &&
-                       function.arguments().get(1).symbolType().isValueSymbol()) {
+                       function.arguments().get(1).isValue()) {
                 // ref = any ([1,2,3])
                 if (function.arguments().get(0) instanceof Reference) {
                     Reference reference = (Reference) function.arguments().get(0);

@@ -332,7 +332,7 @@ public class LuceneQueryBuilder {
                 Symbol left = input.arguments().get(0);
                 Symbol right = input.arguments().get(1);
 
-                if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
+                if (!(left instanceof Reference) || !(right.isValue())) {
                     return null;
                 }
                 assert right.symbolType() == SymbolType.LITERAL :
@@ -349,7 +349,7 @@ public class LuceneQueryBuilder {
                 Symbol collectionSymbol = function.arguments().get(1);
                 Preconditions.checkArgument(DataTypes.isCollectionType(collectionSymbol.valueType()),
                     "invalid argument for ANY expression");
-                if (left.symbolType().isValueSymbol()) {
+                if (left.isValue()) {
                     // 1 = any (array_col) - simple eq
                     if (collectionSymbol instanceof Reference) {
                         return applyArrayReference((Reference) collectionSymbol, (Literal) left, context);
@@ -357,7 +357,7 @@ public class LuceneQueryBuilder {
                         // no reference found (maybe subscript) in ANY expression -> fallback to slow generic function filter
                         return null;
                     }
-                } else if (left instanceof Reference && collectionSymbol.symbolType().isValueSymbol()) {
+                } else if (left instanceof Reference && collectionSymbol.isValue()) {
                     return applyArrayLiteral((Reference) left, (Literal) collectionSymbol, context);
                 } else {
                     // might be the case if the left side is a function -> will fallback to (slow) generic function filter
@@ -1296,7 +1296,7 @@ public class LuceneQueryBuilder {
 
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
-            if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+            if (left.symbolType() == SymbolType.REFERENCE && right instanceof Input) {
                 String columnName = ((Reference) left).ident().columnIdent().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
@@ -1310,12 +1310,11 @@ public class LuceneQueryBuilder {
             return false;
         }
 
-        @Nullable
         private Function rewriteAndValidateFields(Function function, Context context) {
             if (function.arguments().size() == 2) {
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
-                if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
+                if (left.symbolType() == SymbolType.REFERENCE && right.isValue()) {
                     Reference ref = (Reference) left;
                     if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
                         String uid = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, ValueSymbolVisitor.STRING.process(right));
@@ -1407,9 +1406,9 @@ public class LuceneQueryBuilder {
                 function = null;
             }
 
-            if (left.symbolType().isValueSymbol()) {
+            if (left instanceof Input) {
                 input = (Input) left;
-            } else if (right.symbolType().isValueSymbol()) {
+            } else if (right instanceof Input) {
                 input = (Input) right;
             } else {
                 input = null;
@@ -1447,9 +1446,9 @@ public class LuceneQueryBuilder {
                 reference = null;
             }
 
-            if (left.symbolType().isValueSymbol()) {
+            if (left instanceof Input) {
                 input = (Input) left;
-            } else if (right.symbolType().isValueSymbol()) {
+            } else if (right instanceof Input) {
                 input = (Input) right;
             } else {
                 input = null;

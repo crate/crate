@@ -38,6 +38,10 @@ public abstract class Symbol implements Writeable, ExplainLeaf {
 
     public abstract DataType valueType();
 
+    public boolean isValue() {
+        return false;
+    }
+
     @Override
     public String toString() {
         return representation();

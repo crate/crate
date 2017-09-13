@@ -332,7 +332,7 @@ class CopyAnalyzer {
             }
 
             Symbol v = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-            if (!v.symbolType().isValueSymbol()) {
+            if (!v.isValue()) {
                 throw new UnsupportedFeatureException("Only literals are allowed as parameter values");
             }
             builder.put(key, ValueSymbolVisitor.STRING.process(v));

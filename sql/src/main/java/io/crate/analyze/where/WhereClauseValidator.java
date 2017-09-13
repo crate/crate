@@ -108,7 +108,7 @@ public abstract class WhereClauseValidator {
             }
             assert function.arguments().size() == 2 : "function's number of arguments must be 2";
             Symbol right = function.arguments().get(1);
-            if (!right.symbolType().isValueSymbol()) {
+            if (!right.isValue()) {
                 throw new UnsupportedOperationException(error);
             }
         }

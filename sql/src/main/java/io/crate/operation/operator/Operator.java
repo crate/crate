@@ -38,7 +38,7 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Operator
     }
 
     private static boolean isNull(Symbol symbol) {
-        return symbol.symbolType().isValueSymbol() && ((Literal) symbol).value() == null;
+        return symbol instanceof Literal && ((Literal) symbol).value() == null;
     }
 
     protected static FunctionInfo generateInfo(String name, DataType type) {

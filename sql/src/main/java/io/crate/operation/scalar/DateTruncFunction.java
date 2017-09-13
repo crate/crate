@@ -99,7 +99,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public Scalar<Long, Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 1 && arguments.size() < 4 : "Invalid number of arguments";
 
-        if (!arguments.get(0).symbolType().isValueSymbol()) {
+        if (!arguments.get(0).isValue()) {
             // arguments are no values, we can't compile
             return this;
         }
