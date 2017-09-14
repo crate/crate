@@ -44,7 +44,6 @@ import org.elasticsearch.plugins.Plugin;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -66,9 +65,6 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        if (settings.getAsBoolean("node.client", false)) {
-            return Collections.emptyList();
-        }
         Collection<Module> modules = new ArrayList<>(2);
         modules.add(new BlobModule());
         modules.add(new BlobIndicesModule());
@@ -86,10 +82,6 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        // only start the service if we have a data node
-        if (settings.getAsBoolean("node.client", false)) {
-            return Collections.emptyList();
-        }
         return ImmutableList.of(BlobService.class);
     }
 
