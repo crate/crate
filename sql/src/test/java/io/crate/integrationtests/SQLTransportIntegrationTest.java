@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -85,10 +86,12 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -110,13 +113,16 @@ import static org.hamcrest.Matchers.is;
 @UseJdbc
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
-    @Rule
-    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
-
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
     @Rule
+    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
+
+    @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @Rule
+    public TestName testName = new TestName();
 
     static {
         GroovyTestSanitizer.isGroovySanitized();
@@ -292,7 +298,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = sqlExecutor.exec(stmt, args);
+        response = sqlExecutor.exec(isJdbcEnabled(), stmt, args);
         return response;
     }
 
@@ -549,4 +555,35 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return sqlOperations.createSession(defaultSchema, null, options, DEFAULT_SOFT_LIMIT);
     }
 
+    /**
+     * If the Test class or method contains a @UseJdbc annotation then,
+     * based on the ratio provided, a random value of true or false is returned.
+     * For more details on the ratio see {@link UseJdbc}
+     * <p>
+     * Method annotations have higher priority than class annotations.
+     */
+    private boolean isJdbcEnabled() {
+        try {
+            Class<?> clazz = this.getClass();
+            Method method = clazz.getMethod(testName.getMethodName());
+            UseJdbc annotation = method.getAnnotation(UseJdbc.class);
+            if (annotation == null) {
+                annotation = clazz.getAnnotation(UseJdbc.class);
+                if (annotation == null) {
+                    return false;
+                }
+            }
+            double ratio = annotation.value();
+            assert ratio >= 0.0 && ratio <= 1.0;
+            if (ratio == 0) {
+                return false;
+            }
+            if (ratio == 1) {
+                return true;
+            }
+            return RandomizedContext.current().getRandom().nextDouble() < ratio;
+        } catch (NoSuchMethodException ignored) {
+            return false;
+        }
+    }
 }

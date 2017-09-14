@@ -39,16 +39,16 @@ import static org.hamcrest.core.Is.is;
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     private void setUpCharacters() {
-        sqlExecutor.exec("create table characters (id int primary key, name string) " +
+        execute("create table characters (id int primary key, name string) " +
                          "clustered into 2 shards with(number_of_replicas=0)");
         sqlExecutor.ensureYellowOrGreen();
-        sqlExecutor.execBulk("insert into characters (id, name) values (?, ?)",
+        execute("insert into characters (id, name) values (?, ?)",
             new Object[][]{
                 new Object[]{1, "Arthur"},
                 new Object[]{2, "Ford"},
             }
         );
-        sqlExecutor.exec("refresh table characters");
+        execute("refresh table characters");
     }
 
     @SuppressWarnings("ConstantConditions")

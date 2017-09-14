@@ -63,7 +63,6 @@ import org.hamcrest.Matchers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Connection;
@@ -86,7 +85,6 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class SQLTransportExecutor {
 
@@ -111,11 +109,15 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return exec(statement, null, REQUEST_TIMEOUT);
+        return exec(false, statement, null, REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse exec(boolean isJdbcEnabled, String statement, Object... params) {
+        return exec(isJdbcEnabled, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return exec(statement, params, REQUEST_TIMEOUT);
+        return exec(false, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
@@ -126,10 +128,10 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
-    private SQLResponse exec(String stmt, @Nullable Object[] args, TimeValue timeout) {
+    private SQLResponse exec(boolean isJdbcEnabled, String stmt, @Nullable Object[] args, TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
-        if (pgUrl != null && isJdbcEnabled()) {
+        if (pgUrl != null && isJdbcEnabled) {
             LOGGER.trace("Executing with pgJDBC: {}", stmt);
             return executeWithPg(stmt, args, pgUrl, random);
         }
@@ -141,42 +143,7 @@ public class SQLTransportExecutor {
         }
     }
 
-    /**
-     * @return true if a class or method in the stacktrace contains a @UseJdbc annotation
-     * and based on the ration provided
-     * <p>
-     * Method annotations have higher priority than class annotations.
-     */
-    private boolean isJdbcEnabled() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTrace) {
-            try {
-                Class<?> ar = Class.forName(element.getClassName());
-                Method method = ar.getMethod(element.getMethodName());
-                UseJdbc annotation = method.getAnnotation(UseJdbc.class);
-                if (annotation == null) {
-                    annotation = ar.getAnnotation(UseJdbc.class);
-                    if (annotation == null) {
-                        continue;
-                    }
-                }
-                double ratio = annotation.value();
-                assert ratio >= 0.0 && ratio <= 1.0;
-                if (ratio == 0) {
-                    return false;
-                }
-                if (ratio == 1) {
-                    return true;
-                }
-                return RandomizedContext.current().getRandom().nextDouble() < ratio;
-            } catch (NoSuchMethodException | ClassNotFoundException ignored) {
-            }
-        }
-        return false;
-    }
-
     public String jdbcUrl() {
-        assertTrue("It seems like JDBC is not enabled for this test. Did you forget to annotate the test with @UseJdbc(value = 1)?", isJdbcEnabled());
         return clientProvider.pgUrl();
     }
 
@@ -222,16 +189,20 @@ public class SQLTransportExecutor {
         return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
     }
 
-    public static ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
+    public static ActionFuture<SQLResponse> execute(String stmt,
+                                                    @Nullable Object[] args,
+                                                    SQLOperations.Session session) {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
         execute(stmt, args, actionFuture, session);
         return actionFuture;
     }
 
-    private static void execute(String stmt, @Nullable Object[] args, ActionListener<SQLResponse> listener,
+    private static void execute(String stmt,
+                                @Nullable Object[] args,
+                                ActionListener<SQLResponse> listener,
                                 SQLOperations.Session session) {
         try {
-            session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
+            session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
             session.bind(UNNAMED, UNNAMED, argsList, null);
             List<Field> outputFields = session.describe('P', UNNAMED);
