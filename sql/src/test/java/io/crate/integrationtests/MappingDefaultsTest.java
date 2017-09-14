@@ -43,6 +43,6 @@ public class MappingDefaultsTest extends SQLTransportIntegrationTest {
             .source(SearchSourceBuilder.searchSource()
                     .query(new QueryStringQueryBuilder("foo").field("query")));
         SearchResponse response = client().search(searchRequest).actionGet();
-        assertEquals(0L, response.getHits().totalHits());
+        assertEquals(0L, response.getHits().getTotalHits());
     }
 }

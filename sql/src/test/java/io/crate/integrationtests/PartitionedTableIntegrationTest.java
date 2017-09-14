@@ -300,7 +300,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().totalHits(),
+                .execute().actionGet().getHits().getTotalHits(),
             is(1L)
         );
 
@@ -325,7 +325,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().totalHits(),
+                .execute().actionGet().getHits().getTotalHits(),
             is(1L)
         );
 
@@ -338,7 +338,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().totalHits(),
+                .execute().actionGet().getHits().getTotalHits(),
             is(1L)
         );
 
@@ -353,7 +353,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().totalHits(),
+                .execute().actionGet().getHits().getTotalHits(),
             is(1L)
         );
 
@@ -413,7 +413,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
-                .execute().actionGet().getHits().totalHits(),
+                .execute().actionGet().getHits().getTotalHits(),
             is(1L)
         );
         execute("select * from parted");

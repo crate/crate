@@ -33,6 +33,7 @@ import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -80,7 +81,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
@@ -207,7 +208,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
+            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}", XContentType.JSON)
             .execute().actionGet();
         execute("select \"_version\", *, \"_id\" from test");
         assertArrayEquals(new String[]{"_version", "firstName", "lastName", "_id"},
@@ -222,7 +223,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
         ensureYellow();
         client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
+            .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}", XContentType.JSON)
             .execute().actionGet();
 
         Object[] args = new Object[]{"id1"};
@@ -251,7 +252,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
+            .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}", XContentType.JSON)
             .execute().actionGet();
         execute("select *, \"_version\", \"_version\" as v from test");
         assertArrayEquals(new String[]{"firstName", "lastName", "_version", "v"},
@@ -268,10 +269,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"name\":\"\"}")
+            .setSource("{\"name\":\"\"}", XContentType.JSON)
             .execute().actionGet();
         client().prepareIndex("test", "default", "id2").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-            .setSource("{\"name\":\"Ruben Lenten\"}")
+            .setSource("{\"name\":\"Ruben Lenten\"}", XContentType.JSON)
             .execute().actionGet();
 
         execute("select name from test where name = ''");
@@ -361,7 +362,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testIdSelectWithResult() throws Exception {
         createIndex("test");
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("select \"_id\" from test");
         assertArrayEquals(new String[]{"_id"}, response.cols());
@@ -374,8 +375,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSqlRequestWithLimit() throws Exception {
         createIndex("test");
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("select \"_id\" from test limit 1");
         assertEquals(1, response.rowCount());
@@ -398,8 +399,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSqlRequestWithFilter() throws Exception {
         createIndex("test");
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("select _id from test where _id='id1'");
         assertEquals(1, response.rowCount());
@@ -459,12 +460,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1")
-            .setSource("{\"date\": " +
-                       TimestampFormat.parseTimestampString("2013-10-01") + "}")
+            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-01") + "}", XContentType.JSON)
             .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
-            .setSource("{\"date\": " +
-                       TimestampFormat.parseTimestampString("2013-10-02") + "}")
+            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-02") + "}", XContentType.JSON)
             .execute().actionGet();
         refresh();
         execute(
@@ -481,12 +480,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1")
-            .setSource("{\"date\": " +
-                       TimestampFormat.parseTimestampString("2013-10-01") + "}")
+            .setSource("{\"date\": " + TimestampFormat.parseTimestampString("2013-10-01") + "}", XContentType.JSON)
             .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
-            .setSource("{\"date\":" +
-                       TimestampFormat.parseTimestampString("2013-10-02") + "}")
+            .setSource("{\"date\":" + TimestampFormat.parseTimestampString("2013-10-02") + "}", XContentType.JSON)
             .execute().actionGet();
         refresh();
         execute(
@@ -503,10 +500,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex("test", "default", "id1")
-            .setSource("{\"i\":10}")
+            .setSource("{\"i\":10}", XContentType.JSON)
             .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
-            .setSource("{\"i\":20}")
+            .setSource("{\"i\":20}", XContentType.JSON)
             .execute().actionGet();
         refresh();
         execute(

@@ -28,6 +28,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 
 /**
  * Parser for SQL statements in JSON and other XContent formats
@@ -75,7 +76,7 @@ public class SQLXContentSourceParser {
         } catch (Exception e) {
             String sSource = "_na_";
             try {
-                sSource = XContentHelper.convertToJson(source, false);
+                sSource = XContentHelper.convertToJson(source, false, XContentType.JSON);
             } catch (Throwable e1) {
                 // ignore
             }

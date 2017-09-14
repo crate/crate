@@ -38,6 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.hamcrest.Matchers;
@@ -79,7 +80,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                            XContentBuilder builder,
                                            Settings settings,
                                            @Nullable AliasMetaData aliasMetaData) throws IOException {
-        Map<String, Object> mappingSource = XContentHelper.convertToMap(builder.bytes(), true).v2();
+        Map<String, Object> mappingSource = XContentHelper.convertToMap(builder.bytes(), true, XContentType.JSON).v2();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()

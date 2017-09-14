@@ -86,7 +86,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // we serialize and deserialize the mapping to make sure serialization works just fine
         client().admin().indices().prepareCreate(indexName)
             .setWaitForActiveShards(1)
-            .addMapping(type, mapping)
+            .addMapping(type, mapping, XContentType.JSON)
             .setSettings(Settings.builder()
                 .put("number_of_replicas", 0)
                 .put("number_of_shards", 1).build()).execute().actionGet();
@@ -362,7 +362,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         IndexResponse response = client()
             .prepareIndex(INDEX, "type")
             .setId("123")
-            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}")
+            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
             .execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
@@ -395,8 +395,11 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .endObject().endObject().endObject()
             .string();
         mapper(INDEX, TYPE, mapping);
-        IndexResponse response = client().prepareIndex(INDEX, "type").setId("123")
-            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}").execute().actionGet();
+        IndexResponse response = client()
+            .prepareIndex(INDEX, "type")
+            .setId("123")
+            .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
+            .execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
@@ -438,7 +441,10 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(doc.docs().get(0).get("array_field"), is(nullValue())); // no lucene field generated
 
         // insert
-        IndexResponse response = client().prepareIndex(INDEX, "type", "123").setSource("{\"array_field\":[]}").execute().actionGet();
+        IndexResponse response = client()
+            .prepareIndex(INDEX, "type", "123")
+            .setSource("{\"array_field\":[]}", XContentType.JSON)
+            .execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
@@ -451,7 +457,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
             searchResponse.getHits().getAt(0).getSource()),
             is("array_field:[]"));
-        assertThat(searchResponse.getHits().getAt(0).fields().containsKey("array_field"), is(false));
+        assertThat(searchResponse.getHits().getAt(0).getFields().containsKey("array_field"), is(false));
     }
 
     @Test

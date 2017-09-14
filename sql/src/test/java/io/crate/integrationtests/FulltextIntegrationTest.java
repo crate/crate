@@ -248,7 +248,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
 
         SearchHit[] hits = searchResponse.getHits().getHits();
         for (int i = 0; i < hits.length; i++) {
-            assertThat(hits[i].score(), is(((float) response.rows()[i][1])));
+            assertThat(hits[i].getScore(), is(((float) response.rows()[i][1])));
         }
 
         assertThat(TestingHelpers.printedTable(response.rows()),

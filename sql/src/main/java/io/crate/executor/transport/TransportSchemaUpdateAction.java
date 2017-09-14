@@ -54,6 +54,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -130,7 +131,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             .indices(new String[0])
             .setConcreteIndex(index)
             .type(Constants.DEFAULT_MAPPING_TYPE)
-            .source(mappingSource)
+            .source(mappingSource, XContentType.JSON)
             .timeout(timeout)
             .masterNodeTimeout(timeout);
         nodeClient.executeLocally(PutMappingAction.INSTANCE, putMappingRequest, putMappingListener);
