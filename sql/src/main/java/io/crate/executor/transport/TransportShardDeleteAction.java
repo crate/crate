@@ -79,20 +79,30 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 break;
             }
             try {
-                DeleteResult deleteResult = shardDeleteOperationOnPrimary(request, item, indexShard);
-                translogLocation = deleteResult.location;
-                if (deleteResult.found) {
-                    logger.debug("{} successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
-                    shardResponse.add(location);
+                Engine.DeleteResult deleteResult = shardDeleteOperationOnPrimary(request, item, indexShard);
+                translogLocation = deleteResult.getTranslogLocation();
+                if (!deleteResult.hasFailure()) {
+                    if (deleteResult.isFound()) {
+                        logger.debug("{} successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                        shardResponse.add(location);
+                    } else {
+                        logger.debug("{} failed to execute delete for [{}]/[{}], doc not found",
+                            request.shardId(), request.type(), item.id());
+                        shardResponse.add(location,
+                            new ShardResponse.Failure(
+                                item.id(),
+                                "Document not found while deleting",
+                                false));
+                    }
                 } else {
-                    logger.debug("{} failed to execute delete for [{}]/[{}], doc not found",
-                        request.shardId(), request.type(), item.id());
+                    Exception e = deleteResult.getFailure();
+                    logger.debug("{} failed to execute delete for [{}]/[{}]",
+                        e, request.shardId(), request.type(), item.id());
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            "Document not found while deleting",
-                            false));
-
+                            userFriendlyMessage(e),
+                            (e instanceof VersionConflictEngineException)));
                 }
             } catch (Exception e) {
                 if (!TransportActions.isShardNotAvailableException(e)) {
@@ -130,7 +140,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
     }
 
-    private DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
+    private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
         Engine.Delete delete = indexShard.prepareDeleteOnPrimary(request.type(), item.id(), item.version(), item.versionType());
         Engine.DeleteResult deleteResult = indexShard.delete(delete);
         // update the request with the version so it will go to the replicas
@@ -138,17 +148,6 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         item.version(deleteResult.getVersion());
 
         assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
-
-        return new DeleteResult(deleteResult.isFound(), deleteResult.getTranslogLocation());
-    }
-
-    private static class DeleteResult {
-        private final boolean found;
-        private final Translog.Location location;
-
-        DeleteResult(boolean found, Translog.Location location) {
-            this.found = found;
-            this.location = location;
-        }
+        return deleteResult;
     }
 }

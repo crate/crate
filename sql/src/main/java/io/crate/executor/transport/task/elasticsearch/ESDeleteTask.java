@@ -21,22 +21,21 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.JobTask;
+import io.crate.executor.transport.ShardDeleteRequest;
+import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.TransportShardDeleteAction;
+import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.DocWriteResponse;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,12 +45,18 @@ import java.util.concurrent.CompletableFuture;
 public class ESDeleteTask extends JobTask {
 
     private final List<CompletableFuture<Long>> results;
-    private final TransportDeleteAction deleteAction;
-    private final List<DeleteRequest> requests;
+    private final TransportShardDeleteAction deleteAction;
+    private final List<ShardDeleteRequest> requests;
     private final List<DeleteResponseListener> listeners;
 
-    public ESDeleteTask(ESDelete esDelete, TransportDeleteAction deleteAction) {
+    public ESDeleteTask(ClusterService clusterService,
+                        TransportShardDeleteAction deleteAction,
+                        ESDelete esDelete) {
         super(esDelete.jobId());
+        ShardDeleteRequest.Builder requestBuilder = new ShardDeleteRequest.Builder(
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting()
+                .get(clusterService.state().metaData().settings()),
+            jobId());
 
         results = new ArrayList<>(esDelete.getBulkSize());
         this.deleteAction = deleteAction;
@@ -64,15 +69,18 @@ public class ESDeleteTask extends JobTask {
         listeners = new ArrayList<>(esDelete.docKeys().size());
         int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
-            DeleteRequest request = new DeleteRequest(
+            ShardDeleteRequest shardDeleteRequest = requestBuilder.newRequest(getShardId(
+                clusterService,
                 ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orElse(null)),
-                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
-            request.routing(docKey.routing());
+                docKey.id(),
+                docKey.routing()));
+            ShardDeleteRequest.Item item = new ShardDeleteRequest.Item(docKey.id());
             if (docKey.version().isPresent()) {
                 //noinspection OptionalGetWithoutIsPresent
-                request.version(docKey.version().get());
+                item.version(docKey.version().get());
             }
-            requests.add(request);
+            shardDeleteRequest.add(0, item);
+            requests.add(shardDeleteRequest);
             CompletableFuture<Long> result = results.get(esDelete.getItemToBulkIdx().get(resultIdx));
             listeners.add(new DeleteResponseListener(result));
             resultIdx++;
@@ -119,7 +127,7 @@ public class ESDeleteTask extends JobTask {
         return results;
     }
 
-    private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
+    private static class DeleteResponseListener implements ActionListener<ShardResponse> {
 
         private final CompletableFuture<Long> result;
 
@@ -128,23 +136,35 @@ public class ESDeleteTask extends JobTask {
         }
 
         @Override
-        public void onResponse(DeleteResponse response) {
-            if (response.getResult() == DocWriteResponse.Result.NOT_FOUND) {
-                result.complete(0L);
-            } else {
-                result.complete(1L);
+        public void onResponse(ShardResponse response) {
+            ShardResponse.Failure failure = response.failures().get(0);
+            if (failure != null) {
+                if (failure.versionConflict()) {
+                    // treat version conflict as rows affected = 0
+                    result.complete(0L);
+                } else {
+                    result.completeExceptionally(new Exception(failure.message()));
+                }
+                return;
             }
+            result.complete(1L);
         }
 
         @Override
         public void onFailure(Exception e) {
-            Throwable t = SQLExceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
-            if (t instanceof VersionConflictEngineException) {
-                // treat version conflict as rows affected = 0
-                result.complete(0L);
-            } else {
-                result.completeExceptionally(e);
-            }
+            result.completeExceptionally(e);
         }
+    }
+
+    private ShardId getShardId(ClusterService clusterService,
+                               String index,
+                               String id,
+                               String routing) {
+        return clusterService.operationRouting().indexShards(
+            clusterService.state(),
+            index,
+            id,
+            routing
+        ).shardId();
     }
 }
