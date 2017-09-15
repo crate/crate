@@ -38,6 +38,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 
@@ -45,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
 
 public class BlobPlugin extends Plugin implements ActionPlugin {
 
@@ -67,7 +67,11 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
     public Collection<Module> createGuiceModules() {
         Collection<Module> modules = new ArrayList<>(2);
         modules.add(new BlobModule());
-        modules.add(new BlobIndicesModule());
+        if (Node.NODE_DATA_SETTING.get(settings)) {
+            // the actual blob indices module is only available on data nodes. the blobservice on non data nodes will
+            // handle the requests redirection to data nodes.
+            modules.add(new BlobIndicesModule());
+        }
         return modules;
     }
 
