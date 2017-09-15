@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
-    public static final int ID = 14;
+    public static final int ID = Precedence.GeoShapeType;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
 
     private GeoShapeType() {

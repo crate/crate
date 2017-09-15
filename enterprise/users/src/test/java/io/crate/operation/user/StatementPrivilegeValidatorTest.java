@@ -288,7 +288,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     @Test
     public void testSelectWithSubSelect() throws Exception {
         analyze("select * from (" +
-                " select users.id from users join parted on users.id = parted.id order by users.name limit 2" +
+                " select users.id from users join parted on users.id = parted.id::long order by users.name limit 2" +
                 ") as users_parted order by users_parted.id");
         assertAskedForTable(Privilege.Type.DQL, "doc.users");
         assertAskedForTable(Privilege.Type.DQL, "doc.parted");

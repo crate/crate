@@ -36,7 +36,7 @@ import java.util.Map;
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final ObjectType INSTANCE = new ObjectType();
-    public static final int ID = 12;
+    public static final int ID = Precedence.ObjectType;
 
     private ObjectType() {
     }

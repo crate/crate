@@ -31,7 +31,7 @@ import java.io.IOException;
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
 
     public static final IntegerType INSTANCE = new IntegerType();
-    public static final int ID = 9;
+    public static final int ID = Precedence.IntegerType;
 
     private IntegerType() {
     }

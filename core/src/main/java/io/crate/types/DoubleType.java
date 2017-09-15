@@ -31,7 +31,7 @@ import java.io.IOException;
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
-    public static final int ID = 6;
+    public static final int ID = Precedence.DoubleType;
 
     private DoubleType() {
     }

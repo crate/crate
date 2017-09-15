@@ -140,7 +140,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     public void testCaseWithDifferentOperandTypes() throws Exception {
         // x = long
         // a = integer
-        String expression = "case x + 1 when a then 111 end";
+        String expression = "case x + 1 when a::long then 111 end";
         assertEvaluate(expression, 111L,
             Literal.of(110L),    // x
             Literal.of(111));    // a

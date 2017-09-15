@@ -174,7 +174,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNumericTypeOutOfRange() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for shorts: -100000 cannot be cast to type short");
+        expectedException.expectMessage("Validation failed for shorts: Cannot cast -100000 to type short");
 
         analyze("update users set shorts=-100000");
     }
@@ -182,7 +182,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNumericOutOfRangeFromFunction() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: 1234 cannot be cast to type byte");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type byte");
 
         analyze("update users set bytes=abs(-1234)");
     }
@@ -441,7 +441,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateInvalidType() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: [['a', 'b']] cannot be cast to type string_array");
+        expectedException.expectMessage("Validation failed for tags: Cannot cast " +
+                                        "[['a', 'b']] to type string_array");
         analyze("update users set tags=? where id=1", new Object[]{
             new Object[]{
                 new Object[]{"a", "b"}

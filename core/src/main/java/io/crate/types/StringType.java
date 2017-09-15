@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class StringType extends DataType<BytesRef> implements Streamer<BytesRef> {
 
-    public static final int ID = 4;
+    public static final int ID = Precedence.StringType;
     public static final StringType INSTANCE = new StringType();
     public static final BytesRef T = new BytesRef("t");
     public static final BytesRef F = new BytesRef("f");

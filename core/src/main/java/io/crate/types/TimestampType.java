@@ -28,7 +28,7 @@ import org.apache.lucene.util.BytesRef;
 public class TimestampType extends LongType implements Streamer<Long> {
 
     public static final TimestampType INSTANCE = new TimestampType();
-    public static final int ID = 11;
+    public static final int ID = Precedence.TimestampType;
 
     private TimestampType() {
     }

@@ -33,7 +33,7 @@ import java.util.Map;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
-    public static final int ID = 3;
+    public static final int ID = Precedence.BooleanType;
     public static final BooleanType INSTANCE = new BooleanType();
 
     private BooleanType() {

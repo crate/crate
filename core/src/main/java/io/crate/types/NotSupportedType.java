@@ -26,7 +26,7 @@ import io.crate.Streamer;
 public class NotSupportedType extends DataType<Void> {
 
     public static final NotSupportedType INSTANCE = new NotSupportedType();
-    public static final int ID = 1;
+    public static final int ID = Precedence.NotSupportedType;
 
     private NotSupportedType() {
     }

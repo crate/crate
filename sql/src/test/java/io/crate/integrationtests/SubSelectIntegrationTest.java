@@ -464,7 +464,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from" +
                 " (select distinct col1 from t1 order by 1 limit 2 offset 1) t1, " +
                 " (select col1, count(*) as cnt from t2 group by col1 order by 2, 1 limit 2 offset 2) t2 " +
-                "where t1.col1 = t2.cnt " +
+                "where t1.col1 = t2.cnt::integer " +
                 "order by 1 desc, 2, 3 " +
                 "limit 1 offset 1");
         assertThat(printedTable(response.rows()), is("2| 4| 2\n"));
@@ -576,7 +576,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpCharacters();
         executeWith(
             NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
-            "select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id",
+            "select id, name from characters where id in (select col1::integer from unnest([1,2,3])) order by id",
             isPrintedTable(
                 "1| Arthur\n" +
                 "2| Ford\n" +

@@ -39,7 +39,7 @@ import java.util.Locale;
 
 public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, FixedWidthType {
 
-    public static final int ID = 13;
+    public static final int ID = Precedence.GeoPointType;
     public static final GeoPointType INSTANCE = new GeoPointType();
 
     private GeoPointType() {

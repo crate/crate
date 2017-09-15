@@ -31,7 +31,7 @@ import java.io.IOException;
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
     public static final ByteType INSTANCE = new ByteType();
-    public static final int ID = 2;
+    public static final int ID = Precedence.ByteType;
 
     private ByteType() {
     }

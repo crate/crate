@@ -29,7 +29,7 @@ import java.util.Locale;
 
 public class IpType extends StringType {
 
-    public static final int ID = 5;
+    public static final int ID = Precedence.IpType;
     public static final IpType INSTANCE = new IpType();
 
     IpType() {

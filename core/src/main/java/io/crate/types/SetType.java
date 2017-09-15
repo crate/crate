@@ -34,7 +34,7 @@ import java.util.Set;
 
 public class SetType extends CollectionType {
 
-    public static final int ID = 101;
+    public static final int ID = Precedence.SetType;
 
     public SetType(DataType<?> innerType) {
         super(innerType);

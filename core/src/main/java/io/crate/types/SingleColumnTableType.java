@@ -29,7 +29,7 @@ package io.crate.types;
  */
 public class SingleColumnTableType extends CollectionType {
 
-    public static final int ID = 102;
+    public static final int ID = Precedence.SingleColumnTableType;
 
     public SingleColumnTableType(DataType<?> innerType) {
         super(innerType);

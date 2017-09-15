@@ -31,7 +31,7 @@ import java.io.IOException;
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
-    public static final int ID = 8;
+    public static final int ID = Precedence.ShortType;
 
     private ShortType() {
     }

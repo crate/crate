@@ -40,6 +40,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -118,6 +119,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoPointType;
 import io.crate.types.SetType;
 import io.crate.types.SingleColumnTableType;
 import io.crate.types.UndefinedType;
@@ -244,7 +246,7 @@ public class ExpressionAnalyzer {
             name = parts.get(1);
         }
 
-        FunctionInfo functionInfo;
+        final FunctionInfo functionInfo;
         if (node.isDistinct()) {
             if (argumentTypes.size() > 1) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -278,21 +280,127 @@ public class ExpressionAnalyzer {
         this.operation = operation;
     }
 
-    public static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
-        DataType sourceType = symbolToCast.valueType();
-        if (sourceType.equals(targetType)) {
-            return symbolToCast;
-        }
-        if (sourceType.isConvertableTo(targetType)) {
-            // cast further below doesn't always fail because it might be lazy as it wraps functions/references inside a cast function.
-            // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
-            return cast(symbolToCast, targetType, false);
-        }
-        throw new ConversionException(symbolToCast, targetType);
+    /**
+     * Casts if possible, otherwise returns the input Symbol.
+     * This may be used to attempt a first cast without failing.
+     *
+     * The pattern for two Symbol symbol1 and symbol2 would be:
+     *
+     *      symbol1 = castIfNeeded(symbol1, symbol2.valueType())
+     *      symbol2 = castIfNeededOrFail(symbol2, symbol1.valueType())
+     *
+     * @param symbolToCast Symbol to be casted if possible.
+     * @param targetType Target type for the symbol to be casted.
+     * @return The casted symbol or the original symbol if casting was not possible
+     */
+    private static Symbol castIfNeeded(Symbol symbolToCast, DataType targetType) {
+        return castIfNeeded(symbolToCast, targetType, false);
     }
 
+    /**
+     * Casts a symbol to a target DataType if the symbol can be upcasted and is convertible.
+     * Fails otherwise.
+     * @param symbolToCast Symbol to be casted.
+     * @param targetType Target type for the symbol to be casted.
+     * @return The casted symbol.
+     * @throws ConversionException If the type doesn't match and upcasting is not possible.
+     */
+    public static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
+        return castIfNeeded(symbolToCast, targetType, true);
+    }
+
+    /**
+     * Casts a symbol to a target DataType if the symbol can be upcasted and is convertible.
+     * @param symbolToCast Symbol to be casted.
+     * @param targetType Target type for the symbol to be casted.
+     * @param castIsRequired True if the cast is required and we should fail upon failed conversion.
+     * @return The casted symbol or the original symbol if casting was not possible and castIsRequired is false.
+     * @throws ConversionException If castsIsRequired is true and the type doesn't match and upcasting is not possible.
+     */
+    public static Symbol castIfNeeded(Symbol symbolToCast, DataType targetType, boolean castIsRequired) {
+        DataType sourceType = symbolToCast.valueType();
+        if (!symbolToCast.valueType().equals(targetType)) {
+            boolean containsField = SymbolVisitors.any(symbol -> symbol instanceof Field, symbolToCast);
+            if ((symbolToCast.valueType().id() == UndefinedType.ID || !containsField) &&
+                    (sourceType.isConvertableTo(targetType) || canBeCasted(sourceType, targetType, symbolToCast))) {
+                return cast(symbolToCast, targetType, false);
+            } else if (castIsRequired) {
+                throw new ConversionException(symbolToCast, targetType);
+            }
+        }
+        return symbolToCast;
+    }
+
+    /**
+     * Check if a Symbol can be casted without losing entropy.
+     * @param sourceType The symbol type to cast.
+     * @param targetType The target type to cast to.
+     * @param symbolToCast The symbol to cast. If provided enables to check for Literals
+     *                     which may be downcasted.
+     * @return True if the cast can be performed, false otherwise.
+     */
+    private static boolean canBeCasted(DataType sourceType, DataType targetType, @Nullable Symbol symbolToCast) {
+        if (targetType.id() == UndefinedType.ID) {
+            return false;
+        }
+        if (DataTypes.isCollectionType(sourceType) && DataTypes.isCollectionType(targetType)) {
+            DataType<?> sourceInnerType = ((CollectionType) sourceType).innerType();
+            DataType<?> targetInnerType = ((CollectionType) targetType).innerType();
+            return canBeCasted(sourceInnerType, targetInnerType, symbolToCast);
+        }
+        return checkForSpecialTypeHandling(symbolToCast, targetType) ||
+                                   sourceType.id() < targetType.id() ||
+                                   sourceType.id() == UndefinedType.ID;
+    }
+
+    /**
+     * Indicates whether it is safe to cast to a type which would requires upcasting.
+     * @param sourceSymbol The Symbol to cast to the target type.
+     * @param targetType The target type to cat to.
+     * @return True if it is safe to cast the symbol to the target type.
+     */
+    private static boolean checkForSpecialTypeHandling(Symbol sourceSymbol, DataType targetType) {
+        if (sourceSymbol == null || sourceSymbol.symbolType() != SymbolType.LITERAL) {
+            return false;
+        }
+        DataType sourceType = sourceSymbol.valueType();
+        // handles cases of lower type precedence with potential loss of entropy
+        if (sourceType.id() > targetType.id()) {
+            if (sourceType.isNumeric()) {
+                Number value = (Number) ((Literal) sourceSymbol).value();
+                if (sourceType.isDecimal()) {
+                    return value.doubleValue() == value.floatValue();
+                } else {
+                    long minValue = Long.MIN_VALUE;
+                    long maxValue = Long.MAX_VALUE;
+                    if (value instanceof Short) {
+                        minValue = Short.MIN_VALUE;
+                        maxValue = Short.MAX_VALUE;
+                    } else if (value instanceof Integer) {
+                        minValue = Integer.MIN_VALUE;
+                        maxValue = Integer.MAX_VALUE;
+                    }
+                    long longValue = value.longValue();
+                    return longValue >= minValue && longValue <= maxValue;
+                }
+            } else if (DataTypes.isCollectionType(sourceType) && targetType.id() == GeoPointType.ID) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Explicitly cast a Symbol to a type (possible with loss of entropy).
+     * @param sourceSymbol The Symbol to cast.
+     * @param targetType The type to cast to.
+     * @param tryCast True if a try-cast should be attempted. Try casts return null if the cast fails.
+     * @return The Symbol wrapped into a cast function for the given {@code targetType}.
+     */
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
-        if (sourceSymbol.symbolType().isValueSymbol()) {
+        if (sourceSymbol.valueType().equals(targetType)) {
+            return sourceSymbol;
+        } else if (sourceSymbol.symbolType().isValueSymbol()) {
             return Literal.convert(sourceSymbol, targetType);
         }
         return CastFunctionResolver.generateCastFunction(sourceSymbol, targetType, tryCast);
@@ -401,12 +509,11 @@ public class ExpressionAnalyzer {
             }
 
             for (WhenClause whenClause : whenClauseExpressions) {
-                Symbol operandRightSymbol = whenClause.getOperand().accept(innerAnalyzer, context);
-                Symbol operandSymbol = operandRightSymbol;
+                Symbol operandSymbol = whenClause.getOperand().accept(innerAnalyzer, context);
 
                 if (operandLeftSymbol != null) {
                     operandSymbol = EqOperator.createFunction(
-                        operandLeftSymbol, castIfNeededOrFail(operandRightSymbol, operandLeftSymbol.valueType()));
+                        operandLeftSymbol, castIfNeededOrFail(operandSymbol, operandLeftSymbol.valueType()));
                 }
 
                 operands.add(operandSymbol);
@@ -454,8 +561,7 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
-            Symbol expression = process(node.getExpression(), context);
-            expression = castIfNeededOrFail(expression, DataTypes.TIMESTAMP);
+            Symbol expression = castIfNeededOrFail(process(node.getExpression(), context), DataTypes.TIMESTAMP);
             Symbol field = castIfNeededOrFail(process(node.getField(), context), DataTypes.STRING);
             return allocateFunction(
                 ExtractFunctions.GENERIC_INFO,
@@ -587,6 +693,9 @@ public class ExpressionAnalyzer {
             Symbol left = process(node.getLeft(), context);
             Symbol right = process(node.getRight(), context);
 
+            left = castIfNeeded(left, right.valueType());
+            right = castIfNeededOrFail(right, left.valueType());
+
             Comparison comparison = new Comparison(functions, transactionContext, node.getType(), left, right);
             comparison.normalize(context);
             FunctionIdent ident = comparison.toFunctionIdent();
@@ -616,25 +725,15 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            // There is no proper type-precedence logic in place yet,
-            // but in this case the side which has a column instead of functions/literals should dictate the type.
-
-            // x = ANY([null])              -> must not result in to-null casts
-            // int_col = ANY([1, 2, 3])     -> must cast to int instead of long (otherwise lucene query would be slow)
-            // null = ANY([1, 2])           -> must not cast to null
-            if (leftSymbol.valueType() != DataTypes.UNDEFINED &&
-                    (SymbolVisitors.any(symbol -> symbol instanceof Field, leftSymbol) || rightInnerType == DataTypes.UNDEFINED)) {
-                arraySymbolType = ((CollectionType) arraySymbolType).newInstance(leftSymbol.valueType());
-                arraySymbol = castIfNeededOrFail(arraySymbol, arraySymbolType);
-            } else {
-                leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);
-            }
+            leftSymbol = castIfNeeded(leftSymbol, rightInnerType);
+            DataType newCollectionType = ((CollectionType) arraySymbolType).newInstance(leftSymbol.valueType());
+            arraySymbol = castIfNeededOrFail(arraySymbol, newCollectionType);
 
             ComparisonExpression.Type operationType = node.getType();
             String operatorName;
             operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
             return allocateFunction(
-                getBuiltinFunctionInfo(operatorName, ImmutableList.of(leftSymbol.valueType(), arraySymbolType)),
+                getBuiltinFunctionInfo(operatorName, ImmutableList.of(leftSymbol.valueType(), arraySymbol.valueType())),
                 ImmutableList.of(leftSymbol, arraySymbol),
                 context);
         }
@@ -652,8 +751,9 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
             }
-            rightType = ((CollectionType) rightType).newInstance(leftSymbol.valueType());
-            rightSymbol = castIfNeededOrFail(rightSymbol, rightType);
+
+            rightSymbol = castIfNeededOrFail(rightSymbol, new ArrayType(DataTypes.STRING));
+
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
             return allocateFunction(
@@ -668,7 +768,7 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
             Symbol expression = process(node.getValue(), context);
-            expression = castIfNeededOrFail(expression, DataTypes.STRING);
+            expression = cast(expression, DataTypes.STRING, false);
             Symbol pattern = castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING);
             return allocateFunction(
                 getBuiltinFunctionInfo(LikeOperator.NAME, Arrays.asList(expression.valueType(), pattern.valueType())),
@@ -935,8 +1035,6 @@ public class ExpressionAnalyzer {
         private ComparisonExpression.Type comparisonExpressionType;
         private Symbol left;
         private Symbol right;
-        private DataType leftType;
-        private DataType rightType;
         private String operatorName;
         private FunctionIdent functionIdent;
 
@@ -951,8 +1049,6 @@ public class ExpressionAnalyzer {
             this.comparisonExpressionType = comparisonExpressionType;
             this.left = left;
             this.right = right;
-            this.leftType = left.valueType();
-            this.rightType = right.valueType();
         }
 
         Comparison normalize(ExpressionAnalysisContext context) {
@@ -970,7 +1066,7 @@ public class ExpressionAnalyzer {
         private void swapIfNecessary() {
             if ((!(right instanceof Reference || right instanceof Field)
                 || left instanceof Reference || left instanceof Field)
-                && leftType.id() != DataTypes.UNDEFINED.id()) {
+                && left.valueType().id() != DataTypes.UNDEFINED.id()) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);
@@ -980,15 +1076,11 @@ public class ExpressionAnalyzer {
             }
             Symbol tmp = left;
             left = right;
-            DataType tmpType = leftType;
-            leftType = rightType;
             right = tmp;
-            rightType = tmpType;
         }
 
         private void castTypes() {
-            right = castIfNeededOrFail(right, leftType);
-            rightType = leftType;
+            right = castIfNeededOrFail(right, left.valueType());
         }
 
         /**
@@ -1016,7 +1108,9 @@ public class ExpressionAnalyzer {
                 default:
                     return; // non-negating comparison
             }
-            FunctionIdent ident = new FunctionIdent(opName, ImmutableList.of(leftType, rightType));
+            FunctionIdent ident = new FunctionIdent(
+                opName,
+                ImmutableList.of(left.valueType(), right.valueType()));
             left = allocateFunction(
                 new FunctionInfo(ident, opType),
                 ImmutableList.of(left, right),
@@ -1024,15 +1118,15 @@ public class ExpressionAnalyzer {
                 functions,
                 transactionContext);
             right = null;
-            rightType = null;
             functionIdent = NotPredicate.INFO.ident();
-            leftType = opType;
             operatorName = NotPredicate.NAME;
         }
 
         FunctionIdent toFunctionIdent() {
             if (functionIdent == null) {
-                return new FunctionIdent(operatorName, Arrays.asList(leftType, rightType));
+                return new FunctionIdent(
+                    operatorName,
+                    Arrays.asList(left.valueType(), right.valueType()));
             }
             return functionIdent;
         }

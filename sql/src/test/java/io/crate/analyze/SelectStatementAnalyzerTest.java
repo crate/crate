@@ -1342,7 +1342,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testScoreReferenceComparisonWithColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
-        analyze("select * from users where \"_score\" >= id");
+        analyze("select * from users where \"_score\" >= id::float");
     }
 
     @Test
@@ -1604,7 +1604,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testExtractFunctionWithWrongType() throws Exception {
-        SelectAnalyzedStatement statement = analyze("select extract(day from name) from users");
+        SelectAnalyzedStatement statement = analyze("select extract(day from name::timestamp) from users");
         Symbol symbol = statement.relation().querySpec().outputs().get(0);
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
