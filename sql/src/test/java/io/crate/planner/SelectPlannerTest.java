@@ -460,11 +460,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        Merge globalAggregate = e.plan(
+        Collect globalAggregate = e.plan(
             "select min(name) from parted where date > 1395961100000");
-        Collect collect = (Collect) globalAggregate.subPlan();
 
-        WhereClause whereClause = ((RoutedCollectPhase) collect.collectPhase()).whereClause();
+        WhereClause whereClause = ((RoutedCollectPhase) globalAggregate.collectPhase()).whereClause();
         assertThat(whereClause.partitions().size(), is(1));
         assertThat(whereClause.noMatch(), is(false));
     }
@@ -668,19 +667,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationOnGeneratedColumns() throws Exception {
-        Merge plan = e.plan("select sum(profit) from gc_table");
-
-        List<Projection> projections = plan.mergePhase().projections();
-        assertThat(projections.size(), is(2));
-        assertThat(projections.get(0), instanceOf(AggregationProjection.class));
-        assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
-                   isSQL("INPUT(0)"));
-
-        projections = ((Collect)plan.subPlan()).collectPhase().projections();
-        assertThat(projections.size(), is(1));
-        assertThat(projections.get(0), instanceOf(AggregationProjection.class));
-        assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
-                   isSQL("INPUT(0)"));
+        Collect plan = e.plan("select sum(profit) from gc_table");
+        List<Projection> projections = plan.collectPhase().projections();
+        assertThat(projections, contains(
+            instanceOf(AggregationProjection.class))
+        );
+        assertThat(
+            ((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
+            isSQL("INPUT(0)"));
     }
 
     @Test
