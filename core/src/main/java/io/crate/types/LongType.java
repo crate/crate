@@ -31,11 +31,16 @@ import java.io.IOException;
 public class LongType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
 
     public static final LongType INSTANCE = new LongType();
-    public static final int ID = Precedence.LongType;
+    public static final int ID = 10;
 
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.LongType;
     }
 
     @Override

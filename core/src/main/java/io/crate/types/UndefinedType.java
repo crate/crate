@@ -29,7 +29,7 @@ import java.io.IOException;
 
 public class UndefinedType extends DataType<Object> implements Streamer<Object> {
 
-    public static final int ID = Precedence.UndefinedType;
+    public static final int ID = 0;
 
     public static final UndefinedType INSTANCE = new UndefinedType();
 
@@ -39,6 +39,11 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.UndefinedType;
     }
 
     @Override

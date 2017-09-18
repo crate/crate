@@ -25,7 +25,7 @@ import java.util.Collection;
 
 public class ArrayType extends CollectionType {
 
-    public static final int ID = Precedence.ArrayType;
+    public static final int ID = 100;
 
     public ArrayType(DataType<?> innerType) {
         super(innerType);
@@ -38,6 +38,11 @@ public class ArrayType extends CollectionType {
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.ArrayType;
     }
 
     @Override

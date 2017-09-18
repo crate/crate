@@ -37,40 +37,39 @@ public abstract class DataType<T> implements Comparable, Streamable {
      * Type precedence ids which help to decide when a type can be cast
      * into another type without loosing information (upcasting).
      *
-     * Lower number => Lower precedence
-     * Higher number => Higher precedence
+     * Lower ordinal => Lower precedence
+     * Higher ordinal => Higher precedence
      *
      * Precedence list inspired by
      * https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql
      *
-     * Note, that using an Enum here with either a constant in the
-     * constructor or an ordinal doesn't work because we want to use
-     * the type ids in switch statements which allow only compile-time
-     * constants.
      */
     @SuppressWarnings("WeakerAccess")
-    public static class Precedence {
-        public static final int NotSupportedType        =  1_00;
-        public static final int UndefinedType           =  2_00;
-        public static final int ByteType                =  3_00;
-        public static final int BooleanType             =  4_00;
-        public static final int ShortType               =  5_00;
-        public static final int IntegerType             =  6_00;
-        public static final int LongType                =  7_00;
-        public static final int FloatType               =  8_00;
-        public static final int DoubleType              =  9_00;
-        public static final int GeoPointType            = 10_00;
-        public static final int GeoShapeType            = 11_00;
-        public static final int IpType                  = 12_00;
-        public static final int StringType              = 13_00;
-        public static final int TimestampType           = 14_00;
-        public static final int ObjectType              = 15_00;
-        public static final int ArrayType               = 16_00;
-        public static final int SetType                 = 17_00;
-        public static final int SingleColumnTableType   = 18_00;
+    public enum Precedence {
+        NotSupportedType,
+        UndefinedType,
+        ByteType,
+        BooleanType,
+        ShortType,
+        IntegerType,
+        LongType,
+        FloatType,
+        DoubleType,
+        GeoPointType,
+        GeoShapeType,
+        IpType,
+        StringType,
+        TimestampType,
+        ObjectType,
+        ArrayType,
+        SetType,
+        SingleColumnTableType,
+        Custom
     }
 
     public abstract int id();
+
+    public abstract Precedence precedence();
 
     public abstract String getName();
 
@@ -79,6 +78,15 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
     public abstract int compareValueTo(T val1, T val2);
+
+    /**
+     * Returns true if this DataType precedes the supplied DataType.
+     * @param other The other type to compare against.
+     * @return True if the current type precedes, false otherwise.
+     */
+    public boolean precedes(DataType other) {
+        return this.precedence().ordinal() > other.precedence().ordinal();
+    }
 
     /**
      * check whether a value of this type is convertible to <code>other</code>

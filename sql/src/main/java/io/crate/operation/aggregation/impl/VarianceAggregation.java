@@ -94,6 +94,11 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
 
         @Override
+        public Precedence precedence() {
+            return Precedence.Custom;
+        }
+
+        @Override
         public String getName() {
             return "variance_state";
         }

@@ -31,7 +31,7 @@ import java.io.IOException;
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double> {
 
     public static final DoubleType INSTANCE = new DoubleType();
-    public static final int ID = Precedence.DoubleType;
+    public static final int ID = 6;
 
     private DoubleType() {
     }
@@ -39,6 +39,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.DoubleType;
     }
 
     @Override

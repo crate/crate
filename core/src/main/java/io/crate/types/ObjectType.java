@@ -36,7 +36,7 @@ import java.util.Map;
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
     public static final ObjectType INSTANCE = new ObjectType();
-    public static final int ID = Precedence.ObjectType;
+    public static final int ID = 12;
 
     private ObjectType() {
     }
@@ -44,6 +44,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.ObjectType;
     }
 
     @Override

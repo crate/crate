@@ -349,8 +349,8 @@ public class ExpressionAnalyzer {
             return canBeCasted(sourceInnerType, targetInnerType, symbolToCast);
         }
         return checkForSpecialTypeHandling(symbolToCast, targetType) ||
-                                   sourceType.id() < targetType.id() ||
-                                   sourceType.id() == UndefinedType.ID;
+                                    targetType.precedes(sourceType) ||
+                                    sourceType.id() == UndefinedType.ID;
     }
 
     /**
@@ -365,7 +365,7 @@ public class ExpressionAnalyzer {
         }
         DataType sourceType = sourceSymbol.valueType();
         // handles cases of lower type precedence with potential loss of entropy
-        if (sourceType.id() > targetType.id()) {
+        if (sourceType.precedes(targetType)) {
             if (sourceType.isNumeric()) {
                 Number value = (Number) ((Literal) sourceSymbol).value();
                 if (sourceType.isDecimal()) {

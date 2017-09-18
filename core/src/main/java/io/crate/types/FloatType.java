@@ -31,7 +31,7 @@ import java.io.IOException;
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
-    public static final int ID = Precedence.FloatType;
+    public static final int ID = 7;
 
     private FloatType() {
     }
@@ -39,6 +39,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.FloatType;
     }
 
     @Override
