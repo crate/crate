@@ -43,8 +43,10 @@ public abstract class DataType<T> implements Comparable, Streamable {
      * Precedence list inspired by
      * https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql
      *
-     * Note, that using an Enum here doesn't work because we want to use the type ids in
-     * switch statements which allow only compile-time constants.
+     * Note, that using an Enum here with either a constant in the
+     * constructor or an ordinal doesn't work because we want to use
+     * the type ids in switch statements which allow only compile-time
+     * constants.
      */
     @SuppressWarnings("WeakerAccess")
     public static class Precedence {
