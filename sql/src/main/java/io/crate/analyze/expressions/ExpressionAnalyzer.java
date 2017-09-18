@@ -356,7 +356,7 @@ public class ExpressionAnalyzer {
     /**
      * Indicates whether it is safe to cast to a type which would requires upcasting.
      * @param sourceSymbol The Symbol to cast to the target type.
-     * @param targetType The target type to cat to.
+     * @param targetType The target type to cast to.
      * @return True if it is safe to cast the symbol to the target type.
      */
     private static boolean checkForSpecialTypeHandling(Symbol sourceSymbol, DataType targetType) {
