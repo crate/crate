@@ -46,6 +46,7 @@ import io.crate.types.TimestampType;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.Supplier;
 
@@ -59,7 +60,7 @@ public class DataTypeTesting {
         .build();
 
     public static DataType<?> randomType() {
-        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(),ALL_TYPES_EXCEPT_ARRAYS);
+        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_TYPES_EXCEPT_ARRAYS);
     }
 
     @SuppressWarnings("unchecked")
@@ -106,7 +107,13 @@ public class DataTypeTesting {
                 };
 
             case GeoShapeType.ID:
-                return () -> (T) GeoShapeType.INSTANCE.value("POINT (10.2 32.2)");
+                return () -> {
+                    // Can't use immutable Collections.singletonMap; insert-analyzer mutates the map
+                    Map<String, Object> geoShape = new HashMap<>(2);
+                    geoShape.put("coordinates", new Double[] {10.2d, 32.2d});
+                    geoShape.put("type", "Point");
+                    return (T) geoShape;
+                };
 
             case ObjectType.ID:
                 Supplier<?> innerValueGenerator = getDataGenerator(randomType());

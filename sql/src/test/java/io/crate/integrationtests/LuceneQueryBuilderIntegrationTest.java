@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
@@ -288,7 +287,6 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select count(*) from t2 where id != any(select id from t1)");
         assertThat(response.rows()[0][0], is(1L));
     }
-
 
     @Test
     public void testNullOperators() throws Exception {
