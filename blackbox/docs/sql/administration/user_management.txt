@@ -9,13 +9,6 @@ User Management
    User management is an
    :ref:`enterprise feature <enterprise_features>`.
 
-.. hide:
-
-    This document is not included in the doctest suite and therefore the
-    following statements are not executed.
-
-    The reason for that is, that the HTTP protocol does not support user
-    authentication yet.
 
 .. rubric:: Table of Contents
 
