@@ -290,7 +290,6 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(response.rows()[0][0], is(1L));
     }
 
-
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
