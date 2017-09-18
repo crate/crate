@@ -31,8 +31,11 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.Functions;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
+import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import java.util.Map;
 
@@ -40,8 +43,8 @@ class SelectStatementPlanner {
 
     private final Visitor visitor;
 
-    SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(consumingPlanner);
+    SelectStatementPlanner(ConsumingPlanner consumingPlanner, Functions functions) {
+        visitor = new Visitor(consumingPlanner, functions);
     }
 
     public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
@@ -51,9 +54,11 @@ class SelectStatementPlanner {
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
 
         private final ConsumingPlanner consumingPlanner;
+        private final Functions functions;
 
-        public Visitor(ConsumingPlanner consumingPlanner) {
+        public Visitor(ConsumingPlanner consumingPlanner, Functions functions) {
             this.consumingPlanner = consumingPlanner;
+            this.functions = functions;
         }
 
         private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
@@ -80,6 +85,13 @@ class SelectStatementPlanner {
             QuerySpec querySpec = table.querySpec();
             context.applySoftLimit(querySpec);
             if (querySpec.hasAggregates() || (!querySpec.groupBy().isEmpty())) {
+                if (table.groupBy().isEmpty()) {
+                    LogicalPlanner logicalPlanner = new LogicalPlanner();
+                    return Merge.ensureOnHandler(
+                        logicalPlanner.plan(table, context, new ProjectionBuilder(functions)),
+                        context
+                    );
+                }
                 return invokeConsumingPlanner(table, context);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
