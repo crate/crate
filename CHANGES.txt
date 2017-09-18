@@ -15,6 +15,11 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Columns aren't implicitly casted to a type anymore. Whenever columns are
+   compared to Literals (e.g. 'string' or a number), these literals will be
+   converted to the column type but not vice-versa. The column can still be
+   manually casted to a type by using a cast function.
+
  - `GROUP BY` now executes against the real columns and fallbacks to
    substituting possible aliases in case the columns do not exist. This will
    cause statements that used alias values that shadowed multiple columns with
