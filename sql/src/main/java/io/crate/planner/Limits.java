@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
@@ -29,8 +30,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.operation.scalar.conditional.LeastFunction;
 
-import java.util.Arrays;
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class Limits {
 
@@ -64,29 +64,30 @@ public class Limits {
         return offset;
     }
 
-    public static Optional<Symbol> mergeAdd(Optional<Symbol> s1, Optional<Symbol> s2) {
-        if (s1.isPresent()) {
-            if (s2.isPresent()) {
-                return Optional.of(ArithmeticFunctions.of(
-                    ArithmeticFunctions.Names.ADD,
-                    s1.get(),
-                    s2.get(),
-                    FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
-                ));
-            }
+    @Nullable
+    public static Symbol mergeAdd(@Nullable Symbol s1, @Nullable Symbol s2) {
+        if (s1 == null) {
+            return s2;
+        }
+        if (s2 == null) {
             return s1;
         }
-        return s2;
+        return ArithmeticFunctions.of(
+            ArithmeticFunctions.Names.ADD,
+            s1,
+            s2,
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+        );
     }
 
-    public static Optional<Symbol> mergeMin(Optional<Symbol> limit1, Optional<Symbol> limit2) {
-        if (limit1.isPresent()) {
-            if (limit2.isPresent()) {
-                return Optional.of(new Function(LeastFunction.TWO_LONG_INFO,
-                    Arrays.asList(limit1.get(), limit2.get())));
-            }
+    @Nullable
+    public static Symbol mergeMin(@Nullable Symbol limit1, @Nullable Symbol limit2) {
+        if (limit1 == null) {
+            return limit2;
+        }
+        if (limit2 == null) {
             return limit1;
         }
-        return limit2;
+        return new Function(LeastFunction.TWO_LONG_INFO, ImmutableList.of(limit1, limit2));
     }
 }

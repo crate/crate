@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import com.google.common.collect.Ordering;
+import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Symbol;
@@ -30,7 +31,6 @@ import io.crate.analyze.symbol.format.SymbolPrinter;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Optional;
 
 public class SQLPrinter {
 
@@ -82,27 +82,29 @@ public class SQLPrinter {
             sb.append(" WHERE ");
             TESTING_SYMBOL_PRINTER.process(spec.where().query(), sb);
         }
-        if (spec.groupBy().isPresent()) {
+        if (!spec.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
-            TESTING_SYMBOL_PRINTER.process(spec.groupBy().get(), sb);
+            TESTING_SYMBOL_PRINTER.process(spec.groupBy(), sb);
         }
-        if (spec.having().isPresent()) {
+        HavingClause having = spec.having();
+        if (having != null) {
             sb.append(" HAVING ");
-            TESTING_SYMBOL_PRINTER.process(spec.having().get().query(), sb);
+            TESTING_SYMBOL_PRINTER.process(having.query(), sb);
         }
-        if (spec.orderBy().isPresent()) {
+        OrderBy orderBy = spec.orderBy();
+        if (orderBy != null) {
             sb.append(" ORDER BY ");
-            TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), sb);
+            TESTING_SYMBOL_PRINTER.process(orderBy, sb);
         }
-        Optional<Symbol> limit = spec.limit();
-        if (limit.isPresent()) {
+        Symbol limit = spec.limit();
+        if (limit != null) {
             sb.append(" LIMIT ");
-            sb.append(print(limit.get()));
+            sb.append(print(limit));
         }
-        Optional<Symbol> offset = spec.offset();
-        if (offset.isPresent()) {
+        Symbol offset = spec.offset();
+        if (offset != null) {
             sb.append(" OFFSET ");
-            sb.append(print(offset.get()));
+            sb.append(print(offset));
         }
         return sb.toString();
     }

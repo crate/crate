@@ -208,10 +208,11 @@ public class Rewriter {
 
     private static void applyAsWhereOrHaving(QuerySpec qs, Symbol query) {
         if (Aggregations.containsAggregation(query)) {
-            if (qs.having().isPresent()) {
-                qs.having().get().add(query);
-            } else {
+            HavingClause having = qs.having();
+            if (having == null) {
                 qs.having(new HavingClause(query));
+            } else {
+                having.add(query);
             }
         } else {
             qs.where(qs.where().add(query));

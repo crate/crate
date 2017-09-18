@@ -39,7 +39,6 @@ import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
@@ -147,13 +146,11 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
     }
 
-    public void validateOrderBy(Optional<OrderBy> orderBy) {
-        if (orderBy.isPresent()) {
-            for (Symbol symbol : orderBy.get().orderBySymbols()) {
+    public void validateOrderBy(@Nullable OrderBy orderBy) {
+        if (orderBy != null) {
+            for (Symbol symbol : orderBy.orderBySymbols()) {
                 SORT_VALIDATOR.process(symbol, this);
             }
         }
     }
-
-
 }

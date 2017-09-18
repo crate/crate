@@ -58,6 +58,7 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
@@ -122,8 +123,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "where t1.x = 1 or t2.y = 1 " +
                                         "order by t1.x + t1.x");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat("ORDER BY can be moved to subRelation", root.querySpec().orderBy().isPresent(), is(false));
-        assertThat(root.left().querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
+        assertThat("ORDER BY can be moved to subRelation", root.querySpec().orderBy(), nullValue());
+        assertThat(root.left().querySpec().orderBy().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
     }
 
     /**
@@ -257,8 +258,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "order by t2.b");
         TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
 
-        assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(root.querySpec().orderBy().get(), isSQL("doc.t2.b"));
+        assertThat(root.right().querySpec().orderBy(), nullValue());
+        assertThat(root.querySpec().orderBy(), isSQL("doc.t2.b"));
     }
 
     @Test
@@ -270,11 +271,11 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         TwoTableJoin t1AndT2 = (TwoTableJoin) root.left();
 
-        assertThat(t1AndT2.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(t1AndT2.querySpec().orderBy().get(), isSQL("doc.t2.b"));
+        assertThat(t1AndT2.right().querySpec().orderBy(), nullValue());
+        assertThat(t1AndT2.querySpec().orderBy(), isSQL("doc.t2.b"));
 
-        assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(root.querySpec().orderBy().get(), isSQL("join.doc.t1.doc.t2.doc.t2['b'], doc.t3.c"));
+        assertThat(root.right().querySpec().orderBy(), nullValue());
+        assertThat(root.querySpec().orderBy(), isSQL("join.doc.t1.doc.t2.doc.t2['b'], doc.t3.c"));
     }
 
     @Test

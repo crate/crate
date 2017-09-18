@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Optional;
 
 class MultiSourceAggregationConsumer implements Consumer {
 
@@ -65,7 +64,7 @@ class MultiSourceAggregationConsumer implements Consumer {
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, ConsumerContext context) {
             QuerySpec qs = multiSourceSelect.querySpec();
-            if (!qs.hasAggregates() || qs.groupBy().isPresent()) {
+            if (!qs.hasAggregates() || !qs.groupBy().isEmpty()) {
                 return null;
             }
             qs = qs.copyAndReplace(i -> i); // copy because MSS planning mutates symbols
@@ -104,13 +103,13 @@ class MultiSourceAggregationConsumer implements Consumer {
     }
 
     private static void removeLimitOffsetAndOrder(QuerySpec querySpec) {
-        if (querySpec.limit().isPresent()) {
-            querySpec.limit(Optional.empty());
+        if (querySpec.limit() != null) {
+            querySpec.limit(null);
         }
-        if (querySpec.offset().isPresent()) {
-            querySpec.offset(Optional.empty());
+        if (querySpec.offset() != null) {
+            querySpec.offset(null);
         }
-        if (querySpec.orderBy().isPresent()) {
+        if (querySpec.orderBy() != null) {
             querySpec.orderBy(null);
         }
     }

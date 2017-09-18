@@ -23,6 +23,7 @@
 package io.crate.planner.fetch;
 
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -177,10 +178,10 @@ class MultiSourceFetchPushDown {
 
         statement.querySpec().outputs(mssOutputs);
         remainingOutputs = MappingSymbolVisitor.copy().process(originalOutputs, fetchRefByOriginalSymbol);
-        if (statement.querySpec().orderBy().isPresent()) {
+        OrderBy orderBy = statement.querySpec().orderBy();
+        if (orderBy != null) {
             statement.querySpec().orderBy(
-                statement.querySpec().orderBy().get().copyAndReplace(s -> MappingSymbolVisitor.copy().process(s, fetchRefByOriginalSymbol))
-            );
+                orderBy.copyAndReplace(s -> MappingSymbolVisitor.copy().process(s, fetchRefByOriginalSymbol)));
         }
     }
 

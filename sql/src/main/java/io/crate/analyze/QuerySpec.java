@@ -35,31 +35,36 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
 public class QuerySpec {
 
-    private Optional<List<Symbol>> groupBy = Optional.empty();
-    private Optional<OrderBy> orderBy = Optional.empty();
-    private Optional<HavingClause> having = Optional.empty();
-    private List<Symbol> outputs;
+    private List<Symbol> outputs = Collections.emptyList();
     private WhereClause where = WhereClause.MATCH_ALL;
-    private Optional<Symbol> limit = Optional.empty();
-    private Optional<Symbol> offset = Optional.empty();
+    private List<Symbol> groupBy = Collections.emptyList();
+    private HavingClause having = null;
+    private OrderBy orderBy = null;
+
+    @Nullable
+    private Symbol limit = null;
+
+    @Nullable
+    private Symbol offset = null;
+
     private boolean hasAggregates = false;
 
-    public Optional<List<Symbol>> groupBy() {
-        return groupBy;
+    public QuerySpec groupBy(@Nullable List<Symbol> groupBy) {
+        this.groupBy = firstNonNull(groupBy, Collections.emptyList());
+        return this;
     }
 
-    public QuerySpec groupBy(@Nullable List<Symbol> groupBy) {
-        assert groupBy == null || groupBy.size() > 0 : "groupBy must not be empty";
-        this.groupBy = Optional.ofNullable(groupBy);
-        return this;
+    public List<Symbol> groupBy() {
+        return groupBy;
     }
 
     public WhereClause where() {
@@ -75,44 +80,47 @@ public class QuerySpec {
         return this;
     }
 
-    public Optional<Symbol> limit() {
+    @Nullable
+    public Symbol limit() {
         return limit;
     }
 
-    public QuerySpec limit(Optional<Symbol> limit) {
-        assert limit != null : "argument limit must not be null but absent";
+    public QuerySpec limit(@Nullable Symbol limit) {
         this.limit = limit;
         return this;
     }
 
-    public Optional<Symbol> offset() {
+    @Nullable
+    public Symbol offset() {
         return offset;
     }
 
-    public QuerySpec offset(Optional<Symbol> offset) {
+    public QuerySpec offset(@Nullable Symbol offset) {
         this.offset = offset;
         return this;
     }
 
-    public Optional<HavingClause> having() {
+    @Nullable
+    public HavingClause having() {
         return having;
     }
 
     public QuerySpec having(@Nullable HavingClause having) {
         if (having == null || !having.hasQuery() && !having.noMatch()) {
-            this.having = Optional.empty();
+            this.having = null;
         } else {
-            this.having = Optional.of(having);
+            this.having = having;
         }
         return this;
     }
 
-    public Optional<OrderBy> orderBy() {
+    @Nullable
+    public OrderBy orderBy() {
         return orderBy;
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        this.orderBy = Optional.ofNullable(orderBy);
+        this.orderBy = orderBy;
         return this;
     }
 
@@ -153,11 +161,9 @@ public class QuerySpec {
             if (!sourceType.equals(targetType)) {
                 if (sourceType.isConvertableTo(targetType)) {
                     Symbol castFunction = CastFunctionResolver.generateCastFunction(output, targetType, false);
-                    if (groupBy.isPresent()) {
-                        Collections.replaceAll(groupBy.get(), output, castFunction);
-                    }
-                    if (orderBy.isPresent()) {
-                        Collections.replaceAll(orderBy.get().orderBySymbols(), output, castFunction);
+                    Collections.replaceAll(groupBy, output, castFunction);
+                    if (orderBy != null) {
+                        Collections.replaceAll(orderBy.orderBySymbols(), output, castFunction);
                     }
                     outputsIt.set(castFunction);
                 } else if (!targetType.equals(DataTypes.UNDEFINED)) {
@@ -193,10 +199,9 @@ public class QuerySpec {
             newSpec.where(where);
         }
 
-        if (orderBy.isPresent()) {
-            newSpec.orderBy(orderBy.get().subset(predicate));
+        if (orderBy != null) {
+            newSpec.orderBy(orderBy.subset(predicate));
         }
-
         return newSpec;
     }
 
@@ -234,17 +239,16 @@ public class QuerySpec {
             .hasAggregates(hasAggregates)
             .outputs(Lists2.copyAndReplace(outputs, replaceFunction));
         newSpec.where(where.copyAndReplace(replaceFunction));
-        if (orderBy.isPresent()) {
-            newSpec.orderBy(orderBy.get().copyAndReplace(replaceFunction));
+        if (orderBy != null) {
+            newSpec.orderBy(orderBy.copyAndReplace(replaceFunction));
         }
-        if (having.isPresent()) {
-            HavingClause havingClause = having.get();
-            if (havingClause.hasQuery()) {
-                newSpec.having(new HavingClause(replaceFunction.apply(havingClause.query)));
+        if (having != null) {
+            if (having.hasQuery()) {
+                newSpec.having(new HavingClause(replaceFunction.apply(having.query)));
             }
         }
-        if (groupBy.isPresent()) {
-            newSpec.groupBy(Lists2.copyAndReplace(groupBy.get(), replaceFunction));
+        if (!groupBy.isEmpty()) {
+            newSpec.groupBy(Lists2.copyAndReplace(groupBy, replaceFunction));
         }
         return newSpec;
     }
@@ -252,21 +256,18 @@ public class QuerySpec {
     public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
         where.replace(replaceFunction);
-        if (orderBy.isPresent()) {
-            orderBy.get().replace(replaceFunction);
+        if (orderBy != null) {
+            orderBy.replace(replaceFunction);
         }
-        if (groupBy.isPresent()) {
-            Lists2.replaceItems(groupBy.get(), replaceFunction);
+        Lists2.replaceItems(groupBy, replaceFunction);
+        if (limit != null) {
+            limit = replaceFunction.apply(limit);
         }
-        if (limit.isPresent()) {
-            limit = limit.map(replaceFunction);
+        if (offset != null) {
+            offset = replaceFunction.apply(offset);
         }
-        if (offset.isPresent()) {
-            offset = offset.map(replaceFunction);
-        }
-        if (having.isPresent()) {
-            HavingClause havingClause = having.get();
-            havingClause.replace(replaceFunction);
+        if (having != null) {
+            having.replace(replaceFunction);
         }
     }
 
@@ -283,26 +284,23 @@ public class QuerySpec {
         if (where.hasQuery()) {
             consumer.accept(where.query());
         }
-        if (groupBy.isPresent()) {
-            List<Symbol> groupBySymbols = groupBy.get();
-            for (Symbol groupBySymbol : groupBySymbols) {
-                consumer.accept(groupBySymbol);
-            }
+        for (Symbol groupBySymbol : groupBy) {
+            consumer.accept(groupBySymbol);
         }
-        if (having.isPresent()) {
-            HavingClause havingClause = having.get();
-            if (havingClause.hasQuery()) {
-                consumer.accept(havingClause.query());
-            }
+        if (having != null && having.hasQuery()) {
+            consumer.accept(having.query());
         }
-        if (orderBy.isPresent()) {
-            OrderBy orderBy = this.orderBy.get();
+        if (orderBy != null) {
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
                 consumer.accept(orderBySymbol);
             }
         }
-        limit.ifPresent(consumer);
-        offset.ifPresent(consumer);
+        if (limit != null) {
+            consumer.accept(limit);
+        }
+        if (offset != null) {
+            consumer.accept(offset);
+        }
     }
 
     @Override

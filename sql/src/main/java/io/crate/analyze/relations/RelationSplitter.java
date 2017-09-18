@@ -51,7 +51,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -126,16 +125,11 @@ public final class RelationSplitter {
             new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(specs.size()), LinkedHashSet::new);
         Consumer<Field> addFieldToMap = f -> fieldsByRelation.put(f.relation(), f);
 
-        Optional<List<Symbol>> groupBy = querySpec.groupBy();
-        if (groupBy.isPresent()) {
-            FieldsVisitor.visitFields(groupBy.get(), addFieldToMap);
-        }
-        Optional<HavingClause> having = querySpec.having();
-        if (having.isPresent()) {
-            HavingClause havingClause = having.get();
-            if (havingClause.hasQuery()) {
-                FieldsVisitor.visitFields(havingClause.query(), addFieldToMap);
-            }
+        List<Symbol> groupBy = querySpec.groupBy();
+        FieldsVisitor.visitFields(groupBy, addFieldToMap);
+        HavingClause having = querySpec.having();
+        if (having != null && having.hasQuery()) {
+            FieldsVisitor.visitFields(having.query(), addFieldToMap);
         }
 
         if (querySpec.where().hasQuery()) {
@@ -147,16 +141,16 @@ public final class RelationSplitter {
 
         // push down the limit + offset only if there is no filtering, ordering, global aggregation or grouping
         // after the join and only if the relations are not part of a join condition.
-        Optional<Symbol> limit = querySpec.limit();
+        Symbol limit = querySpec.limit();
         boolean filterNeeded = querySpec.where().hasQuery() && !(querySpec.where().query() instanceof Literal);
-        if (limit.isPresent() &&  !groupBy.isPresent() && !querySpec.hasAggregates() && !filterNeeded
-            && !querySpec.orderBy().isPresent()) {
-            Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
+        if (limit != null && groupBy.isEmpty() && !querySpec.hasAggregates() && !filterNeeded
+            && querySpec.orderBy() == null) {
+            Symbol limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
                 if (!relationPartOfJoinConditions.contains(rel.getQualifiedName())) {
                     QuerySpec spec = specs.get(rel);
                     // If it's a sub-select it might already have a limit
-                    if (!spec.limit().isPresent()) {
+                    if (spec.limit() == null) {
                         spec.limit(limitAndOffset);
                     }
                 }
@@ -165,9 +159,9 @@ public final class RelationSplitter {
 
         // add all order by symbols to context outputs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            QuerySpec querySpec = entry.getValue();
-            if (querySpec.orderBy().isPresent()) {
-                FieldsVisitor.visitFields(querySpec.orderBy().get().orderBySymbols(), addFieldToMap);
+            OrderBy orderBy = entry.getValue().orderBy();
+            if (orderBy != null) {
+                FieldsVisitor.visitFields(orderBy.orderBySymbols(), addFieldToMap);
             }
         }
 
@@ -185,7 +179,7 @@ public final class RelationSplitter {
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
             Collection<Symbol> fields = fieldsByRelation.get(entry.getKey());
-            assert entry.getValue().outputs() == null : "entry.getValue().outputs() must not be null";
+            assert entry.getValue().outputs().isEmpty() : "entry.getValue().outputs() must not be set yet";
             entry.getValue().outputs(new ArrayList<>(fields));
         }
     }
@@ -247,10 +241,11 @@ public final class RelationSplitter {
                 relation.querySpec().outputs().get(f.index()));
         });
         if (hasAggregations[0]) {
-            if (qs.having().isPresent()) {
-                qs.having().get().add(mergedQuery);
-            } else {
+            HavingClause having = qs.having();
+            if (having == null) {
                 qs.having(new HavingClause(mergedQuery));
+            } else {
+                having.add(mergedQuery);
             }
         } else {
             qs.where(qs.where().add(mergedQuery));
@@ -268,11 +263,10 @@ public final class RelationSplitter {
      *   - the relation is *not* involved in a outer join (outer joins may create null rows - breaking the ordering)
      */
     private void processOrderBy() {
-        Optional<OrderBy> optOrderBy = querySpec.orderBy();
-        if (!optOrderBy.isPresent() || querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+        OrderBy orderBy = querySpec.orderBy();
+        if (orderBy == null || querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
             return;
         }
-        OrderBy orderBy = optOrderBy.get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         Consumer<Field> gatherRelations = f -> relations.add(f.relation());
 
@@ -284,7 +278,7 @@ public final class RelationSplitter {
             QuerySpec spec = getSpec(relationInOrderBy);
             // If it's a sub-select it might already have an ordering
             if (firstRel == relationInOrderBy &&
-                !(spec.orderBy().isPresent() && (spec.limit().isPresent() || spec.offset().isPresent()))) {
+                !(spec.orderBy() != null && (spec.limit() != null || spec.offset() != null))) {
                 orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
                 spec.orderBy(orderBy);
                 querySpec.orderBy(null);

@@ -46,7 +46,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 public final class SubselectRewriter {
@@ -186,11 +185,11 @@ public final class SubselectRewriter {
     private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, QuerySpec parentQSpec) {
         // merge everything: validation that merge is possible has already been done.
         OrderBy newOrderBy;
-        if (parentQSpec.hasAggregates() || parentQSpec.groupBy().isPresent()) {
+        if (parentQSpec.hasAggregates() || !parentQSpec.groupBy().isEmpty()) {
             // select avg(x) from (select x from t order by x)
             // -> can't keep order, but it doesn't matter for aggregations anyway so
             //    only keep the one from the parent Qspec
-            newOrderBy = parentQSpec.orderBy().orElse(null);
+            newOrderBy = parentQSpec.orderBy();
         } else {
             newOrderBy = tryReplace(childQSpec.orderBy(), parentQSpec.orderBy());
         }
@@ -239,45 +238,49 @@ public final class SubselectRewriter {
      * @return The merged orderBy
      */
     @Nullable
-    private static OrderBy tryReplace(Optional<OrderBy> childOrderBy, Optional<OrderBy> parentOrderBy) {
-        if (parentOrderBy.isPresent()) {
-            return parentOrderBy.get();
+    private static OrderBy tryReplace(@Nullable OrderBy childOrderBy, @Nullable OrderBy parentOrderBy) {
+        if (parentOrderBy != null) {
+            return parentOrderBy;
         }
-        return childOrderBy.orElse(null);
+        return childOrderBy;
     }
 
-
-    @Nullable
-    private static List<Symbol> pushGroupBy(Optional<List<Symbol>> childGroupBy, Optional<List<Symbol>> parentGroupBy) {
-        assert !(childGroupBy.isPresent() && parentGroupBy.isPresent()) :
+    private static List<Symbol> pushGroupBy(List<Symbol> childGroupBy, List<Symbol> parentGroupBy) {
+        assert !(!childGroupBy.isEmpty() && !parentGroupBy.isEmpty()) :
             "Cannot merge 'group by' if exists in both parent and child relations";
-        return childGroupBy.map(Optional::of).orElse(parentGroupBy).orElse(null);
+        if (childGroupBy.isEmpty()) {
+            return parentGroupBy;
+        }
+        return childGroupBy;
     }
 
     @Nullable
-    private static HavingClause pushHaving(Optional<HavingClause> childHaving, Optional<HavingClause> parentHaving) {
-        assert !(childHaving.isPresent() && parentHaving.isPresent()) :
+    private static HavingClause pushHaving(@Nullable HavingClause childHaving, @Nullable HavingClause parentHaving) {
+        assert !(childHaving != null && parentHaving != null) :
             "Cannot merge 'having' if exists in both parent and child relations";
-        return childHaving.map(Optional::of).orElse(parentHaving).orElse(null);
+        if (childHaving == null) {
+            return parentHaving;
+        }
+        return childHaving;
     }
 
     private static boolean canBeMerged(QuerySpec childQuerySpec, QuerySpec parentQuerySpec) {
         WhereClause parentWhere = parentQuerySpec.where();
         boolean parentHasWhere = !parentWhere.equals(WhereClause.MATCH_ALL);
-        boolean childHasLimit = childQuerySpec.limit().isPresent();
+        boolean childHasLimit = childQuerySpec.limit() != null;
         if (parentHasWhere && childHasLimit) {
             return false;
         }
 
-        boolean parentHasAggregations = parentQuerySpec.hasAggregates() || parentQuerySpec.groupBy().isPresent();
-        boolean childHasAggregations = childQuerySpec.hasAggregates() || childQuerySpec.groupBy().isPresent();
+        boolean parentHasAggregations = parentQuerySpec.hasAggregates() || !parentQuerySpec.groupBy().isEmpty();
+        boolean childHasAggregations = childQuerySpec.hasAggregates() || !childQuerySpec.groupBy().isEmpty();
         if (parentHasAggregations && (childHasLimit || childHasAggregations)) {
             return false;
         }
 
-        Optional<OrderBy> childOrderBy = childQuerySpec.orderBy();
-        Optional<OrderBy> parentOrderBy = parentQuerySpec.orderBy();
-        if (childHasLimit && childOrderBy.isPresent() && parentOrderBy.isPresent() &&
+        OrderBy childOrderBy = childQuerySpec.orderBy();
+        OrderBy parentOrderBy = parentQuerySpec.orderBy();
+        if (childHasLimit && childOrderBy != null && parentOrderBy != null &&
             !childOrderBy.equals(parentOrderBy)) {
             return false;
         }

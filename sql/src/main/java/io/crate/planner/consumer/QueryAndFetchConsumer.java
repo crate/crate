@@ -65,7 +65,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class QueryAndFetchConsumer implements Consumer {
 
@@ -177,7 +176,7 @@ public class QueryAndFetchConsumer implements Consumer {
         } else {
             Projection projection = ProjectionBuilder.topNOrEval(
                 subRelation.fields(),
-                querySpec.orderBy().orElse(null),
+                querySpec.orderBy(),
                 limits.offset(),
                 limits.finalLimit(),
                 querySpec.outputs()
@@ -213,7 +212,7 @@ public class QueryAndFetchConsumer implements Consumer {
                                                          Plan plan,
                                                          FetchRewriter.FetchDescription fetchDescription,
                                                          Limits limits) {
-        OrderBy orderBy = qs.orderBy().orElse(null);
+        OrderBy orderBy = qs.orderBy();
         if (orderBy == null) {
             TopNProjection topN = new TopNProjection(
                 limits.finalLimit(),
@@ -276,7 +275,7 @@ public class QueryAndFetchConsumer implements Consumer {
         Limits limits = plannerContext.getLimits(qs);
         Projection projection = ProjectionBuilder.topNOrEval(
             subRelation.fields(),
-            qs.orderBy().orElse(null),
+            qs.orderBy(),
             limits.offset(),
             limits.finalLimit(),
             qs.outputs()
@@ -293,7 +292,7 @@ public class QueryAndFetchConsumer implements Consumer {
     }
 
     private static boolean isSimpleSelect(QuerySpec querySpec, ConsumerContext context) {
-        if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+        if (querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
             return false;
         }
         if (querySpec.where().hasVersions()) {
@@ -314,7 +313,7 @@ public class QueryAndFetchConsumer implements Consumer {
     private static Collect normalSelect(QueriedTableRelation table, ConsumerContext context) {
         QuerySpec querySpec = table.querySpec();
         Planner.Context plannerContext = context.plannerContext();
-        Optional<OrderBy> optOrderBy = querySpec.orderBy();
+        OrderBy orderBy = querySpec.orderBy();
         /*
          * ORDER BY columns are added to OUTPUTS - they're required to do an ordered merge.
          *
@@ -324,8 +323,8 @@ public class QueryAndFetchConsumer implements Consumer {
          * toCollect:           [name, date]           // includes order by symbols, that aren't already selected
          */
         List<Symbol> qsOutputs = querySpec.outputs();
-        List<Symbol> toCollect = getToCollectSymbols(qsOutputs, optOrderBy);
-        table.tableRelation().validateOrderBy(optOrderBy);
+        List<Symbol> toCollect = getToCollectSymbols(qsOutputs, orderBy);
+        table.tableRelation().validateOrderBy(orderBy);
 
         Limits limits = plannerContext.getLimits(querySpec);
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -335,14 +334,14 @@ public class QueryAndFetchConsumer implements Consumer {
             topNOrEmptyProjections(toCollect, limits)
         );
         tryApplySizeHint(context.requiredPageSize(), limits, collectPhase);
-        collectPhase.orderBy(optOrderBy.orElse(null));
+        collectPhase.orderBy(orderBy);
         return new Collect(
             collectPhase,
             limits.finalLimit(),
             limits.offset(),
             qsOutputs.size(),
             limits.limitAndOffset(),
-            PositionalOrderBy.of(optOrderBy.orElse(null), toCollect)
+            PositionalOrderBy.of(orderBy, toCollect)
         );
     }
 
@@ -370,11 +369,11 @@ public class QueryAndFetchConsumer implements Consumer {
     /**
      * @return qsOutputs + symbols from orderBy which are not already within qsOutputs (if orderBy is present)
      */
-    private static List<Symbol> getToCollectSymbols(List<Symbol> qsOutputs, Optional<OrderBy> optOrderBy) {
-        if (optOrderBy.isPresent()) {
-            return Lists2.concatUnique(qsOutputs, optOrderBy.get().orderBySymbols());
+    private static List<Symbol> getToCollectSymbols(List<Symbol> qsOutputs, @Nullable OrderBy orderBy) {
+        if (orderBy == null) {
+            return qsOutputs;
         }
-        return qsOutputs;
+        return Lists2.concatUnique(qsOutputs, orderBy.orderBySymbols());
     }
 
     private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {

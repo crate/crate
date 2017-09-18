@@ -33,7 +33,6 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class MultiSourceGroupByConsumer implements Consumer {
 
@@ -60,11 +59,11 @@ public class MultiSourceGroupByConsumer implements Consumer {
         public Plan visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, ConsumerContext context) {
             QuerySpec querySpec = multiSourceSelect.querySpec();
 
-            if (!querySpec.groupBy().isPresent()) {
+            if (querySpec.groupBy().isEmpty()) {
                 return null;
             }
 
-            final List<Symbol> groupKeys = querySpec.groupBy().get();
+            final List<Symbol> groupKeys = querySpec.groupBy();
             final List<Symbol> outputs = querySpec.outputs();
 
             // Planning the multiSourceSelect as subRelation mutates the querySpec.
@@ -110,16 +109,16 @@ public class MultiSourceGroupByConsumer implements Consumer {
          *  Remove limit, offset, orderBy and groupBy from given querySpec.
          */
         private static void removePostGroupingActions(QuerySpec querySpec) {
-            if (querySpec.limit().isPresent()) {
-                querySpec.limit(Optional.empty());
+            if (querySpec.limit() != null) {
+                querySpec.limit(null);
             }
-            if (querySpec.offset().isPresent()) {
-                querySpec.offset(Optional.empty());
+            if (querySpec.offset() != null) {
+                querySpec.offset(null);
             }
-            if (querySpec.orderBy().isPresent()) {
+            if (querySpec.orderBy() != null) {
                 querySpec.orderBy(null);
             }
-            if (querySpec.groupBy().isPresent()) {
+            if (!querySpec.groupBy().isEmpty()) {
                 querySpec.groupBy(null);
             }
         }

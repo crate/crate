@@ -46,7 +46,6 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * This class handles subselects in combination with 'group by' by creating
@@ -82,7 +81,7 @@ public class GroupingSubselectConsumer implements Consumer {
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, ConsumerContext context) {
             QuerySpec querySpec = relation.querySpec();
 
-            if (!querySpec.groupBy().isPresent()) {
+            if (querySpec.groupBy().isEmpty()) {
                 return null;
             }
 
@@ -95,7 +94,7 @@ public class GroupingSubselectConsumer implements Consumer {
                 context,
                 SplitPoints.create(querySpec),
                 relation.subRelation().fields(),
-                querySpec.groupBy().get(),
+                querySpec.groupBy(),
                 querySpec.outputs(),
                 querySpec,
                 projectionBuilder
@@ -168,12 +167,11 @@ public class GroupingSubselectConsumer implements Consumer {
                                             SplitPoints splitPoints,
                                             List<Symbol> groupKeys,
                                             QuerySpec querySpec) {
-        Optional<HavingClause> havingClause = querySpec.having();
-        if (havingClause.isPresent()) {
+        HavingClause havingClause = querySpec.having();
+        if (havingClause != null) {
             List<Symbol> postGroupingOutputs = new ArrayList<>(groupKeys);
             postGroupingOutputs.addAll(splitPoints.aggregates());
-            HavingClause having = havingClause.get();
-            FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, having);
+            FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, havingClause);
             plan.addProjection(filterProjection, null, null, null);
         }
     }
@@ -187,7 +185,7 @@ public class GroupingSubselectConsumer implements Consumer {
                                 QuerySpec querySpec,
                                 ConsumerContext context,
                                 List<Symbol> outputs) {
-        OrderBy orderBy = querySpec.orderBy().orElse(null);
+        OrderBy orderBy = querySpec.orderBy();
         Limits limits = context.plannerContext().getLimits(querySpec);
         ArrayList<Symbol> groupProjectionOutputs = new ArrayList<>(groupKeys);
         groupProjectionOutputs.addAll(splitPoints.aggregates());
@@ -245,12 +243,12 @@ public class GroupingSubselectConsumer implements Consumer {
         addFilterProjectionIfNecessary(reducerProjections, querySpec, groupProjectionOutputs);
 
         Limits limits = context.plannerContext().getLimits(querySpec);
-        Optional<OrderBy> orderBy = querySpec.orderBy();
+        OrderBy orderBy = querySpec.orderBy();
 
-        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy.orElse(null), outputs);
+        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, outputs);
         reducerProjections.add(ProjectionBuilder.topNOrEval(
             groupProjectionOutputs,
-            orderBy.orElse(null),
+            orderBy,
             0, // No offset since this is distributed.
             limits.limitAndOffset(),
             outputs)
@@ -273,10 +271,9 @@ public class GroupingSubselectConsumer implements Consumer {
     private static void addFilterProjectionIfNecessary(List<Projection> reducerProjections,
                                                        QuerySpec querySpec,
                                                        List<Symbol> collectOutputs) {
-        Optional<HavingClause> havingClause = querySpec.having();
-        if (havingClause.isPresent()) {
-            HavingClause having = havingClause.get();
-            reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
+        HavingClause havingClause = querySpec.having();
+        if (havingClause != null) {
+            reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, havingClause));
         }
     }
 

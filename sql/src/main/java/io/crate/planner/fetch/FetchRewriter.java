@@ -44,9 +44,9 @@ import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -210,10 +210,10 @@ public final class FetchRewriter {
     }
 
     private static Set<Symbol> extractQuerySymbols(QuerySpec querySpec) {
-        Optional<OrderBy> orderBy = querySpec.orderBy();
-        return orderBy.isPresent()
-            ? ImmutableSet.copyOf(orderBy.get().orderBySymbols())
-            : ImmutableSet.of();
+        OrderBy orderBy = querySpec.orderBy();
+        return orderBy == null
+            ? Collections.emptySet()
+            : ImmutableSet.copyOf(orderBy.orderBySymbols());
     }
 
     public static FetchDescription rewrite(QueriedDocTable query) {

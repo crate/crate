@@ -61,7 +61,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 
 class GlobalAggregateConsumer implements Consumer {
@@ -136,9 +135,9 @@ class GlobalAggregateConsumer implements Consumer {
                                                                      List<Function> aggregates,
                                                                      Planner.Context plannerContext) {
         List<Projection> postAggregationProjections = new ArrayList<>();
-        Optional<HavingClause> having = qs.having();
-        if (having.isPresent()) {
-            postAggregationProjections.add(ProjectionBuilder.filterProjection(aggregates, having.get()));
+        HavingClause having = qs.having();
+        if (having != null) {
+            postAggregationProjections.add(ProjectionBuilder.filterProjection(aggregates, having));
         }
         Limits limits = plannerContext.getLimits(qs);
         // topN is used even if there is no limit because outputs might contain scalars which need to be executed
@@ -175,7 +174,7 @@ class GlobalAggregateConsumer implements Consumer {
                                          ConsumerContext context,
                                          RowGranularity projectionGranularity) {
         QuerySpec querySpec = table.querySpec();
-        if (querySpec.groupBy().isPresent() || !querySpec.hasAggregates()) {
+        if (!querySpec.groupBy().isEmpty() || !querySpec.hasAggregates()) {
             return null;
         }
         // global aggregate: collect and partial aggregate on C and final agg on H
@@ -246,7 +245,7 @@ class GlobalAggregateConsumer implements Consumer {
         @Override
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, ConsumerContext context) {
             QuerySpec qs = relation.querySpec();
-            if (qs.groupBy().isPresent() || !qs.hasAggregates()) {
+            if (!qs.groupBy().isEmpty() || !qs.hasAggregates()) {
                 return null;
             }
             Planner.Context plannerContext = context.plannerContext();

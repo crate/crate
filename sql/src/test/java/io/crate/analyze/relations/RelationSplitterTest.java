@@ -39,13 +39,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class RelationSplitterTest extends CrateUnitTest {
@@ -120,7 +121,7 @@ public class RelationSplitterTest extends CrateUnitTest {
 
     @Test
     public void testQuerySpecSplitNoRelationQuery() throws Exception {
-        QuerySpec querySpec = fromQuery("x + y + z = 5").limit(Optional.of(Literal.of(30)));
+        QuerySpec querySpec = fromQuery("x + y + z = 5").limit(Literal.of(30));
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (add(add(doc.t1.x, doc.t2.y), doc.t3.z) = 5) LIMIT 30"));
@@ -140,13 +141,13 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(splitter.canBeFetched(), containsInAnyOrder(isField("x"), isField("y")));
 
-        querySpec.limit(Optional.of(Literal.of(10)));
+        querySpec.limit(Literal.of(10));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT 10"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT 10"));
 
-        querySpec.offset(Optional.of(Literal.of(10)));
+        querySpec.offset(Literal.of(10));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10 OFFSET 10"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT add(10, 10)"));
@@ -166,8 +167,8 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         RelationSplitter splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(querySpec.orderBy().isPresent(), is(true));
-        assertThat(querySpec.orderBy().get(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
+        assertThat(querySpec.orderBy(), notNullValue());
+        assertThat(querySpec.orderBy(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.requiredForMerge(), isSQL("doc.t1.a, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
@@ -176,10 +177,10 @@ public class RelationSplitterTest extends CrateUnitTest {
 
     @Test
     public void testSplitOrderByWith3RelationsButOutputsOnly2Relations() throws Exception {
-        QuerySpec querySpec = fromQuery("x = 1 and y = 2 and z = 3").limit(Optional.of(Literal.of(30)));
+        QuerySpec querySpec = fromQuery("x = 1 and y = 2 and z = 3").limit(Literal.of(30));
         List<Symbol> orderBySymbols = Arrays.asList(asSymbol("x"), asSymbol("y"), asSymbol("z"));
         OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{false, false, false}, new Boolean[]{null, null, null});
-        querySpec.orderBy(orderBy).limit(Optional.of(Literal.of(20))).outputs(Arrays.asList(asSymbol("x"), asSymbol("y")));
+        querySpec.orderBy(orderBy).limit(Literal.of(20)).outputs(Arrays.asList(asSymbol("x"), asSymbol("y")));
 
         RelationSplitter splitter = split(querySpec);
 
@@ -212,8 +213,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b, doc.t2.y"));
         assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
 
-        assertThat(querySpec.orderBy().isPresent(), is(true));
-        assertThat(querySpec.orderBy().get(),
+        assertThat(querySpec.orderBy(), notNullValue());
+        assertThat(querySpec.orderBy(),
             isSQL("doc.t1.x, add(subtract(doc.t1.x, doc.t2.y), doc.t3.z), doc.t2.y, add(doc.t1.x, doc.t2.y)"));
     }
 
@@ -317,8 +318,7 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         RelationSplitter splitter = split(qs, Collections.singletonList(t1AndT2InnerJoin));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a ORDER BY doc.t1.a"));
-        assertThat("remainingOrderBy must be false if it's safe to remove after pushDown",
-            qs.orderBy().isPresent(), is(false));
+        assertThat("remainingOrderBy must be false if it's safe to remove after pushDown", qs.orderBy(), nullValue());
     }
 
     @Test

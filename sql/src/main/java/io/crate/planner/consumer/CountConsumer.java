@@ -61,7 +61,7 @@ public class CountConsumer implements Consumer {
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
-            if (!querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+            if (!querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
                 return null;
             }
             if (!hasOnlyGlobalCount(querySpec.outputs())) {

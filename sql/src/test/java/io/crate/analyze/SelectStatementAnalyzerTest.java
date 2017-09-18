@@ -80,7 +80,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
@@ -148,16 +147,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testOrderedSelect() throws Exception {
         QueriedTable table = (QueriedTable) analyze("select load['1'] from sys.nodes order by load['5'] desc").relation();
-        assertThat(table.querySpec().limit().isPresent(), is(false));
+        assertThat(table.querySpec().limit(), nullValue());
 
-        assertThat(table.querySpec().groupBy().isPresent(), is(false));
-        assertThat(table.querySpec().orderBy().isPresent(), is(true));
+        assertThat(table.querySpec().groupBy().isEmpty(), is(true));
+        assertThat(table.querySpec().orderBy(), notNullValue());
 
         assertThat(table.querySpec().outputs().size(), is(1));
-        assertThat(table.querySpec().orderBy().get().orderBySymbols().size(), is(1));
-        assertThat(table.querySpec().orderBy().get().reverseFlags().length, is(1));
+        assertThat(table.querySpec().orderBy().orderBySymbols().size(), is(1));
+        assertThat(table.querySpec().orderBy().reverseFlags().length, is(1));
 
-        assertThat(table.querySpec().orderBy().get().orderBySymbols().get(0), isReference("load['5']"));
+        assertThat(table.querySpec().orderBy().orderBySymbols().get(0), isReference("load['5']"));
     }
 
     @Test
@@ -171,9 +170,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSimpleSelect() throws Exception {
         QueriedRelation relation = analyze("select load['5'] from sys.nodes limit 2").relation();
-        assertThat(relation.querySpec().limit().get(), is(Literal.of(2L)));
+        assertThat(relation.querySpec().limit(), is(Literal.of(2L)));
 
-        assertThat(relation.querySpec().groupBy().isPresent(), is(false));
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(true));
         assertThat(relation.querySpec().outputs().size(), is(1));
         assertThat(relation.querySpec().outputs().get(0), isReference("load['5']"));
     }
@@ -181,7 +180,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAggregationSelect() throws Exception {
         QueriedRelation relation = analyze("select avg(load['5']) from sys.nodes").relation();
-        assertThat(relation.querySpec().groupBy().isPresent(), is(false));
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(true));
         assertThat(relation.querySpec().outputs().size(), is(1));
         Function col1 = (Function) relation.querySpec().outputs().get(0);
         assertThat(col1.info().type(), is(FunctionInfo.Type.AGGREGATE));
@@ -221,7 +220,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation relation = analyze("select load from sys.nodes " +
                                            "where load['1'] = 1.2 or 1 >= load['5']").relation();
 
-        assertThat(relation.querySpec().groupBy().isPresent(), is(false));
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(true));
 
         Function whereClause = (Function) relation.querySpec().where().query();
         assertThat(whereClause.info().ident().name(), is(OrOperator.NAME));
@@ -298,9 +297,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(outputNames.size(), is(1));
         assertThat(outputNames.get(0), is("cluster_name"));
 
-        assertThat(relation.querySpec().orderBy().isPresent(), is(true));
-        assertThat(relation.querySpec().orderBy().get().orderBySymbols().size(), is(1));
-        assertThat(relation.querySpec().orderBy().get().orderBySymbols().get(0), is(relation.querySpec().outputs().get(0)));
+        assertThat(relation.querySpec().orderBy(), notNullValue());
+        assertThat(relation.querySpec().orderBy().orderBySymbols().size(), is(1));
+        assertThat(relation.querySpec().orderBy().orderBySymbols().get(0), is(relation.querySpec().outputs().get(0)));
     }
 
     @Test
@@ -337,7 +336,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
         SelectAnalyzedStatement analyze = analyze("select * from sys.nodes limit 1 offset 3");
-        assertThat(analyze.relation().querySpec().offset(), is(Optional.of((Symbol) Literal.of(3L))));
+        assertThat(analyze.relation().querySpec().offset(), is(Literal.of(3L)));
     }
 
     @Test
@@ -506,7 +505,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectDistinctWithFunction() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id + 1 from users");
-        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("add(doc.users.id, 1)"));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy(), isSQL("add(doc.users.id, 1)"));
         assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("add(doc.users.id, 1)"));
     }
 
@@ -539,20 +538,20 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testDistinctOnLiteral() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct [1,2,3] from users");
         assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("[1, 2, 3]"));
-        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("[1, 2, 3]"));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy(), isSQL("[1, 2, 3]"));
     }
 
     @Test
     public void testDistinctOnNullLiteral() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct null from users");
         assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("NULL"));
-        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("NULL"));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy(), isSQL("NULL"));
     }
 
     @Test
     public void testSelectGlobalDistinctAggregate() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct count(*) from users");
-        assertThat(distinctAnalysis.relation().querySpec().groupBy().isPresent(), is(false));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy().isEmpty(), is(true));
     }
 
     @Test
@@ -577,9 +576,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 "select id, sender, recipient, amount, timestamp " +
                 "from transactions " +
                 "group by id, sender, recipient, amount, timestamp");
-        assertEquals(groupByAnalysis.relation().querySpec().groupBy().get().size(), distinctAnalysis.relation().querySpec().groupBy().get().size());
-        for (Symbol s : distinctAnalysis.relation().querySpec().groupBy().get()) {
-            assertThat(distinctAnalysis.relation().querySpec().groupBy().get().contains(s), is(true));
+        assertEquals(
+            groupByAnalysis.relation().querySpec().groupBy().size(),
+            distinctAnalysis.relation().querySpec().groupBy().size());
+        for (Symbol s : distinctAnalysis.relation().querySpec().groupBy()) {
+            assertThat(distinctAnalysis.relation().querySpec().groupBy().contains(s), is(true));
         }
     }
 
@@ -794,10 +795,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat("requiredForMerge can be empty because orderBy is moved to subRelation",
             relation.requiredForMerge().isEmpty(),is(true));
 
-        assertThat(relation.querySpec().orderBy().isPresent(), is(false));
+        assertThat(relation.querySpec().orderBy(), nullValue());
         Iterator<Map.Entry<QualifiedName, AnalyzedRelation>> it = relation.sources().entrySet().iterator();
         QueriedRelation usersRel = (QueriedRelation) it.next().getValue();
-        assertThat(usersRel.querySpec().orderBy().get().orderBySymbols(), isSQL("doc.users.id"));
+        assertThat(usersRel.querySpec().orderBy().orderBySymbols(), isSQL("doc.users.id"));
     }
 
     @Test
@@ -805,7 +806,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         SelectAnalyzedStatement analysis = analyze("select count(*) from users u1, users_multi_pk u2 " +
                                                    "order by 1");
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.querySpec().orderBy().get(), isSQL("count()"));
+        assertThat(relation.querySpec().orderBy(), isSQL("count()"));
     }
 
     @Test
@@ -955,7 +956,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testOrderByWithOrdinal() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
             "select name from users u order by 1");
-        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0));
+        assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().orderBy().orderBySymbols().get(0));
     }
 
     @Test
@@ -1080,8 +1081,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     private void testDistanceOrderBy(String stmt) throws Exception {
         SelectAnalyzedStatement analysis = analyze(stmt);
-        assertThat(analysis.relation().querySpec().orderBy().isPresent(), is(true));
-        assertThat(((Function) analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0)).info().ident().name(),
+        assertThat(analysis.relation().querySpec().orderBy(), notNullValue());
+        assertThat(((Function) analysis.relation().querySpec().orderBy().orderBySymbols().get(0)).info().ident().name(),
                    is(DistanceFunction.NAME));
     }
 
@@ -1317,7 +1318,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGlobalAggregateHaving() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select sum(floats) from users having sum(bytes) in (42, 43, 44)");
-        Function havingFunction = (Function) analysis.relation().querySpec().having().get().query();
+        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
 
         // assert that the in was converted to or
         assertThat(havingFunction.info().ident().name(), is(AnyEqOperator.NAME));
@@ -1450,7 +1451,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSubscriptArrayOnScalarResult() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
         assertThat(analysis.relation().querySpec().outputs().get(0), isFunction(SubscriptFunction.NAME));
-        assertThat(analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0), is(analysis.relation().querySpec().outputs().get(0)));
+        assertThat(analysis.relation().querySpec().orderBy().orderBySymbols().get(0), is(analysis.relation().querySpec().outputs().get(0)));
         List<Symbol> arguments = ((Function) analysis.relation().querySpec().outputs().get(0)).arguments();
         assertThat(arguments.size(), is(2));
 
@@ -1579,7 +1580,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // name exists in the table but isn't selected so not ambiguous
         SelectAnalyzedStatement analysis = analyze("select other_id as name from users order by name");
         assertThat(analysis.relation().querySpec().outputs().get(0), isReference("other_id"));
-        List<Symbol> sortSymbols = analysis.relation().querySpec().orderBy().get().orderBySymbols();
+        List<Symbol> sortSymbols = analysis.relation().querySpec().orderBy().orderBySymbols();
         assert sortSymbols != null;
         assertThat(sortSymbols.get(0), isReference("other_id"));
     }
@@ -1588,7 +1589,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectPartitionedTableOrderBy() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
             "select id from multi_parted order by id, abs(num)");
-        List<Symbol> symbols = analysis.relation().querySpec().orderBy().get().orderBySymbols();
+        List<Symbol> symbols = analysis.relation().querySpec().orderBy().orderBySymbols();
         assert symbols != null;
         assertThat(symbols.size(), is(2));
         assertThat(symbols.get(0), isReference("id"));
@@ -1648,7 +1649,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "where random() = 13.2 " +
             "order by 1, random(), random()");
         List<Symbol> outputs = stmt.relation().querySpec().outputs();
-        List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().get().orderBySymbols();
+        List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().orderBySymbols();
 
         // non deterministic, all equal
         assertThat(outputs.get(0),
@@ -1825,8 +1826,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "group by 2, 3 " +
             "having collect_set(recovery['size']['percent']) != [100.0] " +
             "order by 2, 3");
-        assertThat(stmt.relation().querySpec().having().isPresent(), is(true));
-        assertThat(stmt.relation().querySpec().having().get().query(),
+        assertThat(stmt.relation().querySpec().having(), notNullValue());
+        assertThat(stmt.relation().querySpec().having().query(),
             isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
     }
 

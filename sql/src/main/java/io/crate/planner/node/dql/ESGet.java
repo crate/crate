@@ -32,8 +32,8 @@ import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 
@@ -58,7 +58,7 @@ public class ESGet extends UnnestablePlan {
                  DocTableInfo tableInfo,
                  List<Symbol> outputs,
                  DocKeys docKeys,
-                 Optional<OrderBy> optOrderBY,
+                 @Nullable OrderBy orderBy,
                  int limit,
                  int offset,
                  UUID jobId) {
@@ -72,15 +72,14 @@ public class ESGet extends UnnestablePlan {
 
         outputTypes = Symbols.typeView(outputs);
 
-        if (optOrderBY.isPresent()) {
-            OrderBy orderBy = optOrderBY.get();
-            this.sortSymbols = orderBy.orderBySymbols();
-            this.reverseFlags = orderBy.reverseFlags();
-            this.nullsFirst = orderBy.nullsFirst();
-        } else {
+        if (orderBy == null) {
             this.sortSymbols = ImmutableList.of();
             this.reverseFlags = EMPTY_REVERSE_FLAGS;
             this.nullsFirst = EMPTY_NULLS_FIRST;
+        } else {
+            this.sortSymbols = orderBy.orderBySymbols();
+            this.reverseFlags = orderBy.reverseFlags();
+            this.nullsFirst = orderBy.nullsFirst();
         }
     }
 

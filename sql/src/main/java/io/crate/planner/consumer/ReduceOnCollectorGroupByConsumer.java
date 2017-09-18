@@ -46,7 +46,6 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 class ReduceOnCollectorGroupByConsumer implements Consumer {
 
@@ -71,12 +70,12 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (!table.querySpec().groupBy().isPresent()) {
+            if (table.querySpec().groupBy().isEmpty()) {
                 return null;
             }
             DocTableRelation tableRelation = table.tableRelation();
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                tableRelation.tableInfo(), table.querySpec().where(), table.querySpec().groupBy().get())) {
+                tableRelation.tableInfo(), table.querySpec().where(), table.querySpec().groupBy())) {
                 return null;
             }
 
@@ -99,9 +98,8 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
          */
         private Plan optimizedReduceOnCollectorGroupBy(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
-            Optional<List<Symbol>> optGroupBy = querySpec.groupBy();
-            assert optGroupBy.isPresent() : "must have groupBy if optimizeReduceOnCollectorGroupBy is called";
-            List<Symbol> groupKeys = optGroupBy.get();
+            List<Symbol> groupKeys = querySpec.groupBy();
+            assert !groupKeys.isEmpty() : "must have groupBy if optimizeReduceOnCollectorGroupBy is called";
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                 table.tableRelation().tableInfo(), querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
             GroupByConsumer.validateGroupBySymbols(groupKeys);
@@ -120,15 +118,14 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             );
             projections.add(groupProjection);
 
-            Optional<HavingClause> havingClause = querySpec.having();
-            if (havingClause.isPresent()) {
-                HavingClause having = havingClause.get();
-                FilterProjection fp = ProjectionBuilder.filterProjection(collectOutputs, having);
+            HavingClause havingClause = querySpec.having();
+            if (havingClause != null) {
+                FilterProjection fp = ProjectionBuilder.filterProjection(collectOutputs, havingClause);
                 fp.requiredGranularity(RowGranularity.SHARD);
                 projections.add(fp);
             }
 
-            OrderBy orderBy = querySpec.orderBy().orElse(null);
+            OrderBy orderBy = querySpec.orderBy();
             Limits limits = context.plannerContext().getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
             projections.add(ProjectionBuilder.topNOrEval(

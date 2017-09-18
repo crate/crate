@@ -261,8 +261,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 groupBy,
                 expressionAnalyzer,
                 context.expressionAnalysisContext()))
-            .limit(optionalLongSymbol(node.getLimit(), expressionAnalyzer, expressionAnalysisContext))
-            .offset(optionalLongSymbol(node.getOffset(), expressionAnalyzer, expressionAnalysisContext))
+            .limit(longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext))
+            .offset(longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext))
             .outputs(selectAnalysis.outputSymbols())
             .where(whereClause)
             .groupBy(groupBy)
@@ -311,8 +311,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // of the ORDER BY symbol in the list of select symbols and we use this index to
         // rewrite the symbol as the corresponding field of the relation
         OrderBy newOrderBy = null;
-        if (relation.querySpec().orderBy().isPresent()) {
-            OrderBy oldOrderBy = relation.querySpec().orderBy().get();
+        OrderBy oldOrderBy = relation.querySpec().orderBy();
+        if (oldOrderBy != null) {
             List<Symbol> orderBySymbols = new ArrayList<>();
             for (Symbol symbol : oldOrderBy.orderBySymbols()) {
                 int idx = querySpec.outputs().indexOf(symbol);
@@ -325,10 +325,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         // LIMIT & OFFSET from the inner query must be applied after
         // the outer GROUP BY which implements the DISTINCT
-        Optional<Symbol> limit = querySpec.limit();
-        querySpec.limit(Optional.empty());
-        Optional<Symbol> offset = querySpec.offset();
-        querySpec.offset(Optional.empty());
+        Symbol limit = querySpec.limit();
+        querySpec.limit(null);
+        Symbol offset = querySpec.offset();
+        querySpec.offset(null);
 
         List<Symbol> newQspecSymbols = new ArrayList<>(relation.fields());
         QuerySpec newQuerySpec = new QuerySpec()
@@ -341,14 +341,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return relation;
     }
 
-    private static Optional<Symbol> optionalLongSymbol(Optional<Expression> optExpression,
-                                                       ExpressionAnalyzer expressionAnalyzer,
-                                                       ExpressionAnalysisContext expressionAnalysisContext) {
+    @Nullable
+    private static Symbol longSymbolOrNull(Optional<Expression> optExpression,
+                                           ExpressionAnalyzer expressionAnalyzer,
+                                           ExpressionAnalysisContext expressionAnalysisContext) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.LONG));
+            return ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.LONG);
         }
-        return Optional.empty();
+        return null;
     }
 
     private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {

@@ -54,7 +54,6 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Singleton
 class DistributedGroupByConsumer implements Consumer {
@@ -80,11 +79,11 @@ class DistributedGroupByConsumer implements Consumer {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (!table.querySpec().groupBy().isPresent()) {
+            if (table.querySpec().groupBy().isEmpty()) {
                 return null;
             }
             QuerySpec querySpec = table.querySpec();
-            List<Symbol> groupBy = querySpec.groupBy().get();
+            List<Symbol> groupBy = querySpec.groupBy();
             DocTableInfo tableInfo = table.tableRelation().tableInfo();
             if (querySpec.where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
@@ -133,22 +132,21 @@ class DistributedGroupByConsumer implements Consumer {
                 RowGranularity.CLUSTER)
             );
 
-            Optional<HavingClause> havingClause = querySpec.having();
-            if (havingClause.isPresent()) {
-                HavingClause having = havingClause.get();
-                reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
+            HavingClause havingClause = querySpec.having();
+            if (havingClause != null) {
+                reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, havingClause));
             }
             Limits limits = plannerContext.getLimits(querySpec);
-            Optional<OrderBy> optOrderBy = querySpec.orderBy();
+            OrderBy orderBy = querySpec.orderBy();
             List<Symbol> topNOutputs;
-            if (optOrderBy.isPresent()) {
-                topNOutputs = Lists2.concatUnique(querySpec.outputs(), optOrderBy.get().orderBySymbols());
+            if (orderBy != null) {
+                topNOutputs = Lists2.concatUnique(querySpec.outputs(), orderBy.orderBySymbols());
             } else {
                 topNOutputs = querySpec.outputs();
             }
             reducerProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
-                optOrderBy.orElse(null),
+                orderBy,
                 0,
                 limits.limitAndOffset(),
                 topNOutputs));
@@ -179,7 +177,7 @@ class DistributedGroupByConsumer implements Consumer {
                 limits.offset(),
                 querySpec.outputs().size(),
                 limits.limitAndOffset(),
-                PositionalOrderBy.of(optOrderBy.orElse(null), topNOutputs)
+                PositionalOrderBy.of(orderBy, topNOutputs)
             );
         }
     }

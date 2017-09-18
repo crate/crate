@@ -40,7 +40,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
@@ -220,6 +219,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return null;
     }
 
-    public void validateOrderBy(Optional<OrderBy> orderBy) {
+    public void validateOrderBy(@Nullable OrderBy orderBy) {
     }
 }

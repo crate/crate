@@ -41,7 +41,7 @@ public class ESGetStatementPlanner {
         QuerySpec querySpec = table.querySpec();
         Optional<DocKeys> optKeys = querySpec.where().docKeys();
         assert !querySpec.hasAggregates() : "Can't create ESGet plan for queries with aggregates";
-        assert !querySpec.groupBy().isPresent() : "Can't create ESGet plan for queries with group by";
+        assert querySpec.groupBy().isEmpty() : "Can't create ESGet plan for queries with group by";
         assert optKeys.isPresent() : "Can't create ESGet without docKeys";
 
         DocKeys docKeys = optKeys.get();

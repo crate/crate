@@ -95,7 +95,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -160,13 +159,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         public Limits getLimits(QuerySpec querySpec) {
-            Optional<Symbol> optLimit = querySpec.limit();
-            Integer limit = toInteger(optLimit.orElse(null));
+            Integer limit = toInteger(querySpec.limit());
             if (limit == null) {
                 limit = TopN.NO_LIMIT;
             }
 
-            Integer offset = toInteger(querySpec.offset().orElse(Literal.ZERO));
+            Integer offset = toInteger(querySpec.offset());
             if (offset == null) {
                 offset = 0;
             }
@@ -195,8 +193,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         void applySoftLimit(QuerySpec querySpec) {
-            if (softLimit != 0 && !querySpec.limit().isPresent()) {
-                querySpec.limit(Optional.of(Literal.of((long) softLimit)));
+            if (softLimit != 0 && querySpec.limit() == null) {
+                querySpec.limit(Literal.of((long) softLimit));
             }
         }
 

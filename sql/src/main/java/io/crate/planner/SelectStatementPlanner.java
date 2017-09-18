@@ -79,7 +79,7 @@ class SelectStatementPlanner {
         public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
             QuerySpec querySpec = table.querySpec();
             context.applySoftLimit(querySpec);
-            if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+            if (querySpec.hasAggregates() || (!querySpec.groupBy().isEmpty())) {
                 return invokeConsumingPlanner(table, context);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
@@ -91,7 +91,7 @@ class SelectStatementPlanner {
                 throw new VersionInvalidException();
             }
             Limits limits = context.getLimits(querySpec);
-            if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
+            if (querySpec.where().noMatch() || (querySpec.limit() != null && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
             return invokeConsumingPlanner(table, context);

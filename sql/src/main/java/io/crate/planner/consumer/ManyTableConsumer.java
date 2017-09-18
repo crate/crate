@@ -70,7 +70,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -335,7 +334,7 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        Optional<OrderBy> finalOrderBy = mss.querySpec().orderBy();
+        OrderBy finalOrderBy = mss.querySpec().orderBy();
         QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(leftName);
         QuerySpec leftQuerySpec = leftRelation.querySpec();
         List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
@@ -364,7 +363,7 @@ public class ManyTableConsumer implements Consumer {
                     rightName,
                     splittedWhereQuery,
                     splittedJoinConditions,
-                    finalOrderBy.orElse(null)
+                    finalOrderBy
                 ));
             }
 
@@ -449,7 +448,7 @@ public class ManyTableConsumer implements Consumer {
         }
         // Remove limit from all join pairs before the last filtered one
         for (int i = 0; i < index; i++) {
-            twoTableJoinList.get(i).querySpec().limit(Optional.empty());
+            twoTableJoinList.get(i).querySpec().limit(null);
         }
 
         return join;
@@ -606,7 +605,7 @@ public class ManyTableConsumer implements Consumer {
 
 
         private static boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
-            if (statement.querySpec().groupBy().isPresent()) {
+            if (!statement.querySpec().groupBy().isEmpty()) {
                 context.validationException(new UnsupportedFeatureException("GROUP BY on JOINS is not supported"));
                 return true;
             }

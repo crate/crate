@@ -70,7 +70,7 @@ public final class InsertFromSubQueryPlanner {
 
         // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
         // the indexWriterProjection can be added
-        if (subQuerySpec.limit().isPresent() || subQuerySpec.offset().isPresent() || subQuerySpec.orderBy().isPresent()) {
+        if (subQuerySpec.limit() != null || subQuerySpec.offset() != null || subQuerySpec.orderBy() != null) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
                                                   "supported on insert using a sub-query");
         }
@@ -94,12 +94,12 @@ public final class InsertFromSubQueryPlanner {
 
         @Override
         public Void visitQueriedDocTable(QueriedDocTable table, Void context) {
-            if (table.querySpec().hasAggregates() || table.querySpec().groupBy().isPresent()) {
+            if (table.querySpec().hasAggregates() || !table.querySpec().groupBy().isEmpty()) {
                 return null;
             }
 
             List<Symbol> outputs = table.querySpec().outputs();
-            assert !table.querySpec().orderBy().isPresent() : "insert from subquery with order by is not supported";
+            assert table.querySpec().orderBy() == null : "insert from subquery with order by is not supported";
             for (int i = 0; i < outputs.size(); i++) {
                 outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
             }

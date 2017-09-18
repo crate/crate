@@ -53,7 +53,6 @@ import io.crate.planner.projection.builder.SplitPoints;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 class NonDistributedGroupByConsumer implements Consumer {
 
@@ -78,7 +77,7 @@ class NonDistributedGroupByConsumer implements Consumer {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (!table.querySpec().groupBy().isPresent()) {
+            if (table.querySpec().groupBy().isEmpty()) {
                 return null;
             }
             DocTableInfo tableInfo = table.tableRelation().tableInfo();
@@ -94,13 +93,13 @@ class NonDistributedGroupByConsumer implements Consumer {
             if (routing.hasLocations() && routing.locations().size() > 1) {
                 return null;
             }
-            GroupByConsumer.validateGroupBySymbols(table.querySpec().groupBy().get());
+            GroupByConsumer.validateGroupBySymbols(table.querySpec().groupBy());
             return nonDistributedGroupBy(table, context, RowGranularity.SHARD);
         }
 
         @Override
         public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            if (!table.querySpec().groupBy().isPresent()) {
+            if (table.querySpec().groupBy().isEmpty()) {
                 return null;
             }
             return nonDistributedGroupBy(table, context, RowGranularity.CLUSTER);
@@ -121,7 +120,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                                            RowGranularity groupProjectionGranularity) {
             Planner.Context plannerContext = context.plannerContext();
             QuerySpec querySpec = table.querySpec();
-            List<Symbol> groupKeys = querySpec.groupBy().get();
+            List<Symbol> groupKeys = querySpec.groupBy();
 
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
@@ -158,16 +157,15 @@ class NonDistributedGroupByConsumer implements Consumer {
                 RowGranularity.CLUSTER
             ));
 
-            Optional<HavingClause> havingClause = querySpec.having();
-            if (havingClause.isPresent()) {
-                HavingClause having = havingClause.get();
-                mergeProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
+            HavingClause havingClause = querySpec.having();
+            if (havingClause != null) {
+                mergeProjections.add(ProjectionBuilder.filterProjection(collectOutputs, havingClause));
             }
             Limits limits = plannerContext.getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
             mergeProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
-                querySpec.orderBy().orElse(null),
+                querySpec.orderBy(),
                 limits.offset(),
                 limits.finalLimit(),
                 qsOutputs

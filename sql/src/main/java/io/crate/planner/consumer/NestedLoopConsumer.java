@@ -114,7 +114,7 @@ class NestedLoopConsumer implements Consumer {
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
             Limits limits = context.plannerContext().getLimits(querySpec);
 
-            if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
+            if (!filterNeeded && joinCondition == null && querySpec.limit() != null) {
                 context.requiredPageSize(limits.limitAndOffset());
             }
 
@@ -191,7 +191,7 @@ class NestedLoopConsumer implements Consumer {
             }
 
 
-            OrderBy orderBy = querySpec.orderBy().orElse(null);
+            OrderBy orderBy = querySpec.orderBy();
             final List<Symbol> postNLOutputs;
             if (orderBy != null && isDistributed) {
                 // orderBy outputs are required to merge the result
@@ -305,7 +305,7 @@ class NestedLoopConsumer implements Consumer {
             resultDescription.streamOutputs(),
             projections,
             DistributionInfo.DEFAULT_SAME_NODE,
-            PositionalOrderBy.of(relation.querySpec().orderBy().orElse(null), relation.querySpec().outputs())
+            PositionalOrderBy.of(relation.querySpec().orderBy(), relation.querySpec().outputs())
         );
     }
 }
