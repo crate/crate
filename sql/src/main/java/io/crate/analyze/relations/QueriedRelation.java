@@ -21,9 +21,69 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Symbol;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public interface QueriedRelation extends AnalyzedRelation {
 
+    /**
+     * The long-/midterm goal is to deprecate the QuerySpec;
+     *
+     * The other properties should be used instead.
+     */
     QuerySpec querySpec();
+
+    /**
+     * @return The outputs of the relation
+     */
+    default List<Symbol> outputs() {
+        return querySpec().outputs();
+    }
+
+    /**
+     * @return WHERE clause of the relation.
+     *         This is {@link WhereClause#MATCH_ALL} if there was no WhereClause in the statement
+     */
+    default WhereClause where() {
+        return querySpec().where();
+    }
+
+    /**
+     * @return The GROUP BY keys. Empty if there are none.
+     */
+    default List<Symbol> groupBy() {
+        return querySpec().groupBy();
+    }
+
+    /**
+     * @return The HAVING clause or null
+     */
+    @Nullable
+    default HavingClause having() {
+        return querySpec().having();
+    }
+
+    /**
+     * @return ORDER BY clause or null if not present
+     */
+    @Nullable
+    default OrderBy orderBy() {
+        return querySpec().orderBy();
+    }
+
+    @Nullable
+    default Symbol limit() {
+        return querySpec().limit();
+    }
+
+    @Nullable
+    default Symbol offset() {
+        return querySpec().offset();
+    }
 }
