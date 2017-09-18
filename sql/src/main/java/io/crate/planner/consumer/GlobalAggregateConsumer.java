@@ -31,14 +31,9 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
@@ -51,6 +46,7 @@ import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
@@ -65,7 +61,6 @@ import java.util.List;
 
 class GlobalAggregateConsumer implements Consumer {
 
-    private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
     private final RelationPlanningVisitor visitor;
 
     GlobalAggregateConsumer(ProjectionBuilder projectionBuilder) {
@@ -209,15 +204,7 @@ class GlobalAggregateConsumer implements Consumer {
     }
 
     private static void validateAggregationOutputs(Collection<? extends Symbol> outputSymbols) {
-        OutputValidatorContext context = new OutputValidatorContext();
-        for (Symbol outputSymbol : outputSymbols) {
-            context.insideAggregation = false;
-            AGGREGATION_OUTPUT_VALIDATOR.process(outputSymbol, context);
-        }
-    }
-
-    private static class OutputValidatorContext {
-        private boolean insideAggregation = false;
+        HashAggregate.AggregationOutputValidator.validateOutputs(outputSymbols);
     }
 
     private static class Visitor extends RelationPlanningVisitor {
@@ -261,45 +248,6 @@ class GlobalAggregateConsumer implements Consumer {
                 plannerContext,
                 subPlan
             );
-        }
-    }
-
-    private static class AggregationOutputValidator extends SymbolVisitor<OutputValidatorContext, Void> {
-
-        @Override
-        public Void visitFunction(Function symbol, OutputValidatorContext context) {
-            context.insideAggregation =
-                context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
-            }
-            context.insideAggregation = false;
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, OutputValidatorContext context) {
-            if (context.insideAggregation) {
-                Reference.IndexType indexType = symbol.indexType();
-                if (indexType == Reference.IndexType.ANALYZED) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                        "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
-                } else if (indexType == Reference.IndexType.NO) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                        "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitField(Field field, OutputValidatorContext context) {
-            throw new UnsupportedOperationException("Field must already have been resolved to Reference");
-        }
-
-        @Override
-        protected Void visitSymbol(Symbol symbol, OutputValidatorContext context) {
-            return null;
         }
     }
 }

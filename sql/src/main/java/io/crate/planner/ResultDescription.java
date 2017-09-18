@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.fetch.FetchRewriter;
 import io.crate.types.DataType;
 
@@ -88,5 +89,9 @@ public interface ResultDescription {
 
     default FetchRewriter.FetchDescription fetchDescription() {
         return null;
+    }
+
+    default boolean hasUnAppliedLimit() {
+        return limit() != TopN.NO_LIMIT || offset() != 0;
     }
 }
