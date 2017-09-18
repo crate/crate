@@ -108,7 +108,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
             symbol = Literal.of(INFO.returnType(), currentTimeMillis);
         } else {
             Symbol precision = function.arguments().get(0);
-            if (precision.symbolType().isValueSymbol()) {
+            if (precision instanceof Input) {
                 symbol = Literal.of(INFO.returnType(),
                     applyPrecision(currentTimeMillis, (Integer) ((Input) precision).value()));
             } else {

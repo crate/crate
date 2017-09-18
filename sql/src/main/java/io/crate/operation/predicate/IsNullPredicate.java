@@ -72,7 +72,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
         Symbol arg = symbol.arguments().get(0);
         if (arg.equals(Literal.NULL) || arg.valueType().equals(DataTypes.UNDEFINED)) {
             return Literal.of(true);
-        } else if (arg.symbolType().isValueSymbol()) {
+        } else if (arg instanceof Input) {
             return Literal.of(((Input) arg).value() == null);
         }
         return symbol;

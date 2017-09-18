@@ -63,7 +63,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                 // only non-literals should be replaced with input columns.
                 // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
                 // results in poor performance of some scalar implementations
-                if (!input.symbolType().isValueSymbol()) {
+                if (!input.isValue()) {
                     DataType valueType = input.valueType();
                     if (input.symbolType() == SymbolType.FUNCTION
                         && !((Function) input).info().isDeterministic()) {

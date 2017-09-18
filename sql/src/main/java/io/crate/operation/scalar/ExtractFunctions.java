@@ -143,7 +143,7 @@ public class ExtractFunctions {
         @Override
         public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
             Symbol arg1 = symbol.arguments().get(0);
-            if (arg1.symbolType().isValueSymbol()) {
+            if (arg1.isValue()) {
                 String field = ValueSymbolVisitor.STRING.process(arg1);
 
                 Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));

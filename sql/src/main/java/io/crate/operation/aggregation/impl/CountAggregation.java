@@ -109,7 +109,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
 
         if (function.arguments().size() == 1) {
-            if (function.arguments().get(0).symbolType().isValueSymbol()) {
+            if (function.arguments().get(0).isValue()) {
                 if (ValueSymbolVisitor.VALUE.process(function.arguments().get(0)) == null) {
                     return Literal.of(0L);
                 } else {

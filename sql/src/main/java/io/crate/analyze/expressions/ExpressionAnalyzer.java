@@ -292,7 +292,7 @@ public class ExpressionAnalyzer {
     }
 
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
-        if (sourceSymbol.symbolType().isValueSymbol()) {
+        if (sourceSymbol.isValue()) {
             return Literal.convert(sourceSymbol, targetType);
         }
         return CastFunctionResolver.generateCastFunction(sourceSymbol, targetType, tryCast);

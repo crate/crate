@@ -39,7 +39,7 @@ public abstract class QueryClause {
         if (normalizedQuery == null) {
             return;
         }
-        if (normalizedQuery.symbolType().isValueSymbol()) {
+        if (normalizedQuery.isValue()) {
             noMatch = !canMatch(normalizedQuery);
         } else {
             query = normalizedQuery;
@@ -47,7 +47,7 @@ public abstract class QueryClause {
     }
 
     public static boolean canMatch(Symbol query) {
-        if (query.symbolType().isValueSymbol()) {
+        if (query.isValue()) {
             Object value = ((Input) query).value();
             if (value == null) {
                 return false;

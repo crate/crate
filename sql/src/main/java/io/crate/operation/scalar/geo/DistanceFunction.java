@@ -122,7 +122,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         boolean literalConverted = false;
         short numLiterals = 0;
 
-        if (arg1.symbolType().isValueSymbol()) {
+        if (arg1.isValue()) {
             numLiterals++;
             arg1IsReference = false;
             if (!arg1Type.equals(DataTypes.GEO_POINT)) {
@@ -133,7 +133,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
             validateType(arg1, arg1Type);
         }
 
-        if (arg2.symbolType().isValueSymbol()) {
+        if (arg2.isValue()) {
             numLiterals++;
             if (!arg2Type.equals(DataTypes.GEO_POINT)) {
                 literalConverted = true;

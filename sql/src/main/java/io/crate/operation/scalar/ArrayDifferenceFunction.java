@@ -75,7 +75,7 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
     public Scalar<Object[], Object> compile(List<Symbol> arguments) {
         Symbol symbol = arguments.get(1);
 
-        if (!symbol.symbolType().isValueSymbol()) {
+        if (!(symbol instanceof Input)) {
             // arguments are no values, we can't compile
             return this;
         }

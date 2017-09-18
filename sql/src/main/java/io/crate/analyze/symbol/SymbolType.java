@@ -65,8 +65,4 @@ public enum SymbolType {
     public Symbol newInstance(StreamInput in) throws IOException {
         return reader.read(in);
     }
-
-    public boolean isValueSymbol() {
-        return ordinal() == LITERAL.ordinal();
-    }
 }

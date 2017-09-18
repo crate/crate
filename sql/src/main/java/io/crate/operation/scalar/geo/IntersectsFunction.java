@@ -102,14 +102,14 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         int numLiterals = 0;
         boolean literalConverted = false;
 
-        if (left.symbolType().isValueSymbol()) {
+        if (left.isValue()) {
             numLiterals++;
             Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) left);
             literalConverted = converted != right;
             left = converted;
         }
 
-        if (right.symbolType().isValueSymbol()) {
+        if (right.isValue()) {
             numLiterals++;
             Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) right);
             literalConverted = literalConverted || converted != right;

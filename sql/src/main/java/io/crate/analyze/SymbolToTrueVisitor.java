@@ -77,7 +77,7 @@ public class SymbolToTrueVisitor extends SymbolVisitor<Void, Symbol> {
         for (Symbol arg : symbol.arguments()) {
             Symbol processedArg = process(arg, context);
             newArgs.add(processedArg);
-            if (!processedArg.symbolType().isValueSymbol()) {
+            if (!processedArg.isValue()) {
                 allLiterals = false;
             }
             if (processedArg.valueType().id() == DataTypes.UNDEFINED.id()) {

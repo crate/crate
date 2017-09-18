@@ -260,4 +260,9 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     public String representation() {
         return stringRepresentation(value);
     }
+
+    @Override
+    public boolean isValue() {
+        return true;
+    }
 }

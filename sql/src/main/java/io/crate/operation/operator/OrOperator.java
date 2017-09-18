@@ -30,7 +30,7 @@ public class OrOperator extends Operator<Boolean> {
         Symbol left = function.arguments().get(0);
         Symbol right = function.arguments().get(1);
 
-        if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
+        if (left instanceof Input && right instanceof Input) {
             return Literal.of(evaluate((Input) left, (Input) right));
         }
 
