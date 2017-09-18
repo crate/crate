@@ -38,9 +38,11 @@ Breaking Changes
 Changes
 =======
 
- - Multiple updates in the Admin UI including showing the generation
-   expression for generated columns in the Table view and adding the row count
-   number to the query status in the Console view.
+ - Show generation expression for generated columns in Tables view in the
+   Admin UI.
+
+ - Added the row count number to the query status in the Console view of
+   the Admin UI.
 
  - Allow IPv6 addresses in IP column type.
 
