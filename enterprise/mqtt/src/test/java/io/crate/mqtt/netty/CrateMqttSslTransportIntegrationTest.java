@@ -127,9 +127,18 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
     }
 
     @After
-    public void disconnectAndCloseMqttClient() throws MqttException {
-        client.disconnect();
-        client.close();
+    public void disconnectAndCloseMqttClient() {
+        try {
+            client.disconnect();
+        } catch (MqttException e) {
+            // client might've already been disconnected so we shouldn't propagate this
+        }
+
+        try {
+            client.close();
+        } catch (MqttException e) {
+            logger.warn("Exception trying to close the mqtt client.", e.getMessage());
+        }
     }
 
     @Test
