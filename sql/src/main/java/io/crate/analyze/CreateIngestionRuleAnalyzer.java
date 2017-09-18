@@ -15,7 +15,7 @@ public class CreateIngestionRuleAnalyzer {
     }
 
     CreateIngestionRuleAnalysedStatement analyze(CreateIngestRule node, Analysis context) {
-        TableIdent tableIdent = TableIdent.of(node.targetTable(), Schemas.DOC_SCHEMA_NAME);
+        TableIdent tableIdent = TableIdent.of(node.targetTable(), context.sessionContext().defaultSchema());
         ensureTableExists(tableIdent);
 
         return new CreateIngestionRuleAnalysedStatement(node.ruleName(),
