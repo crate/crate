@@ -38,6 +38,10 @@ Breaking Changes
 Changes
 =======
 
+ - Multiple updates in the Admin UI including showing the generation
+   expression for generated columns in the Table view and adding the row count
+   number to the query status in the Console view.
+
  - Allow IPv6 addresses in IP column type.
 
  - Upgraded Elasticsearch to v5.5.2.
