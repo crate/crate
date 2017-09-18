@@ -38,6 +38,14 @@ Breaking Changes
 Changes
 =======
 
+ - Added Shards plugin for the Enterprise Edition in the Admin UI. The shard
+   plugin is a visualization that displays information about shards by table,
+   partition and node.
+
+ - Added query table button to Tables view in the Admin UI.
+
+ - Implemented share query feature in the Console of the Admin UI.
+
  - Show generation expression for generated columns in Tables view in the
    Admin UI.
 
