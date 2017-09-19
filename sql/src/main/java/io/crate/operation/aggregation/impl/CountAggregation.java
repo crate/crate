@@ -183,6 +183,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         }
 
         @Override
+        public Precedence precedence() {
+            return Precedence.Custom;
+        }
+
+        @Override
         public String getName() {
             return "long_state";
         }

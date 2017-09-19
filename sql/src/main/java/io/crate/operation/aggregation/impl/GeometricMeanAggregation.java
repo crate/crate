@@ -127,6 +127,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         }
 
         @Override
+        public Precedence precedence() {
+            return Precedence.UndefinedType;
+        }
+
+        @Override
         public String getName() {
             return "geometric_mean_state";
         }

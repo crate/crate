@@ -28,7 +28,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import io.crate.types.SingleColumnTableType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -201,7 +200,6 @@ public class Signature {
 
         ArgMatcher ANY_ARRAY = of(dt -> dt instanceof ArrayType);
         ArgMatcher ANY_SET = of(dt -> dt instanceof SetType);
-        ArgMatcher ANY_SINGLE_COLUMN = of(dt -> dt instanceof SingleColumnTableType);
         ArgMatcher ANY_COLLECTION = of(dt -> dt instanceof CollectionType);
 
         ArgMatcher STRING = rewriteTo(DataTypes.STRING);

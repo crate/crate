@@ -1663,7 +1663,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into t (b, i) values (true, 1), (false, 2), (null, null)");
         execute("refresh table t");
 
-        execute("select b, not b, not (b > i) from t order by b");
+        execute("select b, not b, not (b > i::boolean) from t order by b");
         Object[][] rows = response.rows();
         assertThat((Boolean) rows[0][0], is(false));
         assertThat((Boolean) rows[0][1], is(true));
@@ -1678,7 +1678,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select b, i from t where not b");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select b, i from t where not b > i");
+        execute("select b, i from t where not b > i::boolean");
         assertThat(response.rowCount(), is(2L));
 
         execute("SELECt b, i FROM t WHERE NOT (i = 1 AND b = TRUE)");

@@ -79,7 +79,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGatherRewriteCandidatesTwo() throws Exception {
-        Symbol query = asSymbol("a in (select 'foo') and a = 'foo' and x not in (select 1)");
+        Symbol query = asSymbol("a in (select 'foo') and a = 'foo' and x not in (select 1::integer)");
         List<SemiJoins.Candidate> candidates = SemiJoins.gatherRewriteCandidates(query);
         assertThat(candidates.size(), is(2));
 
@@ -160,8 +160,8 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
     public void testWriteWithMultipleInClauses() throws Exception {
         SelectAnalyzedStatement stmt = executor.analyze("select * from t1 " +
                                                         "where " +
-                                                        "   x in (select * from unnest([1, 2])) " +
-                                                        "   and x not in (select 1)");
+                                                        "   x in (select col1::integer from unnest([1, 2])) " +
+                                                        "   and x not in (select 1::integer)");
         QueriedRelation rel = stmt.relation();
         QueriedRelation semiJoins = this.semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
 

@@ -48,6 +48,11 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.GeoShapeType;
+    }
+
+    @Override
     public String getName() {
         return "geo_shape";
     }

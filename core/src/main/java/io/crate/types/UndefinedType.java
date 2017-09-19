@@ -38,7 +38,12 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
 
     @Override
     public int id() {
-        return 0;
+        return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.UndefinedType;
     }
 
     @Override

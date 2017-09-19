@@ -53,6 +53,11 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.Custom;
+    }
+
+    @Override
     public String getName() {
         return "percentile_state";
     }

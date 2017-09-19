@@ -42,6 +42,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.DoubleType;
+    }
+
+    @Override
     public String getName() {
         return "double";
     }

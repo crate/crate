@@ -146,7 +146,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
             2.2d, 9});
         execute("refresh table t");
 
-        execute("select i from t where round(d) = i order by i");
+        execute("select i from t where round(d)::integer = i order by i");
         assertThat(response.rowCount(), is(2L));
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Integer) response.rows()[1][0], is(2));

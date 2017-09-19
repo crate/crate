@@ -53,6 +53,11 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.GeoPointType;
+    }
+
+    @Override
     public String getName() {
         return "geo_point";
     }
