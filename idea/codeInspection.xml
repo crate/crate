@@ -3,5 +3,6 @@
     <option name="myName" value="Project Default"/>
     <inspection_tool class="ForCanBeForeach" enabled_by_default="false"/>
     <inspection_tool class="PointlessBooleanExpression" enabled_by_default="false"/>
+    <inspection_tool class="OptionalUsedAsFieldOrParameterType" enabled_by_default="false"/>
   </profile>
 </component>
