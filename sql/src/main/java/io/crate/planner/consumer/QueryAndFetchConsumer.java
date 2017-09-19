@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.QuerySpec;
@@ -32,14 +31,10 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.collections.Lists2;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
@@ -100,18 +95,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 return planFetch(fetchDescription, plannerContext, subPlan);
             }
             return new PlanWithFetchDescription(subPlan, fetchDescription);
-        }
-
-        @Override
-        public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            QuerySpec querySpec = table.querySpec();
-            if (!isSimpleSelect(querySpec, context)) {
-                return null;
-            }
-            if (querySpec.where().hasQuery()) {
-                NoPredicateVisitor.ensureNoMatchPredicate(querySpec.where().query());
-            }
-            return normalSelect(table, context);
         }
 
         @Override
@@ -375,28 +358,5 @@ public class QueryAndFetchConsumer implements Consumer {
             return qsOutputs;
         }
         return Lists2.concatUnique(qsOutputs, orderBy.orderBySymbols());
-    }
-
-    private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
-
-        private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
-
-        private NoPredicateVisitor() {
-        }
-
-        static void ensureNoMatchPredicate(Symbol symbolTree) {
-            NO_PREDICATE_VISITOR.process(symbolTree, null);
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, Void context) {
-            if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
-                throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
-            }
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
-            }
-            return null;
-        }
     }
 }

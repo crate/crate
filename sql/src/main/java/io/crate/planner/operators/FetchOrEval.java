@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.EvalProjection;
@@ -38,8 +39,8 @@ import java.util.Set;
 class FetchOrEval implements LogicalPlan {
 
     final LogicalPlan source;
-    private final Set<Symbol> usedColumns;
     final List<Symbol> outputs;
+    private final Set<Symbol> usedColumns;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, List<Symbol> outputs) {
         return usedColumns -> new FetchOrEval(source.build(Collections.emptySet()), usedColumns, outputs);
@@ -60,6 +61,9 @@ class FetchOrEval implements LogicalPlan {
 
         Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order);
         if (!source.outputs().equals(outputs)) {
+            if (plan.resultDescription().orderBy() != null) {
+                plan = Merge.ensureOnHandler(plan, plannerContext);
+            }
             InputColumns.Context ctx = new InputColumns.Context(source.outputs());
             plan.addProjection(new EvalProjection(InputColumns.create(outputs, ctx)));
         }
