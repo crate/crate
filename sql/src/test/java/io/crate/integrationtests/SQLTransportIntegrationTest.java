@@ -105,6 +105,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
@@ -323,7 +324,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             }
 
             SQLResponse resp = sqlExecutor.exec(statement, session);
-            assertThat(resp, matcher);
+            assertThat(
+                "The query:\n\t" + statement + "\nwith session statements: [" + setSessionStatements
+                    .stream()
+                    .collect(Collectors.joining(", ")) + "] must produce correct result",
+                resp,
+                matcher);
         }
     }
 
