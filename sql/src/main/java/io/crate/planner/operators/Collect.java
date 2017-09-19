@@ -26,16 +26,21 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -62,8 +67,40 @@ class Collect implements LogicalPlan {
                       int limit,
                       int offset,
                       @Nullable OrderBy order) {
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, order);
+        collectPhase.orderBy(order);
+        return new io.crate.planner.node.dql.Collect(
+            collectPhase,
+            limit,
+            offset,
+            toCollect.size(),
+            limit,
+            PositionalOrderBy.of(order, toCollect)
+        );
+    }
+
+    private RoutedCollectPhase createPhase(Planner.Context plannerContext, @Nullable OrderBy order) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
-        RoutedCollectPhase collectPhase = new RoutedCollectPhase(
+        if (relation.tableRelation() instanceof TableFunctionRelation) {
+            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();
+            List<Symbol> args = tableFunctionRelation.function().arguments();
+            ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
+            for (Symbol arg : args) {
+                // It's not possible to use columns as argument to a table function and subqueries are currently not allowed either.
+                functionArguments.add((Literal) plannerContext.normalizer().normalize(arg, plannerContext.transactionContext()));
+            }
+            return new TableFunctionCollectPhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
+                tableFunctionRelation.functionImplementation(),
+                functionArguments,
+                Collections.emptyList(),
+                toCollect,
+                where
+            );
+        }
+        return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             COLLECT_PHASE_NAME,
@@ -79,15 +116,6 @@ class Collect implements LogicalPlan {
             DistributionInfo.DEFAULT_BROADCAST,
             sessionContext.user()
         );
-        collectPhase.orderBy(order);
-        return new io.crate.planner.node.dql.Collect(
-            collectPhase,
-            limit,
-            offset,
-            toCollect.size(),
-            limit,
-            PositionalOrderBy.of(order, toCollect)
-        );
     }
 
     @Override
@@ -98,5 +126,10 @@ class Collect implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return toCollect;
+    }
+
+    @Override
+    public RowGranularity dataGranularity() {
+        return tableInfo.rowGranularity();
     }
 }

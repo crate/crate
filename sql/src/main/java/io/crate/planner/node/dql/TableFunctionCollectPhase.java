@@ -42,14 +42,14 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
     private final TableFunctionImplementation functionImplementation;
     private final List<Literal<?>> functionArguments;
 
-    TableFunctionCollectPhase(UUID jobId,
-                              int phaseId,
-                              Routing routing,
-                              TableFunctionImplementation functionImplementation,
-                              List<Literal<?>> functionArguments,
-                              List<Projection> projections,
-                              List<Symbol> outputs,
-                              WhereClause whereClause) {
+    public TableFunctionCollectPhase(UUID jobId,
+                                     int phaseId,
+                                     Routing routing,
+                                     TableFunctionImplementation functionImplementation,
+                                     List<Literal<?>> functionArguments,
+                                     List<Projection> projections,
+                                     List<Symbol> outputs,
+                                     WhereClause whereClause) {
         super(jobId,
             phaseId,
             functionImplementation.info().ident().name(),

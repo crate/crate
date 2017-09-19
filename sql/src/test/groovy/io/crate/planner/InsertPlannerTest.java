@@ -35,6 +35,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FilterProjection;
@@ -217,11 +218,12 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge globalAggregate = e.plan(
             "insert into users (name, id) (select arbitrary(name), count(*) from users)");
         MergePhase mergePhase = globalAggregate.mergePhase();
-        assertThat(mergePhase.projections().size(), is(3));
-        assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
-
-        assertThat(mergePhase.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
+        assertThat(mergePhase.projections(), contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)
+        ));
+        assertThat(mergePhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
 
         assertThat(projection.columnReferences().size(), is(2));
         assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("name"));
