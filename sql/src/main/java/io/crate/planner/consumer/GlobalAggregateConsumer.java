@@ -21,19 +21,14 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
@@ -43,10 +38,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
@@ -159,74 +151,12 @@ class GlobalAggregateConsumer implements Consumer {
             plan, mergePhase, TopN.NO_LIMIT, 0, lastProjection.outputs().size(), 1, null);
     }
 
-    /**
-     * Create a Merge(Collect) plan.
-     *
-     * iter->partial aggregations on use {@code projectionGranularity} granularity
-     */
-    private static Plan globalAggregates(ProjectionBuilder projectionBuilder,
-                                         QueriedTableRelation table,
-                                         ConsumerContext context,
-                                         RowGranularity projectionGranularity) {
-        QuerySpec querySpec = table.querySpec();
-        if (!querySpec.groupBy().isEmpty() || !querySpec.hasAggregates()) {
-            return null;
-        }
-        // global aggregate: collect and partial aggregate on C and final agg on H
-        Planner.Context plannerContext = context.plannerContext();
-        validateAggregationOutputs(querySpec.outputs());
-        SplitPoints splitPoints = SplitPoints.create(querySpec);
-
-        AggregationProjection ap = projectionBuilder.aggregationProjection(
-            splitPoints.toCollect(),
-            splitPoints.aggregates(),
-            AggregateMode.ITER_PARTIAL,
-            projectionGranularity
-        );
-        RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-            plannerContext,
-            table,
-            splitPoints.toCollect(),
-            ImmutableList.of(ap)
-        );
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, ap.outputs().size(), 1, null);
-
-        AggregationProjection aggregationProjection = projectionBuilder.aggregationProjection(
-            splitPoints.aggregates(),
-            splitPoints.aggregates(),
-            AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER);
-        List<Projection> postAggregationProjections =
-            createPostAggregationProjections(querySpec, splitPoints.aggregates(), plannerContext);
-        postAggregationProjections.add(0, aggregationProjection);
-
-        return createMerge(collect, plannerContext, postAggregationProjections);
-    }
-
-    private static void validateAggregationOutputs(Collection<? extends Symbol> outputSymbols) {
-        HashAggregate.AggregationOutputValidator.validateOutputs(outputSymbols);
-    }
-
     private static class Visitor extends RelationPlanningVisitor {
 
         private final ProjectionBuilder projectionBuilder;
 
         public Visitor(ProjectionBuilder projectionBuilder) {
             this.projectionBuilder = projectionBuilder;
-        }
-
-        @Override
-        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (table.querySpec().where().hasVersions()) {
-                context.validationException(new VersionInvalidException());
-                return null;
-            }
-            return globalAggregates(projectionBuilder, table, context, RowGranularity.SHARD);
-        }
-
-        @Override
-        public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            return globalAggregates(projectionBuilder, table, context, RowGranularity.CLUSTER);
         }
 
         @Override
