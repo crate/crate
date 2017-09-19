@@ -162,7 +162,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 }
                 idx++;
             }
-            assert input != null : "input must not be null";
+            assert input != null
+                : "FetchReference " + fetchReference.ref() + " must be present in fetchRefs: " + fs.references();
             return input;
         }
 

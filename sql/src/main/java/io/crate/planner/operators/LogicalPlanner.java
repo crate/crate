@@ -31,9 +31,11 @@ import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,8 +50,10 @@ public class LogicalPlanner {
 
     public Plan plan(QueriedRelation queriedRelation,
                      Planner.Context plannerContext,
-                     ProjectionBuilder projectionBuilder) {
-        LogicalPlan logicalPlan = plan(queriedRelation)
+                     ProjectionBuilder projectionBuilder,
+                     FetchMode fetchMode,
+                     @Nullable Integer pageSizeHint) {
+        LogicalPlan logicalPlan = plan(queriedRelation, fetchMode)
             .build(extractColumns(queriedRelation.querySpec().outputs()))
             .tryCollapse();
 
@@ -58,11 +62,12 @@ public class LogicalPlanner {
             projectionBuilder,
             LogicalPlanner.NO_LIMIT,
             0,
-            null
+            null,
+            pageSizeHint
         );
     }
 
-    static LogicalPlan.Builder plan(QueriedRelation relation) {
+    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode) {
         SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
         return FetchOrEval.create(
             Limit.create(
@@ -83,7 +88,8 @@ public class LogicalPlanner {
                 relation.limit(),
                 relation.offset()
             ),
-            relation.querySpec().outputs()
+            relation.querySpec().outputs(),
+            fetchMode
         );
     }
 

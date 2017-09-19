@@ -26,6 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -67,11 +68,12 @@ class Limit implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limitHint,
                       int offsetHint,
-                      @Nullable OrderBy order) {
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
         int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
 
-        Plan plan = source.build(plannerContext, projectionBuilder, limit + offset, 0, order);
+        Plan plan = source.build(plannerContext, projectionBuilder, limit + offset, 0, order, pageSizeHint);
         List<Symbol> inputCols = InputColumn.fromSymbols(source.outputs());
         ResultDescription resultDescription = plan.resultDescription();
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
@@ -96,5 +98,19 @@ class Limit implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return source.outputs();
+    }
+
+    @Override
+    public List<TableInfo> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
+    public String toString() {
+        return "Limit{" +
+               "source=" + source +
+               ", limit=" + limit +
+               ", offset=" + offset +
+               '}';
     }
 }

@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -64,9 +65,10 @@ public class HashAggregate implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limit,
                       int offset,
-                      @Nullable OrderBy order) {
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
         AggregationOutputValidator.validateOutputs(aggregates);
-        Plan plan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null);
+        Plan plan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null);
 
         if (plan.resultDescription().hasRemainingLimitOrOffset()) {
             plan = Merge.ensureOnHandler(plan, plannerContext);
@@ -138,6 +140,11 @@ public class HashAggregate implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return new ArrayList<>(aggregates);
+    }
+
+    @Override
+    public List<TableInfo> baseTables() {
+        return source.baseTables();
     }
 
     private static class OutputValidatorContext {
