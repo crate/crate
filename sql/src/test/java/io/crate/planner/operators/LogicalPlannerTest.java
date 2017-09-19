@@ -58,6 +58,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testAggregationOnTableFunction() throws Exception {
+        LogicalPlan plan = plan("select max(col1) from unnest([1, 2, 3])");
+        assertThat(plan, isPlan("FetchOrEval[max(col1)] -> \n" +
+                                "Aggregate[max(col1)] -> \n" +
+                                "Collect[.unnest | [col1] | All]\n"));
+    }
+
+    @Test
     public void testSimpleSelectQAFAndLimit() throws Exception {
         LogicalPlan plan = plan("select a from t1 order by a limit 10 offset 5");
         assertThat(plan, isPlan("FetchOrEval[a] -> \n" +

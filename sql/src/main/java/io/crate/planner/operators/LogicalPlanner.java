@@ -29,10 +29,8 @@ import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
@@ -55,15 +53,13 @@ public class LogicalPlanner {
             .build(extractColumns(queriedRelation.querySpec().outputs()))
             .tryCollapse();
 
-        Plan plan = logicalPlan.build(
+        return logicalPlan.build(
             plannerContext,
             projectionBuilder,
             LogicalPlanner.NO_LIMIT,
             0,
             null
         );
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
-        return MultiPhasePlan.createIfNeeded(plan, subqueryPlanner.planSubQueries(queriedRelation.querySpec()));
     }
 
     static LogicalPlan.Builder plan(QueriedRelation relation) {

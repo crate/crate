@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -114,4 +115,8 @@ public interface LogicalPlan {
     LogicalPlan tryCollapse();
 
     List<Symbol> outputs();
+
+    default RowGranularity dataGranularity() {
+        return RowGranularity.DOC;
+    }
 }

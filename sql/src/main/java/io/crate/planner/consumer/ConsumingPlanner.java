@@ -32,6 +32,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -45,11 +46,13 @@ public class ConsumingPlanner {
 
     private final List<Consumer> consumers = new ArrayList<>();
     private final OptimizingRewriter optimizer;
+    private final Functions functions;
 
     public ConsumingPlanner(ClusterService clusterService,
                             Functions functions,
                             TableStats tableStats) {
         optimizer = new OptimizingRewriter(functions);
+        this.functions = functions;
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
         consumers.add(new NonDistributedGroupByConsumer(projectionBuilder));
         consumers.add(new ReduceOnCollectorGroupByConsumer(projectionBuilder));
@@ -83,6 +86,14 @@ public class ConsumingPlanner {
         ValidationException validationException = consumerContext.validationException();
         if (validationException != null) {
             throw validationException;
+        }
+        if (relation instanceof QueriedRelation) {
+            LogicalPlanner logicalPlanner = new LogicalPlanner();
+            Planner.Context context = consumerContext.plannerContext();
+            return MultiPhasePlan.createIfNeeded(
+                logicalPlanner.plan(((QueriedRelation) relation), context, new ProjectionBuilder(functions)),
+                subQueries
+            );
         }
         return null;
     }
