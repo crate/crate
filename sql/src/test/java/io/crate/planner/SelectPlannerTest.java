@@ -209,7 +209,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         List<Projection> projections = collectPhase.projections();
         assertThat(projections, contains(
-            instanceOf(TopNProjection.class),
             instanceOf(TopNProjection.class)
         ));
     }

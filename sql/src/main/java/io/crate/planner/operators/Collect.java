@@ -27,10 +27,15 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
@@ -58,6 +63,9 @@ class Collect implements LogicalPlan {
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
+        if (where.hasQuery() && !(tableInfo instanceof DocTableInfo)) {
+            NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+        }
         this.toCollect = toCollect;
     }
 
@@ -67,7 +75,7 @@ class Collect implements LogicalPlan {
                       int limit,
                       int offset,
                       @Nullable OrderBy order) {
-        RoutedCollectPhase collectPhase = createPhase(plannerContext, order);
+        RoutedCollectPhase collectPhase = createPhase(plannerContext);
         collectPhase.orderBy(order);
         return new io.crate.planner.node.dql.Collect(
             collectPhase,
@@ -79,7 +87,7 @@ class Collect implements LogicalPlan {
         );
     }
 
-    private RoutedCollectPhase createPhase(Planner.Context plannerContext, @Nullable OrderBy order) {
+    private RoutedCollectPhase createPhase(Planner.Context plannerContext) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();
@@ -131,5 +139,29 @@ class Collect implements LogicalPlan {
     @Override
     public RowGranularity dataGranularity() {
         return tableInfo.rowGranularity();
+    }
+
+
+    private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
+
+        private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
+
+        private NoPredicateVisitor() {
+        }
+
+        static void ensureNoMatchPredicate(Symbol symbolTree) {
+            NO_PREDICATE_VISITOR.process(symbolTree, null);
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, Void context) {
+            if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
+                throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
+            }
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            return null;
+        }
     }
 }
