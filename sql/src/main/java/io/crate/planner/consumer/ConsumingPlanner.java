@@ -91,7 +91,13 @@ public class ConsumingPlanner {
             LogicalPlanner logicalPlanner = new LogicalPlanner();
             Planner.Context context = consumerContext.plannerContext();
             return MultiPhasePlan.createIfNeeded(
-                logicalPlanner.plan(((QueriedRelation) relation), context, new ProjectionBuilder(functions)),
+                logicalPlanner.plan(
+                    ((QueriedRelation) relation),
+                    context,
+                    new ProjectionBuilder(functions),
+                    consumerContext.fetchMode(),
+                    consumerContext.requiredPageSize()
+                ),
                 subQueries
             );
         }

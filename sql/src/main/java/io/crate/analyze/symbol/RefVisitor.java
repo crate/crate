@@ -42,4 +42,10 @@ public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? s
         consumer.accept(ref);
         return null;
     }
+
+    @Override
+    public Void visitDynamicReference(DynamicReference ref, Consumer<? super Reference> consumer) {
+        consumer.accept(ref);
+        return null;
+    }
 }

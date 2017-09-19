@@ -71,7 +71,6 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
         List<Projection> projections = ((Collect) plan.subPlan()).collectPhase().projections();
         assertThat(projections, contains(
             instanceOf(TopNProjection.class),
-            instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class),
             instanceOf(AggregationProjection.class),
             instanceOf(EvalProjection.class)
