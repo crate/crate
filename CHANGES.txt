@@ -38,16 +38,14 @@ Breaking Changes
 Changes
 =======
 
- - Updated Admin UI to ``1.6.0`` which includes the following changes:
+ - Added Shards plugin for the Enterprise Edition in the Admin UI. The shard
+   plugin is a visualization that displays information about shards by table,
+   partition and node.
 
-   - Added Shards plugin for the Enterprise Edition in the Admin UI. The shard
-     plugin is a visualization that displays information about shards by table,
-     partition and node.
+ - Added new tab in Enterprise Edition of the Admin UI to display users and
+   their privileges.
 
-   - Added new tab in Enterprise Edition of the Admin UI to display users and
-     their privileges.
-
-   - General Admin UI Improvements.
+ - General Admin UI Improvements.
 
  - Updated Crash to ``0.22.1`` which includes the following changes:
 
