@@ -26,6 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.FilterProjection;
@@ -69,8 +70,9 @@ class Filter implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limit,
                       int offset,
-                      OrderBy order) {
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order);
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
+        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), queryClause);
         plan.addProjection(filterProjection);
         return plan;
@@ -84,5 +86,10 @@ class Filter implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return source.outputs();
+    }
+
+    @Override
+    public List<TableInfo> baseTables() {
+        return source.baseTables();
     }
 }

@@ -63,7 +63,8 @@ public class Count implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limit,
                       int offset,
-                      @Nullable OrderBy order) {
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
 
         Routing routing = plannerContext.allocateRouting(
             tableInfo, where, null, plannerContext.transactionContext().sessionContext());
@@ -95,5 +96,10 @@ public class Count implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    @Override
+    public List<TableInfo> baseTables() {
+        return Collections.singletonList(tableInfo);
     }
 }

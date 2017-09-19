@@ -27,6 +27,7 @@ import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.FeatureMatcher;
@@ -52,7 +53,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan plan(String statement) {
         SelectAnalyzedStatement analyzedStatement = sqlExecutor.analyze(statement);
         QueriedRelation relation = analyzedStatement.relation();
-        return LogicalPlanner.plan(relation)
+        return LogicalPlanner.plan(relation, FetchMode.WITH_PROPAGATION)
             .build(LogicalPlanner.extractColumns(relation.querySpec().outputs()))
             .tryCollapse();
     }
@@ -60,16 +61,29 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAggregationOnTableFunction() throws Exception {
         LogicalPlan plan = plan("select max(col1) from unnest([1, 2, 3])");
-        assertThat(plan, isPlan("FetchOrEval[max(col1)] -> \n" +
-                                "Aggregate[max(col1)] -> \n" +
+        assertThat(plan, isPlan("Aggregate[max(col1)] -> \n" +
                                 "Collect[.unnest | [col1] | All]\n"));
+    }
+
+    @Test
+    public void testQTFWithOrderBy() throws Exception {
+        LogicalPlan plan = plan("select a, x from t1 order by a");
+        assertThat(plan, isPlan("FetchOrEval[a, x] -> \n" +
+                                "OrderBy[a] -> \n" +
+                                "Collect[doc.t1 | [_fetchid, a] | All]\n"));
+    }
+
+    @Test
+    public void testQTFWithoutOrderBy() throws Exception {
+        LogicalPlan plan = plan("select a, x from t1");
+        assertThat(plan, isPlan("FetchOrEval[a, x] -> \n" +
+                                "Collect[doc.t1 | [_fetchid] | All]\n"));
     }
 
     @Test
     public void testSimpleSelectQAFAndLimit() throws Exception {
         LogicalPlan plan = plan("select a from t1 order by a limit 10 offset 5");
-        assertThat(plan, isPlan("FetchOrEval[a] -> \n" +
-                                "Limit[10;5] -> \n" +
+        assertThat(plan, isPlan("Limit[10;5] -> \n" +
                                 "OrderBy[a] -> \n" +
                                 "Collect[doc.t1 | [a] | All]\n"));
     }
@@ -86,8 +100,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSelectCountStarIsOptimized() throws Exception {
         LogicalPlan plan = plan("select count(*) from t1 where x > 10");
-        assertThat(plan, isPlan("FetchOrEval[count()] -> \n" +
-                                "Count[doc.t1 | (x > 10)]\n"));
+        assertThat(plan, isPlan("Count[doc.t1 | (x > 10)]\n"));
     }
 
     private Matcher<LogicalPlan> isPlan(String expectedPlan) {
