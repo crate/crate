@@ -25,20 +25,20 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.ResultDescription;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 class Order implements LogicalPlan {
 
@@ -49,7 +49,7 @@ class Order implements LogicalPlan {
         if (orderBy == null) {
             return source;
         }
-        Set<Symbol> columnsInOrderBy = extractColumns(orderBy.orderBySymbols());
+        Set<Symbol> columnsInOrderBy = new HashSet<>(orderBy.orderBySymbols());
         return usedColumns -> {
             columnsInOrderBy.addAll(usedColumns);
             return new Order(source.build(columnsInOrderBy), orderBy);
@@ -66,10 +66,10 @@ class Order implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limit,
                       int offset,
-                      OrderBy order) {
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy);
-        ResultDescription resultDescription = plan.resultDescription();
-        if (resultDescription.orderBy() == null) {
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
+        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint);
+        if (plan.resultDescription().orderBy() == null) {
             InputColumns.Context ctx = new InputColumns.Context(source.outputs());
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
                 limit,
@@ -101,5 +101,18 @@ class Order implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return source.outputs();
+    }
+
+    @Override
+    public List<TableInfo> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+               "src=" + source +
+               ", " + orderBy +
+               '}';
     }
 }

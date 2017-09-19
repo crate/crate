@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -31,11 +32,17 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
+import io.crate.operation.projectors.TopN;
+import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
@@ -50,6 +57,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * An Operator for data-collection.
+ * Data collection can occur on base-tables (either lucene-table, sys-table, or table-function).
+ *
+ * This operator can also eagerly apply ORDER BY and will utilize limit, offset and pageSizeHint
+ * to avoid collecting too much data.
+ *
+ * Note:
+ *  In case of lucene-tables this may not actually produce {@code toCollect} as output.
+ *  Instead it may choose to output {@link DocSysColumns#FETCHID} + {@code usedColumns}.
+ *
+ *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
+ *  See also {@link LogicalPlan.Builder#build(Set)}
+ */
 class Collect implements LogicalPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
@@ -63,10 +84,41 @@ class Collect implements LogicalPlan {
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
-        if (where.hasQuery() && !(tableInfo instanceof DocTableInfo)) {
-            NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+        if (tableInfo instanceof DocTableInfo) {
+            this.toCollect = generateToCollectWithFetch(tableInfo.ident(), toCollect, usedColumns);
+        } else {
+            this.toCollect = toCollect;
+            if (where.hasQuery()) {
+                NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+            }
         }
-        this.toCollect = toCollect;
+    }
+
+    private static List<Symbol> generateToCollectWithFetch(TableIdent tableIdent,
+                                                           List<Symbol> toCollect,
+                                                           Set<Symbol> usedColumns) {
+        Set<Symbol> colsToCollect = LogicalPlanner.extractColumns(toCollect);
+        Sets.SetView<Symbol> unusedCols = Sets.difference(colsToCollect, usedColumns);
+        ArrayList<Symbol> fetchable = new ArrayList<>();
+        Symbol scoreCol = null;
+        for (Symbol unusedCol : unusedCols) {
+            if (Symbols.containsColumn(unusedCol, DocSysColumns.SCORE)) {
+                scoreCol = unusedCol;
+            } else {
+                fetchable.add(unusedCol);
+            }
+        }
+        if (fetchable.isEmpty()) {
+            return toCollect;
+        }
+        Reference fetchIdRef = DocSysColumns.forTable(tableIdent, DocSysColumns.FETCHID);
+        ArrayList<Symbol> preFetchSymbols = new ArrayList<>(usedColumns.size() + 1);
+        preFetchSymbols.add(fetchIdRef);
+        preFetchSymbols.addAll(usedColumns);
+        if (scoreCol != null) {
+            preFetchSymbols.add(scoreCol);
+        }
+        return preFetchSymbols;
     }
 
     @Override
@@ -74,9 +126,12 @@ class Collect implements LogicalPlan {
                       ProjectionBuilder projectionBuilder,
                       int limit,
                       int offset,
-                      @Nullable OrderBy order) {
+                      @Nullable OrderBy order,
+                      @Nullable Integer pageSizeHint) {
         RoutedCollectPhase collectPhase = createPhase(plannerContext);
+        relation.tableRelation().validateOrderBy(order);
         collectPhase.orderBy(order);
+        maybeApplyPageSize(limit, pageSizeHint, collectPhase);
         return new io.crate.planner.node.dql.Collect(
             collectPhase,
             limit,
@@ -85,6 +140,16 @@ class Collect implements LogicalPlan {
             limit,
             PositionalOrderBy.of(order, toCollect)
         );
+    }
+
+    private static void maybeApplyPageSize(int limit, @Nullable Integer pageSizeHint, RoutedCollectPhase collectPhase) {
+        if (pageSizeHint == null) {
+            if (limit > TopN.NO_LIMIT) {
+                collectPhase.nodePageSizeHint(limit);
+            }
+        } else {
+            collectPhase.pageSizeHint(pageSizeHint);
+        }
     }
 
     private RoutedCollectPhase createPhase(Planner.Context plannerContext) {
@@ -141,6 +206,19 @@ class Collect implements LogicalPlan {
         return tableInfo.rowGranularity();
     }
 
+    @Override
+    public List<TableInfo> baseTables() {
+        return Collections.singletonList(tableInfo);
+    }
+
+    @Override
+    public String toString() {
+        return "Collect{" +
+               tableInfo.ident() +
+               ", [" + ExplainLeaf.printList(toCollect) +
+               "], " + where +
+               '}';
+    }
 
     private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
 
