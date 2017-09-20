@@ -19,15 +19,21 @@ insert/update/copy_to which is not defined in the schema.
 
 Example::
 
-    cr> create table my_table11 (
+    cr> create table my_table (
     ...   title string,
     ...   author string
     ... ) with (column_policy = 'strict');
     CREATE OK, 1 row affected (... sec)
 
+If you try to insert using a column not specified in the table schema,
+CrateDB will raise an error.
+
+    cr> insert into my_table (new_col) values(1);
+    SQLActionException[ColumnUnknownException: Column new_col unknown]
+
 .. hide:
 
-    cr> drop table my_table11;
+    cr> drop table my_table;
     DROP OK, 1 row affected (... sec)
 
 ``dynamic``
@@ -43,13 +49,18 @@ will have the type that was guessed by its inserted/updated value and they will
 always be ``not_indexed`` which means they are analyzed with the ``plain``
 analyzer, which means as-is.
 
+.. NOTE::
+
+   The data type of the new column is guessed from the data type of the value
+   provided in the insert statement that creates the column.
+
 If a new column ``a`` was added with type ``boolean``, adding strings to this
 column will result in an error, except the string can be implicit casted to a
 ``boolean`` value.
 
-Examples::
+Here's an example::
 
-    cr> create table my_table12 (
+    cr> create table my_table (
     ...   title string,
     ...   author string
     ... );
@@ -57,24 +68,43 @@ Examples::
 
 .. hide:
 
-    cr> drop table my_table12;
+    cr> drop table my_table;
     DROP OK, 1 row affected (... sec)
 
-which is exactly the same as::
+Which is exactly the same as::
 
-    cr> create table my_table13 (
+    cr> create table my_table (
     ...   title string,
     ...   author string
     ... ) with (column_policy = 'dynamic');
     CREATE OK, 1 row affected (... sec)
 
+Now, you can do inserts that add columns::
+
+    cr> insert into my_table (new_col) values(1);
+    INSERT OK, 1 row affected  (... sec)
+
+Which will update the table schema::
+
+    cr> show create table my_table;
+    +-----------------------------------------------------+
+    | SHOW CREATE TABLE doc.my_table                      |
+    +-----------------------------------------------------+
+    | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
+    |    "author" STRING,                                 |
+    |    "new_col" LONG,                                  |
+    |    "title" STRING                                   |
+    | )                                                   |
+    | CLUSTERED INTO 4 SHARDS                             |
+    ...
+
+New columns added to dynamic tables are identical to regular columns. You can
+retrieve them, sort by them and use them in where clauses.
+
 .. hide:
 
-    cr> drop table my_table13;
+    cr> drop table my_table;
     DROP OK, 1 row affected (... sec)
-
-New columns added to ``dynamic`` tables are, once added, usable as usual
-columns. One can retrieve them, sort by them and use them in where clauses.
 
 .. WARNING::
 
