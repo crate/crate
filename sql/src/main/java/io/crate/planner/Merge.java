@@ -42,8 +42,8 @@ public class Merge implements Plan, ResultDescription {
     private final Plan subPlan;
     private final MergePhase mergePhase;
 
-    private int limit;
-    private int offset;
+    private int unfinishedLimit;
+    private int unfinishedOffset;
     private int numOutputs;
 
     private final int maxRowsPerNode;
@@ -103,11 +103,14 @@ public class Merge implements Plan, ResultDescription {
         }
     }
 
-    private static Plan addProjections(Plan subPlan, List<Projection> projections, ResultDescription resultDescription, Projection topN) {
+    private static Plan addProjections(Plan subPlan,
+                                       List<Projection> projections,
+                                       ResultDescription resultDescription,
+                                       Projection topN) {
         for (Projection projection : projections) {
             assert projection.outputs().size() == resultDescription.numOutputs()
                 : "projection must not affect numOutputs";
-            subPlan.addProjection(projection, null, null, null);
+            subPlan.addProjection(projection);
         }
         if (topN != null) {
             subPlan.addProjection(topN, TopN.NO_LIMIT, 0, null);
@@ -134,17 +137,28 @@ public class Merge implements Plan, ResultDescription {
         return ensureOnHandler(subPlan, plannerContext, Collections.emptyList());
     }
 
+    /**
+     * Create a Merge Plan
+     *
+     * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
+     * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
+     *
+     * If the data should be limited as part of the Merge, add a {@link io.crate.planner.projection.TopNProjection},
+     * if possible. If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
+     *
+     * See also: {@link ResultDescription}
+     */
     public Merge(Plan subPlan,
                  MergePhase mergePhase,
-                 int limit,
-                 int offset,
+                 int unfinishedLimit,
+                 int unfinishedOffset,
                  int numOutputs,
                  int maxRowsPerNode,
                  @Nullable PositionalOrderBy orderBy) {
         this.subPlan = subPlan;
         this.mergePhase = mergePhase;
-        this.limit = limit;
-        this.offset = offset;
+        this.unfinishedLimit = unfinishedLimit;
+        this.unfinishedOffset = unfinishedOffset;
         this.numOutputs = numOutputs;
         this.maxRowsPerNode = maxRowsPerNode;
         this.orderBy = orderBy;
@@ -161,21 +175,20 @@ public class Merge implements Plan, ResultDescription {
     }
 
     @Override
-    public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+    public void addProjection(Projection projection) {
         mergePhase.addProjection(projection);
-        if (newLimit != null) {
-            limit = newLimit;
-        }
-        if (newOffset != null) {
-            offset = newOffset;
-        }
-        if (newOrderBy != null) {
-            orderBy = newOrderBy;
-        }
         numOutputs = projection.outputs().size();
+    }
+
+    @Override
+    public void addProjection(Projection projection,
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
+        addProjection(projection);
+        this.unfinishedLimit = unfinishedLimit;
+        this.unfinishedOffset = unfinishedOffset;
+        this.orderBy = unfinishedOrderBy;
     }
 
     @Override
@@ -209,7 +222,7 @@ public class Merge implements Plan, ResultDescription {
 
     @Override
     public int limit() {
-        return limit;
+        return unfinishedLimit;
     }
 
     @Override
@@ -219,7 +232,7 @@ public class Merge implements Plan, ResultDescription {
 
     @Override
     public int offset() {
-        return offset;
+        return unfinishedOffset;
     }
 
     @Override

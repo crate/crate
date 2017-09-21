@@ -65,12 +65,21 @@ public class CountPlan implements Plan, ResultDescription {
         return id;
     }
 
+
+    @Override
+    public void addProjection(Projection projection) {
+        mergePhase.addProjection(projection);
+    }
+
     @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
         mergePhase.addProjection(projection);
+        if (unfinishedLimit != TopN.NO_LIMIT || unfinishedOffset != 0 || unfinishedOrderBy != null) {
+            throw new UnsupportedOperationException("Cannot set unfinished actions on CountPlan");
+        }
     }
 
     @Override
