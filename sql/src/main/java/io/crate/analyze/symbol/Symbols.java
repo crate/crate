@@ -149,6 +149,11 @@ public class Symbols {
         }
 
         @Override
+        public Boolean visitField(Field field, ColumnIdent needle) {
+            return field.path().equals(needle) || field.path().outputName().equals(needle.outputName());
+        }
+
+        @Override
         public Boolean visitReference(Reference symbol, ColumnIdent context) {
             return context.equals(symbol.ident().columnIdent());
         }

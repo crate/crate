@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
@@ -33,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.function.Function;
 
 public final class JoinPairs {
 
@@ -104,20 +102,6 @@ public final class JoinPairs {
             }
         }
         return outerJoinRelations;
-    }
-
-    /**
-     * Rewrite names of matching join pair relations and inside the condition function
-     */
-    public static void rewriteNames(QualifiedName left,
-                                    QualifiedName right,
-                                    QualifiedName newName,
-                                    Function<? super Symbol, ? extends Symbol> replaceFunction,
-                                    List<JoinPair> joinPairs) {
-        for (JoinPair joinPair : joinPairs) {
-            joinPair.replaceNames(left, right, newName);
-            joinPair.replaceCondition(replaceFunction);
-        }
     }
 
     /**

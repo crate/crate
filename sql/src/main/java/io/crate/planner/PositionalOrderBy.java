@@ -71,6 +71,43 @@ public class PositionalOrderBy {
                '}';
     }
 
+    /**
+     * Returns a new PositionalOrderBy where the indices are changed so that it uses the newOutputs as base.
+     * <br />
+     * Example:
+     * <pre>
+     *     select b, a from (select a, b .. order by b desc, a asc nulls first)
+     *
+     *                                            b        a
+     *     oldOutputs:  [a, b]  -> orderByIndices 1 DESC , 0 ASC NULLS FIRST
+     *
+     *                                            b        a
+     *     newOutputs:  [b, a]  -> orderByIndices 0 DESC , 1 ASC NULLS FIRST
+     * </pre>
+     *
+     * If the newOutputs don't contain a symbol that was used in the oldOutputs `null` is returned.
+     */
+    @Nullable
+    public PositionalOrderBy tryMapToNewOutputs(List<Symbol> oldOutputs, List<Symbol> newOutputs) {
+        int[] newIndices = new int[indices.length];
+
+        for (int i = 0; i < indices.length; i++) {
+            int idxInOldOutputs = indices[i];
+            Symbol orderByExpr = oldOutputs.get(idxInOldOutputs);
+            int idxInNewOutputs = newOutputs.indexOf(orderByExpr);
+            if (idxInNewOutputs < 0) {
+                return null;
+            } else {
+                newIndices[i] = idxInNewOutputs;
+            }
+        }
+        return new PositionalOrderBy(
+            newIndices,
+            Arrays.copyOf(reverseFlags, reverseFlags.length),
+            Arrays.copyOf(nullsFirst, nullsFirst.length)
+        );
+    }
+
     @Nullable
     public static PositionalOrderBy fromStream(StreamInput in) throws IOException {
         int size = in.readVInt();

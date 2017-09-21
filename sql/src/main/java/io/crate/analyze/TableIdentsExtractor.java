@@ -191,14 +191,6 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<TableIdent> visitTwoTableJoin(TwoTableJoin twoTableJoin, Void context) {
-            Collection<TableIdent> tableIdents = new HashSet<>(2);
-            tableIdents.addAll(process(twoTableJoin.left(), context));
-            tableIdents.addAll(process(twoTableJoin.right(), context));
-            return tableIdents;
-        }
-
-        @Override
         public Collection<TableIdent> visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, Void context) {
             return Collections.singletonList(tableFunctionRelation.tableInfo().ident());
         }

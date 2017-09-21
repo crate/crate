@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.operation.operator.AndOperator;
-import io.crate.planner.consumer.ManyTableConsumer;
+import io.crate.planner.consumer.QualifiedNameCollector;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Collections;
@@ -95,7 +95,7 @@ public class QuerySplitter {
         public Void visitFunction(Function function, Map<Set<QualifiedName>, Symbol> splits) {
             if (!function.info().equals(AndOperator.INFO)) {
                 HashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>();
-                ManyTableConsumer.QualifiedNameCounter.INSTANCE.process(function, qualifiedNames);
+                QualifiedNameCollector.INSTANCE.process(function, qualifiedNames);
                 Symbol prevQuery = splits.put(qualifiedNames, function);
                 if (prevQuery != null) {
                     splits.put(qualifiedNames, AndOperator.of(prevQuery, function));
