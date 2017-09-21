@@ -241,7 +241,7 @@ public class CopyStatementPlanner {
         if (plan == null) {
             return null;
         }
-        plan.addProjection(projection, null, null, null);
+        plan.addProjection(projection);
         return Merge.ensureOnHandler(plan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 

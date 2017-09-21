@@ -58,11 +58,16 @@ public class PlanWithFetchDescription implements Plan, ResultDescription {
     }
 
     @Override
+    public void addProjection(Projection projection) {
+        subPlan.addProjection(projection);
+    }
+
+    @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
-        subPlan.addProjection(projection, newLimit, newOffset, newOrderBy);
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
+        subPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
     }
 
     @Override

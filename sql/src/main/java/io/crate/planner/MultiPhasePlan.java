@@ -79,11 +79,16 @@ public class MultiPhasePlan implements Plan {
     }
 
     @Override
+    public void addProjection(Projection projection) {
+        rootPlan.addProjection(projection);
+    }
+
+    @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
-        rootPlan.addProjection(projection, newLimit, newOffset, newOrderBy);
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
+        rootPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
     }
 
     @Override

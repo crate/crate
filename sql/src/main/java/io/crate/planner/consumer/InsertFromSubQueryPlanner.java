@@ -81,12 +81,12 @@ public final class InsertFromSubQueryPlanner {
         if (plannedSubQuery == null) {
             return null;
         }
-        plannedSubQuery.addProjection(indexWriterProjection, null, null, null);
+        plannedSubQuery.addProjection(indexWriterProjection);
         Plan plan = Merge.ensureOnHandler(plannedSubQuery, plannerContext);
         if (plan == plannedSubQuery) {
             return plan;
         }
-        plan.addProjection(MergeCountProjection.INSTANCE, null, null, null);
+        plan.addProjection(MergeCountProjection.INSTANCE);
         return plan;
     }
 

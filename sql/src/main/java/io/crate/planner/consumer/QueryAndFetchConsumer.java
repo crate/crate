@@ -40,6 +40,7 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -171,7 +172,7 @@ public class QueryAndFetchConsumer implements Consumer {
             if (!querySpec.outputs().equals(subRelation.fields())) {
                 EvalProjection eval = new EvalProjection(
                     InputColumns.create(querySpec.outputs(), new InputColumns.Context(subRelation.fields())));
-                plan.addProjection(eval, null, null, null);
+                plan.addProjection(eval);
             }
         } else {
             Projection projection = ProjectionBuilder.topNOrEval(
@@ -181,7 +182,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 limits.finalLimit(),
                 querySpec.outputs()
             );
-            plan.addProjection(projection, null, null, null);
+            plan.addProjection(projection, TopN.NO_LIMIT, 0, null);
         }
         return plan;
     }
@@ -202,7 +203,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 InputColumns.create(query, fetchDescription.preFetchOutputs()),
                 InputColumn.fromSymbols(fetchDescription.preFetchOutputs())
             );
-            plan.addProjection(filterProjection, null, null, null);
+            plan.addProjection(filterProjection);
             return true;
         }
         return false;
@@ -218,7 +219,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 limits.finalLimit(),
                 limits.offset(),
                 InputColumn.fromSymbols(fetchDescription.preFetchOutputs()));
-            plan.addProjection(topN, null, null, null);
+            plan.addProjection(topN, TopN.NO_LIMIT, 0, plan.resultDescription().orderBy());
             return true;
         }
         if (fetchDescription.availablePreFetch(orderBy.orderBySymbols())) {
@@ -230,7 +231,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 limits.finalLimit(),
                 fetchDescription.preFetchOutputs()
             );
-            plan.addProjection(projection, null, null, null);
+            plan.addProjection(projection, TopN.NO_LIMIT, 0, null);
             return true;
         }
         return false;
@@ -262,7 +263,7 @@ public class QueryAndFetchConsumer implements Consumer {
             readerAllocations.indices(),
             readerAllocations.indicesToIdents()
         );
-        subPlan.addProjection(fetchProjection, null, null, null);
+        subPlan.addProjection(fetchProjection);
         return new QueryThenFetch(subPlan, fetchPhase);
     }
 
@@ -280,14 +281,14 @@ public class QueryAndFetchConsumer implements Consumer {
             limits.finalLimit(),
             qs.outputs()
         );
-        subPlan.addProjection(projection, null, null, null);
+        subPlan.addProjection(projection, TopN.NO_LIMIT, 0, null);
         return subPlan;
     }
 
     private static void applyFilter(Plan plan, Collection<? extends Symbol> filterInputs, QueryClause query) {
         if (query.hasQuery() || query.noMatch()) {
             FilterProjection filterProjection = ProjectionBuilder.filterProjection(filterInputs, query);
-            plan.addProjection(filterProjection, null, null, null);
+            plan.addProjection(filterProjection);
         }
     }
 

@@ -587,12 +587,7 @@ public class ManyTableConsumer implements Consumer {
             Plan plan = Merge.ensureOnHandler(getPlan(builder.replacedRelation(), context), plannerContext);
 
             FetchPushDown.PhaseAndProjection phaseAndProjection = builder.build(plannerContext);
-            plan.addProjection(
-                phaseAndProjection.projection,
-                null,
-                null,
-                null
-            );
+            plan.addProjection(phaseAndProjection.projection);
             return new QueryThenFetch(plan,  phaseAndProjection.phase);
         }
 

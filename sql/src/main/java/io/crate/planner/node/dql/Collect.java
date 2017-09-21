@@ -39,9 +39,9 @@ public class Collect implements Plan, ResultDescription {
 
     private final CollectPhase collectPhase;
 
-    private int limit;
+    private int unfinishedLimit;
 
-    private int offset;
+    private int unfinishedOffset;
 
     private int numOutputs;
 
@@ -50,15 +50,24 @@ public class Collect implements Plan, ResultDescription {
     @Nullable
     private PositionalOrderBy orderBy;
 
+    /**
+     * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
+     * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
+     *
+     * If the data should be limited as part of the Collect, add a {@link io.crate.planner.projection.TopNProjection},
+     * If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
+     *
+     * See also: {@link ResultDescription}
+     */
     public Collect(CollectPhase collectPhase,
-                   int limit,
-                   int offset,
+                   int unfinishedLimit,
+                   int unfinishedOffset,
                    int numOutputs,
                    int maxRowsPerNode,
                    @Nullable PositionalOrderBy orderBy) {
         this.collectPhase = collectPhase;
-        this.limit = limit;
-        this.offset = offset;
+        this.unfinishedLimit = unfinishedLimit;
+        this.unfinishedOffset = unfinishedOffset;
         this.numOutputs = numOutputs;
         this.maxRowsPerNode = maxRowsPerNode;
         this.orderBy = orderBy;
@@ -79,20 +88,20 @@ public class Collect implements Plan, ResultDescription {
     }
 
     @Override
-    public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+    public void addProjection(Projection projection) {
         collectPhase.addProjection(projection);
-        if (newLimit != null) {
-            limit = newLimit;
-        }
-        if (newOffset != null) {
-            offset = newOffset;
-        }
-        if (newOrderBy != null) {
-            orderBy = newOrderBy;
-        }
+        numOutputs = projection.outputs().size();
+    }
+
+    @Override
+    public void addProjection(Projection projection,
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
+        collectPhase.addProjection(projection);
+        this.unfinishedLimit = unfinishedLimit;
+        this.unfinishedOffset = unfinishedOffset;
+        this.orderBy = unfinishedOrderBy;
         numOutputs = projection.outputs().size();
     }
 
@@ -119,7 +128,7 @@ public class Collect implements Plan, ResultDescription {
 
     @Override
     public int limit() {
-        return limit;
+        return unfinishedLimit;
     }
 
     @Override
@@ -129,7 +138,7 @@ public class Collect implements Plan, ResultDescription {
 
     @Override
     public int offset() {
-        return offset;
+        return unfinishedOffset;
     }
 
     @Override

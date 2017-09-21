@@ -33,10 +33,15 @@ import javax.annotation.Nullable;
 public abstract class UnnestablePlan implements Plan {
 
     @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("addProjection() is not supported on: " + getClass().getSimpleName());
+    }
+
+    @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
         throw new UnsupportedOperationException("addProjection() is not supported on: " + getClass().getSimpleName());
     }
 
