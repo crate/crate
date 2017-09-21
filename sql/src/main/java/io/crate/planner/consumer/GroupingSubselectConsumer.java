@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -138,7 +139,7 @@ public class GroupingSubselectConsumer implements Consumer {
                 relation.subRelation().fields(),
                 where
             );
-            plan.addProjection(filterProjection, null, null, null);
+            plan.addProjection(filterProjection);
         }
     }
 
@@ -157,7 +158,7 @@ public class GroupingSubselectConsumer implements Consumer {
             AggregateMode.ITER_FINAL,
             RowGranularity.CLUSTER
         );
-        plan.addProjection(groupProjection, null, null, null);
+        plan.addProjection(groupProjection);
     }
 
     /**
@@ -172,7 +173,7 @@ public class GroupingSubselectConsumer implements Consumer {
             List<Symbol> postGroupingOutputs = new ArrayList<>(groupKeys);
             postGroupingOutputs.addAll(splitPoints.aggregates());
             FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, havingClause);
-            plan.addProjection(filterProjection, null, null, null);
+            plan.addProjection(filterProjection);
         }
     }
 
@@ -196,7 +197,7 @@ public class GroupingSubselectConsumer implements Consumer {
             limits.finalLimit(),
             outputs
         );
-        plan.addProjection(postAggregationProjection, null, null, null);
+        plan.addProjection(postAggregationProjection, TopN.NO_LIMIT, 0, null);
     }
 
     /**
@@ -215,7 +216,7 @@ public class GroupingSubselectConsumer implements Consumer {
             RowGranularity.SHARD
         );
         plan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
-        plan.addProjection(groupProjection, null, null, null);
+        plan.addProjection(groupProjection);
     }
 
     /**

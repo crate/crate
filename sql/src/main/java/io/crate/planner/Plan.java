@@ -34,17 +34,18 @@ public interface Plan {
     UUID jobId();
 
     /**
-     * Adds a projection to the plan.
-     * The given values need to be used to update the ResultDescription.
-     *
-     * @param newLimit new limit if the projection is affecting the limit.
-     * @param newOffset new offset if the projection is affecting the offset.
-     * @param newOrderBy new orderBy if the projection is affecting the ordering.
+     * Add a projection to the plan.
+     */
+    void addProjection(Projection projection);
+
+    /**
+     * Add a projection to the plan which affects the "unfinished" information on the ResultDescription
      */
     void addProjection(Projection projection,
-                       @Nullable Integer newLimit,
-                       @Nullable Integer newOffset,
-                       @Nullable PositionalOrderBy newOrderBy);
+                       int unfinishedLimit,
+                       int unfinishedOffset,
+                       @Nullable PositionalOrderBy unfinishedOrderBy);
+
 
     ResultDescription resultDescription();
 

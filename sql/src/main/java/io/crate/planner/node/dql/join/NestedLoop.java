@@ -149,21 +149,22 @@ public class NestedLoop implements Plan, ResultDescription {
         return jobId;
     }
 
+
+    @Override
+    public void addProjection(Projection projection) {
+        nestedLoopPhase.addProjection(projection);
+        numOutputs = projection.outputs().size();
+    }
+
     @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
         nestedLoopPhase.addProjection(projection);
-        if (newLimit != null) {
-            limit = newLimit;
-        }
-        if (newOffset != null) {
-            offset = newOffset;
-        }
-        if (newOrderBy != null) {
-            orderBy = newOrderBy;
-        }
+        limit = unfinishedLimit;
+        offset = unfinishedOffset;
+        orderBy = unfinishedOrderBy;
         numOutputs = projection.outputs().size();
     }
 

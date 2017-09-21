@@ -41,6 +41,12 @@ public class CountPlan implements Plan, ResultDescription {
     private final MergePhase mergePhase;
     private final UUID id;
 
+    private int unfinishedLimit = TopN.NO_LIMIT;
+    private int unfinishedOffset = 0;
+
+    @Nullable
+    private PositionalOrderBy unfinishedOrderBy = null;
+
     public CountPlan(CountPhase countPhase, MergePhase mergePhase) {
         this.countPhase = countPhase;
         this.mergePhase = mergePhase;
@@ -65,12 +71,21 @@ public class CountPlan implements Plan, ResultDescription {
         return id;
     }
 
+
+    @Override
+    public void addProjection(Projection projection) {
+        mergePhase.addProjection(projection);
+    }
+
     @Override
     public void addProjection(Projection projection,
-                              @Nullable Integer newLimit,
-                              @Nullable Integer newOffset,
-                              @Nullable PositionalOrderBy newOrderBy) {
+                              int unfinishedLimit,
+                              int unfinishedOffset,
+                              @Nullable PositionalOrderBy unfinishedOrderBy) {
         mergePhase.addProjection(projection);
+        this.unfinishedLimit = unfinishedLimit;
+        this.unfinishedOffset = unfinishedOffset;
+        this.unfinishedOrderBy = unfinishedOrderBy;
     }
 
     @Override
@@ -91,12 +106,12 @@ public class CountPlan implements Plan, ResultDescription {
     @Nullable
     @Override
     public PositionalOrderBy orderBy() {
-        return null;
+        return unfinishedOrderBy;
     }
 
     @Override
     public int limit() {
-        return TopN.NO_LIMIT;
+        return unfinishedLimit;
     }
 
     @Override
@@ -106,7 +121,7 @@ public class CountPlan implements Plan, ResultDescription {
 
     @Override
     public int offset() {
-        return 0;
+        return unfinishedOffset;
     }
 
     @Override
