@@ -23,10 +23,15 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.FetchReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.RefReplacer;
-import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -35,11 +40,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -49,44 +53,92 @@ import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.BiConsumer;
 
+/**
+ * The FetchOrEval operator is producing the values for all selected expressions.
+ *
+ * <p>
+ * This can be a simple re-arranging of expressions, the evaluation of scalar functions or involve a fetch operation.
+ * The first two are rather simple and are handled by a {@link EvalProjection}, the fetch operation is more complicated.
+ * </p>
+ *
+ * <h2>Fetch</h2>:
+ *
+ * <p>
+ * On user tables it's possible to collect a {@link DocSysColumns#FETCHID}, which is like a unique row-id, except that it
+ * is only valid within an open index reader. This fetchId can be used to retrieve the values from a row.
+ *
+ * The idea of fetch is to avoid loading more values than required.
+ * This is the case if the data is collected from several nodes and then merged on the coordinator while applying some
+ * form of data reduction, like applying a limit.
+ * </p>
+ *
+ * <pre>
+ *     select a, b, c from t order by limit 500
+ *
+ *
+ *       N1                 N2
+ *        Collect 500        Collect 500
+ *             \              /
+ *              \            /
+ *                Merge
+ *              1000 -> 500
+ *                  |
+ *                Fetch 500
+ * </pre>
+ */
 class FetchOrEval implements LogicalPlan {
 
     final LogicalPlan source;
     final List<Symbol> outputs;
-    private final Set<Symbol> usedColumns;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source,
+    private final FetchMode fetchMode;
+    private final boolean isLastFetch;
+
+    static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                       List<Symbol> outputs,
-                                      FetchMode fetchMode) {
-
-        return usedColumns -> {
-            switch (fetchMode) {
-                case NEVER:
-                    return new FetchOrEval(source.build(usedColumns), usedColumns, outputs);
-
-                case NO_PROPAGATION:
-                case WITH_PROPAGATION:
-                    return new FetchOrEval(source.build(Collections.emptySet()), usedColumns, outputs);
-
-                default:
-                    throw new AssertionError("Invalid fetchMode: " + fetchMode);
+                                      FetchMode fetchMode,
+                                      boolean isLastFetch) {
+        return usedBeforeNextFetch -> {
+            final LogicalPlan source;
+            if (fetchMode == FetchMode.NEVER || !isLastFetch) {
+                source = sourceBuilder.build(usedBeforeNextFetch);
+            } else {
+                source = sourceBuilder.build(Collections.emptySet());
             }
+            if (source.outputs().equals(outputs)) {
+                return source;
+            }
+            return new FetchOrEval(source, outputs, fetchMode, isLastFetch);
         };
     }
 
-    private FetchOrEval(LogicalPlan source, Set<Symbol> usedColumns, List<Symbol> outputs) {
+    private FetchOrEval(LogicalPlan source,
+                        List<Symbol> outputs,
+                        FetchMode fetchMode,
+                        boolean isLastFetch) {
         this.source = source;
-        this.usedColumns = usedColumns;
-        this.outputs = outputs;
+        this.fetchMode = fetchMode;
+        this.isLastFetch = isLastFetch;
+        if (isLastFetch) {
+            this.outputs = outputs;
+        } else {
+            if (Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
+                this.outputs = source.outputs();
+            } else {
+                this.outputs = outputs;
+            }
+        }
     }
 
     @Override
@@ -97,38 +149,63 @@ class FetchOrEval implements LogicalPlan {
                       @Nullable OrderBy order,
                       @Nullable Integer pageSizeHint) {
 
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, null, pageSizeHint);
         List<Symbol> sourceOutputs = source.outputs();
-        assert !sourceOutputs.equals(outputs)
-            : "FetchOrEval should be removed in tryCollapse if it has nothing to do";
-
-        if (!Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
-            return planWithEvalProjection(plannerContext, plan, sourceOutputs);
+        if (sourceOutputs.equals(outputs)) {
+            return plan;
         }
-        return planWithFetch(plannerContext, plan, sourceOutputs);
+
+        if (Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
+            return planWithFetch(plannerContext, plan, sourceOutputs);
+        }
+        return planWithEvalProjection(plannerContext, plan, sourceOutputs);
     }
 
     private Plan planWithFetch(Planner.Context plannerContext, Plan plan, List<Symbol> sourceOutputs) {
         plan = Merge.ensureOnHandler(plan, plannerContext);
-        ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
-        Map<TableIdent, FetchSource> fetchSourceByTableId = new HashMap<>(source.baseTables().size());
-        ArrayList<Reference> allFetchRefs = new ArrayList<>();
-        for (TableInfo table : source.baseTables()) {
-            if (!(table instanceof DocTableInfo)) {
-                continue;
+        Map<TableIdent, FetchSource> fetchSourceByTableId = new HashMap<>();
+        LinkedHashSet<Reference> allFetchRefs = new LinkedHashSet<>();
+
+        Map<DocTableRelation, InputColumn> fetchInputColumnsByTable = buildFetchInputColumnsMap(sourceOutputs);
+        BiConsumer<DocTableRelation, Reference> allocateFetchRef = (rel, ref) -> {
+            TableIdent tableIdent = rel.tableInfo().ident();
+            FetchSource fetchSource = fetchSourceByTableId.get(tableIdent);
+            if (fetchSource == null) {
+                fetchSource = new FetchSource(rel.tableInfo().partitionedByColumns());
+                fetchSourceByTableId.put(tableIdent, fetchSource);
             }
-            DocTableInfo docTableInfo = (DocTableInfo) table;
-            List<Reference> fetchRefs = fetchRefsFor(outputs, docTableInfo.ident());
-            allFetchRefs.addAll(fetchRefs);
-            fetchSourceByTableId.put(
-                docTableInfo.ident(),
-                new FetchSource(
-                    docTableInfo.partitionedByColumns(),
-                    Collections.singletonList(new InputColumn(idxOfFetchId(sourceOutputs, docTableInfo.ident()))),
-                    fetchRefs
-                )
-            );
+            if (ref.granularity() == RowGranularity.DOC) {
+                allFetchRefs.add(ref);
+                fetchSource.addRefToFetch(ref);
+            }
+            fetchSource.addFetchIdColumn(fetchInputColumnsByTable.get(rel));
+        };
+        List<Symbol> fetchOutputs = new ArrayList<>(outputs.size());
+        for (Symbol output : outputs) {
+            fetchOutputs.add(toInputColOrFetchRef(
+                output, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, source.expressionMapping()));
         }
+        if (source.baseTables().size() == 1) {
+            // If there are no relation boundaries involved the outputs will have contained no fields but only references
+            // and the actions so far had no effect
+            Lists2.replaceItems(
+                fetchOutputs,
+                s -> transformRefs(
+                    s,
+                    sourceOutputs,
+                    fetchInputColumnsByTable,
+                    allocateFetchRef,
+                    source.baseTables().get(0)));
+        }
+        if (fetchSourceByTableId.isEmpty()) {
+            // TODO:
+            // this can happen if the Collect operator adds a _fetchId, but it turns out
+            // that all required columns are already provided.
+            // This should be improved so that this case no longer occurs
+            return planWithEvalProjection(plannerContext, plan, sourceOutputs);
+        }
+
+        ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
             readerAllocations.nodeReaders().keySet(),
@@ -140,7 +217,7 @@ class FetchOrEval implements LogicalPlan {
             fetchPhase.phaseId(),
             plannerContext.fetchSize(),
             fetchSourceByTableId,
-            Lists2.copyAndReplace(outputs, st -> toFetchRefOrInputColumn(st, sourceOutputs)),
+            fetchOutputs,
             readerAllocations.nodeReaders(),
             readerAllocations.indices(),
             readerAllocations.indicesToIdents()
@@ -149,68 +226,129 @@ class FetchOrEval implements LogicalPlan {
         return new QueryThenFetch(plan, fetchPhase);
     }
 
-    private Plan planWithEvalProjection(Planner.Context plannerContext, Plan plan, List<Symbol> sourceOutputs) {
-        if (plan.resultDescription().orderBy() != null) {
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+    private static Symbol transformRefs(Symbol output,
+                                        List<Symbol> sourceOutputs,
+                                        Map<DocTableRelation, InputColumn> fetchInputColumnsByTable,
+                                        BiConsumer<DocTableRelation, Reference> allocateFetchRef,
+                                        AbstractTableRelation baseTable) {
+        int idxInSource = sourceOutputs.indexOf(output);
+        if (idxInSource > -1) {
+            return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
         }
-        InputColumns.Context ctx = new InputColumns.Context(sourceOutputs);
-        plan.addProjection(new EvalProjection(InputColumns.create(this.outputs, ctx)));
-        return plan;
-    }
-
-    private static Symbol toFetchRefOrInputColumn(Symbol st, List<Symbol> sourceOutputs) {
-        int idx = sourceOutputs.indexOf(st);
-        if (idx > -1) {
-            return new InputColumn(idx, sourceOutputs.get(idx).valueType());
+        if (!(baseTable instanceof DocTableRelation)) {
+            throw new IllegalArgumentException("Output " + output + " must be in the sourceOutput. " +
+                                               "It cannot be fetched because no user-tables are involved");
         }
-        return RefReplacer.replaceRefs(st, r -> {
-            int i = sourceOutputs.indexOf(r);
-            if (i == -1) {
-                InputColumn inputColumn = new InputColumn(idxOfFetchId(sourceOutputs, r.ident().tableIdent()));
-                final Reference ref = r.granularity() == RowGranularity.DOC
-                    ? DocReferences.toSourceLookup(r)
-                    : r;
-                return new FetchReference(inputColumn, ref);
+        DocTableRelation docTableRelation = (DocTableRelation) baseTable;
+        return RefReplacer.replaceRefs(output, ref -> {
+            int idx = sourceOutputs.indexOf(ref);
+            if (idx > -1) {
+                return new InputColumn(idx, sourceOutputs.get(idx).valueType());
             }
-            return new InputColumn(i, sourceOutputs.get(i).valueType());
+            if (ref.granularity() == RowGranularity.DOC) {
+                ref = DocReferences.toSourceLookup(ref);
+            }
+            allocateFetchRef.accept(docTableRelation, ref);
+            return new FetchReference(fetchInputColumnsByTable.get(docTableRelation), ref);
         });
     }
 
-    private static List<Reference> fetchRefsFor(List<Symbol> sourceOutputs, TableIdent ident) {
-        final ArrayList<Reference> fetchRefs = new ArrayList<>();
-        for (Symbol sourceOutput : sourceOutputs) {
-            RefVisitor.visitRefs(sourceOutput, r -> {
-                if (r.granularity() == RowGranularity.DOC && r.ident().tableIdent().equals(ident)) {
-                    fetchRefs.add(DocReferences.toSourceLookup(r));
-                }
-            });
-        }
-        return fetchRefs;
-    }
+    private Map<DocTableRelation, InputColumn> buildFetchInputColumnsMap(List<Symbol> outputs) {
+        HashMap<DocTableRelation, InputColumn> m = new HashMap<>();
+        for (int i = 0; i < outputs.size(); i++) {
+            Symbol output = outputs.get(i);
+            if (output instanceof Field &&
+                ((Field) output).path().outputName().equals(DocSysColumns.FETCHID.outputName())) {
 
-    private static int idxOfFetchId(List<Symbol> sourceOutputs, TableIdent ident) {
-        for (int i = 0; i < sourceOutputs.size(); i++) {
-            Symbol sourceOutput = sourceOutputs.get(i);
-            if (sourceOutput instanceof Reference &&
-                ((Reference) sourceOutput).ident().tableIdent().equals(ident) &&
-                ((Reference) sourceOutput).ident().columnIdent().equals(DocSysColumns.FETCHID)) {
+                DocTableRelation rel = resolveDocTableRelation(output);
+                m.put(rel, new InputColumn(i, DataTypes.LONG));
+            } else if (output instanceof Reference &&
+                       ((Reference) output).ident().columnIdent().equals(DocSysColumns.FETCHID)) {
+                assert source.baseTables().size() == 1 : "There must only be one table if dealing with References";
+                AbstractTableRelation tableRelation = source.baseTables().get(0);
+                assert tableRelation instanceof DocTableRelation : "baseTable must be a DocTable if there is a fetchId";
 
-                return i;
+                m.put(((DocTableRelation) tableRelation), new InputColumn(i, DataTypes.LONG));
             }
         }
-        throw new IllegalArgumentException("No fetchId column found in: " + sourceOutputs);
+        return m;
+    }
+
+    private DocTableRelation resolveDocTableRelation(Symbol output) {
+        Symbol mapped = output;
+        Symbol old;
+        do {
+            old = mapped;
+            if (old instanceof Field && ((Field) old).relation() instanceof QueriedDocTable) {
+                return ((QueriedDocTable) ((Field) old).relation()).tableRelation();
+            }
+        } while ((mapped = source.expressionMapping().get(old)) != null);
+        throw new IllegalStateException("Couldn't retrieve DocTableRelation from " + output);
+    }
+
+    private static Symbol toInputColOrFetchRef(Symbol output,
+                                               List<Symbol> sourceOutputs,
+                                               Map<DocTableRelation, InputColumn> fetchInputColumnsByTable,
+                                               BiConsumer<DocTableRelation, Reference> allocateFetchRef,
+                                               Map<Symbol, Symbol> expressionMapping) {
+        int idxInSource = sourceOutputs.indexOf(output);
+        if (idxInSource > -1) {
+            return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
+        }
+        return FieldReplacer.replaceFields(output, f -> {
+            int idx = sourceOutputs.indexOf(f);
+            if (idx > -1) {
+                return new InputColumn(idx, sourceOutputs.get(idx).valueType());
+            }
+            AnalyzedRelation relation = f.relation();
+            if (relation instanceof QueriedDocTable) {
+                DocTableRelation docTableRelation = ((QueriedDocTable) relation).tableRelation();
+
+                Symbol symbol = expressionMapping.get(f);
+                return RefReplacer.replaceRefs(symbol, ref -> {
+                    if (ref.granularity() == RowGranularity.DOC) {
+                        ref = DocReferences.toSourceLookup(ref);
+                    }
+                    allocateFetchRef.accept(docTableRelation, ref);
+                    InputColumn fetchId = fetchInputColumnsByTable.get(docTableRelation);
+                    assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
+                    return new FetchReference(fetchId, ref);
+                });
+            }
+            Symbol mapped = expressionMapping.get(output);
+            assert mapped != null
+                : "Field mapping must exists for " + output + " in " + expressionMapping;
+            return toInputColOrFetchRef(
+                mapped, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, expressionMapping);
+        });
+    }
+
+    private Plan planWithEvalProjection(Planner.Context plannerContext, Plan plan, List<Symbol> sourceOutputs) {
+        PositionalOrderBy orderBy = plan.resultDescription().orderBy();
+        PositionalOrderBy newOrderBy = null;
+        if (orderBy != null) {
+            newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, outputs);
+            if (newOrderBy == null) {
+                plan = Merge.ensureOnHandler(plan, plannerContext);
+            }
+        }
+        InputColumns.Context ctx = new InputColumns.Context(sourceOutputs);
+        plan.addProjection(
+            new EvalProjection(InputColumns.create(this.outputs, ctx)),
+            plan.resultDescription().limit(),
+            plan.resultDescription().offset(),
+            newOrderBy
+        );
+        return plan;
     }
 
     @Override
     public LogicalPlan tryCollapse() {
         LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed.outputs().equals(outputs)) {
-            return collapsed;
-        }
         if (collapsed == this) {
             return this;
         }
-        return new FetchOrEval(collapsed, usedColumns, outputs);
+        return new FetchOrEval(collapsed, outputs, fetchMode, isLastFetch);
     }
 
     @Override
@@ -219,7 +357,12 @@ class FetchOrEval implements LogicalPlan {
     }
 
     @Override
-    public List<TableInfo> baseTables() {
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
     }
 

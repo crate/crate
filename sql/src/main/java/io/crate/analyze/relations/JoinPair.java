@@ -73,10 +73,6 @@ public class JoinPair {
         return condition;
     }
 
-    public void condition(Symbol condition) {
-        this.condition = condition;
-    }
-
     @Override
     public String toString() {
         return "Join{" + joinType + " " + left + " ⇔ " + right + '}';
@@ -104,15 +100,6 @@ public class JoinPair {
 
     boolean equalsNames(QualifiedName left, QualifiedName right) {
         return this.left.equals(left) && this.right.equals(right);
-    }
-
-    void replaceNames(QualifiedName left, QualifiedName right, QualifiedName newName) {
-        if (this.left.equals(left) || this.left.equals(right)) {
-            this.left = newName;
-        }
-        if (this.right.equals(right) || this.right.equals(left)) {
-            this.right = newName;
-        }
     }
 
     boolean isOuterRelation(QualifiedName name) {

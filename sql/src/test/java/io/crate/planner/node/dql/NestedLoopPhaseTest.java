@@ -23,14 +23,14 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.operation.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -69,8 +69,8 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             ImmutableList.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
-        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
-        Symbol joinCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("t1.x = t1.i"));
+        Symbol joinCondition = EqOperator.createFunction(
+            new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING));
         NestedLoopPhase node = new NestedLoopPhase(
             jobId,
             1,

@@ -21,14 +21,10 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
@@ -36,10 +32,8 @@ import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.operation.user.User;
-import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
@@ -48,7 +42,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -296,45 +289,5 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             result.orderBy(orderBy);
         }
         return result;
-    }
-
-    public static RoutedCollectPhase forQueriedTable(Planner.Context plannerContext,
-                                                     QueriedTableRelation table,
-                                                     List<Symbol> toCollect,
-                                                     List<Projection> projections) {
-        TableInfo tableInfo = table.tableRelation().tableInfo();
-        WhereClause where = table.querySpec().where();
-        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
-        if (table.tableRelation() instanceof TableFunctionRelation) {
-            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
-            List<Symbol> args = tableFunctionRelation.function().arguments();
-            ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
-            for (Symbol arg : args) {
-                // It's not possible to use columns as argument to a table function and subqueries are currently not allowed either.
-                functionArguments.add((Literal) plannerContext.normalizer().normalize(arg, plannerContext.transactionContext()));
-            }
-            return new TableFunctionCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
-                tableFunctionRelation.functionImplementation(),
-                functionArguments,
-                projections,
-                toCollect,
-                where
-            );
-        }
-        return new RoutedCollectPhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            "collect",
-            plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
-            tableInfo.rowGranularity(),
-            toCollect,
-            projections,
-            where,
-            DistributionInfo.DEFAULT_BROADCAST,
-            sessionContext.user()
-        );
     }
 }

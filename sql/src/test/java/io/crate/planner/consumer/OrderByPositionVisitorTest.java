@@ -32,6 +32,7 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 public class OrderByPositionVisitorTest extends CrateUnitTest {
+
     @Test
     public void testOrderByPositionInputs() throws Exception {
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
@@ -49,15 +50,5 @@ public class OrderByPositionVisitorTest extends CrateUnitTest {
             ImmutableList.of(ref, Literal.of(1))
         );
         assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
-    }
-
-    @Test
-    public void testSymbolNotContained() throws Exception {
-        Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
-        int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
-            ImmutableList.of(ref, new InputColumn(1), TestingHelpers.createReference("other", DataTypes.LONG)),
-            ImmutableList.of(ref, Literal.BOOLEAN_FALSE)
-        );
-        assertArrayEquals(new int[]{0, 1}, orderByPositions);
     }
 }

@@ -22,29 +22,16 @@
 package io.crate.planner.consumer;
 
 
-import io.crate.exceptions.ValidationException;
 import io.crate.planner.Planner;
-import org.elasticsearch.common.Nullable;
 
 public class ConsumerContext {
 
     private final Planner.Context plannerContext;
 
-    private ValidationException validationException;
-    private FetchMode fetchMode = FetchMode.NO_PROPAGATION;
-    private Integer requiredPageSize;
+    private FetchMode fetchMode = FetchMode.WITH_PROPAGATION;
 
     public ConsumerContext(Planner.Context plannerContext) {
         this.plannerContext = plannerContext;
-    }
-
-    public void validationException(ValidationException validationException) {
-        this.validationException = validationException;
-    }
-
-    @Nullable
-    public ValidationException validationException() {
-        return validationException;
     }
 
     public Planner.Context plannerContext() {
@@ -57,16 +44,5 @@ public class ConsumerContext {
 
     FetchMode fetchMode() {
         return fetchMode;
-    }
-
-    void requiredPageSize(Integer requiredPageSize) {
-        this.requiredPageSize = requiredPageSize;
-    }
-
-    /**
-     * required pageSize that a parent relation might have specified.
-     */
-    Integer requiredPageSize() {
-        return requiredPageSize;
     }
 }

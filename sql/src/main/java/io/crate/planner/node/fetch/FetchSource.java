@@ -32,19 +32,19 @@ import java.util.List;
 public class FetchSource {
 
     private final List<Reference> partitionedByColumns;
-    private final Collection<InputColumn> fetchIdCols;
-    private final Collection<Reference> references;
+    private final LinkedHashSet<InputColumn> fetchIdCols = new LinkedHashSet<>();
+    private final LinkedHashSet<Reference> references = new LinkedHashSet<>();
 
     public FetchSource(List<Reference> partitionedByColumns) {
-        this(partitionedByColumns, new LinkedHashSet<>(), new LinkedHashSet<>());
+        this.partitionedByColumns = partitionedByColumns;
     }
 
-    public FetchSource(List<Reference> partitionedByColumns,
-                       Collection<InputColumn> fetchIdCols,
-                       Collection<Reference> references) {
-        this.partitionedByColumns = partitionedByColumns;
-        this.fetchIdCols = fetchIdCols;
-        this.references = references;
+    public void addFetchIdColumn(InputColumn fetchIdColumn) {
+        fetchIdCols.add(fetchIdColumn);
+    }
+
+    public void addRefToFetch(Reference ref) {
+        references.add(ref);
     }
 
     public Collection<InputColumn> fetchIdCols() {

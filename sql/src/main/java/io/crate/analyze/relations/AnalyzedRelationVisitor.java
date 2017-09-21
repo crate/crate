@@ -25,7 +25,6 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.TwoTableJoin;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -58,10 +57,6 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R visitDocTableRelation(DocTableRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
-    }
-
-    public R visitTwoTableJoin(TwoTableJoin twoTableJoin, C context) {
-        return visitAnalyzedRelation(twoTableJoin, context);
     }
 
     public R visitExplain(ExplainAnalyzedStatement explainAnalyzedStatement, C context) {

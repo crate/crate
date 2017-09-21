@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -61,12 +62,15 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
     private OrderByPositionVisitor() {
     }
 
-    public static int[] orderByPositions(Iterable<? extends Symbol> orderBySymbols,
+    public static int[] orderByPositions(Collection<? extends Symbol> orderBySymbols,
                                          List<? extends Symbol> outputSymbols) {
         Context context = new Context(outputSymbols);
         for (Symbol orderBySymbol : orderBySymbols) {
             INSTANCE.process(orderBySymbol, context);
         }
+        assert context.orderByPositions.size() == orderBySymbols.size()
+            : "Must have an orderByPosition for each symbol. " +
+              "Got " + context.orderByPositions + " from ORDER BY " + orderBySymbols + " and outputs: " + outputSymbols;
         return context.orderByPositions();
     }
 

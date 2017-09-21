@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.TwoTableJoin;
 
 public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
@@ -55,10 +54,5 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
     @Override
     public String visitQueriedTable(QueriedTable table, Void context) {
         return table.tableRelation().tableInfo().ident().sqlFqn();
-    }
-
-    @Override
-    public String visitTwoTableJoin(TwoTableJoin twoTableJoin, Void context) {
-        return twoTableJoin.toString();
     }
 }

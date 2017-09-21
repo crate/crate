@@ -21,11 +21,9 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
@@ -37,14 +35,10 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class ConsumingPlanner {
 
-    private final List<Consumer> consumers = new ArrayList<>();
     private final OptimizingRewriter optimizer;
     private final Functions functions;
 
@@ -53,14 +47,6 @@ public class ConsumingPlanner {
                             TableStats tableStats) {
         optimizer = new OptimizingRewriter(functions);
         this.functions = functions;
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
-        consumers.add(new GlobalAggregateConsumer(projectionBuilder));
-        consumers.add(new QueryAndFetchConsumer());
-        consumers.add(new MultiSourceAggregationConsumer(projectionBuilder));
-        consumers.add(new MultiSourceGroupByConsumer(projectionBuilder));
-        consumers.add(new ManyTableConsumer());
-        consumers.add(new NestedLoopConsumer(clusterService, tableStats));
-        consumers.add(new GroupingSubselectConsumer(projectionBuilder));
     }
 
     @Nullable
@@ -73,27 +59,18 @@ public class ConsumingPlanner {
     public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
         relation = optimizer.optimize(relation,  consumerContext.plannerContext().transactionContext());
 
-        Map<Plan, SelectSymbol> subQueries = getSubQueries(relation, consumerContext);
-        for (Consumer consumer : consumers) {
-            Plan plan = consumer.consume(relation, consumerContext);
-            if (plan != null) {
-                return MultiPhasePlan.createIfNeeded(plan, subQueries);
-            }
-        }
-        ValidationException validationException = consumerContext.validationException();
-        if (validationException != null) {
-            throw validationException;
-        }
         if (relation instanceof QueriedRelation) {
             LogicalPlanner logicalPlanner = new LogicalPlanner();
             Planner.Context context = consumerContext.plannerContext();
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            QueriedRelation queriedRelation = (QueriedRelation) relation;
+            Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(queriedRelation.querySpec());
             return MultiPhasePlan.createIfNeeded(
                 logicalPlanner.plan(
-                    ((QueriedRelation) relation),
+                    queriedRelation,
                     context,
                     new ProjectionBuilder(functions),
-                    consumerContext.fetchMode(),
-                    consumerContext.requiredPageSize()
+                    consumerContext.fetchMode()
                 ),
                 subQueries
             );
@@ -101,12 +78,4 @@ public class ConsumingPlanner {
         return null;
     }
 
-    private static Map<Plan, SelectSymbol> getSubQueries(AnalyzedRelation relation, ConsumerContext consumerContext) {
-        if (relation instanceof QueriedRelation) {
-            QuerySpec qs = ((QueriedRelation) relation).querySpec();
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
-            return subqueryPlanner.planSubQueries(qs);
-        }
-        return Collections.emptyMap();
-    }
 }

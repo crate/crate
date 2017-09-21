@@ -22,17 +22,28 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.planner.Plan;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.sql.tree.QualifiedName;
 
-public class RelationPlanningVisitor extends AnalyzedRelationVisitor<ConsumerContext, Plan> {
+import java.util.Set;
 
-    /**
-     * This method returns null to indicate that it does not provide an implementation for the given relation
-     */
+public class QualifiedNameCollector extends DefaultTraversalSymbolVisitor<Set<QualifiedName>, Void> {
+
+    public static final QualifiedNameCollector INSTANCE = new QualifiedNameCollector();
+
     @Override
-    protected Plan visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+    public Void visitField(Field field, Set<QualifiedName> context) {
+        context.add(field.relation().getQualifiedName());
+        return null;
+    }
+
+    @Override
+    public Void visitMatchPredicate(MatchPredicate matchPredicate, Set<QualifiedName> context) {
+        for (Field field : matchPredicate.identBoostMap().keySet()) {
+            context.add(field.relation().getQualifiedName());
+        }
         return null;
     }
 }

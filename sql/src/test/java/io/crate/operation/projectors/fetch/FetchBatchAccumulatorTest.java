@@ -115,9 +115,9 @@ public class FetchBatchAccumulatorTest {
         indexToTable.put("t1", USER_TABLE_IDENT);
 
         Map<TableIdent, FetchSource> tableToFetchSource = new HashMap<>(2);
-        FetchSource fetchSource = new FetchSource(Collections.emptyList(),
-            Collections.singletonList(new InputColumn(0)),
-            Collections.singletonList(ID));
+        FetchSource fetchSource = new FetchSource(Collections.emptyList());
+        fetchSource.addFetchIdColumn(new InputColumn(0));
+        fetchSource.addRefToFetch(ID);
         tableToFetchSource.put(USER_TABLE_IDENT, fetchSource);
 
         return new FetchProjectorContext(
