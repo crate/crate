@@ -32,6 +32,5 @@ package io.crate.planner.consumer;
 public enum FetchMode {
 
     NEVER,
-    NO_PROPAGATION,
     WITH_PROPAGATION
 }

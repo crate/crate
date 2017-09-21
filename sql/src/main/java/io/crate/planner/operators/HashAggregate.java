@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -32,7 +33,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class HashAggregate implements LogicalPlan {
 
@@ -70,12 +71,13 @@ public class HashAggregate implements LogicalPlan {
         AggregationOutputValidator.validateOutputs(aggregates);
         Plan plan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null);
 
+        List<Symbol> sourceOutputs = source.outputs();
         if (plan.resultDescription().hasRemainingLimitOrOffset()) {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
-                source.outputs(),
+                sourceOutputs,
                 aggregates,
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
@@ -84,7 +86,7 @@ public class HashAggregate implements LogicalPlan {
             return plan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
-            source.outputs(),
+            sourceOutputs,
             aggregates,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
@@ -127,7 +129,7 @@ public class HashAggregate implements LogicalPlan {
             aggregates.get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION)) {
 
             Collect collect = (Collect) collapsed;
-            return new Count(aggregates.get(0), collect.relation.tableRelation().tableInfo(), collect.where);
+            return new Count(aggregates.get(0), collect.relation.tableRelation(), collect.where);
         }
         if (collapsed == source) {
             return this;
@@ -141,7 +143,12 @@ public class HashAggregate implements LogicalPlan {
     }
 
     @Override
-    public List<TableInfo> baseTables() {
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
     }
 

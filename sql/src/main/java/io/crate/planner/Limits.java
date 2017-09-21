@@ -35,25 +35,15 @@ import javax.annotation.Nullable;
 public class Limits {
 
     private final int finalLimit;
-    private final int limitAndOffset;
     private final int offset;
 
     Limits(int finalLimit, int offset) {
         this.offset = offset;
         this.finalLimit = finalLimit;
-        if (finalLimit > TopN.NO_LIMIT) {
-            this.limitAndOffset = finalLimit + offset;
-        } else {
-            this.limitAndOffset = TopN.NO_LIMIT;
-        }
     }
 
     public int finalLimit() {
         return finalLimit;
-    }
-
-    public int limitAndOffset() {
-        return limitAndOffset;
     }
 
     public boolean hasLimit() {

@@ -101,7 +101,7 @@ public class GroupByConsumer {
 
         @Override
         public Void visitField(Field field, Void context) {
-            throw new UnsupportedOperationException("Field must have been resolved to Reference already");
+            return null;
         }
     }
 }

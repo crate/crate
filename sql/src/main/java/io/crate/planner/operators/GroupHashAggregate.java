@@ -23,13 +23,13 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
@@ -183,7 +184,12 @@ public class GroupHashAggregate implements LogicalPlan {
     }
 
     @Override
-    public List<TableInfo> baseTables() {
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
     }
 

@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -70,6 +71,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
         assert lastProjection != null : "lastProjection must not be null";
+        assert joinCondition == null || !SymbolVisitors.any(Symbols.IS_COLUMN, joinCondition)
+            : "joinCondition must not contain columns: " +  joinCondition;
         outputTypes = Symbols.typeView(lastProjection.outputs());
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;

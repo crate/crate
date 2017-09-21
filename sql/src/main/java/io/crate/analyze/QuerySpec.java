@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
@@ -29,7 +28,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -37,8 +35,6 @@ import java.util.ListIterator;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -175,62 +171,6 @@ public class QuerySpec {
         assert i == outputs.size() : "i must be equal to outputs.size()";
         return -1;
     }
-
-    /**
-     * create a new QuerySpec which is a subset of this which contains only symbols which match the predicate
-     */
-    public QuerySpec subset(Predicate<? super Symbol> predicate, boolean traverseFunctions) {
-        if (hasAggregates) {
-            throw new UnsupportedOperationException("Cannot create a subset of a querySpec if it has aggregations");
-        }
-
-        QuerySpec newSpec = new QuerySpec()
-            .limit(limit)
-            .offset(offset);
-        if (traverseFunctions) {
-            newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
-        } else {
-            newSpec.outputs(outputs.stream().filter(predicate).collect(Collectors.toList()));
-        }
-
-        if (!where.hasQuery()) {
-            newSpec.where(where);
-        } else if (predicate.test(where.query())) {
-            newSpec.where(where);
-        }
-
-        if (orderBy != null) {
-            newSpec.orderBy(orderBy.subset(predicate));
-        }
-        return newSpec;
-    }
-
-    private static class SubsetVisitor extends DefaultTraversalSymbolVisitor<SubsetVisitor.SubsetContext, Void> {
-
-        static class SubsetContext {
-            Predicate<? super Symbol> predicate;
-            List<Symbol> outputs = new ArrayList<>();
-        }
-
-        private static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
-            SubsetVisitor.SubsetContext ctx = new SubsetVisitor.SubsetContext();
-            ctx.predicate = predicate;
-            SubsetVisitor visitor = new SubsetVisitor();
-            for (Symbol output : outputs) {
-                visitor.process(output, ctx);
-            }
-            return ctx.outputs;
-        }
-
-        @Override
-        protected Void visitSymbol(Symbol symbol, SubsetContext context) {
-            if (context.predicate.test(symbol)) {
-                context.outputs.add(symbol);
-            }
-            return null;
-        }
-    }
-
 
     public QuerySpec copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         QuerySpec newSpec = new QuerySpec()

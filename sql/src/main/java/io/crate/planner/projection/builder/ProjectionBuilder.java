@@ -22,7 +22,6 @@
 package io.crate.planner.projection.builder;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
@@ -40,7 +39,6 @@ import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.WriterProjection;
@@ -126,44 +124,6 @@ public class ProjectionBuilder {
         }
         // FilterProjection can only pass-through rows as is; create inputColumns which preserve the type:
         return new FilterProjection(query, InputColumn.fromSymbols(inputs));
-    }
-
-    /**
-     * Create a {@link OrderedTopNProjection}, {@link TopNProjection} or {@link EvalProjection}.
-     *
-     * @param inputs Symbols which describe the inputs the projection will receive
-     * @param outputs Symbols which describe the outputs.
-     *                If these symbols differ from the inputs the projection will evaluate the rows to produce
-     *                the desired outputs. (That is, evaluate functions or re-order the columns)
-     */
-    public static Projection topNOrEval(Collection<? extends Symbol> inputs,
-                                        @Nullable OrderBy orderBy,
-                                        int offset,
-                                        int limit,
-                                        @Nullable Collection<? extends Symbol> outputs) {
-
-        InputColumns.Context context = new InputColumns.Context(inputs);
-        List<Symbol> inputsProcessed = InputColumns.create(inputs, context);
-        List<Symbol> outputsProcessed;
-        if (outputs == null) {
-            outputsProcessed = inputsProcessed;
-        } else {
-            outputsProcessed = InputColumns.create(outputs, context);
-        }
-
-        if (orderBy == null) {
-            if (limit == TopN.NO_LIMIT && offset == 0) {
-                return new EvalProjection(outputsProcessed);
-            }
-            return new TopNProjection(limit, offset, outputsProcessed);
-        }
-        return new OrderedTopNProjection(
-            limit,
-            offset,
-            outputsProcessed,
-            InputColumns.create(orderBy.orderBySymbols(), context),
-            orderBy.reverseFlags(),
-            orderBy.nullsFirst());
     }
 
     /**

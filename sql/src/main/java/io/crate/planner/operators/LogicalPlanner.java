@@ -22,6 +22,8 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
@@ -35,8 +37,8 @@ import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -51,48 +53,53 @@ public class LogicalPlanner {
     public Plan plan(QueriedRelation queriedRelation,
                      Planner.Context plannerContext,
                      ProjectionBuilder projectionBuilder,
-                     FetchMode fetchMode,
-                     @Nullable Integer pageSizeHint) {
-        LogicalPlan logicalPlan = plan(queriedRelation, fetchMode)
-            .build(extractColumns(queriedRelation.querySpec().outputs()))
+                     FetchMode fetchMode) {
+        LogicalPlan logicalPlan = plan(queriedRelation, fetchMode, true)
+            .build(new HashSet<>(queriedRelation.outputs()))
             .tryCollapse();
 
-        return logicalPlan.build(
+        Plan plan = logicalPlan.build(
             plannerContext,
             projectionBuilder,
             LogicalPlanner.NO_LIMIT,
             0,
             null,
-            pageSizeHint
+            null
         );
+        return plan;
     }
 
-    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode) {
+    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode, boolean isLastFetch) {
         SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
-        return FetchOrEval.create(
-            Limit.create(
-                Order.create(
-                    Filter.create(
-                        groupByOrAggregate(
-                            whereAndCollect(
-                                relation,
-                                splitPoints.toCollect(),
-                                relation.where()
-                            ),
-                            relation.groupBy(),
-                            splitPoints.aggregates()),
-                        relation.having()
+        LogicalPlan.Builder sourceBuilder =
+            FetchOrEval.create(
+                Limit.create(
+                    Order.create(
+                        Filter.create(
+                            groupByOrAggregate(
+                                collectAndFilter(
+                                    relation,
+                                    splitPoints.toCollect(),
+                                    relation.where()
+                                ),
+                                relation.groupBy(),
+                                splitPoints.aggregates()),
+                            relation.having()
+                        ),
+                        relation.orderBy()
                     ),
-                    relation.orderBy()
+                    relation.limit(),
+                    relation.offset()
                 ),
-                relation.limit(),
-                relation.offset()
-            ),
-            relation.querySpec().outputs(),
-            fetchMode
-        );
+                relation.querySpec().outputs(),
+                fetchMode,
+                isLastFetch
+            );
+        if (isLastFetch) {
+            return sourceBuilder;
+        }
+        return RelationBoundary.create(sourceBuilder, relation);
     }
-
 
     private static LogicalPlan.Builder groupByOrAggregate(LogicalPlan.Builder source,
                                                           List<Symbol> groupKeys,
@@ -106,14 +113,28 @@ public class LogicalPlanner {
         return source;
     }
 
-    private static LogicalPlan.Builder whereAndCollect(QueriedRelation queriedRelation, List<Symbol> toCollect, WhereClause where) {
+    private static LogicalPlan.Builder collectAndFilter(QueriedRelation queriedRelation,
+                                                        List<Symbol> toCollect,
+                                                        WhereClause where) {
         if (queriedRelation instanceof QueriedTableRelation) {
             return createCollect((QueriedTableRelation) queriedRelation, toCollect, where);
+        }
+        if (queriedRelation instanceof MultiSourceSelect) {
+            return Join.createNodes(((MultiSourceSelect) queriedRelation), where);
+        }
+        if (queriedRelation instanceof QueriedSelectRelation) {
+            QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
+            return Filter.create(
+                plan(selectRelation.subRelation(), FetchMode.WITH_PROPAGATION, false),
+                where
+            );
         }
         throw new UnsupportedOperationException("Cannot create LogicalPlan from: " + queriedRelation);
     }
 
-    private static LogicalPlan.Builder createCollect(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
+    private static LogicalPlan.Builder createCollect(QueriedTableRelation relation,
+                                                     List<Symbol> toCollect,
+                                                     WhereClause where) {
         return usedColumns -> new Collect(relation, toCollect, where, usedColumns);
     }
 
