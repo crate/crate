@@ -23,8 +23,8 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -44,6 +44,7 @@ class Order implements LogicalPlan {
 
     final LogicalPlan source;
     final OrderBy orderBy;
+    private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
@@ -59,6 +60,7 @@ class Order implements LogicalPlan {
     private Order(LogicalPlan source, OrderBy orderBy) {
         this.source = source;
         this.orderBy = orderBy;
+        this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
     }
 
     @Override
@@ -74,7 +76,7 @@ class Order implements LogicalPlan {
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
                 limit,
                 offset,
-                InputColumn.fromSymbols(source.outputs()),
+                InputColumns.create(outputs, ctx),
                 InputColumns.create(orderBy.orderBySymbols(), ctx),
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
@@ -83,7 +85,7 @@ class Order implements LogicalPlan {
                 topNProjection,
                 NO_LIMIT,
                 0,
-                PositionalOrderBy.of(orderBy, source.outputs())
+                PositionalOrderBy.of(orderBy, outputs)
             );
         }
         return plan;
@@ -100,7 +102,7 @@ class Order implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
-        return source.outputs();
+        return outputs;
     }
 
     @Override

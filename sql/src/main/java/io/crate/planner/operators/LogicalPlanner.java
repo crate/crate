@@ -98,7 +98,7 @@ public class LogicalPlanner {
                                                           List<Symbol> groupKeys,
                                                           List<Function> aggregates) {
         if (!groupKeys.isEmpty()) {
-            throw new UnsupportedOperationException("LogicalPlanner cannot plan GROUP BY queries");
+            return GroupHashAggregate.create(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
             return usedColumns -> new HashAggregate(source.build(extractColumns(aggregates)), aggregates);
