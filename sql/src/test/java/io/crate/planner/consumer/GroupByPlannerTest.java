@@ -51,6 +51,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -358,12 +359,12 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
         Symbol collection_count = topNProjection.outputs().get(0);
-        assertThat(collection_count, instanceOf(Function.class));
+        assertThat(collection_count, SymbolMatchers.isInputColumn(0));
 
 
         // handler
         MergePhase localMergeNode = distributedGroupByMerge.mergePhase();
-        assertThat(localMergeNode.projections(), empty());
+        assertThat(localMergeNode.projections(), contains(instanceOf(EvalProjection.class)));
     }
 
     @Test
@@ -404,10 +405,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(countArgument, instanceOf(InputColumn.class));
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
-        // outputs: count(*), name
+        // outputs: name, count(*)
         TopNProjection topN = (TopNProjection) mergePhase.projections().get(2);
-        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.LONG));
-        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
+        assertThat(topN.outputs().get(0).valueType(), Is.is(DataTypes.STRING));
+        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.LONG));
 
 
         MergePhase localMerge = planNode.mergePhase();
@@ -460,8 +461,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(reduceMergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class)
+            instanceOf(FilterProjection.class)
         ));
         Projection projection = reduceMergePhase.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -474,12 +474,6 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // outputs: name, count(*)
         assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
-
-        // eval projection
-        //      outputs: name, count(*)
-        EvalProjection eval = (EvalProjection) reduceMergePhase.projections().get(2);
-        assertThat(((InputColumn) eval.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) eval.outputs().get(1)).index(), is(1));
 
         MergePhase localMerge = planNode.mergePhase();
         assertThat(localMerge.projections(), empty());

@@ -188,9 +188,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         MergePhase mergePhase = groupBy.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
         assertThat(projection.primaryKeys().size(), is(2));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
