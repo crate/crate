@@ -56,7 +56,6 @@ public class ConsumingPlanner {
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
         consumers.add(new NonDistributedGroupByConsumer(projectionBuilder));
         consumers.add(new ReduceOnCollectorGroupByConsumer(projectionBuilder));
-        consumers.add(new DistributedGroupByConsumer(projectionBuilder));
         consumers.add(new GlobalAggregateConsumer(projectionBuilder));
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new MultiSourceAggregationConsumer(projectionBuilder));
