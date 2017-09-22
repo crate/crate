@@ -345,13 +345,6 @@ Sets size of transaction log prior to flushing.
 
 :value: Size (bytes) of translog.
 
-``translog.flush_threshold_period``
-...................................
-
-Sets period of no flushing after which force flush occurs.
-
-:value: Period length in milliseconds.
-
 ``translog.disable_flush``
 ..........................
 
