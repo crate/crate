@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.planner.distribution.DistributionInfo;
@@ -121,6 +122,10 @@ public class PlanPrinter {
             ImmutableMap.Builder<String, Object> builder = visitCollectPhase(phase, context);
             builder = dqlPlanNode(phase, builder);
             builder.put("routing", phase.routing().locations());
+            WhereClause whereClause = phase.whereClause();
+            if (whereClause.hasQuery()) {
+                builder.put("where", whereClause.query().representation());
+            }
             return builder;
         }
 
