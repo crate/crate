@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @ThreadSafe
 public class RamAccountingContext {
 
+    // this must not be final so tests could adjust it
     // Flush every 2mb
     public static long FLUSH_BUFFER_SIZE = 1024 * 1024 * 2;
 

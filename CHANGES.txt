@@ -20,3 +20,8 @@ Changes
 
 Fixes
 =====
+
+ - Fixed an issue where the query circuit breaker would be tripped after 
+   running several queries due to incorrect memory tracking. Subsequent 
+   operations would've failed due to the lack of circuit breaker cleanup.
+
