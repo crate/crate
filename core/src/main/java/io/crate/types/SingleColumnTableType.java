@@ -35,13 +35,18 @@ public class SingleColumnTableType extends CollectionType {
         super(innerType);
     }
 
-    SingleColumnTableType() {
+    public SingleColumnTableType() {
         super();
     }
 
     @Override
     public int id() {
         return ID;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.TableType;
     }
 
     @Override

@@ -23,6 +23,7 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.junit.Test;
@@ -50,8 +51,8 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNotRegisteredForSets() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: subscript(long_set, integer)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast long_set to type undefined_array");
         assertEvaluate("subscript(long_set, a)", 3L,
             Literal.of(ImmutableSet.of(3L, 7L), new SetType(DataTypes.LONG)),
             Literal.of(DataTypes.INTEGER, 1)
@@ -60,8 +61,8 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testIndexExpressionIsNotInteger() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: subscript(string_array, long)");
-        assertNormalize("subscript(['Youri', 'Ruben'], 1 + 1)", isLiteral("Ruben"));
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Array literals can only be accessed via numeric index");
+        assertNormalize("subscript(['Youri', 'Ruben'], '1')", isLiteral("Ruben"));
     }
 }

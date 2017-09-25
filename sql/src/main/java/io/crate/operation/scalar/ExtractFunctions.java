@@ -47,9 +47,10 @@ import java.util.Locale;
 public class ExtractFunctions {
 
     private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
-    private static final String NAME_PREFIX = "extract_";
+    public static final String GENERIC_NAME = "_extract";
     public static final FunctionInfo GENERIC_INFO = new FunctionInfo(
-        new FunctionIdent("_extract", ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
+        new FunctionIdent(GENERIC_NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
+    private static final String NAME_PREFIX = "extract_";
 
     private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
     private static final String EXTRACT_YEAR_PREFIX = "extract(year from ";

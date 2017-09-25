@@ -41,6 +41,11 @@ public class ArrayType extends CollectionType {
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.ArrayType;
+    }
+
+    @Override
     public String getName() {
         return super.getName() + "_array";
     }

@@ -15,8 +15,20 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Columns aren't implicitly cast to a type anymore. Whenever columns are
+   compared to Literals (e.g. 'string', 1, 1.2), these literals will be
+   converted to the column type but not vice-versa. The column can still be
+   manually cast to a type by using a cast function.
+
 Changes
 =======
+
+- Function arguments are now linked to each other, where possible. This enables
+  type inference between arguments such that arguments can be converted to match
+  a function's signature. For example, ``coalesce(integer, long)`` would have
+  resulted in an "unknown function" message. We now convert this call into
+  ``coalesce(long, long)``. The conversion is possible through a type precedence
+  list and convertibility checks on the data types.
 
 - Added cluster checks that warn if some tables need to be recreated so that
   they are compatible with future versions of CrateDB >= 3.0.0.

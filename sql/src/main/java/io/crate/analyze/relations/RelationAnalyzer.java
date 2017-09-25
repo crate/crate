@@ -347,7 +347,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                            ExpressionAnalysisContext expressionAnalysisContext) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.LONG);
+            return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
         }
         return null;
     }
@@ -633,6 +633,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         );
 
         Symbol symbol = expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
+
         if (!(symbol instanceof Function)) {
             throw new UnsupportedOperationException(
                 String.format(

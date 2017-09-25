@@ -25,6 +25,7 @@ package io.crate.metadata.tablefunctions;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -47,7 +48,7 @@ public interface TableFunctionImplementation extends FunctionImplementation {
      * Creates the metadata for the table that is generated upon execution of this function. This is the actual return
      * type of the table function.
      * <p>
-     * Note: The result type of the {@link io.crate.metadata.FunctionInfo} that is returned by {@link #info()}
+     * Note: The result type of the {@link FunctionInfo} that is returned by {@link #info()}
      * is ignored for table functions.
      *
      * @param clusterService the cluster service implementation for retrieving cluster state information

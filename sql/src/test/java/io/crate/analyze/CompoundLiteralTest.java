@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
+import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -135,8 +136,8 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _array(long, string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'string' to type long");
         analyzeExpression("[1, 'string']");
     }
 

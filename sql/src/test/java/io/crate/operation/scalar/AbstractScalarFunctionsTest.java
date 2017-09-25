@@ -222,14 +222,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T extends FunctionImplementation> T getFunction(String functionName, DataType... argTypes) {
-        return (T) getFunction(functionName, Arrays.asList(argTypes));
+    protected FunctionImplementation getFunction(String functionName, DataType... argTypes) {
+        return getFunction(functionName, Arrays.asList(argTypes));
     }
 
     @SuppressWarnings("unchecked")
-    protected <T extends FunctionImplementation> T getFunction(String functionName, List<DataType> argTypes) {
-
-        return (T) functions.getBuiltin(functionName, argTypes);
+    protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
+        return functions.getBuiltin(functionName, argTypes);
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {
@@ -237,13 +236,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     }
 
     protected Symbol normalize(TransactionContext transactionContext, String functionName, Symbol... args) {
-        DataType[] argTypes = new DataType[args.length];
-        for (int i = 0; i < args.length; i++) {
-            argTypes[i] = args[i].valueType();
-        }
-        FunctionImplementation function = getFunction(functionName, argTypes);
+        List<Symbol> argList = Arrays.asList(args);
+        FunctionImplementation function = functions.getBuiltinByArgs(functionName, argList);
         return function.normalizeSymbol(new Function(function.info(),
-            Arrays.asList(args)), transactionContext);
+            argList), transactionContext);
     }
 
     protected Symbol normalize(String functionName, Symbol... args) {

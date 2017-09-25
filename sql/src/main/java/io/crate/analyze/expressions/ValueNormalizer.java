@@ -34,6 +34,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
@@ -49,7 +50,7 @@ public class ValueNormalizer {
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
      *
-     * @param valueSymbol the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.analyze.symbol.Literal}
+     * @param valueSymbol the value to normalize, might be anything from {@link Scalar} to {@link io.crate.analyze.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
@@ -59,7 +60,7 @@ public class ValueNormalizer {
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
         if (!(valueSymbol instanceof Literal)) {
-            return ExpressionAnalyzer.castIfNeededOrFail(valueSymbol, targetType);
+            return ExpressionAnalyzer.cast(valueSymbol, targetType);
         }
         Literal literal = (Literal) valueSymbol;
         try {
@@ -68,7 +69,7 @@ public class ValueNormalizer {
             throw new ColumnValidationException(
                 reference.ident().columnIdent().name(),
                 tableInfo.ident(),
-                String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
+                String.format(Locale.ENGLISH, "Cannot cast %s to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
                     reference.valueType().getName()));
         }
         Object value = literal.value();

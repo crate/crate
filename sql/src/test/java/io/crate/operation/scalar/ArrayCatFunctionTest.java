@@ -47,9 +47,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument 2 of the array_cat function cannot be converted to array");
-        assertEvaluate("array_cat([1, 2, 3], null)", null);
+        assertNormalize("array_cat([1, 2, 3], null)", isLiteral(new Long[] {1L, 2L, 3L}));
     }
 
     @Test
@@ -68,17 +66,14 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testThreeArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_cat(long_array, long_array, long_array)");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The number of arguments is incorrect");
         assertEvaluate("array_cat([1], [2], [3])", null);
     }
 
     @Test
     public void testDifferentConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_cat(int_array, long_array)",
-            new Object[]{1, 1},
-            Literal.of(new Object[]{1}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{1L}, LONG_ARRAY_TYPE));
+        assertEvaluate("array_cat([1::integer], [1::long])", new Object[]{1, 1});
     }
 
     @Test

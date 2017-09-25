@@ -22,13 +22,14 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
+import io.crate.analyze.symbol.FuncArg;
 import io.crate.data.Input;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -77,13 +78,16 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new DoubleSquareRootFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.DOUBLE));
+            return new DoubleSquareRootFunction(
+                new FunctionInfo(
+                    new FunctionIdent(NAME, dataTypes),
+                    DataTypes.DOUBLE));
         }
 
         @Nullable
         @Override
-        public List<DataType> getSignature(List<DataType> dataTypes) {
-            return Signature.SIGNATURES_SINGLE_NUMERIC.apply(dataTypes);
+        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
+            return FuncParams.SINGLE_NUMERIC.match(symbols);
         }
     }
 }

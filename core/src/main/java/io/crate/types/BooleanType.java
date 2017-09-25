@@ -53,6 +53,11 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.BooleanType;
+    }
+
+    @Override
     public String getName() {
         return "boolean";
     }

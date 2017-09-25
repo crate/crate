@@ -1,17 +1,14 @@
 package io.crate.operation.operator;
 
 import io.crate.metadata.FunctionInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 public class GteOperator extends CmpOperator {
 
     public static final String NAME = "op_>=";
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            module.registerOperatorFunction(new GteOperator(generateInfo(NAME, type)));
-        }
+        module.registerDynamicOperatorFunction(NAME, new CmpResolver(NAME, GteOperator::new));
+
     }
 
     private GteOperator(FunctionInfo info) {

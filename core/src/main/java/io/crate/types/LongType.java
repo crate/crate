@@ -39,6 +39,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.LongType;
+    }
+
+    @Override
     public String getName() {
         return "long";
     }

@@ -56,6 +56,11 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
+    public boolean canBeCasted() {
+        return true;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitParameterSymbol(this, context);
     }

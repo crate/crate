@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
@@ -462,23 +463,20 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _array(double, long)");
-        analyze("select 'found' from users where 1 in (1.2, 2)");
-    }
-
-    @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
-        assertThat(analysis.relation().querySpec().where().hasQuery(), is(false)); // already normalized from 1.2 in (1.0, 2.0) --> false
-        assertThat(analysis.relation().querySpec().where().noMatch(), is(false));
+        SelectAnalyzedStatement analysis;
+        analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
+        assertThat(analysis.relation().querySpec().where().hasQuery(), is(false)); // already normalized to 1.2 in (1.0, 2.0) --> false
+        assertThat(analysis.relation().querySpec().where().noMatch(), is(true));
+        analysis = analyze("select 'found' from users where 1 in (1.2, 2)");
+        assertThat(analysis.relation().querySpec().where().hasQuery(), is(false));
+        assertThat(analysis.relation().querySpec().where().noMatch(), is(true));
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeValueIncompatibleDataTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _array(long, string, long)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type long");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -703,8 +701,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testNotTimestamp() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_not(timestamp)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast date to type boolean");
         analyze("select id, name from parted where not date");
     }
 
@@ -1343,7 +1341,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testScoreReferenceComparisonWithColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("System column '_score' can only be used within a '>=' comparison without any surrounded predicate");
-        analyze("select * from users where \"_score\" >= id");
+        analyze("select * from users where \"_score\" >= id::float");
     }
 
     @Test
@@ -1378,7 +1376,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testRegexpMatchInvalidArg() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type float");
+        expectedException.expectMessage("Cannot cast floats to type string");
         analyze("select * from users where floats ~ 'foo'");
     }
 
@@ -1605,7 +1603,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testExtractFunctionWithWrongType() throws Exception {
-        SelectAnalyzedStatement statement = analyze("select extract(day from name) from users");
+        SelectAnalyzedStatement statement = analyze("select extract(day from name::timestamp) from users");
         Symbol symbol = statement.relation().querySpec().outputs().get(0);
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
@@ -1807,8 +1805,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: unnest(long, string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 1 to type undefined_array");
         analyze("select * from unnest(1, 'foo')");
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -46,7 +47,8 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidType() throws Exception {
-        expectedException.expectMessage("unknown function: sqrt(string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type double");
         assertEvaluate("sqrt('foo')", null);
     }
 

@@ -25,10 +25,10 @@ package io.crate.operation.scalar.cast;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
@@ -53,7 +53,7 @@ public class TryCastScalarFunction extends CastFunction {
         private final DataType dataType;
 
         protected Resolver(DataType dataType, String name) {
-            super(Signature.SIGNATURES_SINGLE_ANY);
+            super(FuncParams.SINGLE_ANY);
             this.name = name;
             this.dataType = dataType;
         }

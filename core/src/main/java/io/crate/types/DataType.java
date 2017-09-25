@@ -33,7 +33,42 @@ import java.util.Set;
 
 public abstract class DataType<T> implements Comparable, Streamable {
 
+    /**
+     * Type precedence ids which help to decide when a type can be cast
+     * into another type without loosing information (upcasting).
+     *
+     * Lower ordinal => Lower precedence
+     * Higher ordinal => Higher precedence
+     *
+     * Precedence list inspired by
+     * https://docs.microsoft.com/en-us/sql/t-sql/data-types/data-type-precedence-transact-sql
+     *
+     */
+    public enum Precedence {
+        NotSupportedType,
+        UndefinedType,
+        LiteralType,
+        StringType,
+        ByteType,
+        BooleanType,
+        ShortType,
+        IntegerType,
+        LongType,
+        TimestampType,
+        FloatType,
+        DoubleType,
+        ArrayType,
+        SetType,
+        TableType,
+        GeoPointType,
+        ObjectType,
+        GeoShapeType,
+        Custom
+    }
+
     public abstract int id();
+
+    public abstract Precedence precedence();
 
     public abstract String getName();
 
@@ -42,6 +77,15 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public abstract T value(Object value) throws IllegalArgumentException, ClassCastException;
 
     public abstract int compareValueTo(T val1, T val2);
+
+    /**
+     * Returns true if this DataType precedes the supplied DataType.
+     * @param other The other type to compare against.
+     * @return True if the current type precedes, false otherwise.
+     */
+    public boolean precedes(DataType other) {
+        return this.precedence().ordinal() > other.precedence().ordinal();
+    }
 
     /**
      * check whether a value of this type is convertible to <code>other</code>
@@ -63,6 +107,10 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     public boolean isNumeric() {
         return DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(this);
+    }
+
+    public boolean isDecimal() {
+        return id() == DoubleType.ID || id() == FloatType.ID;
     }
 
     static <T> int nullSafeCompareValueTo(T val1, T val2, Comparator<T> cmp) {

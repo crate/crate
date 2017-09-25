@@ -63,7 +63,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     private Literal(DataType type, ReturnType value) {
-        assert typeMatchesValue(type, value) : String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
+        assert typeMatchesValue(type, value) :
+            String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;
     }
@@ -120,6 +121,14 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     @Override
     public SymbolType symbolType() {
         return SymbolType.LITERAL;
+    }
+
+    /**
+     * Literals may be casted if necessary.
+     */
+    @Override
+    public boolean canBeCasted() {
+        return true;
     }
 
     @Override

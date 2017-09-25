@@ -244,7 +244,7 @@ values (-2^64 to 2^64-1) gets exceeded an ArithmeticException will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLActionException[UnsupportedFeatureException: unknown function: sum(string)]
+    SQLActionException[SQLParseException: Cannot cast name to type [double, float, long, integer, short, byte]]
 
 ``avg`` and ``mean``
 ====================

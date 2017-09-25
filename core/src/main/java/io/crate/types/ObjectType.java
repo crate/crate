@@ -47,6 +47,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.ObjectType;
+    }
+
+    @Override
     public String getName() {
         return "object";
     }

@@ -106,6 +106,11 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         @Override
+        public Precedence precedence() {
+            return Precedence.Custom;
+        }
+
+        @Override
         public String getName() {
             return "average_state";
         }

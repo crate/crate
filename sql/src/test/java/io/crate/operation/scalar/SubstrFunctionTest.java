@@ -22,6 +22,7 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -87,7 +88,8 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidArgs() throws Exception {
-        expectedException.expectMessage("unknown function: substr(string, string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'b' to type double");
         assertNormalize("substr('foo', 'b')", null);
     }
 }

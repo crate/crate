@@ -61,9 +61,9 @@ public class GeoHashFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: geohash(long)");
-        assertNormalize("geohash(1)", null);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot convert \"1\" to geo_point. Unknown Shape definition");
+        assertEvaluate("geohash(1)", null);
     }
 
     @Test

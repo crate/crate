@@ -143,7 +143,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         refresh();
 
-        execute("update test set id=(id+10)*other_id");
+        execute("update test set id=(id+10)*cast(other_id as integer)");
 
         assertEquals(2, response.rowCount());
         refresh();

@@ -30,11 +30,12 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -65,7 +66,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     private static class CountAggregationFunctionResolver extends BaseFunctionResolver {
 
         CountAggregationFunctionResolver() {
-            super(Signature.numArgs(0, 1));
+            super(FuncParams.builder()
+                .withVarArgs(Param.ANY).limitVarArgOccurrences(1)
+                .build());
         }
 
         @Override
@@ -180,6 +183,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         @Override
         public int id() {
             return ID;
+        }
+
+        @Override
+        public Precedence precedence() {
+            return Precedence.Custom;
         }
 
         @Override

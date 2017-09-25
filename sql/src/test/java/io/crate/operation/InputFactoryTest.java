@@ -107,7 +107,7 @@ public class InputFactoryTest extends CrateUnitTest {
 
         assertThat(inputs.size(), is(2));
         assertThat((Long) inputs.get(0).value(), is(1L));
-        assertThat((Long) inputs.get(1).value(), is(12L));  // + 10
+        assertThat((Integer) inputs.get(1).value(), is(12));  // + 10
     }
 
     @Test
@@ -158,7 +158,7 @@ public class InputFactoryTest extends CrateUnitTest {
 
         assertThat(keyInputs.size(), is(2));
         assertThat((Long) keyInputs.get(0).value(), is(1L));
-        assertThat((Long) keyInputs.get(1).value(), is(12L));  // 2 + 10
+        assertThat((Integer) keyInputs.get(1).value(), is(12));  // 2 + 10
     }
 
     @Test

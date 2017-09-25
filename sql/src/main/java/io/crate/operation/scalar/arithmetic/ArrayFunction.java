@@ -22,13 +22,14 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.analyze.symbol.FuncArg;
 import io.crate.data.Input;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -54,8 +55,8 @@ public class ArrayFunction extends Scalar<Object, Object> {
 
         @Nullable
         @Override
-        public List<DataType> getSignature(List<DataType> dataTypes) {
-            return Signature.SIGNATURES_ALL_OF_SAME.apply(dataTypes);
+        public List<DataType> getSignature(List<? extends FuncArg> symbols) {
+            return FuncParams.ANY_VAR_ARGS_SAME_TYPE.match(symbols);
         }
     };
 

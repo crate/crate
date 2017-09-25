@@ -60,7 +60,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import static io.crate.analyze.expressions.ExpressionAnalyzer.castIfNeededOrFail;
+import static io.crate.analyze.expressions.ExpressionAnalyzer.cast;
 import static io.crate.operation.operator.Operators.LOGICAL_OPERATORS;
 import static io.crate.operation.scalar.cast.CastFunctionResolver.isCastFunction;
 
@@ -206,7 +206,7 @@ final class SemiJoins {
         FunctionIdent joinCondIdent = new FunctionIdent(AnyOperator.nameToNonAny(name), newArgTypes);
         return new Function(
             new FunctionInfo(joinCondIdent, DataTypes.BOOLEAN),
-            ImmutableList.of(firstArg, castIfNeededOrFail(rewriteCandidate.subQuery.relation().fields().get(0), firstArg.valueType()))
+            ImmutableList.of(firstArg, cast(rewriteCandidate.subQuery.relation().fields().get(0), firstArg.valueType()))
         );
     }
 

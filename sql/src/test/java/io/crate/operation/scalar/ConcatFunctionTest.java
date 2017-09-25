@@ -22,6 +22,7 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
@@ -40,8 +41,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArgumentThatHasNoStringRepr() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument 2 of the concat function can't be converted to string");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast [1] to type string");
         assertNormalize("concat('foo', [1])", null);
     }
 
@@ -68,6 +69,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testStringAndNumber() throws Exception {
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type long");
         assertNormalize("concat('foo', 3)", isLiteral("foo3"));
     }
 
@@ -83,8 +86,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Second argument's inner type (long_array) of the array_cat function cannot be converted to the first argument's inner type (long)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast [[1, 2]] to type long_array");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 
@@ -97,9 +100,6 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("concat(long_array, int_array)",
-            new Long[]{1L, 2L, 3L},
-            Literal.of(new Long[]{1L}, new ArrayType(LongType.INSTANCE)),
-            Literal.of(new Integer[]{2, 3}, new ArrayType(IntegerType.INSTANCE)));
+        assertEvaluate("concat([1], [2::integer, 3::integer])", new Long[]{1L, 2L, 3L});
     }
 }

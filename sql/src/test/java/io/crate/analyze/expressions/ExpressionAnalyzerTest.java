@@ -36,8 +36,6 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -45,6 +43,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.scalar.conditional.CoalesceFunction;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.FunctionCall;
@@ -243,26 +242,21 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext();
-        FunctionInfo info1 = new FunctionInfo(
-            new FunctionIdent("inc", Collections.singletonList(DataTypes.BOOLEAN)),
-            DataTypes.INTEGER,
-            FunctionInfo.Type.SCALAR,
-            FunctionInfo.NO_FEATURES
-        );
+        String functionName = CoalesceFunction.NAME;
         Symbol fn1 = ExpressionAnalyzer.allocateFunction(
-            info1,
+            functionName,
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
             new TransactionContext());
         Symbol fn2 = ExpressionAnalyzer.allocateFunction(
-            info1,
+            functionName,
             Collections.singletonList(Literal.BOOLEAN_FALSE),
             localContext,
             functions,
             new TransactionContext());
         Symbol fn3 = ExpressionAnalyzer.allocateFunction(
-            info1,
+            functionName,
             Collections.singletonList(Literal.BOOLEAN_TRUE),
             localContext,
             functions,

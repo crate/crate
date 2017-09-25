@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.geo;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -32,15 +33,15 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: distance(string, string, string)");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The number of arguments is incorrect");
         assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: distance(long, string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast '1' to type geo_point");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 
@@ -65,7 +66,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithInvalidReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert name to a geo point");
+        expectedException.expectMessage("Cannot cast [10.04, 28.02] to type string");
         assertNormalize("distance(name, [10.04, 28.02])", null);
     }
 

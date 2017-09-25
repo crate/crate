@@ -66,7 +66,8 @@ public class CastFunctionResolver {
         public static final String TO_FLOAT_ARRAY = "to_float_array";
         public static final String TO_SHORT_ARRAY = "to_short_array";
         public static final String TO_IP_ARRAY = "to_ip_array";
-        public static final String TO_TIMESTAMP_ARRAY = "to_timestamp_array";
+        public static final String TO_TIMESTAMP_ARRAY = "to_timestamp_array"
+            ;
         public static final String TO_GEO_POINT = "to_geo_point";
         public static final String TO_GEO_SHAPE = "to_geo_shape";
 

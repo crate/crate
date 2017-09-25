@@ -23,6 +23,7 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -45,9 +46,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument 2 of the array_unique function cannot be converted to array");
-        assertEvaluate("array_unique([1], null)", null);
+        assertNormalize("array_unique([1], null)", isLiteral(new Long[] {1L}));
     }
 
     @Test
@@ -82,15 +81,15 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testConvertNonNumericStringToNumber() throws Exception {
-        expectedException.expect(NumberFormatException.class);
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast ['foo', 'bar'] to type long_array");
         assertEvaluate("array_unique([10, 20], ['foo', 'bar'])", null);
     }
 
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Second argument's inner type (boolean) of the array_unique function " +
-                                        "cannot be converted to the first argument's inner type (geo_point)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast [true] to type geo_point_array");
         assertEvaluate("array_unique([geopoint], [true])", null);
     }
 

@@ -27,12 +27,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -52,8 +53,9 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> {
     public static void register(ScalarFunctionModule module) {
         module.register(NAME,
             new BaseFunctionResolver(
-                Signature.numArgs(2, 3).and(
-                    Signature.withLenientVarArgs(Signature.ArgMatcher.STRING))) {
+                FuncParams.builder(Param.STRING, Param.STRING)
+                    .withVarArgs(Param.STRING).limitVarArgOccurrences(1)
+                    .build()) {
 
                 @Override
                 public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {

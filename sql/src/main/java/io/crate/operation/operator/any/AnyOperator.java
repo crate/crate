@@ -28,12 +28,17 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.operator.Operator;
+import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
+import io.crate.types.SingleColumnTableType;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -140,7 +145,14 @@ public abstract class AnyOperator extends Operator<Object> {
     public abstract static class AnyResolver extends BaseFunctionResolver {
 
         AnyResolver() {
-            super(Signature.of(Signature.ArgMatcher.ANY, Signature.ArgMatcher.ANY_COLLECTION));
+            super(FuncParams.builder(
+                Param.ANY,
+                Param.of(
+                    new ArrayType(DataTypes.UNDEFINED),
+                    new SetType(DataTypes.UNDEFINED),
+                    new SingleColumnTableType(DataTypes.UNDEFINED))
+                    .withInnerType(Param.ANY))
+                .build());
         }
 
         public abstract FunctionImplementation newInstance(FunctionInfo info);

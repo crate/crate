@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -96,8 +97,9 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
             this.inputFactory = new InputFactory(functions);
             this.ingestionService = ingestionService;
             this.expressionAnalysisContext = new ExpressionAnalysisContext();
+            TransactionContext transactionContext = new TransactionContext(SessionContext.create());
             this.expressionAnalyzer = new ExpressionAnalyzer(
-                functions, null, null, inputColumnProvider, null);
+                functions, transactionContext, null, inputColumnProvider, null);
         }
 
         void registerListener() {

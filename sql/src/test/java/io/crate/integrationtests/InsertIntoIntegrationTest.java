@@ -191,7 +191,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Validation failed for i: '192.168.1.500' cannot be cast to type ip");
+        expectedException.expectMessage("Validation failed for i: Cannot cast '192.168.1.500' to type ip");
         execute("insert into t (i) values ('192.168.1.2'), ('192.168.1.3'),('192.168.1.500')");
     }
 
@@ -1112,7 +1112,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into import (col1, col2, gen_new) (select col1, col2, col1+col2 from export)");
         refresh();
         execute("select gen_new from import");
-        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat(response.rows()[0][0], is(3));
     }
 
     @Test
@@ -1122,7 +1122,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (col2) values (1)");
         refresh();
         execute("select col1 from test");
-        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat(response.rows()[0][0], is(3));
     }
 
     @Test
@@ -1133,7 +1133,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (col1) values(1)");
         refresh();
         execute("select col2 from test");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(2));
     }
 
     @Test
@@ -1143,7 +1143,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test(col1, col2) values (1, 4)");
         refresh();
         execute("select col2 from test");
-        assertThat((Long) response.rows()[0][0], is(4L));
+        assertThat(response.rows()[0][0], is(4));
 
         // wrong value
         expectedException.expect(SQLActionException.class);

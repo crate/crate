@@ -26,6 +26,7 @@ import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,15 +34,14 @@ public class MapFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testMapWithWrongNumOfArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _map(string, long, string)");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The number of arguments is incorrect");
         assertEvaluate("_map('foo', 1, 'bar')", null);
     }
 
     @Test
-    public void testKeysMustBeOfTypeString() throws Exception {
-        expectedException.expectMessage("unknown function: _map(long, long)");
-        assertEvaluate("_map(10, 2)", null);
+    public void testKeyNotOfTypeString() throws Exception {
+        assertEvaluate("_map(10, 2)", Collections.singletonMap("10", 2L));
     }
 
     @Test

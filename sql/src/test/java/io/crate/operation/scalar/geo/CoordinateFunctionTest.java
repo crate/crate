@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.geo;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -67,9 +68,9 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: longitude(long)");
-        assertNormalize("longitude(1)", null);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot convert \"1\" to geo_point. Unknown Shape definition");
+        assertEvaluate("longitude(1)", null);
     }
 
     @Test

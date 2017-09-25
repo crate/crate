@@ -100,8 +100,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         TestingTableInfo.Builder doubleGenPartedInfo =
             TestingTableInfo.builder(ident, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
                 .add("x", DataTypes.INTEGER, null)
-                .addGeneratedColumn("x1", DataTypes.LONG, "x+1", true)
-                .addGeneratedColumn("x2", DataTypes.LONG, "x+2", true)
+                .addGeneratedColumn("x1", DataTypes.INTEGER, "x+1", true)
+                .addGeneratedColumn("x2", DataTypes.INTEGER, "x+2", true)
                 .addPartitions(
                     new PartitionName(ident, Arrays.asList(new BytesRef("4"), new BytesRef("5"))).toString(),
                     new PartitionName(ident, Arrays.asList(new BytesRef("5"), new BytesRef("6"))).toString()

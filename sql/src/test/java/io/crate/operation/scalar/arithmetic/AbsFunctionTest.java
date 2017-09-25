@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -41,7 +42,8 @@ public class AbsFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testWrongType() throws Exception {
-        expectedException.expectMessage("unknown function: abs(string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type double");
         assertEvaluate("abs('foo')", null);
     }
 

@@ -207,7 +207,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertWithNumericTypeOutOfRange() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: 1234 cannot be cast to type byte");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type byte");
         e.analyze("insert into users (name, id, bytes) values ('Trillian', 4, 1234)");
     }
 
@@ -654,7 +654,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: '11!' cannot be cast to type long");
+        expectedException.expectMessage("Validation failed for id: Cannot cast '11!' to type long");
         e.analyze("insert into users (id, name) values (?, ?)",
             new Object[][]{
                 new Object[]{10, "foo"},
@@ -767,8 +767,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInvalidTypeParamLiteral() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
-                                        "'question', '?']] cannot be cast to type string_array");
+        expectedException.expectMessage("Validation failed for tags: Cannot cast " +
+                                        "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
+                                        "to type string_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', [['the', 'answer'], ['what''s', 'the', 'question', '?']])");
 
@@ -777,8 +778,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInvalidTypeParam() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
-                                        "'question', '?']] cannot be cast to type string_array");
+        expectedException.expectMessage("Validation failed for tags: Cannot cast " +
+                                        "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
+                                        "to type string_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[]{
             new String[][]{
@@ -792,8 +794,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInvalidTypeBulkParam() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags: [['the', 'answer'], ['what''s', 'the', " +
-                                        "'question', '?']] cannot be cast to type string_array");
+        expectedException.expectMessage("Validation failed for tags: Cannot cast " +
+                                        "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
+                                        "to type string_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[][]{
             new Object[]{

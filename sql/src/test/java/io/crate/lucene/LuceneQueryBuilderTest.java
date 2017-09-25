@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.exceptions.ConversionException;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -574,10 +575,9 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(TermRangeQuery.class));
     }
 
-    @Test
     public void testRangeQueryOnDocThrowsException() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: op_>(object, object)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast _doc");
         convert("_doc > {\"name\"='foo'}");
     }
 

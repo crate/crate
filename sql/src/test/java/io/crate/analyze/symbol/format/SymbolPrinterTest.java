@@ -293,11 +293,11 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testStyles() throws Exception {
-        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+\"select\"+1+1+1+1+1+1)))");
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.FULL_QUALIFIED), is("abs(sqrt(ln((((((((doc.formatter.bar + doc.formatter.\"select\") + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.SIMPLE), is("abs(sqrt(ln((((((((bar + \"select\") + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE), is("abs(sqrt(ln((((((((doc.formatter.bar + doc.formatter.\"select\") + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED), is("abs(sqrt(ln((((((((bar + \"select\") + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.FULL_QUALIFIED), is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.SIMPLE), is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE), is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED), is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
     }
 
     @Test
