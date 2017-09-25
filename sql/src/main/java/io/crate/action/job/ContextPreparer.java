@@ -398,6 +398,7 @@ public class ContextPreparer extends AbstractComponent {
          * from toKey(phaseId, inputId) to BatchConsumer.
          */
         private final LongObjectMap<BatchConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
+        private final LongObjectMap<RamAccountingContext> ramAccountingContextByPhaseInputId = new LongObjectHashMap<>();
         private final IntObjectMap<BatchConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
 
         private final SharedShardContexts sharedShardContexts;
@@ -488,6 +489,22 @@ public class ContextPreparer extends AbstractComponent {
             consumersByPhaseInputId.put(toKey(phaseId, (byte) 0), consumer);
         }
 
+        void registerRamAccountingContext(int phaseId, RamAccountingContext ramAccountingContext) {
+            long key = toKey(phaseId, (byte) 0);
+            ramAccountingContextByPhaseInputId.put(key, ramAccountingContext);
+        }
+
+        @Nullable
+        RamAccountingContext getRamAccountingContext(UpstreamPhase phase) {
+            NodeOperation nodeOperation = opCtx.nodeOperationByPhaseId.get(phase.phaseId());
+            if (nodeOperation == null) {
+                return null;
+            }
+
+            long phaseIdKey = toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId());
+            return ramAccountingContextByPhaseInputId.get(phaseIdKey);
+        }
+
         void registerSubContext(ExecutionSubContext subContext) {
             contextBuilder.addSubContext(subContext);
         }
@@ -538,8 +555,10 @@ public class ContextPreparer extends AbstractComponent {
 
             if (upstreamOnSameNode) {
                 context.registerBatchConsumer(phase.phaseId(), consumer);
+                context.registerRamAccountingContext(phase.phaseId(), ramAccountingContext);
                 return true;
             }
+
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
@@ -563,9 +582,14 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitRoutedCollectPhase(final RoutedCollectPhase phase, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             BatchConsumer consumer = context.getBatchConsumer(phase,
                 MoreObjects.firstNonNull(phase.nodePageSizeHint(), Paging.PAGE_SIZE));
+
+            RamAccountingContext ramAccountingContext = context.getRamAccountingContext(phase);
+            if (ramAccountingContext == null) {
+                ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            }
+
             context.registerSubContext(new JobCollectContext(
                 phase,
                 collectOperation,
