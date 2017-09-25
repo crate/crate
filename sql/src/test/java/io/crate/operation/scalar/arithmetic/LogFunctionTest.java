@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
@@ -148,8 +149,8 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeString() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: log(string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type double");
         assertNormalize("log('foo')", Matchers.nullValue());
     }
 

@@ -433,7 +433,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'null'.");
+        expectedException.expectMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'undefined'.");
         e.plan("select details from ignored_nested order by details['unknown_column']");
     }
 

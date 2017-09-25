@@ -182,7 +182,7 @@ Example::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
-    SQLActionException[ColumnValidationException: Validation failed for ip_addr: 'not.a.real.ip' cannot be cast to type ip]
+    SQLActionException[ColumnValidationException: Validation failed for ip_addr: Cannot cast 'not.a.real.ip' to type ip]
 
 ``timestamp``
 =============
@@ -239,7 +239,7 @@ Examples::
 ::
 
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
-    SQLActionException[ColumnValidationException: Validation failed for first_column: 'wrong' cannot be cast to type timestamp]
+    SQLActionException[ColumnValidationException: Validation failed for first_column: Cannot cast 'wrong' to type timestamp]
 
 .. NOTE::
 

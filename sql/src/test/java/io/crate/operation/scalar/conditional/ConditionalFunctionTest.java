@@ -24,6 +24,7 @@ package io.crate.operation.scalar.conditional;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -82,8 +83,8 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: nullif(long, long, long)");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The number of arguments is incorrect");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
 
@@ -125,9 +126,9 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCaseConditionNotBooleanThrowsIllegalArgumentException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument of CASE/WHEN must be type boolean, not type long");
-        assertEvaluate("case when x then x else 1 end", "");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type boolean");
+        assertEvaluate("case when 'foo' then x else 1 end", "");
     }
 
     @Test
@@ -140,7 +141,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     public void testCaseWithDifferentOperandTypes() throws Exception {
         // x = long
         // a = integer
-        String expression = "case x + 1 when a then 111 end";
+        String expression = "case x + 1 when a::long then 111 end";
         assertEvaluate(expression, 111L,
             Literal.of(110L),    // x
             Literal.of(111));    // a
@@ -171,29 +172,22 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testCaseWithDifferentResultTypesReturnsInteger() throws Exception {
-        String expression = "CASE 47 WHEN 38 THEN 1 ELSE 12::integer END";
-        assertEvaluate(expression, 12);
-    }
-
-    @Test
     public void testCaseWithDifferentResultTypesReturnsLong() throws Exception {
-        String expression = "CASE 34 WHEN 38 THEN 1::integer ELSE 12 END";
-        assertEvaluate(expression, 12L);
+        String expression1 = "CASE 47 WHEN 38 THEN 1 ELSE 12::integer END";
+        assertEvaluate(expression1, 12L);
+        String expression2 = "CASE 34 WHEN 38 THEN 1::integer ELSE 12 END";
+        assertEvaluate(expression2, 12L);
     }
 
     @Test
-    public void testCaseWithStringAndLongResultTypesReturnsString() throws Exception {
-        assertEvaluate("CASE 38 WHEN 38 THEN '38' ELSE 40 END","38");
-    }
-
-    @Test
-    public void testCaseWithStringDefaultTypeReturnsString() throws Exception {
-        assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END","40");
+    public void testCaseWithStringAndLongResultTypesReturnsLong() throws Exception {
+        assertEvaluate("CASE 38 WHEN 38 THEN '38' ELSE 40 END",38L);
     }
 
     @Test
     public void testCaseWithStringDefaultTypeReturnsLong() throws Exception {
+        assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",40L);
         assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",34L);
     }
+
 }

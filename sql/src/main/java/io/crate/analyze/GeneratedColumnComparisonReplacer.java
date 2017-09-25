@@ -33,11 +33,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GtOperator;
@@ -62,7 +62,6 @@ import java.util.Set;
 
 @Singleton
 public class GeneratedColumnComparisonReplacer {
-
 
     private static final Map<String, String> ROUNDING_FUNCTION_MAPPING = ImmutableMap.of(
         GtOperator.NAME, GteOperator.NAME,

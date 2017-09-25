@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import com.google.common.base.Preconditions;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -42,7 +43,8 @@ public abstract class CollectionType extends DataType {
      * @param innerType The type of the elements inside the collection
      */
     public CollectionType(DataType<?> innerType) {
-        this.innerType = innerType;
+        this.innerType = Preconditions.checkNotNull(innerType,
+            "Inner type must not be null.");
     }
 
     /**
@@ -72,6 +74,7 @@ public abstract class CollectionType extends DataType {
         DataTypes.toStream(innerType, out);
     }
 
+    @Override
     public String getName() {
         return innerType.getName();
     }
@@ -85,6 +88,11 @@ public abstract class CollectionType extends DataType {
      * @param innerType The inner type of the new CollectionType.
      */
     public abstract CollectionType newInstance(DataType innerType);
+
+    @Override
+    public boolean isNumeric() {
+        return innerType.isNumeric();
+    }
 
     @Override
     public int compareTo(Object o) {

@@ -24,9 +24,10 @@ package io.crate.operation.scalar.conditional;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
@@ -51,8 +52,10 @@ public class NullIfFunction extends ConditionalFunction {
 
     static class Resolver extends BaseFunctionResolver {
 
+        private static final Param paramType = Param.of();
+
         protected Resolver() {
-            super(Signature.numArgs(2).and(Signature.SIGNATURES_ALL_OF_SAME));
+            super(FuncParams.builder(paramType, paramType).build());
         }
 
         @Override

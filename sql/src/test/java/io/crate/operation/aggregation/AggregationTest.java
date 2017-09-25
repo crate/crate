@@ -58,7 +58,7 @@ public abstract class AggregationTest extends CrateUnitTest {
 
     public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
         if (dataType == null) {
-            return executeAggregation(name, dataType, data, ImmutableList.<DataType>of());
+            return executeAggregation(name, dataType, data, ImmutableList.of());
         } else {
             return executeAggregation(name, dataType, data, ImmutableList.of(dataType));
         }
@@ -74,7 +74,7 @@ public abstract class AggregationTest extends CrateUnitTest {
                 inputs[i] = new InputCollectExpression(i);
             }
         } else {
-            fi = new FunctionIdent(name, ImmutableList.<DataType>of());
+            fi = new FunctionIdent(name, ImmutableList.of());
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.getBuiltin(fi.name(), fi.argumentTypes());

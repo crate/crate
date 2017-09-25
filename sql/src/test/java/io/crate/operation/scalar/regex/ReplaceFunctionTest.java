@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.regex;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -71,9 +72,9 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: regexp_replace(string, string, long)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast [1, 2] to type string");
 
-        assertNormalize("regexp_replace('foobar', '.*', 1)", isLiteral(""));
+        assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
     }
 }

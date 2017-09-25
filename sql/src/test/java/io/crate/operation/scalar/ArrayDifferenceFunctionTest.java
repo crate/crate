@@ -54,9 +54,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeNullArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Argument 2 of the array_difference function is not an array type");
-        assertNormalize("array_difference([1], null)", null);
+        assertNormalize("array_difference([1], null)", isLiteral(new Object[] {1L}));
     }
 
     @Test
@@ -81,9 +79,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentBuConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_difference(int_array, long_array)", new Object[0],
-            Literal.of(new Object[]{1}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{1L}, LONG_ARRAY_TYPE));
+        assertEvaluate("array_difference([1::integer], [1::long])", new Object[0]);
     }
 
     @Test

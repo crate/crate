@@ -42,6 +42,11 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.NotSupportedType;
+    }
+
+    @Override
     public String getName() {
         return "NOT SUPPORTED";
     }

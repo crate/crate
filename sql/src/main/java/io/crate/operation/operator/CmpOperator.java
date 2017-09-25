@@ -2,10 +2,19 @@ package io.crate.operation.operator;
 
 import io.crate.core.collections.MapComparator;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 public abstract class CmpOperator extends Operator<Object> {
 
@@ -53,6 +62,38 @@ public abstract class CmpOperator extends Operator<Object> {
         } else {
             return null;
         }
+    }
+
+    protected static class CmpResolver extends BaseFunctionResolver {
+
+        private static final Param primitiveTypes = Param.of(DataTypes.PRIMITIVE_TYPES);
+
+        private final String name;
+        private final Function<FunctionInfo, FunctionImplementation> functionFactory;
+
+        CmpResolver(String name, Function<FunctionInfo, FunctionImplementation> functionFactory) {
+            this(name, FuncParams.builder(primitiveTypes, primitiveTypes).build(), functionFactory);
+        }
+
+        CmpResolver(String name,
+                    FuncParams funcParams,
+                    Function<FunctionInfo, FunctionImplementation> functionFactory) {
+            super(funcParams);
+            this.name = name;
+            this.functionFactory = functionFactory;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            FunctionInfo info = createInfo(name, dataTypes);
+            return functionFactory.apply(info);
+        }
+
+
+        protected static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
+            return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN);
+        }
+
     }
 
 }

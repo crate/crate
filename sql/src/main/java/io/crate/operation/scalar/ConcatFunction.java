@@ -27,12 +27,13 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -132,7 +133,9 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
     private static class Resolver extends BaseFunctionResolver {
 
         protected Resolver() {
-            super(Signature.withLenientVarArgs(Signature.ArgMatcher.ANY, Signature.ArgMatcher.ANY));
+            super(FuncParams.builder(Param.ANY, Param.ANY)
+                .withVarArgs(Param.ANY)
+                .build());
         }
 
         @Override

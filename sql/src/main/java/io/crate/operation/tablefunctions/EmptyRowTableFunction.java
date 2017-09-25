@@ -28,12 +28,12 @@ import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -93,7 +93,7 @@ public class EmptyRowTableFunction {
     }
 
     public static void register(TableFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(Signature.numArgs(0)) {
+        module.register(NAME, new BaseFunctionResolver(FuncParams.NONE) {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {

@@ -11,13 +11,14 @@ public class OrOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalize() throws Exception {
-        assertNormalize("name or true", isLiteral(true));
-        assertNormalize("true or name", isLiteral(true));
-        assertNormalize("false or name", isField("name"));
-        assertNormalize("name or name", isFunction(OrOperator.NAME));
-
-        assertNormalize("true or 1/0", isLiteral(true));
-        assertNormalize("1/0 or true", isLiteral(true));
+        assertNormalize("1 or true", isLiteral(true));
+        assertNormalize("true or 1", isLiteral(true));
+        assertNormalize("false or 1", isLiteral(true));
+        assertNormalize("false or 0", isLiteral(false));
+        assertNormalize("1 or 1", isLiteral(true));
+        assertNormalize("0 or 1", isLiteral(true));
+        assertNormalize("true or (1/0 = 10)", isLiteral(true));
+        assertNormalize("(1/0 = 10) or true", isLiteral(true));
     }
 
     @Test

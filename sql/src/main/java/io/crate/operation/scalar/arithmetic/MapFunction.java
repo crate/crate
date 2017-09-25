@@ -24,19 +24,19 @@ package io.crate.operation.scalar.arithmetic;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -53,21 +53,11 @@ public class MapFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_map";
 
-    private static final FunctionResolver RESOLVER = new BaseFunctionResolver(
-        // emtpy args or (string, any) pairs
-        Signature.ofIterable(() -> new Iterator<Signature.ArgMatcher>() {
-            private int pos = 0;
+    private static final Param KEY = Param.STRING;
+    private static final Param VALUE = Param.ANY;
+    private static final FuncParams PARAMS = FuncParams.builder().withIndependentVarArgs(KEY, VALUE).build();
 
-            @Override
-            public boolean hasNext() {
-                return true;
-            }
-
-            @Override
-            public Signature.ArgMatcher next() {
-                return pos++ % 2 == 0 ? Signature.ArgMatcher.STRING : Signature.ArgMatcher.ANY;
-            }
-        }).preCondition(dt -> dt.size() % 2 == 0)) {
+    private static final FunctionResolver RESOLVER = new BaseFunctionResolver(PARAMS) {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {

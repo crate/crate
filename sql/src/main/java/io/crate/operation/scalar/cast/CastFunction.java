@@ -29,12 +29,13 @@ import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
@@ -122,7 +123,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         private final DataType targetType;
 
         protected Resolver(DataType targetType, String name) {
-            super(Signature.SIGNATURES_SINGLE_ANY);
+            super(FuncParams.builder(Param.ANY).build());
             this.name = name;
             this.targetType = targetType;
         }

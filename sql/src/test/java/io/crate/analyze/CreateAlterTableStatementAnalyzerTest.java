@@ -879,7 +879,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (ts timestamp, day timestamp GENERATED ALWAYS as ts + 1)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("day"), is("cast((ts + 1) AS timestamp)"));
+        assertThat(generatedColumnsMapping.get("day"), is("cast((cast(ts AS long) + 1) AS timestamp)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");

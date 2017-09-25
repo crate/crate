@@ -30,6 +30,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -37,7 +38,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -56,6 +56,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
+import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
 
 public class UnnestFunction {
 
@@ -190,7 +192,7 @@ public class UnnestFunction {
 
     public static void register(TableFunctionModule module) {
         module.register(NAME, new BaseFunctionResolver(
-            Signature.withLenientVarArgs(Signature.ArgMatcher.ANY_ARRAY)) {
+            FuncParams.builder().withIndependentVarArgs(ANY_ARRAY).build()) {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {

@@ -42,6 +42,11 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.IntegerType;
+    }
+
+    @Override
     public String getName() {
         return "integer";
     }

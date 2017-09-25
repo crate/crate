@@ -237,7 +237,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         // range queries all hit the same code path, so only > is tested
         assertThat(printedTable(execute("select p from t where x > 9").rows()), is("2\n"));
         assertThat(printedTable(execute("select p from t where x is not null").rows()), is("2\n"));
-        assertThat(printedTable(execute("select p from t where x like 10").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where x::string like 10").rows()), is("2\n"));
         assertThat(printedTable(execute("select p from t where s like 'f%'").rows()), is("2\n"));
         assertThat(printedTable(execute("select p from t where obj = {x=10}").rows()), is("2\n"));
         assertThat(printedTable(execute("select p from t where b").rows()), is("2\n"));

@@ -80,7 +80,7 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
         ensureYellow()
         execute("insert into t (id) values (1)");
         execute("refresh table t");
-        assert printedTable(execute("select * from unnest([1, 2]) inner join t on t.id = col1").rows()) == "1| 1\n"
+        assert printedTable(execute("select * from unnest([1, 2]) inner join t on t.id = col1::integer").rows()) == "1| 1\n"
     }
 
     @Test

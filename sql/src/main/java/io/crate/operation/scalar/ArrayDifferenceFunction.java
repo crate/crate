@@ -24,14 +24,16 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import io.crate.analyze.symbol.FuncArg;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -135,13 +137,15 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 
     private static class Resolver implements FunctionResolver {
 
-        private static final Signature.SignatureOperator SIGNATURE =
-            Signature.of(Signature.ArgMatcher.ANY_ARRAY, Signature.ArgMatcher.ANY_ARRAY);
+        private final FuncParams FUNC_PARAMS = FuncParams.builder(
+            Param.ANY_ARRAY, Param.ANY_ARRAY)
+            .build();
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             for (int i = 0; i < dataTypes.size(); i++) {
-                Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType, String.format(Locale.ENGLISH,
+                Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType,
+                    String.format(Locale.ENGLISH,
                     "Argument %d of the array_difference function is not an array type", i + 1));
             }
 
@@ -162,10 +166,10 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
             return new ArrayDifferenceFunction(createInfo(dataTypes), null);
         }
 
-        @javax.annotation.Nullable
+        @Nullable
         @Override
-        public List<DataType> getSignature(List<DataType> dataTypes) {
-            return SIGNATURE.apply(dataTypes);
+        public List<DataType> getSignature(List<? extends FuncArg> dataTypes) {
+            return FUNC_PARAMS.match(dataTypes);
         }
     }
 }

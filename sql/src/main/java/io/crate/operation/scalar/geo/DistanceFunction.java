@@ -27,12 +27,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -45,14 +46,14 @@ import java.util.List;
 public class DistanceFunction extends Scalar<Double, Object> {
 
     public static final String NAME = "distance";
-    private static final Signature.ArgMatcher ALLOWED_TYPE = Signature.ArgMatcher.of(
+    private static final Param ALLOWED_PARAM = Param.of(
         DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE));
 
     private final FunctionInfo info;
     private static final FunctionInfo geoPointInfo = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new BaseFunctionResolver(Signature.of(ALLOWED_TYPE, ALLOWED_TYPE)) {
+        module.register(NAME, new BaseFunctionResolver(FuncParams.builder(ALLOWED_PARAM, ALLOWED_PARAM).build()) {
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
                 return new DistanceFunction(genInfo(dataTypes));

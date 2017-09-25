@@ -307,8 +307,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         " from t1" +
                                         " join t2 on t1.a=t2.b and (t2.b=10 or t1.a=20) " +
                                         " join t3 on t2.b=t3.c" +
-                                        " join users on t1.i=users.id" +
-                                        " join users_multi_pk on t3.z=users_multi_pk.id" +
+                                        " join users on t1.i=users.id::integer" +
+                                        " join users_multi_pk on t3.z=users_multi_pk.id::integer" +
                                         " order by t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         assertThat(root.toString(), is("join.join.join.join.doc.t1.doc.t2.doc.t3.doc.users.doc.users_multi_pk"));

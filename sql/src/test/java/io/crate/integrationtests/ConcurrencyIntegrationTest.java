@@ -52,7 +52,7 @@ public class ConcurrencyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertStatementsDoNotShareState() throws Throwable {
-        execute("create table t1 (id int primary key, x int) with (number_of_replicas = 0)");
+        execute("create table t1 (id int primary key, x long) with (number_of_replicas = 0)");
         execute("create table t2 (id int primary key, x string) with (number_of_replicas = 0)");
         execute("create table t3 (x timestamp) with (number_of_replicas = 0)");
         execute("create table t4 (y string) with (number_of_replicas = 0)");

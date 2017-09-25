@@ -22,12 +22,13 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.analyze.symbol.FuncArg;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -92,8 +93,8 @@ abstract class SingleArgumentArithmeticFunction extends Scalar<Number, Number> {
 
         @Nullable
         @Override
-        public List<DataType> getSignature(List<DataType> dataTypes) {
-            return Signature.SIGNATURES_SINGLE_NUMERIC.apply(dataTypes);
+        public List<DataType> getSignature(List<? extends FuncArg> arguments) {
+            return FuncParams.SINGLE_NUMERIC.match(arguments);
         }
     }
 }

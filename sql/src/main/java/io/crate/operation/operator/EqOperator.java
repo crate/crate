@@ -25,11 +25,9 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.data.Input;
-import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -37,22 +35,20 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.operation.operator.CmpOperator.CmpResolver.createInfo;
+
 public class EqOperator extends CmpOperator {
 
     public static final String NAME = "op_=";
 
-    private static final EqOperatorResolver dynamicResolver = new EqOperatorResolver();
+    private static final EqOperatorResolver dynamicResolver = new EqOperatorResolver(NAME);
 
     public static void register(OperatorModule module) {
         module.registerDynamicOperatorFunction(NAME, dynamicResolver);
     }
 
-    private static FunctionInfo createInfo(List<DataType> dataTypes) {
-        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN);
-    }
-
     public static Function createFunction(Symbol left, Symbol right) {
-        return new Function(createInfo(Arrays.asList(left.valueType(), right.valueType())),
+        return new Function(createInfo(NAME, Arrays.asList(left.valueType(), right.valueType())),
             Arrays.asList(left, right));
     }
 
@@ -129,25 +125,26 @@ public class EqOperator extends CmpOperator {
         }
     }
 
-    static class EqOperatorResolver extends BaseFunctionResolver {
+    private static class EqOperatorResolver extends CmpResolver {
 
-        EqOperatorResolver() {
-            super(Signature.numArgs(2).and(Signature.SIGNATURES_ALL_OF_SAME));
+        EqOperatorResolver(String name) {
+            super(name,
+                FuncParams.builder(Param.ANY, Param.ANY).build(),
+                info -> {
+                    List<DataType> dataTypes = info.ident().argumentTypes();
+
+                    DataType leftType = dataTypes.get(0);
+                    DataType rightType = dataTypes.get(1);
+
+                    if (DataTypes.isCollectionType(leftType) && DataTypes.isCollectionType(rightType)) {
+                        return new ArrayEqOperator(info);
+                    }
+                    if (leftType.equals(DataTypes.OBJECT) && rightType.equals(DataTypes.OBJECT)) {
+                        return new ObjectEqOperator(info);
+                    }
+                    return new EqOperator(info);
+                });
         }
 
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType leftType = dataTypes.get(0);
-            DataType rightType = dataTypes.get(1);
-
-            FunctionInfo info = createInfo(dataTypes);
-            if (DataTypes.isCollectionType(leftType) && DataTypes.isCollectionType(rightType)) {
-                return new ArrayEqOperator(info);
-            }
-            if (leftType.equals(DataTypes.OBJECT) && rightType.equals(DataTypes.OBJECT)) {
-                return new ObjectEqOperator(info);
-            }
-            return new EqOperator(info);
-        }
     }
 }

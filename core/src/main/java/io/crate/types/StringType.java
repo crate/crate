@@ -48,6 +48,11 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.StringType;
+    }
+
+    @Override
     public String getName() {
         return "string";
     }

@@ -23,6 +23,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Literal;
+import io.crate.exceptions.ConversionException;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -33,8 +34,8 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTypeValidation() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: _array(long, string)");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast 'foo' to type long");
         assertEvaluate("ARRAY[1, 'foo']", null);
     }
 

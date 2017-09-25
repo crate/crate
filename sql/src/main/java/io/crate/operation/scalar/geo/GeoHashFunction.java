@@ -39,7 +39,7 @@ import java.util.function.Function;
 
 public final class GeoHashFunction {
 
-    private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY, DataTypes.UNDEFINED);
+    private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
     private static void register(ScalarFunctionModule module, String name, Function<Object, BytesRef> func) {
         for (DataType inputType : SUPPORTED_INPUT_TYPES) {

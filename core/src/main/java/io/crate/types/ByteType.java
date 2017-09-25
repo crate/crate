@@ -42,6 +42,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.ByteType;
+    }
+
+    @Override
     public String getName() {
         return "byte";
     }

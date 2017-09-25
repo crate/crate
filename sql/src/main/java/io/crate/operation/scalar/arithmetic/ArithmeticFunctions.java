@@ -4,14 +4,17 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.IntegerType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,12 +41,14 @@ public class ArithmeticFunctions {
             FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
             (arg0, arg1) -> arg0 + arg1,
             (arg0, arg1) -> arg0 + arg1,
+            (arg0, arg1) -> arg0 + arg1,
             (arg0, arg1) -> arg0 + arg1
         ));
         module.register(Names.SUBTRACT, new ArithmeticFunctionResolver(
             Names.SUBTRACT,
             "-",
             FunctionInfo.DETERMINISTIC_ONLY,
+            (arg0, arg1) -> arg0 - arg1,
             (arg0, arg1) -> arg0 - arg1,
             (arg0, arg1) -> arg0 - arg1,
             (arg0, arg1) -> arg0 - arg1
@@ -54,6 +59,7 @@ public class ArithmeticFunctions {
             FunctionInfo.DETERMINISTIC_ONLY,
             (arg0, arg1) -> arg0 * arg1,
             (arg0, arg1) -> arg0 * arg1,
+            (arg0, arg1) -> arg0 * arg1,
             (arg0, arg1) -> arg0 * arg1
         ));
         module.register(Names.DIVIDE, new ArithmeticFunctionResolver(
@@ -62,12 +68,14 @@ public class ArithmeticFunctions {
             FunctionInfo.DETERMINISTIC_ONLY,
             (arg0, arg1) -> arg0 / arg1,
             (arg0, arg1) -> arg0 / arg1,
+            (arg0, arg1) -> arg0 / arg1,
             (arg0, arg1) -> arg0 / arg1
         ));
         module.register(Names.MODULUS, new ArithmeticFunctionResolver(
             Names.MODULUS,
             "%",
             FunctionInfo.DETERMINISTIC_ONLY,
+            (arg0, arg1) -> arg0 % arg1,
             (arg0, arg1) -> arg0 % arg1,
             (arg0, arg1) -> arg0 % arg1,
             (arg0, arg1) -> arg0 % arg1
@@ -80,19 +88,20 @@ public class ArithmeticFunctions {
 
     static final class DoubleFunctionResolver extends BaseFunctionResolver {
 
-        private static final Signature.ArgMatcher ARITHMETIC_TYPE = Signature.ArgMatcher.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES::contains, DataTypes.TIMESTAMP::equals);
+        private static final Param ARITHMETIC_TYPE = Param.of(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMP);
+
         private final String name;
         private final BinaryOperator<Double> doubleFunction;
 
         DoubleFunctionResolver(String name, BinaryOperator<Double> doubleFunction) {
-            super(Signature.of(ARITHMETIC_TYPE, ARITHMETIC_TYPE));
+            super(FuncParams.builder(ARITHMETIC_TYPE, ARITHMETIC_TYPE).build());
             this.name = name;
             this.doubleFunction = doubleFunction;
         }
 
         @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> args) throws IllegalArgumentException {
             return new BinaryScalar<>(doubleFunction, name, DataTypes.DOUBLE, FunctionInfo.DETERMINISTIC_ONLY);
         }
     }
@@ -100,26 +109,30 @@ public class ArithmeticFunctions {
 
     static final class ArithmeticFunctionResolver extends BaseFunctionResolver {
 
-        private static final Signature.ArgMatcher ARITHMETIC_TYPE = Signature.ArgMatcher.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES::contains, DataTypes.TIMESTAMP::equals);
+        private static final Param ARITHMETIC_TYPE = Param.of(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMP);
+
         private final String name;
         private final String operator;
         private final Set<FunctionInfo.Feature> features;
 
         private final BinaryOperator<Double> doubleFunction;
+        private final BinaryOperator<Integer> integerFunction;
         private final BinaryOperator<Long> longFunction;
         private final BinaryOperator<Float> floatFunction;
 
         ArithmeticFunctionResolver(String name,
                                    String operator,
                                    Set<FunctionInfo.Feature> features,
+                                   BinaryOperator<Integer> integerFunction,
                                    BinaryOperator<Double> doubleFunction,
                                    BinaryOperator<Long> longFunction,
                                    BinaryOperator<Float> floatFunction) {
-            super(Signature.of(ARITHMETIC_TYPE, ARITHMETIC_TYPE));
+            super(FuncParams.builder(ARITHMETIC_TYPE, ARITHMETIC_TYPE).build());
             this.name = name;
             this.operator = operator;
             this.doubleFunction = doubleFunction;
+            this.integerFunction = integerFunction;
             this.longFunction = longFunction;
             this.floatFunction = floatFunction;
             this.features = features;
@@ -129,13 +142,17 @@ public class ArithmeticFunctions {
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             BinaryScalar<?> scalar;
             if (containsTypesWithDecimal(dataTypes)) {
-                if (containsDouble(dataTypes)) {
+                if (containsType(DoubleType.INSTANCE, dataTypes)) {
                     scalar = new BinaryScalar<>(doubleFunction, name, DataTypes.DOUBLE, features);
                 } else {
                     scalar = new BinaryScalar<>(floatFunction, name, DataTypes.FLOAT, features);
                 }
             } else {
-                scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
+                if (containsType(IntegerType.INSTANCE, dataTypes)) {
+                    scalar = new BinaryScalar<>(integerFunction, name, DataTypes.INTEGER, features);
+                } else {
+                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
+                }
             }
             return Scalar.withOperator(scalar, operator);
         }
@@ -143,14 +160,14 @@ public class ArithmeticFunctions {
     }
 
     public static Function of(String name, Symbol first, Symbol second, Set<FunctionInfo.Feature> features) {
-        List<DataType> argumentTypes = Arrays.asList(first.valueType(), second.valueType());
-        if (containsTypesWithDecimal(argumentTypes)) {
+        List<DataType> dataTypes = Arrays.asList(first.valueType(), second.valueType());
+        if (containsTypesWithDecimal(dataTypes)) {
             return new Function(
-                genDoubleInfo(name, argumentTypes, features),
+                genDecimalInfo(name, dataTypes, features),
                 Arrays.asList(first, second));
         }
         return new Function(
-            genLongInfo(name, argumentTypes, features),
+            genIntInfo(name, dataTypes, features),
             Arrays.asList(first, second));
     }
 
@@ -163,20 +180,32 @@ public class ArithmeticFunctions {
         return false;
     }
 
-    static boolean containsDouble(List<DataType> dataTypes) {
+    static boolean containsType(DataType type, List<DataType> dataTypes) {
         for (DataType dataType : dataTypes) {
-            if (dataType.equals(DataTypes.DOUBLE)) {
+            if (dataType.equals(type)) {
                 return true;
             }
         }
         return false;
     }
 
-    static FunctionInfo genDoubleInfo(String functionName, List<DataType> dataTypes, Set<FunctionInfo.Feature> features) {
-        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.DOUBLE, FunctionInfo.Type.SCALAR, features);
+    private static FunctionInfo genDecimalInfo(String functionName,
+                                               List<DataType> dataTypes,
+                                               Set<FunctionInfo.Feature> features) {
+        return new FunctionInfo(
+            new FunctionIdent(functionName, dataTypes),
+            dataTypes.get(0),
+            FunctionInfo.Type.SCALAR,
+            features);
     }
 
-    static FunctionInfo genLongInfo(String functionName, List<DataType> dataTypes, Set<FunctionInfo.Feature> features) {
-        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.LONG, FunctionInfo.Type.SCALAR, features);
+    private static FunctionInfo genIntInfo(String functionName,
+                                           List<DataType> dataTypes,
+                                           Set<FunctionInfo.Feature> features) {
+        return new FunctionInfo(
+            new FunctionIdent(functionName, dataTypes),
+            dataTypes.get(0),
+            FunctionInfo.Type.SCALAR,
+            features);
     }
 }

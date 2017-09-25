@@ -62,7 +62,7 @@ public class ExpressionToByteSizeValueVisitor extends AstVisitor<ByteSizeValue, 
 
     @Override
     protected ByteSizeValue visitDoubleLiteral(DoubleLiteral node, Row context) {
-        return new ByteSizeValue(((Double) node.getValue()).longValue());
+        return new ByteSizeValue(Double.valueOf(node.getValue()).longValue());
     }
 
     @Override

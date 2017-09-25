@@ -306,7 +306,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                " (select a, count(*) as cnt from t1 group by a) t1 " +
                                "join" +
                                " (select distinct i from t2) t2 " +
-                               "on t1.cnt = t2.i " +
+                               "on t1.cnt = t2.i::long " +
                                "group by t1.a");
         assertThat(nl.nestedLoopPhase().projections().size(), is(3));
         assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(GroupProjection.class));

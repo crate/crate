@@ -39,6 +39,11 @@ public class TimestampType extends LongType implements Streamer<Long> {
     }
 
     @Override
+    public Precedence precedence() {
+        return Precedence.TimestampType;
+    }
+
+    @Override
     public String getName() {
         return "timestamp";
     }

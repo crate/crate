@@ -22,6 +22,8 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.symbol.FuncArg;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -32,15 +34,15 @@ import java.util.List;
  */
 public abstract class BaseFunctionResolver implements FunctionResolver {
 
-    private final Signature.SignatureOperator signatureOperator;
+    private final FuncParams funcParams;
 
-    protected BaseFunctionResolver(Signature.SignatureOperator signatureOperator) {
-        this.signatureOperator = signatureOperator;
+    protected BaseFunctionResolver(FuncParams funcParams) {
+        this.funcParams = funcParams;
     }
 
     @Nullable
     @Override
-    public List<DataType> getSignature(List<DataType> dataTypes) {
-        return signatureOperator.apply(dataTypes);
+    public List<DataType> getSignature(List<? extends FuncArg> dataTypes) {
+        return funcParams.match(dataTypes);
     }
 }

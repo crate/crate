@@ -25,11 +25,12 @@ package io.crate.operation.scalar.conditional;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -67,7 +68,7 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         private final Function<FunctionInfo, FunctionImplementation> fn;
 
         ConditionalFunctionResolver(String name, Function<FunctionInfo, FunctionImplementation> fn) {
-            super(Signature.SIGNATURES_ALL_OF_SAME);
+            super(FuncParams.builder().withVarArgs(Param.ANY).build());
             this.name = name;
             this.fn = fn;
         }

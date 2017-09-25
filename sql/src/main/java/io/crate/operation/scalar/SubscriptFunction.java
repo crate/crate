@@ -23,15 +23,18 @@ package io.crate.operation.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 
 import java.util.List;
+
+import static io.crate.metadata.functions.params.Param.INTEGER;
 
 public class SubscriptFunction extends Scalar<Object, Object[]> {
 
@@ -84,7 +87,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
 
         protected Resolver() {
-            super(Signature.of(Signature.ArgMatcher.ANY_ARRAY, Signature.ArgMatcher.INTEGER));
+            super(FuncParams.builder(Param.ANY_ARRAY, INTEGER).build());
         }
 
         @Override

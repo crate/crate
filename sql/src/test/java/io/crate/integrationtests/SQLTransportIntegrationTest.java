@@ -41,9 +41,10 @@ import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.operation.user.User;
@@ -113,6 +114,8 @@ import java.util.stream.Collectors;
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
@@ -502,29 +505,22 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType> types) throws Exception {
+    public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType> argTypes) throws Exception {
         assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                try {
-                    function.getUserDefined(schema, name, types);
-                } catch (UnsupportedOperationException e) {
-                    assertFalse("function not found", true);
-                }
+                FunctionImplementation userDefined = function.getUserDefined(schema, name, argTypes);
+                assertThat(userDefined, is(notNullValue()));
             }
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void assertFunctionIsDeletedOnAll(String schema, String name, List<DataType> types) throws Exception {
+    public void assertFunctionIsDeletedOnAll(String schema, String name, List<DataType> argTypes) throws Exception {
         assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                try {
-                    function.getUserDefined(schema, name, types);
-                    assertFalse("function should be deleted", true);
-                } catch (UnsupportedOperationException e) {
-                    // pass
-                }
+                FunctionImplementation userDefined = function.getUserDefined(schema, name, argTypes);
+                assertThat(userDefined, is(nullValue()));
             }
         }, 20L, TimeUnit.SECONDS);
     }

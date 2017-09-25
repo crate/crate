@@ -43,7 +43,7 @@ public class InOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolSetLiteralDifferentDataTypeValue() {
-        assertNormalize("2.3 in (1, 2, 4, 8)", isLiteral(true));
+        assertNormalize("2.3 in (1, 2, 4, 8)", isLiteral(false));
     }
 
     @Test

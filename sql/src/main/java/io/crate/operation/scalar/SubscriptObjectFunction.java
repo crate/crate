@@ -24,13 +24,16 @@ package io.crate.operation.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Signature;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -45,7 +48,9 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME,
-            new BaseFunctionResolver(Signature.of(Signature.ArgMatcher.OBJECT, Signature.ArgMatcher.STRING)) {
+            new BaseFunctionResolver(
+                FuncParams.builder(Param.of(ObjectType.INSTANCE), Param.of(StringType.INSTANCE)).build()
+            ) {
                 @Override
                 public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
                     return new SubscriptObjectFunction(

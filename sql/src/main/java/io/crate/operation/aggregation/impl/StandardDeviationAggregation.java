@@ -93,6 +93,11 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
+        public Precedence precedence() {
+            return Precedence.Custom;
+        }
+
+        @Override
         public String getName() {
             return "stddev_state";
         }
