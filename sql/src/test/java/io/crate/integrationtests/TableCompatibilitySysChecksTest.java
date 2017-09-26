@@ -23,10 +23,12 @@
 package io.crate.integrationtests;
 
 import io.crate.operation.reference.sys.check.SysCheck;
+import io.crate.operation.reference.sys.check.cluster.TablesNeedRecreationSysCheck;
 import io.crate.operation.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -51,6 +53,23 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testRecreationRequired() throws Exception {
+        startUpNodeWithDataDir("/indices/data_home/cratedata_recreation_required.zip");
+        //set license.ident setting to avoid unlicensed cluster check
+        execute("set global transient 'license.ident' to 'my-key'");
+        execute("select * from sys.shards");
+        execute("select * from sys.checks where passed = false");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][1], is(TablesNeedRecreationSysCheck.ID));
+        assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
+        assertThat(response.rows()[0][0],
+            is(TablesNeedRecreationSysCheck.DESCRIPTION +
+               "[doc.test_recreation_required, doc.test_recreation_required_parted] " +
+               LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
+    }
+
+    @Test
+    @Ignore // TODO: Re-enable after upgrade to ES 6
     public void testUpgradeRequired() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
         //set license.ident setting to avoid unlicensed cluster check
@@ -71,6 +90,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @Ignore // TODO: Re-enable after upgrade to ES 6
     public void testAlreadyUpgraded() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata_already_upgraded.zip");
         //set license.ident setting to avoid unlicensed cluster check

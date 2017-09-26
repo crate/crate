@@ -1020,8 +1020,9 @@ Here's an example query::
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
   |  4 | CrateDB Enterprise features are active. Please request a lice... |
+  |  5 | The following tables need to be recreated for compatibility w... |
   +----+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 5 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
@@ -1111,41 +1112,43 @@ SQL statement needed to restore the table, like so::
 
 Here, ``table_ident`` is the name of the table you want to recreate.
 
-Copy the output of this command to somewhere safe. You will need it to recreate
-the table.
+Copy the output of this command, replace the ``table_ident`` with
+``table_ident_new``, and execute it to create a new table identical to the one
+you want to recreate.
 
-Next, use :ref:`copy_to` to export the table data to a file.
+Make sure you stop inserting data to the original ``table_ident`` by
+executing::
 
-One way of doing that is like so::
+  ALTER TABLE table_ident SET ("blocks.read_only" = true);
 
- COPY table_ident TO DIRECTORY '/data/backups';
+Copy the data from the original table to the new one by executing::
 
-This will create several JSON files with names like ``table_ident_0_.json`` in
-the ``/data/backups`` directory on your local node. (The directory you use for
-data export is up to you, but it must be writable by CrateDB.)
+  INSERT INTO table_ident_new(col1, col2, ...)
+     SELECT(col1, col2, ...) FROM table_ident;
 
-:ref:`copy_to` also includes support for Amazon S3, gzip output, and more.
-See the command documentation for the full range of usage options.
+Make sure that you include all columns and that the columns appear in the same
+order in both lists.
 
-Once you have both the table schema and table data export, you can use
-:ref:`drop-table` to drop the table::
+Execute refresh on the new table like so::
+
+  REFRESH TABLE table_ident_new;
+
+Make sure table the new table and the old table have the same data.
+
+Drop the original table by executing::
+
+  ALTER TABLE table_ident SET ("blocks.read_only" = false);
+
+::
 
   DROP TABLE table_ident;
 
-Now, recreate the table by executing the ``CREATE TABLE`` command you
-previously copied.
+Rename the new table back to its original name::
 
-Once created, re-import your data using :ref:`copy_from`.
+  ALTER TABLE table_ident_new RENAME TO table_ident;
 
-If you exported your table like in the previous example, you could then import
-your data one file at a time, like so::
-
-  COPY table_ident FROM '/data/backups/table_ident_0_.json';
-
-See the :ref:`copy_from` command documentation for more information.
-
-When all tables that needed recreating have been exported, dropped, recreated,
-and reimported, this cluster check should pass.
+When all tables that needed recreating have been recreated by following this
+procedure, this cluster check should disappear.
 
 .. NOTE::
 
