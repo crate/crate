@@ -495,11 +495,20 @@ task downloadCrash {
 
 task downloadAdminUI {
     doLast {
-        def dest = download(
-            downloadDir,
-            "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
-            "crate-admin-${adminui_version}.tar.gz"
-        )
+        def dest
+        if (gradle.taskGraph.hasTask(':app:nightly')) {
+            dest = download(
+                    downloadDir,
+                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz",
+                    "crate-admin-latest.tar.gz"
+            )
+        } else {
+            dest = download(
+                    downloadDir,
+                    "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
+                    "crate-admin-${adminui_version}.tar.gz"
+            )
+        }
         extractTopfolder(dest, "${buildDir}/crate-admin/_site")
     }
 }
