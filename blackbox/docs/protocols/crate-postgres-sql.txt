@@ -50,8 +50,7 @@ Type Casts
 ==========
 
 CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
-type to another but does not support the PostgreSQL specific
-``expression::type`` syntax (see `Value Expressions`_).
+type to another (see `Value Expressions`_).
 
 Arrays
 ======
