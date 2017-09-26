@@ -20,3 +20,7 @@ Changes
 
 Fixes
 =====
+
+ - Improve shards view performance in the Admin UI
+
+ - Remove horizontal scroll from the console editor in the Admin UI.
