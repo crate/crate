@@ -6,12 +6,14 @@ User Defined Functions
 
 .. NOTE::
 
-    The following examples use :ref:`udf_lang_js` as language for functions.
-    The JavaScript language, however, is only available as an Enterprise
-    feature.  You can enable and disable the :ref:`conf_enterprise_license` via
-    the configuration file. The JavaScript language is an experimental feature
-    and is therfore disabled by default. You can enable the
-    :ref:`conf_lang_js_enabled` via the configuration file.
+   The :ref:`udf_lang_js` language is an :ref:`enterprise feature
+   <enterprise_features>`.
+
+.. NOTE::
+
+   The :ref:`udf_lang_js` language is an experimental feature and is disabled
+   by default. You can enable the :ref:`conf_lang_js_enabled` via the
+   configuration file.
 
 ``CREATE OR REPLACE``
 =====================
