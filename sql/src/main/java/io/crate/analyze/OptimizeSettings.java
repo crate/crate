@@ -26,7 +26,10 @@ import io.crate.metadata.settings.BoolSetting;
 import io.crate.metadata.settings.IntSetting;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 
-public class OptimizeSettings {
+public final class OptimizeSettings {
+
+    private OptimizeSettings() {
+    }
 
     public static final IntSetting MAX_NUM_SEGMENTS =
         new IntSetting("max_num_segments", ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS, 1, Integer.MAX_VALUE);

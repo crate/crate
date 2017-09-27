@@ -71,7 +71,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CrateSettings implements ClusterStateListener {
+public final class CrateSettings implements ClusterStateListener {
 
     public static final List<CrateSetting> CRATE_CLUSTER_SETTINGS = Collections.unmodifiableList(
         Arrays.asList(

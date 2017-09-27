@@ -32,7 +32,10 @@ import org.elasticsearch.index.translog.Translog;
 
 import static org.elasticsearch.index.IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING;
 
-public class CrateTableSettings {
+public final class CrateTableSettings {
+
+    private CrateTableSettings() {
+    }
 
     public static final BoolSetting READ_ONLY = new BoolSetting(TableParameterInfo.READ_ONLY, false);
 

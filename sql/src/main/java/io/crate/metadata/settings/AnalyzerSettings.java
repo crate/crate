@@ -25,7 +25,10 @@ package io.crate.metadata.settings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-public class AnalyzerSettings {
+public final class AnalyzerSettings {
+
+    private AnalyzerSettings() {
+    }
 
     public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom.";
     public static final Setting<Settings> CUSTOM_ANALYSIS_SETTING_GROUP = Setting.groupSetting(

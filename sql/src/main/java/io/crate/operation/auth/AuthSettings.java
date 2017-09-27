@@ -30,7 +30,10 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.function.Function;
 
 
-public class AuthSettings {
+public final class AuthSettings {
+
+    private AuthSettings() {
+    }
 
     public static final CrateSetting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "auth.host_based.enabled",

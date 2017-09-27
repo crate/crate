@@ -31,7 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
  */
-public class SslConfigSettings {
+public final class SslConfigSettings {
 
     private SslConfigSettings() {}
 

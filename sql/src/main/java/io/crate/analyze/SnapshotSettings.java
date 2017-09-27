@@ -24,7 +24,10 @@ package io.crate.analyze;
 
 import io.crate.metadata.settings.BoolSetting;
 
-public class SnapshotSettings {
+public final class SnapshotSettings {
+
+    private SnapshotSettings() {
+    }
 
     public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting("ignore_unavailable", false);
 
