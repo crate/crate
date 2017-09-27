@@ -21,6 +21,7 @@ package io.crate.mqtt.operations;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.mqtt.netty.Client;
 import io.crate.mqtt.netty.Netty4MqttServerTransport;
+import io.crate.operation.mqtt.MqttSettings;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -29,9 +30,6 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.junit.After;
 import org.junit.Before;
-
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
-import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
 
 public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -66,8 +64,8 @@ public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(MQTT_ENABLED_SETTING.getKey(), true)
-            .put(MQTT_PORT_SETTING.getKey(), PORT_RANGE)
+            .put(MqttSettings.MQTT_ENABLED_SETTING.getKey(), true)
+            .put(MqttSettings.MQTT_PORT_SETTING.getKey(), PORT_RANGE)
             .build();
     }
 }

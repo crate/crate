@@ -24,6 +24,7 @@ package io.crate.mqtt.netty;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.mqtt.operations.MqttIngestService;
+import io.crate.operation.mqtt.MqttSettings;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.SharedSettings;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -84,9 +85,9 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(Netty4MqttServerTransport.SSL_MQTT_ENABLED.getKey(), true)
-            .put(Netty4MqttServerTransport.MQTT_ENABLED_SETTING.getKey(), true)
-            .put(Netty4MqttServerTransport.MQTT_PORT_SETTING.getKey(), 8883)
+            .put(MqttSettings.SSL_MQTT_ENABLED.getKey(), true)
+            .put(MqttSettings.MQTT_ENABLED_SETTING.getKey(), true)
+            .put(MqttSettings.MQTT_PORT_SETTING.getKey(), 8883)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
