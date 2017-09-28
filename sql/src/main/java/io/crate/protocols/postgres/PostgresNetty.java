@@ -125,8 +125,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         final SslContext sslContext;
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {
             sslContext = sslContextProvider.get();
+            namedLogger.info("PSQL SSL support is enabled.");
         } else {
             sslContext = null;
+            namedLogger.info("PSQL SSL support is disabled.");
         }
         bootstrap.childHandler(new ChannelInitializer<Channel>() {
             @Override
