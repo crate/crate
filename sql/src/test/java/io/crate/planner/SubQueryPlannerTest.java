@@ -165,13 +165,13 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedSimpleSelectContainsGroupProjectionWithFunction() throws Exception {
-        Merge merge = e.plan("select c + 100, max(max) from " +
-                             "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
-                             "group by c + 100 order by c + 100 " +
-                             "limit 100");
+        Collect collect = e.plan("select c + 100, max(max) from " +
+                                 "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
+                                 "group by c + 100 order by c + 100 " +
+                                 "limit 100");
         // We assume that an add function is present in the group projection keys.
-        List<Projection> projections = merge.mergePhase().projections();
-        GroupProjection projection = (GroupProjection) projections.get(2);
+        List<Projection> projections = collect.collectPhase().projections();
+        GroupProjection projection = (GroupProjection) projections.get(1);
         Function function = (Function) projection.keys().get(0);
 
         assertEquals(ArithmeticFunctions.Names.ADD, function.info().ident().name());
@@ -312,16 +312,12 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "group by t1.a");
         assertThat(nl.nestedLoopPhase().projections().size(), is(3));
         assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(GroupProjection.class));
-        assertThat(nl.left(), instanceOf(Merge.class));
-        Merge leftPlan = (Merge) nl.left();
-        assertThat(leftPlan.subPlan(), instanceOf(Collect.class));
-        assertThat(((Collect)leftPlan.subPlan()).collectPhase().projections().size(), is(1));
-        assertThat(((Collect)leftPlan.subPlan()).collectPhase().projections().get(0),
-            instanceOf(GroupProjection.class));
-        Merge rightPlan = (Merge) nl.right();
-        assertThat(rightPlan.subPlan(), instanceOf(Collect.class));
-        assertThat(((Collect)rightPlan.subPlan()).collectPhase().projections().size(), is(1));
-        assertThat(((Collect)rightPlan.subPlan()).collectPhase().projections().get(0),
-            instanceOf(GroupProjection.class));
+        assertThat(nl.left(), instanceOf(Collect.class));
+        Collect leftPlan = (Collect) nl.left();
+        assertThat(leftPlan.collectPhase().projections().size(), is(1));
+        assertThat(leftPlan.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
+        Collect rightPlan = (Collect) nl.right();
+        assertThat(rightPlan.collectPhase().projections().size(), is(1));
+        assertThat(rightPlan.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
     }
 }

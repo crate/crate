@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -85,6 +86,16 @@ public interface ResultDescription {
      * sorting
      */
     List<DataType> streamOutputs();
+
+    /**
+     * Indicates if the operations so far are executed beneath/at shard-level
+     *
+     * This is useful for parent-operators to know so they can add shard-level projections
+     * via {@link Plan#addProjection(Projection)}
+     */
+    default boolean executesOnShard() {
+        return false;
+    }
 
     default boolean hasRemainingLimitOrOffset() {
         return limit() != TopN.NO_LIMIT || offset() != 0;

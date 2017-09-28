@@ -73,13 +73,13 @@ class Limit implements LogicalPlan {
         int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
 
-        Plan plan = source.build(plannerContext, projectionBuilder, limit + offset, 0, order, pageSizeHint);
+        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         List<Symbol> inputCols = InputColumn.fromSymbols(source.outputs());
         ResultDescription resultDescription = plan.resultDescription();
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             plan.addProjection(
                 new TopNProjection(limit, offset, inputCols), TopN.NO_LIMIT, 0, resultDescription.orderBy());
-        } else {
+        } else if (resultDescription.limit() != limit || resultDescription.offset() != 0) {
             plan.addProjection(
                 new TopNProjection(limit + offset, 0, inputCols), limit, offset, resultDescription.orderBy());
         }
@@ -112,5 +112,12 @@ class Limit implements LogicalPlan {
                ", limit=" + limit +
                ", offset=" + offset +
                '}';
+    }
+
+    static int limitAndOffset(int limit, int offset) {
+        if (limit == TopN.NO_LIMIT) {
+            return limit;
+        }
+        return limit + offset;
     }
 }

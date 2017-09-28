@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -52,7 +51,7 @@ import java.util.Set;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy)} is called on the "root" and flows down.
+ * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy, Integer)} is called on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
  *
@@ -118,8 +117,12 @@ public interface LogicalPlan {
 
     List<Symbol> outputs();
 
-    default RowGranularity dataGranularity() {
-        return RowGranularity.DOC;
+    /**
+     * Indicates if the operators which are added on top of this LogicalPlan should operate on a shard level.
+     * Operating on a shard level increases parallelism.
+     */
+    default boolean preferShardProjections() {
+        return false;
     }
 
     List<TableInfo> baseTables();
