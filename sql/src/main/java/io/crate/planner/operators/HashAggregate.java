@@ -87,9 +87,7 @@ public class HashAggregate implements LogicalPlan {
             source.outputs(),
             aggregates,
             AggregateMode.ITER_PARTIAL,
-            // dataGranularity == shard -> 1 row per shard
-            // it would be unnecessary overhead to run 1 projection per shard if there is only 1 row
-            source.dataGranularity() == RowGranularity.SHARD ? RowGranularity.NODE : RowGranularity.SHARD
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
         plan.addProjection(toPartial);
 

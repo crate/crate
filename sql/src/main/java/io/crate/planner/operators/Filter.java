@@ -26,6 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -33,6 +34,7 @@ import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -50,8 +52,10 @@ class Filter implements LogicalPlan {
         if (queryClause.hasQuery()) {
             Set<Symbol> columnsInQuery = extractColumns(queryClause.query());
             return usedColumns -> {
-                columnsInQuery.addAll(usedColumns);
-                return new Filter(sourceBuilder.build(columnsInQuery), queryClause);
+                Set<Symbol> allUsedColumns = new HashSet<>();
+                allUsedColumns.addAll(columnsInQuery);
+                allUsedColumns.addAll(usedColumns);
+                return new Filter(sourceBuilder.build(allUsedColumns), queryClause);
             };
         }
         if (queryClause.noMatch()) {
@@ -74,6 +78,9 @@ class Filter implements LogicalPlan {
                       @Nullable Integer pageSizeHint) {
         Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), queryClause);
+        if (plan.resultDescription().executesOnShard()) {
+            filterProjection.requiredGranularity(RowGranularity.SHARD);
+        }
         plan.addProjection(filterProjection);
         return plan;
     }
