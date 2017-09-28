@@ -31,7 +31,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.metadata.Schemas;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -98,7 +97,7 @@ public class SQLTransportExecutor {
     private static final Logger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
-    private final String defaultSchema = Schemas.DOC_SCHEMA_NAME;
+    private String defaultSchema;
 
     public SQLTransportExecutor(ClientProvider clientProvider) {
         this.clientProvider = clientProvider;
@@ -106,6 +105,10 @@ public class SQLTransportExecutor {
 
     public String getDefaultSchema() {
         return defaultSchema;
+    }
+
+    public void setDefaultSchema(String defaultSchema) {
+        this.defaultSchema = defaultSchema;
     }
 
     public SQLResponse exec(String statement) {
@@ -136,8 +139,12 @@ public class SQLTransportExecutor {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
 
+        List<String> sessionList = new ArrayList<>();
+        sessionList.add("set search_path=" + defaultSchema);
         boolean semiJoinsEnabled = isSemiJoinsEnabled;
+
         if (semiJoinsEnabled) {
+            sessionList.add("set semi_joins=true");
             LOGGER.trace("Executing with semi_joins=true: {}", stmt);
         }
 
@@ -148,12 +155,12 @@ public class SQLTransportExecutor {
                 args,
                 pgUrl,
                 random,
-                semiJoinsEnabled ? Collections.singletonList("set semi_joins=true") : Collections.emptyList());
+                sessionList);
         }
         try {
             if (semiJoinsEnabled) {
                 SQLOperations.Session session = newSession();
-                exec("set semi_joins=true", session);
+                sessionList.forEach((setting) -> exec(setting, session));
                 return execute(stmt, args, session).actionGet(timeout);
             }
             return execute(stmt, args).actionGet(timeout);
@@ -188,12 +195,7 @@ public class SQLTransportExecutor {
     }
 
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
-        return execute(stmt, args, clientProvider.sqlOperations().createSession(
-            defaultSchema,
-            null,
-            Option.NONE,
-            DEFAULT_SOFT_LIMIT
-        ));
+        return execute(stmt, args, newSession());
     }
 
     public SQLOperations.Session newSession() {
@@ -240,12 +242,7 @@ public class SQLTransportExecutor {
     }
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
-        SQLOperations.Session session = clientProvider.sqlOperations().createSession(
-            defaultSchema,
-            null,
-            Option.NONE,
-            DEFAULT_SOFT_LIMIT
-        );
+        SQLOperations.Session session = newSession();
         try {
             session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
             if (bulkArgs == null) {

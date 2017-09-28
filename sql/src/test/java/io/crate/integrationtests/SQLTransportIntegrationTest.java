@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -61,6 +62,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -85,6 +87,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TestName;
@@ -177,6 +180,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     return internalCluster().getInstance(SQLOperations.class);
                 }
             }));
+    }
+
+    @Before
+    public void setDefaultSchema() throws Exception {
+        sqlExecutor.setDefaultSchema(RandomizedSchema());
     }
 
     @After
@@ -624,6 +632,36 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             return RandomizedContext.current().getRandom().nextDouble() < ratio;
         } catch (NoSuchMethodException ignored) {
             return false;
+        }
+    }
+
+    /**
+     * If the Test class or method contains a @UseRandomizedSession annotation then,
+     * based on the schema argument, a random (unquoted) schema name is returned. The schema name consists
+     * of a 1-20 character long ASCII string.
+     * For more details on the schema parameter see {@link io.crate.testing.UseRandomizedSession}
+     * <p>
+     * Method annotations have higher priority than class annotations.
+     */
+    private String RandomizedSchema() {
+        try {
+            Class<?> clazz = this.getClass();
+            Method method = clazz.getMethod(testName.getMethodName());
+            UseRandomizedSession annotation = method.getAnnotation(UseRandomizedSession.class);
+            if (annotation == null) {
+                annotation = clazz.getAnnotation(UseRandomizedSession.class);
+                if (annotation == null) {
+                    return Schemas.DOC_SCHEMA_NAME;
+                }
+            }
+            boolean randomize_schema = annotation.schema();
+            if (randomize_schema == false) {
+                return Schemas.DOC_SCHEMA_NAME;
+            }
+
+            return RandomStrings.randomAsciiOfLengthBetween(RandomizedContext.current().getRandom(), 1, 20).toLowerCase();
+        } catch (NoSuchMethodException ignored) {
+            return Schemas.DOC_SCHEMA_NAME;
         }
     }
 }
