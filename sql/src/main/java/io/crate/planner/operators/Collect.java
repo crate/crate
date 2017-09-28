@@ -34,8 +34,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -56,6 +56,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import static io.crate.planner.operators.Limit.limitAndOffset;
 
 /**
  * An Operator for data-collection.
@@ -81,6 +83,9 @@ class Collect implements LogicalPlan {
     final TableInfo tableInfo;
 
     Collect(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where, Set<Symbol> usedColumns) {
+        if (where.hasVersions()) {
+            throw new VersionInvalidException();
+        }
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
@@ -131,13 +136,14 @@ class Collect implements LogicalPlan {
         RoutedCollectPhase collectPhase = createPhase(plannerContext);
         relation.tableRelation().validateOrderBy(order);
         collectPhase.orderBy(order);
-        maybeApplyPageSize(limit, pageSizeHint, collectPhase);
+        int limitAndOffset = limitAndOffset(limit, offset);
+        maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
         return new io.crate.planner.node.dql.Collect(
             collectPhase,
-            limit,
-            offset,
+            TopN.NO_LIMIT,
+            0,
             toCollect.size(),
-            limit,
+            limitAndOffset,
             PositionalOrderBy.of(order, toCollect)
         );
     }
@@ -202,8 +208,11 @@ class Collect implements LogicalPlan {
     }
 
     @Override
-    public RowGranularity dataGranularity() {
-        return tableInfo.rowGranularity();
+    public boolean preferShardProjections() {
+        // Can't run on shard level for system tables
+        // (Except tables like sys.shards, but in that case it's better to run operations per node as well,
+        // because otherwise we'd use 1 thread per row which is unnecessary overhead and may use up all available threads)
+        return tableInfo instanceof DocTableInfo;
     }
 
     @Override

@@ -22,6 +22,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.PositionalOrderBy;
@@ -144,6 +145,17 @@ public class Collect implements Plan, ResultDescription {
     @Override
     public int numOutputs() {
         return numOutputs;
+    }
+
+    @Override
+    public boolean executesOnShard() {
+        List<Projection> projections = collectPhase.projections();
+        if (projections.isEmpty()) {
+            return collectPhase instanceof RoutedCollectPhase &&
+                   ((RoutedCollectPhase) collectPhase).routing().containsShards();
+        }
+        Projection lastProjection = projections.get(projections.size() - 1);
+        return lastProjection.requiredGranularity() == RowGranularity.SHARD;
     }
 
     @Override
