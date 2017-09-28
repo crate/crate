@@ -499,7 +499,7 @@ task downloadAdminUI {
         if (gradle.taskGraph.hasTask(':app:nightly')) {
             dest = download(
                     downloadDir,
-                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz",
+                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz?v=latest",
                     "crate-admin-latest.tar.gz"
             )
         } else {
