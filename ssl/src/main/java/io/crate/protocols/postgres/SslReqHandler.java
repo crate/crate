@@ -58,11 +58,6 @@ public final class SslReqHandler {
 
     SslReqHandler(SslContext sslContext) {
         this.sslContext = sslContext;
-        if (sslContext != null) {
-            log.info("PSQL SSL support is enabled.");
-        } else {
-            log.info("PSQL SSL support is disabled.");
-        }
     }
 
     /**
