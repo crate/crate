@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -198,30 +199,26 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOnNodeLevel() throws Exception {
-        Merge merge = e.plan(
+        Collect collect = e.plan(
             "select count(*), name from sys.nodes group by name");
-        Collect collect = (Collect) merge.subPlan();
+
+        assertThat("number of nodeIds must be 1, otherwise there must be a merge",
+            collect.resultDescription().nodeIds().size(), is(1));
+
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-
-        assertThat(collectPhase.projections(), contains(instanceOf(GroupProjection.class)));
-
-        assertThat(merge.resultDescription().streamOutputs(), contains(
-            is(DataTypes.LONG),
-            is(DataTypes.STRING)));
-
-        GroupProjection firstGroupProjection = (GroupProjection) collectPhase.projections().get(0);
-        assertThat(firstGroupProjection.mode(), is(AggregateMode.ITER_PARTIAL));
-        assertThat(firstGroupProjection.keys().size(), is(1));
-        assertThat(((InputColumn) firstGroupProjection.outputs().get(0)).index(), is(0));
-        assertThat(firstGroupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
-        assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).functionIdent().name(), is("count"));
-
-        assertThat(merge.mergePhase().projections(), contains(
+        assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class)));
 
-        Projection secondGroupProjection = merge.mergePhase().projections().get(0);
-        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.PARTIAL_FINAL));
+        GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
+
+        assertThat(Symbols.typeView(groupProjection.outputs()), contains(
+            is(DataTypes.STRING),
+            is(DataTypes.LONG)));
+
+        assertThat(Symbols.typeView(collectPhase.projections().get(1).outputs()), contains(
+            is(DataTypes.LONG),
+            is(DataTypes.STRING)));
     }
 
     @Test
@@ -230,11 +227,16 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*), id from users group by id limit 20");
         Collect collect = ((Collect) merge.subPlan());
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections().size(), is(2));
-        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
+        ));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
+        assertThat(mergePhase.projections(), contains(
+            instanceOf(TopNProjection.class))
+        );
     }
 
     @Test
@@ -249,13 +251,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
-        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergePhase.projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
+        ));
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
         assertThat(positionalOrderBy, notNullValue());
         assertThat(positionalOrderBy.indices().length, is(1));
-        assertThat(positionalOrderBy.indices()[0], is(0));
+        assertThat(positionalOrderBy.indices()[0], is(1));
         assertThat(positionalOrderBy.reverseFlags()[0], is(true));
         assertThat(positionalOrderBy.nullsFirst()[0], is(false));
     }
@@ -272,13 +276,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
-        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergePhase.projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class)
+        ));
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
         assertThat(positionalOrderBy, notNullValue());
         assertThat(positionalOrderBy.indices().length, is(1));
-        assertThat(positionalOrderBy.indices()[0], is(0));
+        assertThat(positionalOrderBy.indices()[0], is(2));
         assertThat(positionalOrderBy.reverseFlags()[0], is(false));
         assertThat(positionalOrderBy.nullsFirst()[0], nullValue());
     }
@@ -305,19 +311,17 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
-        Merge merge = e.plan(
+        Collect collect = e.plan(
             "select count(*) from sys.cluster group by name");
-        Collect collect = (Collect) merge.subPlan();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectPhase.toCollect().size(), is(1));
 
-        assertThat(collectPhase.projections(), contains(instanceOf(GroupProjection.class)));
-
-        assertThat(merge.mergePhase().projections(), contains(
+        assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)));
+            instanceOf(EvalProjection.class)
+        ));
     }
 
     @Test
@@ -375,8 +379,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class)
+            instanceOf(FilterProjection.class)
         ));
 
         FilterProjection filterProjection = (FilterProjection) collectPhase.projections().get(1);
@@ -576,10 +579,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*), id, date from empty_parted group by id, date limit 20");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections().size(), is(2));
+        assertThat(collectPhase.projections().size(), is(3));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectPhase.projections().get(2), instanceOf(EvalProjection.class));
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections().size(), is(1));
         assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
@@ -632,24 +636,26 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        // Test distributed nested group by.
-        Merge merge = e.plan("select count(*) from (" +
+        Collect collect = e.plan("select count(*) from (" +
                              "  select max(load['1']) as maxLoad, hostname " +
                              "  from sys.nodes " +
                              "  group by hostname having max(load['1']) > 50) as nodes " +
                              "group by hostname");
+        assertThat("would require merge if more than 1 nodeIds", collect.nodeIds().size(), is(1));
 
-        // At the first, the collect phase, we expect an aggregation mode of 'ITER_PARTIAL'.
-        CollectPhase collectPhase = ((Collect) merge.subPlan()).collectPhase();
-        Projection firstGroupProjection = collectPhase.projections().get(0);
-        assertThat(((GroupProjection) firstGroupProjection).mode(), is(AggregateMode.ITER_PARTIAL));
+        CollectPhase collectPhase = collect.collectPhase();
         assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class)
+            instanceOf(GroupProjection.class),
+            instanceOf(FilterProjection.class),
+            instanceOf(EvalProjection.class),
+            instanceOf(GroupProjection.class),
+            instanceOf(EvalProjection.class)
         ));
+        Projection firstGroupProjection = collectPhase.projections().get(0);
+        assertThat(((GroupProjection) firstGroupProjection).mode(), is(AggregateMode.ITER_FINAL));
 
-        // At the second, the merge phase, we expect an aggregation mode of 'PARTIAL_FINAL'.
-        Projection secondGroupProjection = merge.mergePhase().projections().get(0);
-        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.PARTIAL_FINAL));
+        Projection secondGroupProjection = collectPhase.projections().get(3);
+        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.ITER_FINAL));
     }
 
     @Test

@@ -121,12 +121,13 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item2.insertValues()[1], is(new BytesRef("Marvin")));
     }
 
+
     @Test
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
-        Merge nonDistributedGroupBy = e.plan(
+        Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
-        MergePhase mergePhase = nonDistributedGroupBy.mergePhase();
-        assertThat(mergePhase.projections(), contains(
+        assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
+        assertThat(nonDistributedGroupBy.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
@@ -134,10 +135,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryNonDistributedGroupByWithCast() throws Exception {
-        Merge nonDistributedGroupBy = e.plan(
+        Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
-        MergePhase mergePhase = nonDistributedGroupBy.mergePhase();
-        assertThat(mergePhase.projections(), contains(
+        assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
+        assertThat(nonDistributedGroupBy.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
@@ -328,16 +329,14 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)
         ));
         ColumnIndexWriterProjection columnIndexWriterProjection =
-            (ColumnIndexWriterProjection) collectPhase.projections().get(2);
+            (ColumnIndexWriterProjection) collectPhase.projections().get(1);
         assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
-
     }
 
     @Test

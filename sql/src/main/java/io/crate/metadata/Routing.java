@@ -85,6 +85,17 @@ public class Routing implements Writeable {
         return false;
     }
 
+    public boolean containsShards() {
+        for (Map<String, List<Integer>> indices : locations.values()) {
+            for (List<Integer> shards : indices.values()) {
+                if (!shards.isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Update the locations of the current new routing by merging them with
      * the {@paramref otherLocations} that have been computed in an other

@@ -26,6 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
@@ -38,8 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
-
 class Order implements LogicalPlan {
 
     final LogicalPlan source;
@@ -50,10 +49,11 @@ class Order implements LogicalPlan {
         if (orderBy == null) {
             return source;
         }
-        Set<Symbol> columnsInOrderBy = new HashSet<>(orderBy.orderBySymbols());
         return usedColumns -> {
-            columnsInOrderBy.addAll(usedColumns);
-            return new Order(source.build(columnsInOrderBy), orderBy);
+            Set<Symbol> allUsedColumns = new HashSet<>();
+            allUsedColumns.addAll(orderBy.orderBySymbols());
+            allUsedColumns.addAll(usedColumns);
+            return new Order(source.build(allUsedColumns), orderBy);
         };
     }
 
@@ -71,23 +71,32 @@ class Order implements LogicalPlan {
                       @Nullable OrderBy order,
                       @Nullable Integer pageSizeHint) {
         Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint);
-        if (plan.resultDescription().orderBy() == null) {
-            InputColumns.Context ctx = new InputColumns.Context(source.outputs());
-            OrderedTopNProjection topNProjection = new OrderedTopNProjection(
-                limit,
-                offset,
-                InputColumns.create(outputs, ctx),
-                InputColumns.create(orderBy.orderBySymbols(), ctx),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-            );
-            plan.addProjection(
-                topNProjection,
-                NO_LIMIT,
-                0,
-                PositionalOrderBy.of(orderBy, outputs)
-            );
+        if (plan.resultDescription().orderBy() != null) {
+            // Collect applied ORDER BY eagerly to produce a optimized execution plan;
+            if (source instanceof Collect) {
+                return plan;
+            }
+            // merge to finalize the sorting and apply the order of *this* operator.
+            // This is likely a order by on a virtual table which is sorted as well
+            plan = Merge.ensureOnHandler(plan, plannerContext);
         }
+        InputColumns.Context ctx = new InputColumns.Context(source.outputs());
+        OrderedTopNProjection topNProjection = new OrderedTopNProjection(
+            Limit.limitAndOffset(limit, offset),
+            0,
+            InputColumns.create(outputs, ctx),
+            InputColumns.create(orderBy.orderBySymbols(), ctx),
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst()
+        );
+        PositionalOrderBy positionalOrderBy =
+            plan.resultDescription().nodeIds().size() == 1 ? null : PositionalOrderBy.of(orderBy, outputs);
+        plan.addProjection(
+            topNProjection,
+            limit,
+            offset,
+            positionalOrderBy
+        );
         return plan;
     }
 
