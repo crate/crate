@@ -26,7 +26,6 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
@@ -59,12 +58,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -85,34 +84,54 @@ public class Join implements LogicalPlan {
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where) {
         return usedColsByParent -> {
-            Iterator<AnalyzedRelation> it = mss.sources().values().iterator();
 
-            QueriedRelation lhs = (QueriedRelation) it.next();
-            QueriedRelation rhs = (QueriedRelation) it.next();
-            final QualifiedName lhsName = lhs.getQualifiedName();
-            final QualifiedName rhsName = rhs.getQualifiedName();
+            LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
+            for (JoinPair joinPair : mss.joinPairs()) {
+                if (joinPair.condition() == null) {
+                    continue;
+                }
+                JoinPair prevPair = joinPairs.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
+                if (prevPair != null) {
+                    throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
+                }
+            }
+            Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
+
+            Collection<QualifiedName> orderedRelationNames;
+            if (mss.sources().size() > 2) {
+                orderedRelationNames = JoinOrdering.getOrderedRelationNames(
+                    mss.isRelationReOrderAllowed(),
+                    mss.sources().keySet(),
+                    joinPairs.keySet(),
+                    queryParts.keySet()
+                );
+            } else {
+                orderedRelationNames = mss.sources().keySet();
+            }
+
+            Iterator<QualifiedName> it = orderedRelationNames.iterator();
+
+            final QualifiedName lhsName = it.next();
+            final QualifiedName rhsName = it.next();
+            QueriedRelation lhs = (QueriedRelation) mss.sources().get(lhsName);
+            QueriedRelation rhs = (QueriedRelation) mss.sources().get(rhsName);
             Set<QualifiedName> joinNames = new HashSet<>();
             joinNames.add(lhsName);
             joinNames.add(rhsName);
 
-            Map<Set<QualifiedName>, JoinPair> joinPairs = mss.joinPairs()
-                .stream()
-                .collect(Collectors.toMap(p -> Sets.newHashSet(p.left(), p.right()), p -> p));
-
             JoinPair joinLhsRhs = joinPairs.remove(joinNames);
-
-            Set<Symbol> usedFromLeft = new HashSet<>();
-            Set<Symbol> usedFromRight = new HashSet<>();
             final JoinType joinType;
             final Symbol joinCondition;
             if (joinLhsRhs == null) {
                 joinType = JoinType.CROSS;
                 joinCondition = null;
             } else {
-                joinType = joinLhsRhs.joinType();
+                joinType = maybeInvertPair(rhsName, joinLhsRhs);
                 joinCondition = joinLhsRhs.condition();
             }
 
+            Set<Symbol> usedFromLeft = new HashSet<>();
+            Set<Symbol> usedFromRight = new HashSet<>();
             for (JoinPair joinPair : mss.joinPairs()) {
                 addColumnsFrom(joinPair.condition(), usedFromLeft::add, lhs);
                 addColumnsFrom(joinPair.condition(), usedFromRight::add, rhs);
@@ -127,16 +146,29 @@ public class Join implements LogicalPlan {
             LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER, false).build(usedFromRight);
             LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition);
 
-            Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
             Symbol query = removeParts(queryParts, lhsName, rhsName);
             join = Filter.create(join, query);
             while (it.hasNext()) {
-                QueriedRelation nextRel = (QueriedRelation) it.next();
+                QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
                 join = joinWithNext(join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts);
                 joinNames.add(nextRel.getQualifiedName());
             }
+            assert queryParts.isEmpty() : "Must've applied all queryParts";
+            assert joinPairs.isEmpty() : "Must've applied all joinPairs";
+
             return join;
         };
+    }
+
+    private static JoinType maybeInvertPair(QualifiedName rhsName, JoinPair pair) {
+        // A matching joinPair for two relations is retrieved using pairByQualifiedNames.remove(setOf(a, b))
+        // This returns a pair for both cases: (a ⋈ b) and (b ⋈ a) -> invert joinType to execute correct join
+        // Note that this can only happen if a re-ordering optimization happened, otherwise the joinPair would always
+        // be in the correct format.
+        if (pair.right().equals(rhsName)) {
+            return pair.joinType();
+        }
+        return pair.joinType().invert();
     }
 
     private static LogicalPlan joinWithNext(LogicalPlan source,
@@ -156,7 +188,7 @@ public class Join implements LogicalPlan {
             type = JoinType.CROSS;
             condition = null;
         } else {
-            type = joinPair.joinType();
+            type = maybeInvertPair(nextName, joinPair);
             condition = joinPair.condition();
             addColumnsFrom(condition, addToUsedColumns, nextRel);
         }
