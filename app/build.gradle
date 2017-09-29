@@ -493,13 +493,16 @@ task downloadCrash {
     }
 }
 
+
+
 task downloadAdminUI {
     doLast {
         def dest
         if (gradle.taskGraph.hasTask(':app:nightly')) {
+            def date = new Date().format('yyyyMMddHHmm')
             dest = download(
                     downloadDir,
-                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz",
+                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz?v=${date}",
                     "crate-admin-latest.tar.gz"
             )
         } else {
