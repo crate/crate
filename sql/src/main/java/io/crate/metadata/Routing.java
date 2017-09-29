@@ -11,7 +11,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,25 +24,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class Routing implements Streamable {
+public class Routing implements Writeable {
 
     private Map<String, Map<String, List<Integer>>> locations;
-
-    private Routing() {
-    }
-
-    public static Routing fromStream(StreamInput in) throws IOException {
-        Routing routing = new Routing();
-        routing.readFrom(in);
-        return routing;
-    }
 
     public Routing(Map<String, Map<String, List<Integer>>> locations) {
         assert locations != null : "locations must not be null";
         assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
         this.locations = locations;
     }
-
 
     /**
      * @return a map with the locations in the following format: <p>
@@ -138,9 +128,9 @@ public class Routing implements Streamable {
     }
 
     private static void addShardRouting(Map<String, Map<String, List<Integer>>> newLocations,
-                                 String index,
-                                 Integer shardId,
-                                 String nodeId) {
+                                        String index,
+                                        Integer shardId,
+                                        String nodeId) {
         Map<String, List<Integer>> indexMap = newLocations.get(nodeId);
         if (indexMap == null) {
             indexMap = new HashMap<>();
@@ -162,31 +152,27 @@ public class Routing implements Streamable {
 
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public Routing(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
         if (numLocations == 0) {
             locations = ImmutableMap.of();
         } else {
             locations = new TreeMap<>();
 
-            String nodeId;
-            int numInner;
-            Map<String, List<Integer>> innerMap;
             for (int i = 0; i < numLocations; i++) {
-                nodeId = in.readString();
-                numInner = in.readVInt();
-                innerMap = new TreeMap<>();
+                String nodeId = in.readString();
+                int numInner = in.readVInt();
+                Map<String, List<Integer>> shardsByIndex = new TreeMap<>();
 
-                locations.put(nodeId, innerMap);
+                locations.put(nodeId, shardsByIndex);
                 for (int j = 0; j < numInner; j++) {
-                    String key = in.readString();
+                    String indexName = in.readString();
                     int numShards = in.readVInt();
                     List<Integer> shardIds = new ArrayList<>(numShards);
                     for (int k = 0; k < numShards; k++) {
                         shardIds.add(in.readVInt());
                     }
-                    innerMap.put(key, shardIds);
+                    shardsByIndex.put(indexName, shardIds);
                 }
             }
         }
@@ -198,11 +184,12 @@ public class Routing implements Streamable {
         for (Map.Entry<String, Map<String, List<Integer>>> entry : locations.entrySet()) {
             out.writeString(entry.getKey());
 
-            if (entry.getValue() == null) {
+            Map<String, List<Integer>> shardsByIndex = entry.getValue();
+            if (shardsByIndex == null) {
                 out.writeVInt(0);
             } else {
-                out.writeVInt(entry.getValue().size());
-                for (Map.Entry<String, List<Integer>> innerEntry : entry.getValue().entrySet()) {
+                out.writeVInt(shardsByIndex.size());
+                for (Map.Entry<String, List<Integer>> innerEntry : shardsByIndex.entrySet()) {
                     out.writeString(innerEntry.getKey());
                     List<Integer> shardIds = innerEntry.getValue();
                     if (shardIds == null || shardIds.size() == 0) {

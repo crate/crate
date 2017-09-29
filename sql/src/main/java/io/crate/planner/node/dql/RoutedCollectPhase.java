@@ -238,7 +238,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         toCollect = Symbols.listFromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);
 
-        routing = Routing.fromStream(in);
+        routing = new Routing(in);
 
         whereClause = new WhereClause(in);
 

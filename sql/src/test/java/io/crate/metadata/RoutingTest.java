@@ -62,8 +62,7 @@ public class RoutingTest extends CrateUnitTest {
         routing1.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        Routing routing2 = new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of());
-        routing2.readFrom(in);
+        Routing routing2 = new Routing(in);
 
         assertThat(routing1.locations(), is(routing2.locations()));
     }
@@ -75,7 +74,7 @@ public class RoutingTest extends CrateUnitTest {
         routing1.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        Routing routing2 = Routing.fromStream(in);
+        Routing routing2 = new Routing(in);
         assertThat(routing1.locations(), is(routing2.locations()));
     }
 

@@ -96,7 +96,7 @@ public class CountPhase implements UpstreamPhase {
 
     public CountPhase(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
-        routing = Routing.fromStream(in);
+        routing = new Routing(in);
         whereClause = new WhereClause(in);
         distributionInfo = DistributionInfo.fromStream(in);
     }
