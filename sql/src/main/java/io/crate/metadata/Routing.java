@@ -21,14 +21,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
 public class Routing implements Streamable {
 
     private Map<String, Map<String, List<Integer>>> locations;
-    private volatile int numShards = -1;
 
     private Routing() {
     }
@@ -244,7 +242,7 @@ public class Routing implements Streamable {
     public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(tableIdent.fqn(), Collections.<Integer>emptyList());
+        tableLocation.put(tableIdent.fqn(), Collections.emptyList());
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
     }
@@ -252,7 +250,7 @@ public class Routing implements Streamable {
     public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
         TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
         Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-            .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
+            .put(tableIdent.fqn(), Collections.emptyList()).map();
         for (DiscoveryNode node : nodes) {
             nodesMapBuilder.put(node.getId(), tableMap);
         }
@@ -282,13 +280,12 @@ public class Routing implements Streamable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Routing routing = (Routing) o;
-        return Objects.equals(numShards, routing.numShards) &&
-               Objects.equals(locations, routing.locations);
+        Routing other = (Routing) o;
+        return locations.equals(other.locations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(locations, numShards);
+        return locations.hashCode();
     }
 }
