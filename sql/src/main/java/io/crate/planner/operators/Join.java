@@ -61,9 +61,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
@@ -82,14 +84,13 @@ public class Join implements LogicalPlan {
     private final ArrayList<AbstractTableRelation> baseTables;
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where) {
-        return usedColumns -> {
+        return usedColsByParent -> {
             Iterator<AnalyzedRelation> it = mss.sources().values().iterator();
 
             QueriedRelation lhs = (QueriedRelation) it.next();
             QueriedRelation rhs = (QueriedRelation) it.next();
             final QualifiedName lhsName = lhs.getQualifiedName();
             final QualifiedName rhsName = rhs.getQualifiedName();
-
             Set<QualifiedName> joinNames = new HashSet<>();
             joinNames.add(lhsName);
             joinNames.add(rhsName);
@@ -99,7 +100,6 @@ public class Join implements LogicalPlan {
                 .collect(Collectors.toMap(p -> Sets.newHashSet(p.left(), p.right()), p -> p));
 
             JoinPair joinLhsRhs = joinPairs.remove(joinNames);
-            // TODO: can probably move more of the initial join operator building into the loop
 
             Set<Symbol> usedFromLeft = new HashSet<>();
             Set<Symbol> usedFromRight = new HashSet<>();
@@ -120,57 +120,78 @@ public class Join implements LogicalPlan {
             addColumnsFrom(where.query(), usedFromLeft::add, lhs);
             addColumnsFrom(where.query(), usedFromRight::add, rhs);
 
-            addColumnsFrom(usedColumns, usedFromLeft::add, lhs);
-            addColumnsFrom(usedColumns, usedFromRight::add, rhs);
+            addColumnsFrom(usedColsByParent, usedFromLeft::add, lhs);
+            addColumnsFrom(usedColsByParent, usedFromRight::add, rhs);
 
             LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER, false).build(usedFromLeft);
             LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER, false).build(usedFromRight);
             LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition);
 
             Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
-            Symbol query = queryParts.remove(Sets.newHashSet(lhsName, rhsName));
-            if (query != null) {
-                join = new Filter(join, new WhereClause(query));
-            }
-
+            Symbol query = removeParts(queryParts, lhsName, rhsName);
+            join = Filter.create(join, query);
             while (it.hasNext()) {
                 QueriedRelation nextRel = (QueriedRelation) it.next();
-                QualifiedName nextName = nextRel.getQualifiedName();
-
-                Set<Symbol> usedFromNext = new HashSet<>();
-                JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
-                final JoinType type;
-                final Symbol condition;
-                if (joinPair == null) {
-                    type = JoinType.CROSS;
-                    condition = null;
-                } else {
-                    type = joinPair.joinType();
-                    condition = joinPair.condition();
-                    addColumnsFrom(condition, usedFromNext::add, nextRel);
-                }
-                for (JoinPair pair : joinPairs.values()) {
-                    addColumnsFrom(pair.condition(), usedFromNext::add, nextRel);
-                }
-                for (Symbol queryPart : queryParts.values()) {
-                    addColumnsFrom(queryPart, usedFromNext::add, nextRel);
-                }
-                addColumnsFrom(usedColumns, usedFromNext::add, nextRel);
-
-                LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER, false).build(usedFromNext);
-                join = new Join(join, nextPlan, type, condition);
-                Symbol filter = removeMatch(queryParts, joinNames, nextName);
-                if (filter != null) {
-                    join = new Filter(join, new WhereClause(filter));
-                }
-                joinNames.add(nextName);
-            }
-            // TODO: probably can be applied earlier - might only match a single relation but isn't pushed down due to outer join?
-            if (!queryParts.isEmpty()) {
-                join = new Filter(join, new WhereClause(AndOperator.join(queryParts.values())));
+                join = joinWithNext(join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts);
+                joinNames.add(nextRel.getQualifiedName());
             }
             return join;
         };
+    }
+
+    private static LogicalPlan joinWithNext(LogicalPlan source,
+                                            QueriedRelation nextRel,
+                                            Set<Symbol> usedColumns,
+                                            Set<QualifiedName> joinNames,
+                                            Map<Set<QualifiedName>, JoinPair> joinPairs,
+                                            Map<Set<QualifiedName>, Symbol> queryParts) {
+        QualifiedName nextName = nextRel.getQualifiedName();
+
+        Set<Symbol> usedFromNext = new HashSet<>();
+        Consumer<Symbol> addToUsedColumns = usedFromNext::add;
+        JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
+        final JoinType type;
+        final Symbol condition;
+        if (joinPair == null) {
+            type = JoinType.CROSS;
+            condition = null;
+        } else {
+            type = joinPair.joinType();
+            condition = joinPair.condition();
+            addColumnsFrom(condition, addToUsedColumns, nextRel);
+        }
+        for (JoinPair pair : joinPairs.values()) {
+            addColumnsFrom(pair.condition(), addToUsedColumns, nextRel);
+        }
+        for (Symbol queryPart : queryParts.values()) {
+            addColumnsFrom(queryPart, addToUsedColumns, nextRel);
+        }
+        addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
+
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER, false).build(usedFromNext);
+        return maybeFilter(
+            new Join(source, nextPlan, type, condition),
+            removeMatch(queryParts, joinNames, nextName),
+            queryParts.remove(Collections.singleton(nextName))
+        );
+    }
+
+    private static LogicalPlan maybeFilter(LogicalPlan source, @Nullable Symbol filter1, @Nullable Symbol filter2) {
+        return Filter.create(
+            source,
+            AndOperator.join(
+                Stream.of(filter1, filter2).filter(Objects::nonNull).iterator()));
+    }
+
+    @Nullable
+    private static Symbol removeParts(Map<Set<QualifiedName>, Symbol> queryParts, QualifiedName lhsName, QualifiedName rhsName) {
+        // query parts can affect a single relation without being pushed down in the outer-join case
+        Symbol left = queryParts.remove(Collections.singleton(lhsName));
+        Symbol right = queryParts.remove(Collections.singleton(rhsName));
+        Symbol both = queryParts.remove(Sets.newHashSet(lhsName, rhsName));
+        return AndOperator.join(
+            Stream.of(left, right, both).filter(Objects::nonNull).iterator()
+        );
     }
 
     @Nullable

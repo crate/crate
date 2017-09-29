@@ -26,12 +26,14 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -65,7 +67,20 @@ class Filter implements LogicalPlan {
         return sourceBuilder;
     }
 
-    Filter(LogicalPlan source, QueryClause queryClause) {
+    public static LogicalPlan create(LogicalPlan source, Symbol query) {
+        assert query.valueType().equals(DataTypes.BOOLEAN)
+            : "query must have a boolean result type, got: " + query.valueType();
+
+        if (query instanceof Literal) {
+            Boolean value = (Boolean) ((Literal) query).value();
+            if (value != null && value) {
+                return source;
+            }
+        }
+        return new Filter(source, new WhereClause(query));
+    }
+
+    private Filter(LogicalPlan source, QueryClause queryClause) {
         this.source = source;
         this.queryClause = queryClause;
     }
@@ -88,7 +103,11 @@ class Filter implements LogicalPlan {
 
     @Override
     public LogicalPlan tryCollapse() {
-        return this;
+        LogicalPlan collapsed = source.tryCollapse();
+        if (collapsed == source) {
+            return this;
+        }
+        return new Filter(collapsed, queryClause);
     }
 
     @Override
