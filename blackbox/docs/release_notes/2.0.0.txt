@@ -327,3 +327,12 @@ or the ``path.data`` setting gets changed to point to the old location by
 appending the clustername to it (e.g ``/data/`` becomes
 ``/data/yourclustername``). Therefore it's not possible anymore for multiple
 clusters to share the exact same ``path.data`` directory.
+
+Boolean Data Type
+-----------------
+
+Tables that have been created with CrateDB version ``0.54.x`` or smaller and
+that contain a column of type ``BOOLEAN`` must be re-created_ to be able to
+perform all supported operations on that column.
+
+.. _re-created: https://crate.io/docs/crate/reference/en/latest/sql/system.html#tables-need-to-be-recreated
