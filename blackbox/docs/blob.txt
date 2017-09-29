@@ -42,7 +42,7 @@ relative to :ref:`env-crate-home`.
 
 Blob data will be stored under this path with the following layout::
 
-  /<blobs.path>/nodes/<NODE_NO>/indices/.blob_<INDEX_NAME>/<SHARD_ID>/blobs
+  /<blobs.path>/nodes/<NODE_NO>/indices/<INDEX_UUID>/<SHARD_ID>/blobs
 
 Global by Config
 ----------------

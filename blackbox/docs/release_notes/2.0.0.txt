@@ -148,6 +148,8 @@ Breaking Changes
  - The ``cluster name`` is not part of the effective path where data is stored
    anymore.
 
+ - The blobs data directory layout has changed.
+
 Changes
 -------
 
