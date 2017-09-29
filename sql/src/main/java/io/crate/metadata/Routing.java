@@ -68,30 +68,27 @@ public class Routing implements Streamable {
      * @return int &gt;= 0
      */
     public int numShards(String nodeId) {
-        int count = 0;
-        if (!locations.isEmpty()) {
-            Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
-            if (nodeRouting != null) {
-                for (List<Integer> shardIds : nodeRouting.values()) {
-                    if (shardIds != null) {
-                        count += shardIds.size();
-                    }
-                }
-            }
+        Map<String, List<Integer>> indicesAndShards = locations.get(nodeId);
+        if (indicesAndShards == null) {
+            return 0;
         }
-        return count;
+        int numShards = 0;
+        for (List<Integer> shardIds : indicesAndShards.values()) {
+            numShards += shardIds.size();
+        }
+        return numShards;
     }
 
     /**
      * returns true if the routing contains shards for any table of the given node
      */
     public boolean containsShards(String nodeId) {
-        if (locations.isEmpty()) return false;
-        Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
-        if (nodeRouting == null) return false;
-
-        for (Map.Entry<String, List<Integer>> tableEntry : nodeRouting.entrySet()) {
-            if (tableEntry.getValue() != null && !tableEntry.getValue().isEmpty()) {
+        Map<String, List<Integer>> indicesAndShards = locations.get(nodeId);
+        if (indicesAndShards == null) {
+            return false;
+        }
+        for (List<Integer> shardIds : indicesAndShards.values()) {
+            if (!shardIds.isEmpty()) {
                 return true;
             }
         }
