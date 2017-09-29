@@ -78,7 +78,7 @@
         </module>
         <!--<module name="NeedBraces"/>-->
         <module name="LeftCurly">
-            <property name="maxLineLength" value="100"/>
+            <!--<property name="maxLineLength" value="120"/>-->
         </module>
         <module name="RightCurly">
             <property name="id" value="RightCurlySame"/>
