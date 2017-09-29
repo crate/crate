@@ -120,7 +120,7 @@ public class IngestRulesIntegrationTest extends SQLTransportIntegrationTest {
         execute("select target_table from information_schema.ingestion_rules where rule_name = ?",
             new Object[]{INGEST_RULE_NAME});
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("doc.t2"));
+        assertThat(response.rows()[0][0], is(getFqn("t2")));
     }
 
     private static Set<IngestRule> getAllRules(IngestRulesMetaData ingestRulesMetaData) {

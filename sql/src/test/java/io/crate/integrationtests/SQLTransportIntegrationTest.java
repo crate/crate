@@ -117,6 +117,7 @@ import static org.hamcrest.Matchers.is;
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
 @UseSemiJoins
+@UseRandomizedSession
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
@@ -180,6 +181,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     return internalCluster().getInstance(SQLOperations.class);
                 }
             }));
+    }
+
+
+    public String getFqn(String schema, String tableName) {
+        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+           return tableName;
+        }
+        return String.format(Locale.ENGLISH, "%s.%s", schema, tableName);
+    }
+
+    public String getFqn(String tableName) {
+        return getFqn(sqlExecutor.getDefaultSchema(), tableName);
     }
 
     @Before
@@ -505,7 +518,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new TableIdent(Schemas.DOC_SCHEMA_NAME, tableOrPartition), fieldNames);
+        waitForMappingUpdateOnAll(new TableIdent(sqlExecutor.getDefaultSchema(), tableOrPartition), fieldNames);
     }
 
     /**
@@ -554,7 +567,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     SQLOperations.Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            null, new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlExecutor.getDefaultSchema(), new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**

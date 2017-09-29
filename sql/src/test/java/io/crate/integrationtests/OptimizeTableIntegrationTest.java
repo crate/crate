@@ -109,7 +109,7 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("No partition for table 'doc.parted' with ident '04130' exists");
+        expectedException.expectMessage(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted")));
         execute("optimize table parted partition(date=0)");
     }
 

@@ -23,12 +23,14 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSession;
 import org.junit.Test;
 
 import java.util.Locale;
 
 import static org.hamcrest.core.Is.is;
 
+@UseRandomizedSession(schema = false)
 public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

@@ -51,7 +51,7 @@ public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest 
         PlanForNode plan = plan("update t set x = x * 2");
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
-        IndexShardRoutingTable t = clusterService.state().routingTable().shardRoutingTable("t", 0);
+        IndexShardRoutingTable t = clusterService.state().routingTable().shardRoutingTable(getFqn("t"), 0);
 
         String sourceNodeId = t.primaryShard().currentNodeId();
         assert sourceNodeId != null;
@@ -65,10 +65,10 @@ public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest 
         assert targetNodeId != null;
 
         client().admin().cluster().prepareReroute()
-            .add(new MoveAllocationCommand("t", 0, sourceNodeId, targetNodeId))
+            .add(new MoveAllocationCommand(getFqn("t"), 0, sourceNodeId, targetNodeId))
             .execute().actionGet();
 
-        client().admin().cluster().prepareHealth("t")
+        client().admin().cluster().prepareHealth(getFqn("t"))
             .setWaitForEvents(Priority.LANGUID)
             .setWaitForNoRelocatingShards(true)
             .setTimeout(TimeValue.timeValueSeconds(5)).execute().actionGet();

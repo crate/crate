@@ -53,7 +53,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithColumnNames() throws Exception {
-        prepareCreate("test")
+        prepareCreate(getFqn("test"))
             .addMapping("default",
                 "firstName", "type=keyword",
                 "lastName", "type=keyword")
@@ -87,7 +87,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertAllCoreDatatypes() throws Exception {
-        prepareCreate("test")
+        prepareCreate(getFqn("test"))
             .addMapping("default",
                 "boolean", "type=boolean",
                 "datetime", "type=date",
@@ -197,7 +197,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertMultipleRows() throws Exception {
-        prepareCreate("test")
+        prepareCreate(getFqn("test"))
             .addMapping("default",
                 "age", "type=integer",
                 "name", "type=keyword")
@@ -217,7 +217,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithParams() throws Exception {
-        prepareCreate("test")
+        prepareCreate(getFqn("test"))
             .addMapping("default",
                 "age", "type=integer",
                 "name", "type=keyword")
@@ -316,7 +316,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values (?, ?)", args);
         refresh();
 
-        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
+        GetResponse response = client().prepareGet(getFqn("test"), "default", "1").execute().actionGet();
         assertTrue(response.getSourceAsMap().containsKey("message"));
     }
 
@@ -347,7 +347,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
         refresh();
 
-        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
+        GetResponse response = client().prepareGet(getFqn("test"), "default", "1").execute().actionGet();
         assertTrue(response.getSourceAsMap().containsKey("message"));
     }
 

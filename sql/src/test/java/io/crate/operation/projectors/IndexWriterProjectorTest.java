@@ -35,7 +35,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.NodeJobsCounter;
@@ -65,7 +64,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
 
-    private static final TableIdent bulkImportIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "bulk_import");
 
     @Test
     public void testIndexWriter() throws Throwable {
@@ -75,6 +73,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
+        TableIdent bulkImportIdent = new TableIdent(sqlExecutor.getDefaultSchema(), "bulk_import");
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             internalCluster().getInstance(ClusterService.class),
             new NodeJobsCounter(),
@@ -83,7 +82,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             Settings.EMPTY,
             internalCluster().getInstance(TransportBulkCreateIndicesAction.class),
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
-            IndexNameResolver.forTable(new TableIdent(Schemas.DOC_SCHEMA_NAME, "bulk_import")),
+            IndexNameResolver.forTable(bulkImportIdent),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING),
             Arrays.asList(ID_IDENT),
             Arrays.<Symbol>asList(new InputColumn(0)),

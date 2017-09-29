@@ -34,7 +34,7 @@ public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
     private Setup setup = new Setup(sqlExecutor);
 
     private void executeQuoted(String stmt) {
-        execute(stmt, null, createSession(null, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT)));
+        execute(stmt, null, createSession(sqlExecutor.getDefaultSchema(), EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT)));
     }
 
     @Before

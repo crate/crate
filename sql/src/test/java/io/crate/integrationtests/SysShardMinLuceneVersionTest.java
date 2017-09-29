@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSession;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -34,6 +35,7 @@ import java.nio.file.Path;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@UseRandomizedSession(schema = false)
 public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
 
     private void startUpNodeWithDataDir(String dataPath) throws IOException {

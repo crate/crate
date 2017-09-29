@@ -34,9 +34,10 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDelete() throws Exception {
-        createIndex("test");
+        String fqn = getFqn("test");
+        createIndex(fqn);
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex(fqn, "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("delete from test");
         assertEquals(1, response.rowCount());
@@ -47,11 +48,12 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeleteWithWhere() throws Exception {
-        createIndex("test");
+        String fqn = getFqn("test");
+        createIndex(fqn);
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex(fqn, "default", "id1").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex(fqn, "default", "id2").setSource("{}", XContentType.JSON).execute().actionGet();
+        client().prepareIndex(fqn, "default", "id3").setSource("{}", XContentType.JSON).execute().actionGet();
         refresh();
         execute("delete from test where \"_id\" = 'id1'");
         assertEquals(1, response.rowCount());

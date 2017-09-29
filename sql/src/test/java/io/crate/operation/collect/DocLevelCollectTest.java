@@ -46,6 +46,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.testing.UseRandomizedSession;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.indices.IndicesService;
@@ -72,6 +73,7 @@ import static org.mockito.Mockito.mock;
 
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, numDataNodes = 1)
+@UseRandomizedSession(schema = false)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";

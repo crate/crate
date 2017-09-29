@@ -56,7 +56,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
     public void testClosedIndicesHaveNoShardEntries() throws Exception {
         execute("create table t(i int) with (number_of_replicas='0-all')");
         ensureGreen();
-        client().admin().indices().close(new CloseIndexRequest("t")).actionGet();
+        client().admin().indices().close(new CloseIndexRequest(getFqn("t"))).actionGet();
         waitUntilShardOperationsFinished();
         assertNoShardEntriesLeftInShardCollectSource();
     }

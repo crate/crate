@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseRandomizedSession;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -42,6 +43,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, transportClientRatio = 0)
+@UseRandomizedSession(schema = false)
 public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     private SQLTransportExecutor readOnlyExecutor;

@@ -40,9 +40,9 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
                 "with (number_of_replicas=0)");
 
         ensureYellow();
-        client().admin().indices().close(new CloseIndexRequest("t3")).actionGet();
+        client().admin().indices().close(new CloseIndexRequest(getFqn("t3"))).actionGet();
 
-        execute("select * from information_schema.tables where table_schema = 'doc'");
+        execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(2L, response.rowCount());
         execute("select * from information_schema.columns where table_name = 't3'");
         assertEquals(2, response.rowCount());

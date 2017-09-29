@@ -54,11 +54,11 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
         ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
         MetaData metaData = clusterService.state().getMetaData();
-        Index index = metaData.index("t").getIndex();
+        Index index = metaData.index(getFqn("t")).getIndex();
         assertThat(countOperation.count(index, 0, WhereClause.MATCH_ALL), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t"));
+        TableInfo tableInfo = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);

@@ -30,6 +30,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.util.Locale;
+
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -59,7 +61,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow INSERT operations.", sqlExecutor.getDefaultSchema()));
         execute("insert into t1 (id) values (1)");
     }
 
@@ -69,7 +72,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow UPDATE operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow UPDATE operations.", sqlExecutor.getDefaultSchema()));
         execute("update t1 set id = 2");
     }
 
@@ -79,7 +83,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow DELETE operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow DELETE operations.", sqlExecutor.getDefaultSchema()));
         execute("delete from t1");
     }
 
@@ -89,7 +94,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow DROP operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow DROP operations.", sqlExecutor.getDefaultSchema()));
         execute("drop table t1");
     }
 
@@ -99,7 +105,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow ALTER operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow ALTER operations.", sqlExecutor.getDefaultSchema()));
         execute("alter table t1 add column name string");
     }
 
@@ -109,7 +116,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow ALTER operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow ALTER operations.", sqlExecutor.getDefaultSchema()));
         execute("alter table t1 set (number_of_replicas = 1)");
     }
 
@@ -133,7 +141,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getDefaultSchema()));
         execute("select * from t1");
     }
 
@@ -145,7 +154,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getDefaultSchema()));
         execute("insert into t2 (id) (select id from t1)");
     }
 
@@ -156,7 +166,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getDefaultSchema()));
         execute("select * from t2, t1");
     }
 
@@ -165,7 +176,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.read\" = true)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow COPY TO operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow COPY TO operations.", sqlExecutor.getDefaultSchema()));
         execute("copy t1 to DIRECTORY '/tmp/'");
     }
 
@@ -175,7 +187,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow INSERT operations.", sqlExecutor.getDefaultSchema()));
         execute("copy t1 from '/tmp'");
     }
 
@@ -187,8 +200,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow CREATE SNAPSHOT " +
-                                        "operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow CREATE SNAPSHOT operations.", sqlExecutor.getDefaultSchema()));
         execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)");
     }
 
@@ -200,7 +213,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "The relation \"%s.t1\" doesn't support or allow READ operations.", sqlExecutor.getDefaultSchema()));
         execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)");
     }
 
@@ -215,8 +229,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Boolean) response.rows()[0][0], Is.is(true));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations, " +
-                                        "as it is read-only.");
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "The relation \"%s.t1\" doesn't support or allow INSERT operations, " +
+                                        "as it is read-only.", sqlExecutor.getDefaultSchema()));
         execute("insert into t1 (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
     }

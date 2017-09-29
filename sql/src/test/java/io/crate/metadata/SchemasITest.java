@@ -61,7 +61,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 
-        DocTableInfo ti = schemas.getTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"));
+        DocTableInfo ti = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "t1"));
         assertThat(ti.ident().name(), is("t1"));
 
         assertThat(ti.columns().size(), is(3));
@@ -78,7 +78,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         int numShards = 0;
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
-                assertThat(indexEntry.getKey(), is("t1"));
+                assertThat(indexEntry.getKey(), is(getFqn("t1")));
                 numShards += indexEntry.getValue().size();
             }
         }
@@ -90,13 +90,13 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         execute("create table terminator (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
         request.addAliasAction(IndicesAliasesRequest.AliasActions.add()
-            .alias("entsafter")
-            .index("terminator"));
+            .alias(getFqn("entsafter"))
+            .index(getFqn("terminator")));
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo terminatorTable = schemas.getTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "terminator"));
-        DocTableInfo entsafterTable = schemas.getTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "entsafter"));
+        DocTableInfo terminatorTable = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "terminator"));
+        DocTableInfo entsafterTable = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "entsafter"));
 
         assertNotNull(terminatorTable);
         assertFalse(terminatorTable.isAlias());
@@ -111,17 +111,17 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         execute("create table transformer (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
         request.addAliasAction(
-            IndicesAliasesRequest.AliasActions.add().alias("entsafter").index("terminator"));
+            IndicesAliasesRequest.AliasActions.add().alias(getFqn("entsafter")).index(getFqn("terminator")));
         request.addAliasAction(
-            IndicesAliasesRequest.AliasActions.add().alias("entsafter").index("transformer"));
+            IndicesAliasesRequest.AliasActions.add().alias(getFqn("entsafter")).index(getFqn("transformer")));
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo entsafterTable = schemas.getTableInfo(new TableIdent(Schemas.DOC_SCHEMA_NAME, "entsafter"));
+        DocTableInfo entsafterTable = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "entsafter"));
 
         assertNotNull(entsafterTable);
         assertThat(entsafterTable.concreteIndices().length, is(2));
-        assertThat(Arrays.asList(entsafterTable.concreteIndices()), containsInAnyOrder("terminator", "transformer"));
+        assertThat(Arrays.asList(entsafterTable.concreteIndices()), containsInAnyOrder(getFqn("terminator"), getFqn("transformer")));
     }
 
 
@@ -146,7 +146,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         Routing routing = ti.getRouting(null, null, SessionContext.create());
 
         Set<String> tables = new HashSet<>();
-        Set<String> expectedTables = Sets.newHashSet("t2", "t3");
+        Set<String> expectedTables = Sets.newHashSet(getFqn("t2"), getFqn("t3"));
         int numShards = 0;
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {

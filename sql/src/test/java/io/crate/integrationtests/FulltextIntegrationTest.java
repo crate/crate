@@ -100,7 +100,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
     public void testSelectScoreMatchAll() throws Exception {
         execute("create table quotes (quote string) with (number_of_replicas = 0)");
         ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest(getFqn("quotes")))
             .actionGet().isExists());
 
         execute("insert into quotes values (?), (?)",
@@ -144,7 +144,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
         execute("create table quotes (id int, quote string, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='english')) with (number_of_replicas = 0)");
         ensureYellow();
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest(getFqn("quotes")))
             .actionGet().isExists());
 
         execute("insert into quotes (id, quote) values (?, ?), (?, ?)",
@@ -238,7 +238,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
         this.setup.setUpLocations();
         refresh();
 
-        SearchResponse searchResponse = client().prepareSearch("locations")
+        SearchResponse searchResponse = client().prepareSearch(getFqn("locations"))
             .setTypes("default")
             .setQuery(QueryBuilders.multiMatchQuery("planet earth", "kind^0.8", "name_description_ft^0.6"))
             .get(TimeValue.timeValueSeconds(1));

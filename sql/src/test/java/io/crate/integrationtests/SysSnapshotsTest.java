@@ -120,10 +120,11 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         createSnapshot(snapshotName, tableName);
     }
 
-    private void createSnapshot(String snapshotName, String... tables) {
+    private void createSnapshot(String snapshotName, String table) {
+        String defaultSchema = sqlExecutor.getDefaultSchema();
         CreateSnapshotResponse createSnapshotResponse = client().admin().cluster()
             .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
-            .setWaitForCompletion(true).setIndices(tables).get();
+            .setWaitForCompletion(true).setIndices(getFqn(table)).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
         snapshots.add(snapshotName);
@@ -152,7 +153,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
                 StringType.INSTANCE,
                 StringType.INSTANCE
             }));
-        assertThat((String[]) response.rows()[0][0], arrayContaining("test_table"));
+        assertThat((String[]) response.rows()[0][0], arrayContaining(getFqn("test_table")));
         assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
         assertThat((String) response.rows()[0][2], is("test_snap_1"));
         assertThat((String) response.rows()[0][3], is(REPOSITORY_NAME));

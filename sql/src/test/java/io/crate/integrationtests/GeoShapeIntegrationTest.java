@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSession;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,7 +91,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     public void testIndexWithES() throws Exception {
         execute("create table test (shape geo_shape)");
         ensureYellow();
-        client().prepareIndex("test", "default", "test").setSource(jsonBuilder().startObject()
+        client().prepareIndex(getFqn("test"), "default", "test").setSource(jsonBuilder().startObject()
             .startObject("shape")
             .field("type", "polygon")
             .startArray("coordinates").startArray()
@@ -113,6 +114,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSession(schema = false)
     public void testShowCreateTable() throws Exception {
         execute("create table test (" +
                 "col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25')" +
@@ -141,6 +143,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSession(schema = false)
     public void testShowCreateTableWithDefaultValues() throws Exception {
         execute("create table test (" +
                 "col1 geo_shape" +

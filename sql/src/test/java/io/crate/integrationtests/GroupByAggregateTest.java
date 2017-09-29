@@ -879,12 +879,12 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByMultiValueField() throws Exception {
         this.setup.groupBySetup();
         // inserting multiple values not supported anymore
-        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+        client().prepareIndex(getFqn("characters"), Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
             put("race", new String[]{"Android"});
             put("gender", new String[]{"male", "robot"});
             put("name", "Marvin2");
         }}).execute().actionGet();
-        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
+        client().prepareIndex(getFqn("characters"), Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>() {{
             put("race", new String[]{"Android"});
             put("gender", new String[]{"male", "robot"});
             put("name", "Marvin3");

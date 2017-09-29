@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.UseRandomizedSession;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -35,6 +36,7 @@ import java.nio.file.Path;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@UseRandomizedSession(schema = false)
 public class IpTypeCompatibilityTest extends SQLTransportIntegrationTest {
 
     @Before

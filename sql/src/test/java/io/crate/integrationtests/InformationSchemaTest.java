@@ -27,6 +27,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSession;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -101,11 +102,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.columns where table_name='quotes'");
         assertEquals(3L, response.rowCount());
 
-        execute("select * from information_schema.table_constraints where table_schema='doc' and table_name='quotes'");
+        execute("select * from information_schema.table_constraints where table_schema = ? and table_name='quotes'",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
 
-        execute("select table_name from information_schema.columns where table_schema='doc' and table_name='quotes' " +
-                "and column_name='__quote_info'");
+        execute("select table_name from information_schema.columns where table_schema = ? and table_name='quotes' " +
+                "and column_name='__quote_info'", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
@@ -118,7 +120,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(23L, response.rowCount());
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
-        ensureYellow("t4");
+        ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
         assertEquals(24L, response.rowCount());
@@ -126,17 +128,19 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
+        String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, " +
                 "col2 string) clustered by(col1) into 3 shards");
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc");
+        execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ? order by table_name asc",
+            new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(2L));
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[0][13], is("doc"));
+        assertThat(response.rows()[0][13], is(defaultSchema));
         assertThat(response.rows()[0][12], is("foo"));
-        assertThat(response.rows()[0][11], is("doc"));
+        assertThat(response.rows()[0][11], is(defaultSchema));
         assertThat(response.rows()[0][14], is("BASE TABLE"));
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][5], is(3));
@@ -145,9 +149,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][1], is(false));
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[1][13], is("doc"));
+        assertThat(response.rows()[1][13], is(defaultSchema));
         assertThat(response.rows()[1][12], is("test"));
-        assertThat(response.rows()[1][11], is("doc"));
+        assertThat(response.rows()[1][11], is(defaultSchema));
         assertThat(response.rows()[1][14], is("BASE TABLE"));
         assertThat(response.rows()[1][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[1][5], is(5));
@@ -162,10 +166,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
         execute("select table_schema, table_name, number_of_shards, number_of_replicas " +
-                "from INFORMATION_SCHEMA.Tables where table_schema='doc' " +
-                "order by table_name asc limit 1");
+                "from INFORMATION_SCHEMA.Tables where table_schema = ? " +
+                "order by table_name asc limit 1", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
-        assertEquals("doc", response.rows()[0][0]);
+        assertEquals(sqlExecutor.getDefaultSchema(), response.rows()[0][0]);
         assertEquals("foo", response.rows()[0][1]);
         assertEquals(3, response.rows()[0][2]);
         assertEquals("0-1", response.rows()[0][3]);
@@ -177,8 +181,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         execute("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
-        execute("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables where table_schema='doc' " +
-                "order by number_of_shards desc, table_name asc limit 2");
+        execute("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables where table_schema = ? " +
+                "order by number_of_shards desc, table_name asc limit 2", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(2L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
@@ -188,16 +192,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
+        String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc limit 1 offset 1");
+        execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ? order by table_name asc limit 1 offset 1", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(1L));
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null); // version
-        assertThat(response.rows()[0][13], is("doc")); // table_schema
+        assertThat(response.rows()[0][13], is(defaultSchema)); // table_schema
         assertThat(response.rows()[0][12], is("test"));  // table_name
-        assertThat(response.rows()[0][11], is("doc")); // table_catalog
+        assertThat(response.rows()[0][11], is(defaultSchema)); // table_catalog
         assertThat(response.rows()[0][14], is("BASE TABLE")); // table_type
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
         assertThat(response.rows()[0][5], is(5)); // number_of_shards
@@ -215,7 +220,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
-                "clustered_by from INFORMATION_SCHEMA.Tables where table_schema='doc'");
+                "clustered_by from INFORMATION_SCHEMA.Tables where table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
@@ -255,7 +261,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
-                "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where table_schema = 'doc'");
+                "clustered_by, partitioned_by from INFORMATION_SCHEMA.Tables where table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(4, response.rows()[0][1]);
@@ -268,13 +275,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testSelectStarFromInformationSchemaTable() throws Exception {
         execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc'");
+        execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertThat(response.rowCount(), is(1L));
 
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
-        assertThat(response.rows()[0][13], is("doc"));
+        assertThat(response.rows()[0][13], is(sqlExecutor.getDefaultSchema()));
         assertThat(response.rows()[0][12], is("test"));
-        assertThat(response.rows()[0][11], is("doc"));
+        assertThat(response.rows()[0][11], is(sqlExecutor.getDefaultSchema()));
         assertThat(response.rows()[0][14], is("BASE TABLE"));
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][5], is(5));
@@ -311,7 +318,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
         execute("select constraint_type, constraint_name, " +
-                "table_name from information_schema.table_constraints where table_schema='doc'");
+                "table_name from information_schema.table_constraints where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
         assertEquals("PRIMARY_KEY", response.rows()[0][0]);
         assertThat(commaJoiner.join((Object[]) response.rows()[0][1]), is("col1"));
@@ -323,14 +330,15 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
         execute("select table_name, constraint_name from INFORMATION_SCHEMA" +
-                ".table_constraints where table_schema='doc'");
+                ".table_constraints where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertThat(commaJoiner.join((Object[]) response.rows()[0][1]), is("col1"));
 
         execute("create table test2 (col1a string primary key, col2a timestamp)");
         ensureGreen();
-        execute("select table_name, constraint_name from INFORMATION_SCHEMA.table_constraints where table_schema='doc' order by table_name asc");
+        execute("select table_name, constraint_name from INFORMATION_SCHEMA.table_constraints where table_schema = ? order by table_name asc",
+            new Object[]{sqlExecutor.getDefaultSchema()});
 
         assertEquals(2L, response.rowCount());
         assertEquals("test2", response.rows()[1][0]);
@@ -510,6 +518,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFromTableColumns() throws Exception {
+        String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test ( " +
                 "col1 integer primary key, " +
                 "col2 string index off, " +
@@ -526,7 +535,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 ") not null)");
 
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.Columns where table_schema='doc'");
+        execute("select * from INFORMATION_SCHEMA.Columns where table_schema = ?", new Object[]{defaultSchema});
         assertEquals(11L, response.rowCount());
         assertEquals("age", response.rows()[0][11]); // column_name
         assertEquals("integer", response.rows()[0][12]); // data_type
@@ -537,9 +546,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rows()[0][23]); // numeric_precision_radix
 
         assertEquals((short) 1, response.rows()[0][25]); // ordinal_position
-        assertEquals("doc", response.rows()[0][26]); // table_catalog
+        assertEquals(defaultSchema, response.rows()[0][26]); // table_catalog
         assertEquals("test", response.rows()[0][27]); // table_name
-        assertEquals("doc", response.rows()[0][28]); // table_schema
+        assertEquals(defaultSchema, response.rows()[0][28]); // table_schema
 
         assertEquals("col1", response.rows()[2][11]);
         assertEquals(false, response.rows()[2][21]);
@@ -570,7 +579,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer, col2 string, age integer)");
         ensureGreen();
         execute("select table_name, column_name, " +
-                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema='doc'");
+                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(3L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
 
@@ -578,8 +588,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns " +
-                "where table_schema='doc' " +
-                "order by table_name");
+                "where table_schema = ? " +
+                "order by table_name", new Object[]{sqlExecutor.getDefaultSchema()});
 
         assertEquals(6L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
@@ -592,7 +602,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "index col1_col2_ft using fulltext(col1, col2))");
         ensureGreen();
         execute("select table_name, column_name," +
-                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema='doc'");
+                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns where table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(2L, response.rowCount());
 
         assertEquals("test", response.rows()[0][0]);
@@ -618,7 +629,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("create table t1 (id integer, col1 string)");
         ensureGreen();
-        execute("select max(ordinal_position) from information_schema.columns where table_schema='doc'");
+        execute("select max(ordinal_position) from information_schema.columns where table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1, response.rowCount());
 
         max_ordinal = 2;
@@ -632,7 +644,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         ensureYellow();
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
-                "sum(number_of_shards) from information_schema.tables where table_schema='doc'");
+                "sum(number_of_shards) from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1, response.rowCount());
 
         assertEquals(3, response.rows()[0][0]);
@@ -648,7 +660,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         ensureYellow();
         execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
-                "sum(number_of_shards) from information_schema.tables where table_schema='doc' and table_name != 't1'");
+                "sum(number_of_shards) from information_schema.tables where table_schema = ? and table_name != 't1'",
+            new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1, response.rowCount());
 
         assertEquals(2, response.rows()[0][0]);
@@ -748,7 +761,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "partitioned by (name, content)");
 
         execute("select * from information_schema.tables " +
-                "where table_schema = 'doc' order by table_name");
+                "where table_schema = ? order by table_name", new Object[]{sqlExecutor.getDefaultSchema()});
 
         Object[] row1 = new String[]{"name", "content"};
         Object[] row2 = new String[]{"name"};
@@ -773,9 +786,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(3, response.rowCount());
 
-        Object[] row1 = new Object[]{"my_table", "doc", "04132", ImmutableMap.of("par", 1), 5, "0-1"};
-        Object[] row2 = new Object[]{"my_table", "doc", "04134", ImmutableMap.of("par", 2), 5, "0-1"};
-        Object[] row3 = new Object[]{"my_table", "doc", "04136", ImmutableMap.of("par", 3), 5, "0-1"};
+        Object[] row1 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "04132", ImmutableMap.of("par", 1), 5, "0-1"};
+        Object[] row2 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "04134", ImmutableMap.of("par", 2), 5, "0-1"};
+        Object[] row3 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "04136", ImmutableMap.of("par", 3), 5, "0-1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -935,11 +948,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "from information_schema.table_partitions order by table_name, partition_ident");
         assertEquals(5, response.rowCount());
 
-        Object[] row1 = new Object[]{"my_table", "doc", "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "0-1"};
-        Object[] row2 = new Object[]{"my_table", "doc", "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "0-1"};
-        Object[] row3 = new Object[]{"my_table", "doc", "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "0-1"};
-        Object[] row4 = new Object[]{"my_table", "doc", "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "0-1"};
-        Object[] row5 = new Object[]{"my_table", "doc", "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "0-1"};
+        Object[] row1 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "08132132c5p0", ImmutableMap.of("par", 1, "par_str", "bar"), 5, "0-1"};
+        Object[] row2 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "08132136dtng", ImmutableMap.of("par", 1, "par_str", "foo"), 5, "0-1"};
+        Object[] row3 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "08134132c5p0", ImmutableMap.of("par", 2, "par_str", "bar"), 5, "0-1"};
+        Object[] row4 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "08134136dtng", ImmutableMap.of("par", 2, "par_str", "foo"), 5, "0-1"};
+        Object[] row5 = new Object[]{"my_table", sqlExecutor.getDefaultSchema(), "081341b1edi6c", ImmutableMap.of("par", 2, "par_str", "asdf"), 4, "0-1"};
 
         assertArrayEquals(row1, response.rows()[0]);
         assertArrayEquals(row2, response.rows()[1]);
@@ -1015,6 +1028,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSession(schema = false)
     public void testRegexpMatch() throws Exception {
         execute("create blob table blob_t1");
         execute("create table t(id String)");
@@ -1027,6 +1041,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSession(schema = false)
     public void testSelectSchemata() throws Exception {
         execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response.rowCount(), is(5L));

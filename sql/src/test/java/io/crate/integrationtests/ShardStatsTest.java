@@ -91,7 +91,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
                 "with(number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         ensureYellow();
 
-        execute("select count(*) from sys.shards where schema_name='doc' AND table_name='locations'");
+        execute("select count(*) from sys.shards where table_name='locations'");
         assertThat(response.rowCount(), is(1L));
         assertThat((Long) response.rows()[0][0], is(15L));
     }

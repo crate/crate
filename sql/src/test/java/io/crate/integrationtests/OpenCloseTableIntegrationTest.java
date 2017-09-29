@@ -42,13 +42,13 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(true, response.rows()[0][0]);
 
         IndexMetaData indexMetaData = client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
-            .indices().get("t");
+            .indices().get(getFqn("t"));
         assertEquals(IndexMetaData.State.CLOSE, indexMetaData.getState());
 
         execute("alter table t open");
 
         indexMetaData = client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
-            .indices().get("t");
+            .indices().get(getFqn("t"));
 
         execute("select closed from information_schema.tables where table_name = 't'");
         assertEquals(1, response.rowCount());
@@ -59,56 +59,56 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testClosePreventsInsert() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow INSERT operations, " +
-                                        "as it is currently closed");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow INSERT operations, " +
+                                        "as it is currently closed", getFqn("t")));
         execute("insert into t values (1), (2), (3)");
     }
 
     @Test
     public void testClosePreventsSelect() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow READ operations, " +
-                                        "as it is currently closed.");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow READ operations, " +
+                                        "as it is currently closed.", getFqn("t")));
         execute("select * from t");
     }
 
     @Test
     public void testClosePreventsDrop() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow DROP operations, " +
-                                        "as it is currently closed");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow DROP operations, " +
+                                        "as it is currently closed", getFqn("t")));
         execute("drop table t");
     }
 
     @Test
     public void testClosePreventsAlter() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow ALTER operations, " +
-                                        "as it is currently closed");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow ALTER operations, " +
+                                        "as it is currently closed", getFqn("t")));
         execute("alter table t add column x string");
     }
 
     @Test
     public void testClosePreventsRefresh() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow REFRESH " +
-                                        "operations, as it is currently closed.");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow REFRESH " +
+                                        "operations, as it is currently closed.", getFqn("t")));
         execute("refresh table t");
     }
 
     @Test
     public void testClosePreventsShowCreate() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow SHOW CREATE " +
-                                        "operations, as it is currently closed.");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow SHOW CREATE " +
+                                        "operations, as it is currently closed.", getFqn("t")));
         execute("show create table t");
     }
 
     @Test
     public void testClosePreventsOptimize() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is currently closed.");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow OPTIMIZE " +
+                                        "operations, as it is currently closed.", getFqn("t")));
         execute("optimize table t");
     }
 
@@ -133,8 +133,8 @@ public class OpenCloseTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("alter table partitioned_table close");
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.partitioned_table\" doesn't support or allow " +
-                                        "READ operations, as it is currently closed.");
+        expectedException.expectMessage(String.format("The relation \"%s\" doesn't support or allow " +
+                                        "READ operations, as it is currently closed.", getFqn("partitioned_table")));
         execute("select i from partitioned_table");
     }
 
