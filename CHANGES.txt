@@ -21,11 +21,8 @@ Changes
 Fixes
 =====
 
- - Fixed: Bootstrap fails with error when ``ingestion.mqtt.enabled`` is
-   defined when ``license.enterprise`` is set to false.
-
- - Fixed an issue where the query circuit breaker would be tripped after
-   running several queries due to incorrect memory tracking. Subsequent
+ - Fixed an issue where the query circuit breaker would be tripped after 
+   running several queries due to incorrect memory tracking. Subsequent 
    operations would've failed due to the lack of circuit breaker cleanup.
 
  - Improve shards view performance in the Admin UI

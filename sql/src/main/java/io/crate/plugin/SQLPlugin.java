@@ -49,7 +49,6 @@ import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
-import io.crate.operation.mqtt.MqttSettings;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.check.SysChecksModule;
@@ -153,11 +152,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
         settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
 
-        // Settings for ingestion implementations (available only in the Enterprise version)
-        settings.add(MqttSettings.MQTT_ENABLED_SETTING.setting());
-        settings.add(MqttSettings.SSL_MQTT_ENABLED.setting());
-        settings.add(MqttSettings.MQTT_PORT_SETTING.setting());
-        settings.add(MqttSettings.MQTT_TIMEOUT_SETTING.setting());
+        // Settings for ingestion implementations
+        if (ingestionModules != null) {
+            settings.addAll(ingestionModules.getSettings());
+        }
 
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

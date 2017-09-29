@@ -29,6 +29,11 @@ import org.elasticsearch.common.settings.Setting;
 import java.util.Collection;
 import java.util.Collections;
 
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_PORT_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_TIMEOUT_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.SSL_MQTT_ENABLED;
+
 public class MqttModule extends AbstractModule implements IngestionModules {
 
     @Override
@@ -48,6 +53,9 @@ public class MqttModule extends AbstractModule implements IngestionModules {
 
     @Override
     public Collection<Setting<?>> getSettings() {
-        return Collections.emptyList();
+        return ImmutableList.of(MQTT_ENABLED_SETTING.setting(),
+            SSL_MQTT_ENABLED.setting(),
+            MQTT_PORT_SETTING.setting(),
+            MQTT_TIMEOUT_SETTING.setting());
     }
 }

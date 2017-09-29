@@ -26,11 +26,12 @@ import io.crate.metadata.Functions;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.crate.mqtt.protocol.MqttProcessor;
 import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.operation.mqtt.MqttSettings;
 import io.crate.operation.user.UserManager;
 import io.crate.protocols.postgres.BindPostgresException;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
+import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
@@ -48,6 +49,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -65,13 +67,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 @Singleton
 public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
+    public static final CrateSetting<Boolean> MQTT_ENABLED_SETTING = CrateSetting.of(
+        Setting.boolSetting("ingestion.mqtt.enabled", false, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
+
+    public static final CrateSetting<Boolean> SSL_MQTT_ENABLED = CrateSetting.of(
+        Setting.boolSetting("ssl.ingestion.mqtt.enabled", false, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
+
+    public static final CrateSetting<String> MQTT_PORT_SETTING = CrateSetting.of(new Setting<>(
+        "ingestion.mqtt.port", "1883",
+        Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
+
+    public static final CrateSetting<TimeValue> MQTT_TIMEOUT_SETTING = CrateSetting.of(Setting.timeSetting(
+        "ingestion.mqtt.timeout", TimeValue.timeValueSeconds(10L), TimeValue.timeValueSeconds(1L),
+        Setting.Property.NodeScope), DataTypes.STRING);
+
     static boolean isMQTTSslEnabled(Settings settings) {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
-               MqttSettings.SSL_MQTT_ENABLED.setting().get(settings);
+               SSL_MQTT_ENABLED.setting().get(settings);
     }
 
     private final NetworkService networkService;
@@ -101,9 +120,9 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         this.networkService = networkService;
         logger = Loggers.getLogger("mqtt", settings);
         isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        isEnabled = MqttSettings.MQTT_ENABLED_SETTING.setting().get(settings);
-        port = MqttSettings.MQTT_PORT_SETTING.setting().get(settings);
-        defaultIdleTimeout = MqttSettings.MQTT_TIMEOUT_SETTING.setting().get(settings);
+        isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
+        port = MQTT_PORT_SETTING.setting().get(settings);
+        defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
         mqttMessageLogger = new MqttMessageLogger(settings);
         mqttIngestService = new MqttIngestService(functions, sqlOperations, userManager, ingestionService);
         this.sslContextProvider = sslContextProvider;
@@ -179,7 +198,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
                                     boundAddresses +
                                     " with distinct ports and none of them matched the publish address (" +
                                     publishInetAddress + "). " +
-                                    "Please specify a unique port by setting " + MqttSettings.MQTT_PORT_SETTING.getKey());
+                                    "Please specify a unique port by setting " + MQTT_PORT_SETTING.getKey());
     }
 
     private TransportAddress bindAddress(final InetAddress hostAddress) {
