@@ -300,3 +300,12 @@ sets both the minimum and maximum memory to allocate, and should be set to
 whatever your previous ``CRATE_MAX_MEM`` was set to.
 
 .. _enterprise edition: https://crate.io/enterprise-edition/
+
+Boolean Data Type
+-----------------
+
+Tables that have been created with CrateDB version ``0.54.x`` or smaller and
+that contain a column of type ``BOOLEAN`` must be re-created_ to be able to
+perform all supported operations on that column.
+
+.. _re-created: https://crate.io/docs/crate/reference/en/latest/sql/system.html#tables-need-to-be-recreated
