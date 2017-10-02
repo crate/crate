@@ -117,21 +117,21 @@ launch_service()
     case "$4" in
         *"-Cpath.home="*)
             props="$4" ;;
-        *               )
-            props="-Cpath.home=$CRATE_HOME $4" ;;
+        *)
+            props="\"-Cpath.home=$CRATE_HOME\" $4";;
     esac
 
     if [ "x$pidpath" != "x" ]; then
-        props="-Cpidfile=$pidpath $props"
+        props="\"-Cpidfile=$pidpath\" $props"
     fi
 
     if [ "x$daemonized" = "x" ]; then
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+        eval exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
              io.crate.bootstrap.CrateDB $props
         execval=$?
     else
         # Startup Crate, background it, and write the pid.
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+        eval exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
              io.crate.bootstrap.CrateDB $props -d <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
@@ -140,7 +140,7 @@ launch_service()
     return $execval
 }
 
-args=$@
+args="$@"
 if test "${args#*"-Des."}" != "$args"; then
     echo "Support for defining Crate specific settings with the -D option and the es prefix has been dropped."
     echo "Please use the -C option to configure Crate.\n"
@@ -148,24 +148,20 @@ if test "${args#*"-Des."}" != "$args"; then
 fi
 
 # Parse any command line options.
-eval set -- "`getopt vdhp:D:X:C: $args`"
-
-while true; do
-    case $1 in
-        -v)
+while getopts "vdhp:D:X:C:" opt; do
+    case $opt in
+        v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Dcrate.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
                     io.crate.Version
             exit 0
         ;;
-        -p)
-            pidfile="$2"
-            shift 2
+        p)
+            pidfile="\"$OPTARG\""
         ;;
-        -d)
+        d)
             daemonized="yes"
-            shift
         ;;
-        -h)
+        h)
             echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
             echo ""
             echo "  Usage: $(basename $0) [OPTION]..."
@@ -181,20 +177,16 @@ while true; do
             echo "  -X            set a nonstandard java option"
             exit 0
         ;;
-        -D)
-            javaProperties="$javaProperties -D$2"
-            shift 2
+        D)
+            javaProperties="$javaProperties \"-D$OPTARG\""
         ;;
-        -C)
-            properties="$properties -C$2"
-            shift 2
+        C)
+            properties="$properties \"-C$OPTARG\""
         ;;
-        -X)
-            properties="$properties -X$2"
-            shift 2
+        X)
+            properties="$properties \"-X$OPTARG\""
         ;;
         --)
-            shift
             break
         ;;
         *)

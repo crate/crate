@@ -21,10 +21,12 @@ Changes
 Fixes
 =====
 
- - Fixed an issue that caused a table that is not part of the "doc" schema to be
-   unavailable/hidden if it gets closed using ``ALTER TABLE``.
+ - Fixed passing arguments that contain spaces in crate shell script.
 
- - Fixed an issue where the query circuit breaker would be tripped after 
-   running several queries due to incorrect memory tracking. Subsequent 
+ - Fixed an issue that caused a table that is not part of the "doc" schema to
+   be unavailable/hidden if it gets closed using ``ALTER TABLE``.
+
+ - Fixed an issue where the query circuit breaker would be tripped after
+   running several queries due to incorrect memory tracking. Subsequent
    operations would've failed due to the lack of circuit breaker cleanup.
 
