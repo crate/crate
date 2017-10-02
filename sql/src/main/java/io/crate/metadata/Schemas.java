@@ -172,8 +172,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     @VisibleForTesting
     static Set<String> getNewCurrentSchemas(MetaData metaData) {
         Set<String> schemas = new HashSet<>();
-        for (String openIndex : metaData.getConcreteAllOpenIndices()) {
-            addIfSchema(schemas, openIndex);
+        // 'doc' schema is always available and has the special property that its indices
+        // don't have to be prefixed with the schema name
+        schemas.add(DEFAULT_SCHEMA_NAME);
+        for (String index : metaData.getConcreteAllIndices()) {
+            addIfSchema(schemas, index);
         }
         for (ObjectCursor<String> cursor : metaData.templates().keys()) {
             addIfSchema(schemas, cursor.value);
