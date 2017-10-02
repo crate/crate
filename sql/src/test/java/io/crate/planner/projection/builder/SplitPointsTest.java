@@ -28,9 +28,11 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 
 public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
@@ -61,6 +63,18 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         //noinspection unchecked
         assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
         //noinspection unchecked
-        assertThat(splitPoints.aggregates(), contains(isFunction("sum"), isFunction("sum")));
+        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+    }
+
+
+    @Test
+    public void testScalarIsNotCollectedEarly() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        AnalyzedStatement analyze = e.analyze("select x + 1 from t1 group by x");
+        QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
+
+        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+        assertThat(splitPoints.toCollect(), contains(isReference("x")));
+        assertThat(splitPoints.aggregates(), Matchers.emptyIterable());
     }
 }

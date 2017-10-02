@@ -21,9 +21,11 @@
 
 package io.crate.planner.projection.builder;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 
 import java.util.ArrayList;
 
@@ -49,7 +51,16 @@ public class SplitPoints {
 
     public static SplitPoints create(QuerySpec querySpec) {
         SplitPoints splitPoints = new SplitPoints(querySpec);
-        SplitPointVisitor.addAggregatesAndToCollectSymbols(querySpec, splitPoints);
+        if (querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
+            SplitPointVisitor.addAggregatesAndToCollectSymbols(querySpec, splitPoints);
+        } else {
+            OrderBy orderBy = querySpec.orderBy();
+            if (orderBy == null) {
+                splitPoints.toCollect.addAll(querySpec.outputs());
+            } else {
+                splitPoints.toCollect.addAll(Lists2.concatUnique(querySpec.outputs(), orderBy.orderBySymbols()));
+            }
+        }
         return splitPoints;
     }
 

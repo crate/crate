@@ -40,8 +40,6 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
     static class Context {
         final ArrayList<Symbol> toCollect;
         final ArrayList<Function> aggregates;
-        boolean aggregateSeen;
-        boolean collectingOutputs = true;
 
         Context(ArrayList<Symbol> toCollect, ArrayList<Function> aggregates) {
             this.toCollect = toCollect;
@@ -55,8 +53,7 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         }
 
         void allocateAggregate(Function aggregate) {
-            // while processing outputs aggregates must be added always, otherwise outputs and aggregates differs
-            if (collectingOutputs || aggregates.contains(aggregate) == false) {
+            if (aggregates.contains(aggregate) == false) {
                 aggregates.add(aggregate);
             }
         }
@@ -64,20 +61,13 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
 
     private void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
-            context.aggregateSeen = false;
             process(symbol, context);
-            if (!context.aggregateSeen) {
-                // add directly since it must be an entry without aggregate
-                context.allocateCollectSymbol(symbol);
-            }
         }
     }
 
     static void addAggregatesAndToCollectSymbols(QuerySpec querySpec, SplitPoints splitContext) {
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
         INSTANCE.process(querySpec.outputs(), context);
-        context.collectingOutputs = false;
-
         OrderBy orderBy = querySpec.orderBy();
         if (orderBy != null) {
             INSTANCE.process(orderBy.orderBySymbols(), context);
@@ -86,8 +76,8 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         if (having != null && having.hasQuery()) {
             INSTANCE.process(having.query(), context);
         }
-        if (!querySpec.groupBy().isEmpty()) {
-            INSTANCE.process(querySpec.groupBy(), context);
+        for (Symbol groupKey : querySpec.groupBy()) {
+            context.allocateCollectSymbol(groupKey);
         }
     }
 
@@ -95,7 +85,6 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
     public Void visitFunction(Function symbol, Context context) {
         if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
             context.allocateAggregate(symbol);
-            context.aggregateSeen = true;
             for (Symbol arg : symbol.arguments()) {
                 context.allocateCollectSymbol(arg);
             }

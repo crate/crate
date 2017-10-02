@@ -45,11 +45,13 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(EvalProjection.class));
         assertThat(collectPhase.projections().get(1).outputs().get(0), instanceOf(Function.class));
-        assertThat(collectPhase.toCollect(), contains(isFunction("add"), isReference("id", DataTypes.LONG)));
+        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG)));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType(), is(DataTypes.LONG));
 
+
+        assertThat(collectPhase.projections().get(1).outputs(), contains(isFunction("add")));
 
         MergePhase mergePhase = merge.mergePhase();
 
@@ -69,8 +71,8 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(EvalProjection.class));
-        assertThat(collectPhase.projections().get(1).outputs().get(0), instanceOf(Function.class));
-        assertThat(collectPhase.toCollect(), contains(isFunction("abs"), isReference("id", DataTypes.LONG)));
+        assertThat(collectPhase.projections().get(1).outputs().get(0), isFunction("abs"));
+        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG)));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType(), is(DataTypes.LONG));
@@ -90,7 +92,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(collectPhase.toCollect(), contains(isFunction("abs"), isReference("id", DataTypes.LONG), isReference("other_id", DataTypes.LONG)));
+        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG), isReference("other_id", DataTypes.LONG)));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().size(), is(2));
@@ -101,5 +103,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().size(), is(2));
         assertThat(mergePhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
+        
+        assertThat(mergePhase.projections().get(1).outputs(), contains(isFunction("abs")));
     }
 }
