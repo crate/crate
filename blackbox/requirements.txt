@@ -20,7 +20,7 @@ MarkupSafe==1.0
 pathtools==0.1.2
 port-for==0.3.1
 prompt-toolkit==1.0.14
-psycopg2==2.7.1
+psycopg2==2.7.3.1
 Pygments==2.2.0
 pytz==2017.2
 PyYAML==3.12
