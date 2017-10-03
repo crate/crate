@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStats;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
@@ -56,7 +57,8 @@ import java.util.function.Function;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy, Integer)} is called on the "root" and flows down.
+ * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy, Integer)} is called
+ * on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
  *
@@ -120,7 +122,7 @@ public interface LogicalPlan {
          *                         outputs: [_fetch, a]
          *                    </pre>
          */
-        LogicalPlan build(Set<Symbol> usedBeforeNextFetch);
+        LogicalPlan build(TableStats tableStats, Set<Symbol> usedBeforeNextFetch);
     }
 
     /**
@@ -168,4 +170,6 @@ public interface LogicalPlan {
     Map<Symbol, Symbol> expressionMapping();
 
     List<AbstractTableRelation> baseTables();
+
+    long numExpectedRows();
 }

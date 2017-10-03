@@ -22,15 +22,18 @@
 
 package io.crate.planner.operators;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.operation.operator.AndOperator;
@@ -38,6 +41,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -66,6 +70,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class Join implements LogicalPlan {
@@ -77,13 +82,14 @@ public class Join implements LogicalPlan {
 
     @Nullable
     private final Symbol joinCondition;
+    private final boolean isFiltered;
 
     private final HashMap<Symbol, Symbol> expressionMapping;
 
     private final ArrayList<AbstractTableRelation> baseTables;
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where) {
-        return usedColsByParent -> {
+        return (tableStats, usedColsByParent) -> {
 
             LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
             for (JoinPair joinPair : mss.joinPairs()) {
@@ -142,15 +148,15 @@ public class Join implements LogicalPlan {
             addColumnsFrom(usedColsByParent, usedFromLeft::add, lhs);
             addColumnsFrom(usedColsByParent, usedFromRight::add, rhs);
 
-            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER, false).build(usedFromLeft);
-            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER, false).build(usedFromRight);
-            LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition);
-
+            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER, false).build(tableStats, usedFromLeft);
+            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER, false).build(tableStats, usedFromRight);
             Symbol query = removeParts(queryParts, lhsName, rhsName);
+            LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition, query != null && !(query instanceof Literal));
+
             join = Filter.create(join, query);
             while (it.hasNext()) {
                 QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
-                join = joinWithNext(join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts);
+                join = joinWithNext(tableStats, join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts);
                 joinNames.add(nextRel.getQualifiedName());
             }
             assert queryParts.isEmpty() : "Must've applied all queryParts";
@@ -171,7 +177,8 @@ public class Join implements LogicalPlan {
         return pair.joinType().invert();
     }
 
-    private static LogicalPlan joinWithNext(LogicalPlan source,
+    private static LogicalPlan joinWithNext(TableStats tableStats,
+                                            LogicalPlan source,
                                             QueriedRelation nextRel,
                                             Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
@@ -200,19 +207,18 @@ public class Join implements LogicalPlan {
         }
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER, false).build(usedFromNext);
-        return maybeFilter(
-            new Join(source, nextPlan, type, condition),
-            removeMatch(queryParts, joinNames, nextName),
-            queryParts.remove(Collections.singleton(nextName))
-        );
-    }
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER, false).build(tableStats, usedFromNext);
 
-    private static LogicalPlan maybeFilter(LogicalPlan source, @Nullable Symbol filter1, @Nullable Symbol filter2) {
+        Symbol query = AndOperator.join(
+            Stream.of(
+                removeMatch(queryParts, joinNames, nextName),
+                queryParts.remove(Collections.singleton(nextName)))
+                .filter(Objects::nonNull).iterator()
+        );
         return Filter.create(
-            source,
-            AndOperator.join(
-                Stream.of(filter1, filter2).filter(Objects::nonNull).iterator()));
+            new Join(source, nextPlan, type, condition, query != null && !(query instanceof Literal)),
+            query
+        );
     }
 
     @Nullable
@@ -264,11 +270,16 @@ public class Join implements LogicalPlan {
         return Collections.emptyMap();
     }
 
-    private Join(LogicalPlan lhs, LogicalPlan rhs, JoinType joinType, @Nullable Symbol joinCondition) {
+    private Join(LogicalPlan lhs,
+                 LogicalPlan rhs,
+                 JoinType joinType,
+                 @Nullable Symbol joinCondition,
+                 boolean isFiltered) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinType = joinType;
         this.joinCondition = joinCondition;
+        this.isFiltered = isFiltered;
         if (joinType == JoinType.SEMI) {
             this.outputs = lhs.outputs();
         } else {
@@ -289,23 +300,92 @@ public class Join implements LogicalPlan {
                       int offset,
                       @Nullable OrderBy order,
                       @Nullable Integer pageSizeHint) {
-        Plan left = lhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, null);
-        Plan right = rhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, null);
+        /*
+         * isDistributed/filterNeeded doesn't consider the joinCondition.
+         * This means joins with implicit syntax result in a different plan than joins using explicit syntax.
+         * This was unintentional but we'll keep it that way (for now) as a distributed plan can be significantly slower
+         * (depending on the number of rows that are filtered)
+         * and we don't want to introduce a performance regression.
+         *
+         * We may at some point add some kind of session-settings to override this behaviour or otherwise
+         * come up with a better heuristic.
+         */
+        Integer childPageSizeHint = !isFiltered && joinCondition == null && limit != TopN.NO_LIMIT
+            ? limitAndOffset(limit, offset)
+            : null;
 
-        // TODO: distribution planning
-        List<String> nlExecutionNodes = Collections.singletonList(plannerContext.handlerNode());
+        Plan left = lhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
+        Plan right = rhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
+
+
+        boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
+        JoinType joinType = this.joinType;
+        boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
+
+        ResultDescription leftResultDesc = left.resultDescription();
+        ResultDescription rightResultDesc = right.resultDescription();
+        isDistributed = isDistributed &&
+                        (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
+        boolean switchTables = false;
+        if (isDistributed && joinType.supportsInversion() && lhs.numExpectedRows() < rhs.numExpectedRows()) {
+            // temporarily switch plans and relations to apply broadcasting logic
+            // to smaller side (which is always the right side).
+            switchTables = true;
+            Plan tmpPlan = left;
+            left = right;
+            right = tmpPlan;
+
+            leftResultDesc = left.resultDescription();
+            rightResultDesc = right.resultDescription();
+        }
+        Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
+
+        MergePhase leftMerge = null;
+        MergePhase rightMerge = null;
+        if (isDistributed && !leftResultDesc.hasRemainingLimitOrOffset()) {
+            left.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            nlExecutionNodes = leftResultDesc.nodeIds();
+        } else {
+            left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                leftMerge = buildMergePhase(plannerContext, leftResultDesc, nlExecutionNodes);
+            }
+        }
+        if (nlExecutionNodes.size() == 1
+            && nlExecutionNodes.equals(rightResultDesc.nodeIds())
+            && !rightResultDesc.hasRemainingLimitOrOffset()) {
+            // if the left and the right plan are executed on the same single node the mergePhase
+            // should be omitted. This is the case if the left and right table have only one shards which
+            // are on the same node
+            right.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+        } else {
+            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, isDistributed)) {
+                rightMerge = buildMergePhase(plannerContext, rightResultDesc, nlExecutionNodes);
+            }
+            right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+        }
+
+        if (switchTables) {
+            Plan tmpPlan = left;
+            left = right;
+            right = tmpPlan;
+            MergePhase tmp = leftMerge;
+            leftMerge = rightMerge;
+            rightMerge = tmp;
+        }
         Symbol joinInput = null;
         if (joinCondition != null) {
             joinInput = InputColumns.create(joinCondition, Lists2.concat(lhs.outputs(), rhs.outputs()));
         }
+
         NestedLoopPhase nlPhase = new NestedLoopPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "nestedLoop",
+            isDistributed ? "distributed-nested-loop" : "nested-loop",
             // NestedLoopPhase ctor want's at least one projection
             Collections.singletonList(new EvalProjection(InputColumn.fromSymbols(outputs))),
-            receiveResultFrom(plannerContext, left.resultDescription(), nlExecutionNodes),
-            receiveResultFrom(plannerContext, right.resultDescription(), nlExecutionNodes),
+            leftMerge,
+            rightMerge,
             nlExecutionNodes,
             joinType,
             joinInput,
@@ -324,10 +404,18 @@ public class Join implements LogicalPlan {
         );
     }
 
-    private static MergePhase receiveResultFrom(Planner.Context plannerContext,
-                                                ResultDescription resultDescription,
-                                                Collection<String> executionNodes) {
-        final List<Projection> projections;
+    private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
+                                              ResultDescription resultDescription,
+                                              boolean isDistributed) {
+        return isDistributed ||
+               resultDescription.hasRemainingLimitOrOffset() ||
+               !resultDescription.nodeIds().equals(executionNodes);
+    }
+
+    private static MergePhase buildMergePhase(Planner.Context plannerContext,
+                                              ResultDescription resultDescription,
+                                              Collection<String> nlExecutionNodes) {
+        List<Projection> projections = Collections.emptyList();
         if (resultDescription.hasRemainingLimitOrOffset()) {
             projections = Collections.singletonList(ProjectionBuilder.topNOrEvalIfNeeded(
                 resultDescription.limit(),
@@ -335,18 +423,14 @@ public class Join implements LogicalPlan {
                 resultDescription.numOutputs(),
                 resultDescription.streamOutputs()
             ));
-        } else {
-            projections = Collections.emptyList();
-            if (resultDescription.nodeIds().equals(executionNodes)) {
-                return null;
-            }
         }
+
         return new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "nl-receive-source-result",
+            "nl-merge",
             resultDescription.nodeIds().size(),
-            executionNodes,
+            nlExecutionNodes,
             resultDescription.streamOutputs(),
             projections,
             DistributionInfo.DEFAULT_SAME_NODE,
@@ -359,7 +443,7 @@ public class Join implements LogicalPlan {
         LogicalPlan lhsCollapsed = lhs.tryCollapse();
         LogicalPlan rhsCollapsed = rhs.tryCollapse();
         if (lhs != lhsCollapsed || rhs != rhsCollapsed) {
-            return new Join(lhsCollapsed, rhsCollapsed, joinType, joinCondition);
+            return new Join(lhsCollapsed, rhsCollapsed, joinType, joinCondition, isFiltered);
         }
         return this;
     }
@@ -377,5 +461,15 @@ public class Join implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public long numExpectedRows() {
+        if (joinType == JoinType.CROSS) {
+            return lhs.numExpectedRows() * rhs.numExpectedRows();
+        } else {
+            // We don't have any cardinality estimates, so just take the bigger table
+            return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
+        }
     }
 }

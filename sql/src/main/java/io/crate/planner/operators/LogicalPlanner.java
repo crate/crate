@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
@@ -50,12 +51,13 @@ public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
 
-    public Plan plan(QueriedRelation queriedRelation,
+    public Plan plan(TableStats tableStats,
+                     QueriedRelation queriedRelation,
                      Planner.Context plannerContext,
                      ProjectionBuilder projectionBuilder,
                      FetchMode fetchMode) {
         LogicalPlan logicalPlan = plan(queriedRelation, fetchMode, true)
-            .build(new HashSet<>(queriedRelation.outputs()))
+            .build(tableStats, new HashSet<>(queriedRelation.outputs()))
             .tryCollapse();
 
         Plan plan = logicalPlan.build(
@@ -108,7 +110,8 @@ public class LogicalPlanner {
             return GroupHashAggregate.create(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return usedColumns -> new HashAggregate(source.build(extractColumns(aggregates)), aggregates);
+            return (tableStats, usedColumns) ->
+                new HashAggregate(source.build(tableStats, extractColumns(aggregates)), aggregates);
         }
         return source;
     }
@@ -135,7 +138,8 @@ public class LogicalPlanner {
     private static LogicalPlan.Builder createCollect(QueriedTableRelation relation,
                                                      List<Symbol> toCollect,
                                                      WhereClause where) {
-        return usedColumns -> new Collect(relation, toCollect, where, usedColumns);
+        return (tableStats, usedColumns) -> new Collect(
+            relation, toCollect, where, usedColumns, tableStats.numDocs(relation.tableRelation().tableInfo().ident()));
     }
 
     static Set<Symbol> extractColumns(Symbol symbol) {

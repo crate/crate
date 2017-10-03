@@ -56,7 +56,7 @@ public class RelationBoundary implements LogicalPlan {
     private final QueriedRelation relation;
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, QueriedRelation relation) {
-        return usedBeforeNextFetch -> {
+        return (tableStats, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             for (Field field : relation.fields()) {
                 expressionMapping.put(
@@ -68,7 +68,7 @@ public class RelationBoundary implements LogicalPlan {
             for (Symbol beforeNextFetch : usedBeforeNextFetch) {
                 mappedUsedColumns.add(mapper.apply(beforeNextFetch));
             }
-            return new RelationBoundary(sourceBuilder.build(mappedUsedColumns), relation);
+            return new RelationBoundary(sourceBuilder.build(tableStats, mappedUsedColumns), relation);
         };
     }
 
@@ -130,6 +130,11 @@ public class RelationBoundary implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
     }
 
     @Override

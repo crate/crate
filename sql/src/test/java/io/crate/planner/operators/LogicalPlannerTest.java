@@ -27,6 +27,7 @@ import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -42,19 +43,21 @@ import static org.hamcrest.Matchers.equalTo;
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor sqlExecutor;
+    private TableStats tableStats;
 
     @Before
     public void prepare() {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .build();
+        tableStats = new TableStats();
     }
 
     private LogicalPlan plan(String statement) {
         SelectAnalyzedStatement analyzedStatement = sqlExecutor.analyze(statement);
         QueriedRelation relation = analyzedStatement.relation();
         return LogicalPlanner.plan(relation, FetchMode.WITH_PROPAGATION, true)
-            .build(LogicalPlanner.extractColumns(relation.querySpec().outputs()))
+            .build(tableStats, LogicalPlanner.extractColumns(relation.querySpec().outputs()))
             .tryCollapse();
     }
 

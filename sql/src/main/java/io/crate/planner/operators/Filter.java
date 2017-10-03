@@ -54,15 +54,16 @@ class Filter implements LogicalPlan {
         }
         if (queryClause.hasQuery()) {
             Set<Symbol> columnsInQuery = extractColumns(queryClause.query());
-            return usedColumns -> {
+            return (tableStats, usedColumns) -> {
                 Set<Symbol> allUsedColumns = new HashSet<>();
                 allUsedColumns.addAll(columnsInQuery);
                 allUsedColumns.addAll(usedColumns);
-                return new Filter(sourceBuilder.build(allUsedColumns), queryClause);
+                return new Filter(sourceBuilder.build(tableStats, allUsedColumns), queryClause);
             };
         }
         if (queryClause.noMatch()) {
-            return usedColumns -> new Filter(sourceBuilder.build(usedColumns), WhereClause.NO_MATCH);
+            return (tableStats, usedColumns) ->
+                new Filter(sourceBuilder.build(tableStats, usedColumns), WhereClause.NO_MATCH);
         }
         return sourceBuilder;
     }
@@ -123,5 +124,11 @@ class Filter implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        // We don't have any cardinality estimates
+        return source.numExpectedRows();
     }
 }
