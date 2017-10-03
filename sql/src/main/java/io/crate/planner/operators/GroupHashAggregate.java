@@ -61,11 +61,11 @@ public class GroupHashAggregate implements LogicalPlan {
     private final List<Symbol> outputs;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
-        return parentUsedCols -> {
+        return (tableStats, parentUsedCols) -> {
             HashSet<Symbol> usedCols = new HashSet<>();
             usedCols.addAll(groupKeys);
             usedCols.addAll(extractColumns(aggregates));
-            return new GroupHashAggregate(source.build(usedCols), groupKeys, aggregates);
+            return new GroupHashAggregate(source.build(tableStats, usedCols), groupKeys, aggregates);
         };
     }
 
@@ -191,6 +191,12 @@ public class GroupHashAggregate implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        // We don't have any cardinality estimates
+        return source.numExpectedRows();
     }
 
     @Override

@@ -32,7 +32,6 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -41,12 +40,13 @@ public class ConsumingPlanner {
 
     private final OptimizingRewriter optimizer;
     private final Functions functions;
+    private final TableStats tableStats;
 
-    public ConsumingPlanner(ClusterService clusterService,
-                            Functions functions,
+    public ConsumingPlanner(Functions functions,
                             TableStats tableStats) {
         optimizer = new OptimizingRewriter(functions);
         this.functions = functions;
+        this.tableStats = tableStats;
     }
 
     @Nullable
@@ -67,6 +67,7 @@ public class ConsumingPlanner {
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(queriedRelation.querySpec());
             return MultiPhasePlan.createIfNeeded(
                 logicalPlanner.plan(
+                    tableStats,
                     queriedRelation,
                     context,
                     new ProjectionBuilder(functions),

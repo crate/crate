@@ -152,6 +152,11 @@ public class HashAggregate implements LogicalPlan {
         return source.baseTables();
     }
 
+    @Override
+    public long numExpectedRows() {
+        return 1L;
+    }
+
     private static class OutputValidatorContext {
         private boolean insideAggregation = false;
     }

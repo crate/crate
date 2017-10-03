@@ -34,6 +34,7 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -51,8 +52,8 @@ class Limit implements LogicalPlan {
         if (limit == null && offset == null) {
             return source;
         }
-        return usedColumns -> new Limit(
-            source.build(usedColumns),
+        return (tableStats, usedColumns) -> new Limit(
+            source.build(tableStats, usedColumns),
             firstNonNull(limit, Literal.of(-1L)),
             firstNonNull(offset, Literal.of(0L))
         );
@@ -109,6 +110,14 @@ class Limit implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        if (limit instanceof Literal) {
+            return DataTypes.LONG.value(((Literal) limit).value());
+        }
+        return source.numExpectedRows();
     }
 
     @Override

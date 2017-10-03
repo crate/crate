@@ -50,11 +50,11 @@ class Order implements LogicalPlan {
         if (orderBy == null) {
             return source;
         }
-        return usedColumns -> {
+        return (tableStats, usedColumns) -> {
             Set<Symbol> allUsedColumns = new HashSet<>();
             allUsedColumns.addAll(orderBy.orderBySymbols());
             allUsedColumns.addAll(usedColumns);
-            return new Order(source.build(allUsedColumns), orderBy);
+            return new Order(source.build(tableStats, allUsedColumns), orderBy);
         };
     }
 
@@ -123,6 +123,11 @@ class Order implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
     }
 
     @Override

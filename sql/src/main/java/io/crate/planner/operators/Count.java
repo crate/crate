@@ -113,4 +113,9 @@ public class Count implements LogicalPlan {
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
     }
+
+    @Override
+    public long numExpectedRows() {
+        return 1L;
+    }
 }

@@ -50,6 +50,7 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
@@ -76,7 +77,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  *  Instead it may choose to output {@link DocSysColumns#FETCHID} + {@code usedColumns}.
  *
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
- *  See also {@link LogicalPlan.Builder#build(Set)}
+ *  See also {@link LogicalPlan.Builder#build(TableStats, Set)}
  */
 class Collect implements LogicalPlan {
 
@@ -87,8 +88,15 @@ class Collect implements LogicalPlan {
     final List<Symbol> toCollect;
     final TableInfo tableInfo;
     private final List<AbstractTableRelation> baseTables;
+    private final long numExpectedRows;
 
-    Collect(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where, Set<Symbol> usedBeforeNextFetch) {
+    Collect(QueriedTableRelation relation,
+            List<Symbol> toCollect,
+            WhereClause where,
+            Set<Symbol> usedBeforeNextFetch,
+            long numExpectedRows) {
+
+        this.numExpectedRows = numExpectedRows;
         if (where.hasVersions()) {
             throw new VersionInvalidException();
         }
@@ -267,6 +275,11 @@ class Collect implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return numExpectedRows;
     }
 
     @Override

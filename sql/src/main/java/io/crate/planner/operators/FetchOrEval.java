@@ -109,12 +109,12 @@ class FetchOrEval implements LogicalPlan {
                                       List<Symbol> outputs,
                                       FetchMode fetchMode,
                                       boolean isLastFetch) {
-        return usedBeforeNextFetch -> {
+        return (tableStats, usedBeforeNextFetch) -> {
             final LogicalPlan source;
             if (fetchMode == FetchMode.NEVER || !isLastFetch) {
-                source = sourceBuilder.build(usedBeforeNextFetch);
+                source = sourceBuilder.build(tableStats, usedBeforeNextFetch);
             } else {
-                source = sourceBuilder.build(Collections.emptySet());
+                source = sourceBuilder.build(tableStats, Collections.emptySet());
             }
             if (source.outputs().equals(outputs)) {
                 return source;
@@ -365,6 +365,11 @@ class FetchOrEval implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
     }
 
     @Override
