@@ -64,7 +64,7 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
         .put(new ArrayType(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
-        .put(new ArrayType(DataTypes.OBJECT), JsonType.INSTANCE)
+        .put(new ArrayType(DataTypes.OBJECT), PGArray.JSON_ARRAY)
         .put(new SetType(DataTypes.BYTE), PGArray.CHAR_ARRAY) // postgres has no Set type, so map it to array
         .put(new SetType(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new SetType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
