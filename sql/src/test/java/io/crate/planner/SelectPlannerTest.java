@@ -617,7 +617,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            clusterService,
+            clusterService.localNode().getId(),
             UUID.randomUUID(),
             null,
             normalizer,
