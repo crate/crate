@@ -24,6 +24,9 @@ Changes
 Fixes
 =====
 
+ - Fixed race condition in COPY FROM that could display incorrect row count
+   when inserting into table partition that does not exist upfront.
+
  - Fixed a bug that caused incorrect results to be returned for JOIN queries
    when the table stats indicated that the left table of a join is smaller
    than the right.

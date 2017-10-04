@@ -235,10 +235,12 @@ public class Setup {
                                ") with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
         SQLResponse response = transportExecutor.exec("insert into any_table (id, temps, names, tags) values (?,?,?,?), (?,?,?,?), (?,?,?,?), (?,?,?,?)",
-            1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"), Arrays.asList("cool"),
-            2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"), Arrays.asList("cool", null),
-            3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"), Arrays.asList("kuhl", "cool"),
-            4, null, null, Arrays.asList("kuhl", null)
+            new Object[] {
+                1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"), Arrays.asList("cool"),
+                2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"), Arrays.asList("cool", null),
+                3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"), Arrays.asList("kuhl", "cool"),
+                4, null, null, Arrays.asList("kuhl", null)
+            }
         );
         assertThat(response.rowCount(), is(4L));
         transportExecutor.exec("refresh table any_table");

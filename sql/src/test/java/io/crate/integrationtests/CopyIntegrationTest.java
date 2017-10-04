@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -239,16 +240,23 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromFileWithPartition() throws Exception {
-        execute("create table quotes (id int, " +
-                "quote string) partitioned by (id)");
+    public void testCopyFromFileWithPartitionCreation() throws Exception {
+        // test with many shards and a small bulk size because this would trigger race conditions more reliably
+        // also use a larger data set to import
+        execute("CREATE TABLE names (group_id INTEGER, name STRING) " +
+                "PARTITIONED BY (group_id) " +
+                "CLUSTERED INTO 16 SHARDS " +
+                "WITH (number_of_replicas = 0)");
         ensureGreen();
-        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{
-            copyFilePath + "test_copy_from.json"});
-        refresh();
+        execute("COPY names PARTITION (group_id = 1) FROM ? WITH (bulk_size = 10, compression = 'gzip')",
+            new Object[]{copyFilePath + "test_copy_partition_from.json.gz"},
+            TimeValue.timeValueMinutes(5L));
+        assertEquals(10_000L, response.rowCount());
+        assertEquals(0, response.rows().length);
 
-        execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
+        execute("REFRESH TABLE names");
+        execute("SELECT count(*) FROM names WHERE group_id = 1");
+        assertEquals(10_000L, response.rows()[0][0]);
     }
 
     @Test

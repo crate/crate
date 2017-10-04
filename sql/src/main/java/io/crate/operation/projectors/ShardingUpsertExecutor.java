@@ -95,7 +95,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final BitSet responses = new BitSet();
     private final NodeJobsCounter nodeJobsCounter;
 
-    private int location = -1;
+    private final AtomicInteger location = new AtomicInteger(-1);
 
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier backpressureTrigger;
@@ -143,7 +143,9 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             if (shardLocation == null) {
                 addToPendingRequests(item, indexName);
             } else {
-                addToRequest(item, shardLocation, requestsByShard);
+                synchronized (this) {
+                    addToRequest(item, shardLocation, requestsByShard);
+                }
             }
         };
     }
@@ -184,7 +186,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         } else {
             sendRequestsForBulk(executeBulkFuture, requestsByShard);
         }
-
         return executeBulkFuture;
     }
 
@@ -240,8 +241,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             req = requestFactory.apply(shardLocation.shardId, rowShardResolver.routing());
             requests.put(shardLocation, req);
         }
-        location++;
-        req.add(location, item);
+        req.add(location.incrementAndGet(), item);
     }
 
     private void addToPendingRequests(TItem item, String indexName) {

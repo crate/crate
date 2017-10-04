@@ -123,7 +123,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
     @Rule
-    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
+    public Timeout globalTimeout = new Timeout(300000); // 5 minutes timeout
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -327,6 +327,19 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt    the SQL Statement
+     * @param args    the arguments of the statement
+     * @param timeout internal timeout of the statement
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
+        response = sqlExecutor.exec(isJdbcEnabled(), isSemiJoinsEnabled(), stmt, args, timeout);
+        return response;
+    }
+
+    /**
      * Executes {@code statement} once for each entry in {@code setSessionStatementsList}
      *
      * The inner lists of {@code setSessionStatementsList} will be executed before the statement is executed.
@@ -428,9 +441,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        return execute(stmt, (Object[])null);
+        return execute(stmt, (Object[]) null);
     }
-
 
     /**
      * Execute an SQL Statement using a specific {@link SQLOperations.Session}
