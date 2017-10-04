@@ -112,15 +112,19 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return exec(false, false, statement, null, REQUEST_TIMEOUT);
+        return executeTransportOrJdbc(false, false, statement, null, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object... params) {
-        return exec(isJdbcEnabled, isSemiJoinsEnabled, statement, params, REQUEST_TIMEOUT);
+    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object[] params) {
+        return executeTransportOrJdbc(isJdbcEnabled, isSemiJoinsEnabled, statement, params, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(String statement, Object... params) {
-        return exec(false, false, statement, params, REQUEST_TIMEOUT);
+    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object[] params, TimeValue timeout) {
+        return executeTransportOrJdbc(isJdbcEnabled, isSemiJoinsEnabled, statement, params, timeout);
+    }
+
+    public SQLResponse exec(String statement, Object[] params) {
+        return executeTransportOrJdbc(false, false, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
@@ -131,11 +135,11 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
-    private SQLResponse exec(boolean isJdbcEnabled,
-                             boolean isSemiJoinsEnabled,
-                             String stmt,
-                             @Nullable Object[] args,
-                             TimeValue timeout) {
+    private SQLResponse executeTransportOrJdbc(boolean isJdbcEnabled,
+                                               boolean isSemiJoinsEnabled,
+                                               String stmt,
+                                               @Nullable Object[] args,
+                                               TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
 
