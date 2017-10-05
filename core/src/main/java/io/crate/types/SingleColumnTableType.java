@@ -57,7 +57,11 @@ public class SingleColumnTableType extends CollectionType {
         if (value == null) {
             return null;
         }
-        return (Object[]) value;
+        Object[] array = (Object[]) value;
+        for (int i = 0; i < array.length; i++) {
+            array[i] = innerType.value(array[i]);
+        }
+        return array;
     }
 
     @Override
