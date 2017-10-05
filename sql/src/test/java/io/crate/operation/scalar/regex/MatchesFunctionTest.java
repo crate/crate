@@ -70,7 +70,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateWithFlags() throws Exception {
         BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
-        assertEvaluate("regexp_matches(name, regex_pattern, 'usn')", expected,
+        assertEvaluate("regexp_matches(name, regex_pattern, 'us')", expected,
             Literal.of("foobarbequebaz bar"),
             Literal.of(".*(ba).*"));
     }
@@ -83,15 +83,15 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
-        assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*', 'us n')",
+        assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*', 'us')",
             isLiteral(new BytesRef[]{new BytesRef("ba")}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: regexp_matches(string, string, long)");
-        assertNormalize("regexp_matches('foobar', 'foo', 1)", null);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The regular expression flag is unknown: n");
+        assertNormalize("regexp_matches('foobar', 'foo', 'n')", null);
     }
 
     @Test

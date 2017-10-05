@@ -53,15 +53,14 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
-        assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate', 'us n')", isLiteral("fooCraterbequebaz bar"));
+        assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate', 'us')", isLiteral("fooCraterbequebaz bar"));
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: regexp_replace(string, string, string, long)");
-
-        assertNormalize("regexp_replace('foobar', 'foo', 'bar', 1)", isLiteral(""));
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The regular expression flag is unknown: n");
+        assertNormalize("regexp_replace('foobar', 'foo', 'bar', 'n')", isLiteral(""));
     }
 
     @Test
