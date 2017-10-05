@@ -126,8 +126,12 @@ public class RegexMatcher {
                 case 'd':
                     flags = flags | Pattern.UNIX_LINES;
                     break;
-                default:
+                case ' ':
+                case 'g':
+                    // handled in isGlobalFunction
                     break;
+                default:
+                    throw new IllegalArgumentException("The regular expression flag is unknown: " + flag);
             }
         }
 
