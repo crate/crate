@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.testing.ProjectionMatchers.isTopN;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -61,7 +62,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
     public void testNestedSimpleSelectUsesFetch() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select x, i from (select x, i from t1 order by x asc limit 10) ti order by x desc limit 3");
@@ -69,17 +69,17 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
-            instanceOf(TopNProjection.class),
             instanceOf(OrderedTopNProjection.class),
+            instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class)
         ));
 
         // Assert that the OrderedTopNProjection has correct outputs
-        assertThat(projections.get(2).outputs(), isSQL("INPUT(0), INPUT(1)"));
+        assertThat(projections.get(1).outputs(), isSQL("INPUT(0), INPUT(1)"));
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
+    @Ignore("LogicalPlanner doesn't support early fetch in this case yet")
     public void testNestedSimpleSelectWithEarlyFetchBecauseOfWhereClause() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select x, i from (select x, i from t1 order by x asc limit 10) ti where ti.i = 10 order by x desc limit 3");
@@ -116,7 +116,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("TODO: optimize fetch planning")
+    @Ignore("xx is collected as add(x, x) instead of just one x")
     public void testSimpleSubSelectWithLateFetchWhereClauseMatchesQueryColumn() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select xx, i from (select x + x as xx, i from t1 order by x asc limit 10) ti " +
@@ -136,7 +136,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
     public void testNestedSimpleSelectContainsFilterProjectionForWhereClause() throws Exception {
         QueryThenFetch qtf = e.plan("select x, i from " +
                                     "   (select x, i from t1 order by x asc limit 10) ti " +
@@ -148,21 +147,20 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("TODO: Tweak fetch planning to do early fetch here again")
     public void testNestedSimpleSelectWithJoin() throws Exception {
-        QueryThenFetch qtf = e.plan("select t1x from (" +
+        NestedLoop nl= e.plan("select t1x from (" +
                                     "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
                                     ") t order by t1x desc limit 3");
-        List<Projection> projections = ((NestedLoop) qtf.subPlan()).nestedLoopPhase().projections();
+        List<Projection> projections = nl.nestedLoopPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
-            instanceOf(TopNProjection.class),
-            instanceOf(FetchProjection.class),
-            instanceOf(OrderedTopNProjection.class)));
-
-        // Assert that the OrderedTopNProjections have correct outputs
+            isTopN(10, 0),
+            instanceOf(OrderedTopNProjection.class),
+            isTopN(3, 0),
+            instanceOf(EvalProjection.class)
+        ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
-        assertThat(projections.get(2).outputs(), isSQL("INPUT(0)"));
+        assertThat(projections.get(4).outputs(), isSQL("INPUT(0)"));
     }
 
     @Test
