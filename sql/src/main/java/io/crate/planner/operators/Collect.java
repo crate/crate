@@ -22,7 +22,7 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.collect.Sets;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -32,8 +32,10 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -55,14 +57,12 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 /**
  * An Operator for data-collection.
@@ -98,9 +98,7 @@ class Collect implements LogicalPlan {
         AbstractTableRelation tableRelation = relation.tableRelation();
         this.tableInfo = relation.tableRelation().tableInfo();
         if (tableRelation instanceof DocTableRelation) {
-            Set<Symbol> colsToCollect = extractColumns(toCollect);
-            Sets.SetView<Symbol> unusedCols = Sets.difference(colsToCollect, usedBeforeNextFetch);
-            this.toCollect = generateToCollectWithFetch(tableInfo.ident(), toCollect, unusedCols, usedBeforeNextFetch);
+            this.toCollect = generateToCollectWithFetch(tableInfo.ident(), toCollect, usedBeforeNextFetch);
         } else {
             this.toCollect = toCollect;
             if (where.hasQuery()) {
@@ -111,14 +109,19 @@ class Collect implements LogicalPlan {
 
     private static List<Symbol> generateToCollectWithFetch(TableIdent tableIdent,
                                                            List<Symbol> toCollect,
-                                                           Collection<Symbol> unusedCols,
                                                            Set<Symbol> usedColumns) {
+
+        List<Symbol> unusedCols = getUnusedColumns(toCollect, usedColumns);
+
         ArrayList<Symbol> fetchable = new ArrayList<>();
         Symbol scoreCol = null;
         for (Symbol unusedCol : unusedCols) {
+            // _score cannot be fetched because it's a relative value only available during the query phase
             if (Symbols.containsColumn(unusedCol, DocSysColumns.SCORE)) {
                 scoreCol = unusedCol;
-            } else {
+
+            // literals or functions like random() shouldn't be tracked as fetchable
+            } else if (SymbolVisitors.any(Symbols.IS_COLUMN, unusedCol)) {
                 fetchable.add(unusedCol);
             }
         }
@@ -133,6 +136,38 @@ class Collect implements LogicalPlan {
             preFetchSymbols.add(scoreCol);
         }
         return preFetchSymbols;
+    }
+
+    /**
+     * Return columns which are not used.
+     *
+     * Examples:
+     *
+     * <pre>
+     * toCollect: [f(x)]        used: x
+     * unused:    []
+     *
+     * toCollect: [x, f(x)]     used: [f(x)]
+     * unused:    []
+     *
+     * toCollect: [x, y]        used: [x]
+     * unused:    [y]
+     * </pre>
+     */
+    @VisibleForTesting
+    static List<Symbol> getUnusedColumns(List<Symbol> toCollect, Set<Symbol> usedColumns) {
+        List<Symbol> unusedCols = new ArrayList<>();
+        for (Symbol symbol : toCollect) {
+            if (usedColumns.contains(symbol)) {
+                continue;
+            }
+            RefVisitor.visitRefs(symbol, r -> {
+                if (!usedColumns.contains(r) && !Symbols.containsColumn(usedColumns, r.ident().columnIdent())) {
+                    unusedCols.add(r);
+                }
+            });
+        }
+        return unusedCols;
     }
 
     @Override

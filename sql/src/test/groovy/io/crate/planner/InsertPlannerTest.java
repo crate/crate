@@ -46,7 +46,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -388,7 +387,6 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("TODO: this currently collects _toFetch because the usedColumns detection needs improvements")
     public void testInsertFromQueryWithPartitionedColumn() throws Exception {
         Merge planNode = e.plan(
             "insert into users (id, date) (select id, date from parted_pks)");
