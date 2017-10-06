@@ -48,6 +48,7 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.GeoHashFunction;
 import io.crate.operation.scalar.geo.IntersectsFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
+import io.crate.operation.scalar.postgres.PgBackendPidFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
 import io.crate.operation.scalar.string.HashFunctions;
@@ -133,6 +134,8 @@ public class ScalarFunctionModule extends AbstractModule {
         IfFunction.register(this);
 
         CurrentSchemaFunction.register(this);
+
+        PgBackendPidFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

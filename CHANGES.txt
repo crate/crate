@@ -39,6 +39,8 @@ Changes
 - Functions which accept regular expression flags now throw an error when
   invalid flags are provided.
 
+- Added the ``pg_backend_pid()`` function for enhanced PostgreSQL compatibility.
+
 Fixes
 =====
 
