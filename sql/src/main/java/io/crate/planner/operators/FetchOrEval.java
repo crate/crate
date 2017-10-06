@@ -202,6 +202,7 @@ class FetchOrEval implements LogicalPlan {
             // this can happen if the Collect operator adds a _fetchId, but it turns out
             // that all required columns are already provided.
             // This should be improved so that this case no longer occurs
+            // `testNestedSimpleSelectWithJoin` is an example case
             return planWithEvalProjection(plannerContext, plan, sourceOutputs);
         }
 
