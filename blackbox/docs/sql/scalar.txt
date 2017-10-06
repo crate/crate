@@ -1744,6 +1744,32 @@ Example::
     a special SQL syntax, meaning that they must be called without trailing
     parenthesis (``()``).
 
+``pg_backend_pid()``
+--------------------
+
+The ``pg_backend_pid()`` system information function is implemented for
+enhanced compatibility with PostgreSQL. CrateDB will always return ``-1`` as
+there isn't a single process attached to one query. This is different to
+PostgreSQL, where this represents the process ID of the server process
+attached to the current session.
+
+Returns: ``integer``
+
+Synopsis::
+
+    pg_backend_pid()
+
+Example::
+
+    cr> select pg_backend_pid();
+    +------------------+
+    | pg_backend_pid() |
+    +------------------+
+    |               -1 |
+    +------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. rubric:: Footnotes
 
 .. [#MySQL-Docs] http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
