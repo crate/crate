@@ -129,7 +129,7 @@ class NestedLoopConsumer implements Consumer {
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable =
-                    joinType != JoinType.SEMI && joinType != JoinType.ANTI && isLeftSmallerThanRight(left, right);
+                    joinType != JoinType.SEMI && joinType != JoinType.ANTI && isFirstSmallerThanSecond(right, left);
                 if (broadcastLeftTable) {
                     Plan tmpPlan = leftPlan;
                     leftPlan = rightPlan;
@@ -242,19 +242,19 @@ class NestedLoopConsumer implements Consumer {
             }
         }
 
-        private boolean isLeftSmallerThanRight(QueriedRelation qrLeft, QueriedRelation qrRight) {
-            if (qrLeft instanceof QueriedTableRelation && qrRight instanceof QueriedTableRelation) {
-                return isLeftSmallerThanRight(
-                    ((QueriedTableRelation) qrLeft).tableRelation().tableInfo().ident(),
-                    ((QueriedTableRelation) qrRight).tableRelation().tableInfo().ident()
+        private boolean isFirstSmallerThanSecond(QueriedRelation qrFirst, QueriedRelation qrSecond) {
+            if (qrFirst instanceof QueriedTableRelation && qrSecond instanceof QueriedTableRelation) {
+                return isFirstSmallerThanSecond(
+                    ((QueriedTableRelation) qrFirst).tableRelation().tableInfo().ident(),
+                    ((QueriedTableRelation) qrSecond).tableRelation().tableInfo().ident()
                 );
             }
             return false;
         }
 
-        private boolean isLeftSmallerThanRight(TableIdent leftIdent, TableIdent rightIdent) {
-            long leftNumDocs = tableStats.numDocs(leftIdent);
-            long rightNumDocs = tableStats.numDocs(rightIdent);
+        private boolean isFirstSmallerThanSecond(TableIdent firstIdent, TableIdent secondIdent) {
+            long leftNumDocs = tableStats.numDocs(firstIdent);
+            long rightNumDocs = tableStats.numDocs(secondIdent);
 
             if (leftNumDocs < rightNumDocs) {
                 LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
