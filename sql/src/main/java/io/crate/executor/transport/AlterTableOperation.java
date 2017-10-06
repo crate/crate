@@ -49,6 +49,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
@@ -415,7 +416,7 @@ public class AlterTableOperation {
             MetaData metaData = clusterService.state().metaData();
             String index = indices[0];
             mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-        } catch (IOException e) {
+        } catch (ElasticsearchParseException e) {
             return CompletableFutures.failedFuture(e);
         }
 
@@ -535,7 +536,7 @@ public class AlterTableOperation {
                     return false;
                 }
                 lastMapping = mapping;
-            } catch (IOException e) {
+            } catch (ElasticsearchParseException e) {
                 throw new RuntimeException(e);
             }
         }

@@ -27,6 +27,8 @@ Changes
 Fixes
 =====
 
+ - Upgraded Elasticsearch to v5.6.2
+
  - Update position of the navigation menu elements of the Admin UI.
 
  - Fixed left Join condition in shards query that previously caused

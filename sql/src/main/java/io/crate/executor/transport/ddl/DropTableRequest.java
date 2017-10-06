@@ -65,7 +65,6 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readTimeout(in);
         tableIdent = new TableIdent(in);
         isPartitioned = in.readBoolean();
     }
@@ -73,7 +72,6 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeTimeout(out);
         tableIdent.writeTo(out);
         out.writeBoolean(isPartitioned);
     }

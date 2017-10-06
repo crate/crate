@@ -76,7 +76,6 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readTimeout(in);
         tableIdent = new TableIdent(in);
         partitionIndexName = in.readOptionalString();
         openTable = in.readBoolean();
@@ -85,7 +84,6 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeTimeout(out);
         tableIdent.writeTo(out);
         out.writeOptionalString(partitionIndexName);
         out.writeBoolean(openTable);

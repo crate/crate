@@ -31,6 +31,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -44,7 +45,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -81,7 +81,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         Map<String, Object> mappingMap;
         try {
             mappingMap = indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-        } catch (IOException e) {
+        } catch (ElasticsearchParseException e) {
             LOGGER.error("error extracting blob table info for {}", e, ident.fqn());
             throw new RuntimeException(e);
         }

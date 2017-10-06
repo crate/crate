@@ -71,7 +71,6 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readTimeout(in);
         sourceTableIdent = new TableIdent(in);
         targetTableIdent = new TableIdent(in);
         isPartitioned = in.readBoolean();
@@ -80,7 +79,6 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeTimeout(out);
         sourceTableIdent.writeTo(out);
         targetTableIdent.writeTo(out);
         out.writeBoolean(isPartitioned);

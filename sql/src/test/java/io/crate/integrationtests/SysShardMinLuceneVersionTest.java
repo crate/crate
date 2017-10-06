@@ -57,19 +57,19 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
                 "where schema_name IN ('doc', 'blob') " +
                 "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("test_blob_no_upgrade_required| STARTED| 6.6.0| 2\n" +
+            is("test_blob_no_upgrade_required| STARTED| 6.6.1| 2\n" +
                "test_blob_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
-               "test_blob_upgrade_required| STARTED| 6.6.0| 2\n" +
+               "test_blob_upgrade_required| STARTED| 6.6.1| 2\n" +
                "test_blob_upgrade_required| UNASSIGNED| NULL| 2\n" +
                "test_no_upgrade_required| STARTED| 6.2.1| 2\n" +
                "test_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
                "test_no_upgrade_required_parted| STARTED| 6.2.1| 5\n" +
-               "test_no_upgrade_required_parted| STARTED| 6.6.0| 5\n" +
+               "test_no_upgrade_required_parted| STARTED| 6.6.1| 5\n" +
                "test_no_upgrade_required_parted| UNASSIGNED| NULL| 10\n" +
                "test_upgrade_required| STARTED| 5.5.2| 2\n" +
                "test_upgrade_required| UNASSIGNED| NULL| 2\n" +
                "test_upgrade_required_parted| STARTED| 5.5.2| 5\n" +
-               "test_upgrade_required_parted| STARTED| 6.6.0| 5\n" +
+               "test_upgrade_required_parted| STARTED| 6.6.1| 5\n" +
                "test_upgrade_required_parted| UNASSIGNED| NULL| 10\n"));
     }
 
@@ -79,7 +79,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
         execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
                 "where table_name IN " +
                 "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') AND " +
-                "routing_state = 'STARTED' AND min_lucene_version <> '6.6.0' " +
+                "routing_state = 'STARTED' AND min_lucene_version <> '6.6.1' " +
                 "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("test_upgrade_required| STARTED| 5.5.2| 2\n" +
@@ -91,7 +91,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
         execute("select * from sys.shards " +
                 "where table_name IN " +
                 "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') " +
-                "AND min_lucene_version <> '6.6.0'");
+                "AND min_lucene_version <> '6.6.1'");
         assertThat(response.rowCount(), is(0L));
     }
 }
