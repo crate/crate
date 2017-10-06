@@ -126,10 +126,12 @@ class NestedLoopConsumer implements Consumer {
             ResultDescription rightResultDesc = rightPlan.resultDescription();
             isDistributed = isDistributed &&
                             (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
-            boolean broadcastLeftTable = false;
+            boolean switchTables = false;
             if (isDistributed) {
-                broadcastLeftTable = isLeftSmallerThanRight(left, right);
-                if (broadcastLeftTable) {
+                switchTables = isLeftSmallerThanRight(left, right);
+                if (switchTables) {
+                    // temporarily switch plans and relations to apply broadcasting logic
+                    // to smaller side (which is always the right side).
                     Plan tmpPlan = leftPlan;
                     leftPlan = rightPlan;
                     rightPlan = tmpPlan;
@@ -137,7 +139,6 @@ class NestedLoopConsumer implements Consumer {
                     QueriedRelation tmpRelation = left;
                     left = right;
                     right = tmpRelation;
-                    joinType = joinType.invert();
                     leftResultDesc = leftPlan.resultDescription();
                     rightResultDesc = rightPlan.resultDescription();
                 }
@@ -169,12 +170,14 @@ class NestedLoopConsumer implements Consumer {
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
-            if (broadcastLeftTable) {
+            if (switchTables) {
+                // switch tables back to keep the original order
                 Plan tmpPlan = leftPlan;
                 leftPlan = rightPlan;
                 rightPlan = tmpPlan;
+                MergePhase tmp = leftMerge;
                 leftMerge = rightMerge;
-                rightMerge = null;
+                rightMerge = tmp;
             }
             List<Projection> projections = new ArrayList<>();
 

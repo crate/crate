@@ -76,6 +76,7 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -190,12 +191,30 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLeftSideIsBroadcastIfLeftTableIsSmaller() throws Exception {
+        assertThat(
+            getTableStats().numDocs(TableDefinitions.USER_TABLE_IDENT),
+            is(lessThan(getTableStats().numDocs(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))));
         Merge merge = plan("select users.name, u2.name from users, users_multi_pk u2 " +
                            "where users.name = u2.name " +
                            "order by users.name, u2.name ");
         NestedLoop nl = (NestedLoop) merge.subPlan();
         Collect collect = (Collect) nl.left();
         assertThat(collect.collectPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+    }
+
+    @Test
+    public void testRightSideIsNotAlwaysNullIfLeftTableIsSmaller() {
+        assertThat(
+            getTableStats().numDocs(TableDefinitions.USER_TABLE_IDENT),
+            is(lessThan(getTableStats().numDocs(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))));
+        NestedLoop nl = plan("Select * from " +
+                            "(select * from users limit 2) u1, " +
+                            "(select * from users_multi_pk limit 5) u2 " +
+                            "where u1.name = u2.name " +
+                            "order by u1.name, u2.name ");
+        NestedLoopPhase nestedLoopPhase = nl.nestedLoopPhase();
+        assertThat(nestedLoopPhase.leftMergePhase(), is(notNullValue()));
+        assertThat(nestedLoopPhase.rightMergePhase(), is(notNullValue()));
     }
 
 
