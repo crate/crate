@@ -156,7 +156,7 @@ while getopts "vdhp:D:X:C:" opt; do
             exit 0
         ;;
         p)
-            pidfile="\"$OPTARG\""
+            pidfile="$OPTARG"
         ;;
         d)
             daemonized="yes"
