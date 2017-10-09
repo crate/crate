@@ -58,12 +58,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -85,10 +85,16 @@ public class Join implements LogicalPlan {
     static Builder createNodes(MultiSourceSelect mss, WhereClause where) {
         return usedColsByParent -> {
 
-            Map<Set<QualifiedName>, JoinPair> joinPairs = mss.joinPairs()
-                .stream()
-                .filter(p -> p.condition() != null)
-                .collect(Collectors.toMap(p -> Sets.newHashSet(p.left(), p.right()), p -> p));
+            LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
+            for (JoinPair joinPair : mss.joinPairs()) {
+                if (joinPair.condition() == null) {
+                    continue;
+                }
+                JoinPair prevPair = joinPairs.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
+                if (prevPair != null) {
+                    throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
+                }
+            }
             Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
 
             Collection<QualifiedName> orderedRelationNames;
