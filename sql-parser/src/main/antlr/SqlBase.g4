@@ -51,6 +51,7 @@ statement
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
     | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
     | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
+    | ALTER TABLE alterTableDefinition REROUTE rerouteOption                         #alterTableReroute
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
     | SET (SESSION | LOCAL)? qname
@@ -473,6 +474,13 @@ addGeneratedColumnDefinition
     | subscriptSafe (dataType GENERATED ALWAYS)? AS generatedExpr=expr columnConstraint*
     ;
 
+rerouteOption
+    : MOVE SHARD shardId=integerLiteral FROM fromNodeId=stringLiteral TO toNodeId=stringLiteral     #rerouteMoveShard
+    | CANCEL SHARD shardId=integerLiteral ON nodeId=stringLiteral withProperties?                   #rerouteCancelShard
+    | ALLOCATE REPLICA SHARD shardId=integerLiteral ON nodeId=stringLiteral                         #rerouteAllocateReplicaShard
+    | RETRY FAILED                                                                                  #rerouteRetryFailed
+    ;
+
 dataType
     : STRING_TYPE
     | BOOLEAN
@@ -692,6 +700,15 @@ OPEN: 'OPEN';
 CLOSE: 'CLOSE';
 
 RENAME: 'RENAME';
+
+REROUTE: 'REROUTE';
+MOVE: 'MOVE';
+SHARD: 'SHARD';
+CANCEL: 'CANCEL';
+ALLOCATE: 'ALLOCATE';
+REPLICA: 'REPLICA';
+RETRY: 'RETRY';
+FAILED: 'FAILED';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';
