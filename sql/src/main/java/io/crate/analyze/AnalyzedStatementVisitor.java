@@ -188,4 +188,17 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, C context) {
         return visitDCLStatement(analysis, context);
     }
+
+    protected R visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
+    protected R visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
+    protected R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
 }

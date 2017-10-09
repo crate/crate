@@ -23,16 +23,47 @@
 package io.crate.executor.transport;
 
 import io.crate.Constants;
+import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
+import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.cluster.EmptyClusterInfoService;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
 
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
 public class AlterTableOperationTest extends CrateUnitTest {
+
+    public static final BlobTableInfo BLOB_TABLE_INFO = TableDefinitions.createBlobTable(
+        new TableIdent(BlobSchemaInfo.NAME, "screenshots"));
+
+    AllocationService strategy = new AllocationService(Settings.builder().build(), new AllocationDeciders(Settings.EMPTY,
+                                                                                        Collections.singleton(new MaxRetryAllocationDecider(Settings.EMPTY))),
+        new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE);
 
     @Test
     public void testPrepareAlterTableMappingRequest() throws Exception {
@@ -53,5 +84,72 @@ public class AlterTableOperationTest extends CrateUnitTest {
 
         assertThat(request.type(), is(Constants.DEFAULT_MAPPING_TYPE));
         assertThat(request.source(), is("{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
+    }
+
+    @Test
+    public void testRerouteIndexOfBlobTable() throws Exception {
+        RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
+            BLOB_TABLE_INFO,
+            Collections.emptyList(),
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            SqlParser.createExpression("node2")
+        );
+        String index = AlterTableOperation.getRerouteIndex(statement, Row.EMPTY);
+        assertThat(index, is("blob.screenshots"));
+    }
+
+    @Test
+    public void testRerouteIndexOfPartedDocTable() throws Exception {
+        RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
+            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            Arrays.asList(new Assignment(
+                new QualifiedNameReference(new QualifiedName("date")), new StringLiteral("1395874800000"))),
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            SqlParser.createExpression("node2")
+        );
+        String index = AlterTableOperation.getRerouteIndex(statement, Row.EMPTY);
+        assertThat(index, is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+    }
+
+    @Test
+    public void testRerouteIndexOfPartedDocTableWithoutPartitionClause() throws Exception {
+        expectedException.expect(SQLException.class);
+        expectedException.expectMessage("table is partitioned however no partition clause has been specified");
+        RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
+            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            Collections.emptyList(),
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            SqlParser.createExpression("node2")
+        );
+        AlterTableOperation.getRerouteIndex(statement, Row.EMPTY);
+    }
+
+
+    @Test
+    public void testRerouteMoveShardPartitionedTableUnknownPartition() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Referenced partition \".partitioned.parted.04132\" does not exist.");
+        RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
+            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            Arrays.asList(new Assignment(
+                new QualifiedNameReference(new QualifiedName("date")), new StringLiteral("1"))),
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            SqlParser.createExpression("node2")
+        );
+
+        AlterTableOperation.getRerouteIndex(statement, Row.EMPTY);
+    }
+
+    @Test
+    public void testRerouteCancelShardWithInvalidOption() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"invalid\" is not a valid setting for CANCEL SHARD");
+        GenericProperties genericProperties = new GenericProperties();
+        genericProperties.add(new GenericProperty("invalid", BooleanLiteral.TRUE_LITERAL));
+        AlterTableOperation.validateProperty("allow_primary", genericProperties, Row.EMPTY);
     }
 }

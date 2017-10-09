@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -109,5 +110,9 @@ public class GenericProperties extends Node {
 
     public int size() {
         return properties.size();
+    }
+
+    public Set<String> keys() {
+        return properties.keySet();
     }
 }

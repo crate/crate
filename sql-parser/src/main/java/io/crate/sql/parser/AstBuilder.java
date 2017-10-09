@@ -36,6 +36,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -127,6 +128,10 @@ import io.crate.sql.tree.QueryBody;
 import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.RerouteAllocateReplicaShard;
+import io.crate.sql.tree.RerouteCancelShard;
+import io.crate.sql.tree.RerouteMoveShard;
+import io.crate.sql.tree.RerouteOption;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
@@ -641,6 +646,30 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new FunctionArgument(getIdentTextIfPresent(context.ident()), (ColumnType) visit(context.dataType()));
     }
 
+    @Override
+    public Node visitRerouteMoveShard(SqlBaseParser.RerouteMoveShardContext context) {
+        return new RerouteMoveShard(
+            (Expression) visit(context.shardId),
+            (Expression) visit(context.fromNodeId),
+            (Expression) visit(context.toNodeId));
+    }
+
+    @Override
+    public Node visitRerouteCancelShard(SqlBaseParser.RerouteCancelShardContext context) {
+        return new RerouteCancelShard(
+            (Expression) visit(context.shardId),
+            (Expression) visit(context.nodeId),
+            visitIfPresent(context.withProperties(), GenericProperties.class)
+                .orElse(GenericProperties.EMPTY));
+    }
+
+    @Override
+    public Node visitRerouteAllocateReplicaShard(SqlBaseParser.RerouteAllocateReplicaShardContext context) {
+        return new RerouteAllocateReplicaShard(
+            (Expression) visit(context.shardId),
+            (Expression) visit(context.nodeId));
+    }
+
     // Properties
 
     @Override
@@ -722,6 +751,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             (Table) visit(context.alterTableDefinition()),
             getQualifiedName(context.qname())
         );
+    }
+
+    @Override
+    public Node visitAlterTableReroute(SqlBaseParser.AlterTableRerouteContext context) {
+        return new AlterTableReroute(
+            (Table) visit(context.alterTableDefinition()),
+            (RerouteOption) visit(context.rerouteOption()));
     }
 
     @Override

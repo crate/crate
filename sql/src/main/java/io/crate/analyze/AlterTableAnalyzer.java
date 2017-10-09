@@ -38,7 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.List;
 
-class AlterTableAnalyzer {
+public class AlterTableAnalyzer {
 
     private final Schemas schemas;
 
