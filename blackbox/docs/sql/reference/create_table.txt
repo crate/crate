@@ -408,6 +408,16 @@ Controls shard allocation for a specific table. Can be set to:
 
 :none: No shard allocation allowed.
 
+.. _allocation_max_retries:
+
+``allocation.max_retries``
+..........................
+
+Defines the number of attempts to allocate a shard before giving up and leaving
+the shard unallocated.
+
+:value: Number of retries to allocate a shard. Defaults to 5.
+
 .. _initial_shards_ref:
 
 ``recovery.initial_shards``

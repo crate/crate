@@ -33,6 +33,7 @@ already existing user-created doc tables in the cluster::
     | )                                                   |
     | CLUSTERED BY ("first_column") INTO 5 SHARDS         |
     | WITH (                                              |
+    |    "allocation.max_retries" = 5,                    |
     |    "blocks.metadata" = false,                       |
     |    "blocks.read" = false,                           |
     |    "blocks.read_only" = false,                      |

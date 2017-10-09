@@ -23,6 +23,9 @@ Breaking Changes
 Changes
 =======
 
+- Added new table setting ``allocation.max_retries`` that defines the number of
+  attempts to allocate a shard before giving up and leaving it unallocated.
+
 - Function arguments are now linked to each other, where possible. This enables
   type inference between arguments such that arguments can be converted to match
   a function's signature. For example, ``coalesce(integer, long)`` would have

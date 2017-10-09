@@ -834,7 +834,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testTranslogSyncInterval() throws Exception {
-
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.sync_interval\"='1s')");
         assertThat(analysis.table().ident().name(), is("users"));
@@ -846,6 +845,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testRecoveryShardsValidation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         e.analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");
+    }
+
+    @Test
+    public void testAllocationMaxRetriesValidation() throws Exception {
+        AlterTableAnalyzedStatement analysis =
+            e.analyze("alter table users set (\"allocation.max_retries\"=1)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ALLOCATION_MAX_RETRIES), is("1"));
     }
 
     @Test

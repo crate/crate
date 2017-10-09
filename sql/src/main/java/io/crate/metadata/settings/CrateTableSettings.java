@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.TableParameterInfo;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.translog.Translog;
@@ -112,4 +113,8 @@ public final class CrateTableSettings {
             return TimeValue.timeValueMinutes(1);
         }
     };
+
+    public static final IntSetting ALLOCATION_MAX_RETRIES = new IntSetting(
+        TableParameterInfo.ALLOCATION_MAX_RETRIES,
+        MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getDefault(Settings.EMPTY));
 }

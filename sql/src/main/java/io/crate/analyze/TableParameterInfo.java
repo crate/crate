@@ -29,6 +29,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.PrimaryShardAllocator;
@@ -61,6 +62,8 @@ public class TableParameterInfo {
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey();
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey();
     public static final String MAPPING_TOTAL_FIELDS_LIMIT = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey();
+    public static final String ALLOCATION_MAX_RETRIES = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getKey();
+
     @Deprecated
     public static final String RECOVERY_INITIAL_SHARDS = PrimaryShardAllocator.INDEX_RECOVERY_INITIAL_SHARDS_SETTING.getKey();
     public static final String WARMER_ENABLED = IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey();
@@ -87,6 +90,7 @@ public class TableParameterInfo {
             .add(WARMER_ENABLED)
             .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
+            .add(ALLOCATION_MAX_RETRIES)
             .build();
 
     private static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
@@ -139,6 +143,7 @@ public class TableParameterInfo {
             .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
             .put(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS, CrateTableSettings.SETTING_WAIT_FOR_ACTIVE_SHARDS.extract(settings))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
+            .put(TableParameterInfo.ALLOCATION_MAX_RETRIES, CrateTableSettings.ALLOCATION_MAX_RETRIES.extract(settings))
             .build();
     }
 
