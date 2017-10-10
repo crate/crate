@@ -28,22 +28,21 @@ import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -84,9 +83,9 @@ public class EmptyRowTableFunction {
 
                 @Override
                 public Routing getRouting(ClusterState clusterState,
-                                          OperationRouting operationRouting,
+                                          RoutingProvider routingProvider,
                                           WhereClause whereClause,
-                                          @Nullable String preference,
+                                          RoutingProvider.ShardSelection shardSelection,
                                           SessionContext sessionContext) {
                     return Routing.forTableOnSingleNode(TABLE_IDENT, clusterState.getNodes().getLocalNodeId());
                 }

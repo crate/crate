@@ -30,7 +30,6 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.UnavailableShardsException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
@@ -38,6 +37,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.TableColumn;
@@ -49,21 +49,14 @@ import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.GroupShardsIterator;
-import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 
 /**
@@ -247,77 +240,24 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return ident;
     }
 
-    private void processShardRouting(Map<String, Map<String, List<Integer>>> locations, ShardRouting shardRouting) {
-        String node = shardRouting.currentNodeId();
-        Map<String, List<Integer>> nodeMap = locations.get(node);
-        if (nodeMap == null) {
-            nodeMap = new TreeMap<>();
-            locations.put(shardRouting.currentNodeId(), nodeMap);
-        }
-
-        String indexName = shardRouting.getIndexName();
-        List<Integer> shards = nodeMap.get(indexName);
-        if (shards == null) {
-            shards = new ArrayList<>();
-            nodeMap.put(indexName, shards);
-        }
-        shards.add(shardRouting.id());
-    }
-
-    private GroupShardsIterator<ShardIterator> getShardIterators(ClusterState state,
-                                                                 OperationRouting operationRouting,
-                                                                 WhereClause whereClause,
-                                                                 @Nullable String preference) throws IndexNotFoundException {
-        String[] routingIndices;
-        if (whereClause.partitions().size() > 0) {
-            routingIndices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
-        } else {
-            routingIndices = concreteOpenIndices;
-        }
-        Map<String, Set<String>> routingMap = null;
-        if (whereClause.clusteredBy().isPresent()) {
-            routingMap = indexNameExpressionResolver.resolveSearchRouting(
-                state, whereClause.routingValues(), routingIndices);
-        }
-        return operationRouting.searchShards(
-            state,
-            routingIndices,
-            routingMap,
-            preference
-        );
-    }
-
     @Override
     public Routing getRouting(ClusterState state,
-                              OperationRouting operationRouting,
+                              RoutingProvider routingProvider,
                               final WhereClause whereClause,
-                              @Nullable final String preference,
+                              RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
-        GroupShardsIterator<ShardIterator> shardIterators;
-        try {
-            shardIterators = getShardIterators(state, operationRouting, whereClause, preference);
-        } catch (IndexNotFoundException e) {
-            return new Routing(Collections.emptyMap());
+        String[] indices;
+        if (whereClause.partitions().isEmpty()) {
+            indices = concreteOpenIndices;
+        } else {
+            indices = whereClause.partitions().toArray(new String[0]);
         }
-        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        fillLocationsFromShardIterators(locations, shardIterators);
-        return new Routing(locations);
-    }
-
-    private void fillLocationsFromShardIterators(Map<String, Map<String, List<Integer>>> locations,
-                                                 GroupShardsIterator<ShardIterator> shardIterators) {
-        ShardRouting shardRouting;
-        for (ShardIterator shardIterator : shardIterators) {
-            shardRouting = shardIterator.nextOrNull();
-            if (shardRouting == null) {
-                if (isPartitioned) {
-                    // if the table is partitioned it's okay to exclude newly created index/shards
-                    continue;
-                }
-                throw new UnavailableShardsException(shardIterator.shardId());
-            }
-            processShardRouting(locations, shardRouting);
+        Map<String, Set<String>> routingMap = Collections.emptyMap();
+        if (whereClause.clusteredBy().isPresent()) {
+            routingMap = indexNameExpressionResolver.resolveSearchRouting(
+                state, whereClause.routingValues(), indices);
         }
+        return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
     }
 
     public List<ColumnIdent> primaryKey() {

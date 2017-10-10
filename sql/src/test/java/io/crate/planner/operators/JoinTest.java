@@ -29,6 +29,7 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.TableDefinitions;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.Planner;
@@ -40,6 +41,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -98,7 +100,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         return new Planner.Context(
                 e.planner,
                 clusterService.state(),
-                clusterService.operationRouting(),
+                new RoutingProvider(Randomness.get().nextInt(), new String[0]),
                 UUID.randomUUID(),
                 new ConsumingPlanner(functions, tableStats),
                 EvaluatingNormalizer.functionOnlyNormalizer(functions),

@@ -38,6 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -49,6 +50,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.testing.UseRandomizedSession;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -201,9 +203,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         Routing routing = schemas.getTableInfo(tableIdent).getRouting(
             clusterService().state(),
-            clusterService().operationRouting(),
+            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             WhereClause.MATCH_ALL,
-            null,
+            RoutingProvider.ShardSelection.ANY,
             SessionContext.create());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(

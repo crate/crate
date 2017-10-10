@@ -40,6 +40,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -223,7 +224,7 @@ class Collect implements LogicalPlan {
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
-                plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
+                plannerContext.allocateRouting(tableInfo, where, RoutingProvider.ShardSelection.ANY, sessionContext),
                 tableFunctionRelation.functionImplementation(),
                 functionArguments,
                 Collections.emptyList(),
@@ -238,7 +239,7 @@ class Collect implements LogicalPlan {
             plannerContext.allocateRouting(
                 tableInfo,
                 where,
-                null,
+                RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
             toCollect,

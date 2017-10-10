@@ -26,10 +26,10 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -57,14 +57,15 @@ public interface TableInfo extends Iterable<Reference> {
 
     /**
      * Retrieve the routing for the table
+     *
      * <p>
-     * The result of this method is non-deterministic because the shard selection is randomized for load distribution
+     *   Multiple calls to this method return the same routing as long as the same arguments are provided.
      * <p>
      */
     Routing getRouting(ClusterState state,
-                       OperationRouting operationRouting,
+                       RoutingProvider routingProvider,
                        WhereClause whereClause,
-                       @Nullable String preference,
+                       RoutingProvider.ShardSelection shardSelection,
                        SessionContext sessionContext);
 
     List<ColumnIdent> primaryKey();

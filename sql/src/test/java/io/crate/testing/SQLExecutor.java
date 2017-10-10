@@ -205,6 +205,7 @@ public class SQLExecutor {
                         .getInstance(RepositoryParamValidator.class)
                 ),
                 new Planner(
+                    Settings.EMPTY,
                     clusterService,
                     functions,
                     tableStats

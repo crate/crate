@@ -28,6 +28,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -73,7 +74,10 @@ public class Count implements LogicalPlan {
                       @Nullable Integer pageSizeHint) {
 
         Routing routing = plannerContext.allocateRouting(
-            tableRelation.tableInfo(), where, null, plannerContext.transactionContext().sessionContext());
+            tableRelation.tableInfo(),
+            where,
+            RoutingProvider.ShardSelection.ANY,
+            plannerContext.transactionContext().sessionContext());
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,

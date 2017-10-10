@@ -36,6 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -47,10 +48,11 @@ import io.crate.operation.reference.sys.cluster.ClusterNameExpression;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -69,6 +71,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
+    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
 
     @Before
     public void prepare() {
@@ -104,8 +107,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
-            clusterService().operationRouting(),
-            WhereClause.MATCH_ALL, null, SessionContext.create());
+            routingProvider,
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
         Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
@@ -126,8 +129,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         Routing routing = tablesTableInfo.getRouting(
             clusterService().state(),
-            clusterService().operationRouting(),
-            WhereClause.MATCH_ALL, null, SessionContext.create());
+            routingProvider,
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
@@ -152,8 +155,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         assert tableInfo != null;
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
-            clusterService().operationRouting(),
-            WhereClause.MATCH_ALL, null, SessionContext.create());
+            routingProvider,
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
             toCollect.add(ref);

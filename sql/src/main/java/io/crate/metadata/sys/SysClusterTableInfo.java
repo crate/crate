@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
@@ -37,9 +38,7 @@ import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,9 +52,9 @@ public class SysClusterTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(ClusterState clusterState,
-                              OperationRouting operationRouting,
+                              RoutingProvider routingProvider,
                               WhereClause whereClause,
-                              @Nullable String preference,
+                              RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }

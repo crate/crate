@@ -35,6 +35,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -53,7 +54,6 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
@@ -178,7 +178,11 @@ public final class UpdatePlanner {
                                                  Planner.Context plannerContext,
                                                  UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
         Routing routing = plannerContext.allocateRouting(
-            tableInfo, nestedStatement.whereClause(), Preference.PRIMARY.type(), plannerContext.transactionContext().sessionContext());
+            tableInfo,
+            nestedStatement.whereClause(),
+            RoutingProvider.ShardSelection.PRIMARIES,
+            plannerContext.transactionContext().sessionContext()
+        );
 
         Reference idReference = tableInfo.getReference(DocSysColumns.ID);
         assert idReference != null : "table has no _id column";
@@ -220,7 +224,10 @@ public final class UpdatePlanner {
                 assignments.v1(),
                 assignments.v2(),
                 version);
-            Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type(),
+            Routing routing = plannerContext.allocateRouting(
+                tableInfo,
+                whereClause,
+                RoutingProvider.ShardSelection.PRIMARIES,
                 plannerContext.transactionContext().sessionContext());
             return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, whereClause);
         } else {

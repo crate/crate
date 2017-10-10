@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -48,7 +49,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.Preference;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -135,8 +135,8 @@ public final class DeleteStatementPlanner {
             new InputColumn(0, DataTypes.STRING));
 
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
-        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type(),
-            sessionContext);
+        Routing routing = plannerContext.allocateRouting(
+            tableInfo, whereClause, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),

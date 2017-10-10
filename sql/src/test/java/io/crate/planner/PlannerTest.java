@@ -4,6 +4,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -15,6 +16,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Randomness;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +85,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
             clusterService.state(),
-            clusterService.operationRouting(),
+            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
             null,
             normalizer,

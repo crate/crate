@@ -31,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
@@ -40,25 +41,18 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.GroupShardsIterator;
-import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
@@ -129,47 +123,13 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return ident;
     }
 
-    private void processShardRouting(Map<String, Map<String, List<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
-        String node;
-        if (shardRouting == null) {
-            throw new NoShardAvailableActionException(shardId);
-        }
-        node = shardRouting.currentNodeId();
-        Map<String, List<Integer>> nodeMap = locations.get(node);
-        if (nodeMap == null) {
-            nodeMap = new TreeMap<>();
-            locations.put(shardRouting.currentNodeId(), nodeMap);
-        }
-
-        String indexName = shardRouting.getIndexName();
-        List<Integer> shards = nodeMap.get(indexName);
-        if (shards == null) {
-            shards = new ArrayList<>();
-            nodeMap.put(indexName, shards);
-        }
-        shards.add(shardRouting.id());
-    }
-
     @Override
-    public Routing getRouting(ClusterState clusterState,
-                              OperationRouting operationRouting,
+    public Routing getRouting(ClusterState state,
+                              RoutingProvider routingProvider,
                               WhereClause whereClause,
-                              @Nullable String preference,
+                              RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        GroupShardsIterator<ShardIterator> shardIterators = operationRouting.searchShards(
-            clusterState,
-            new String[]{index},
-            null,
-            preference
-        );
-        ShardRouting shardRouting;
-        for (ShardIterator shardIterator : shardIterators) {
-            shardRouting = shardIterator.nextOrNull();
-            processShardRouting(locations, shardRouting, shardIterator.shardId());
-        }
-
-        return new Routing(locations);
+        return routingProvider.forIndices(state, new String[] { index }, Collections.emptyMap(), false, shardSelection);
     }
 
     @Override

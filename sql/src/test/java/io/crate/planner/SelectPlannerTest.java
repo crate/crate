@@ -40,6 +40,7 @@ import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -73,6 +74,7 @@ import io.crate.testing.T3;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -612,7 +614,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
             clusterService.state(),
-            clusterService.operationRouting(),
+            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
             null,
             normalizer,

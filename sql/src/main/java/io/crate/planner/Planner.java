@@ -59,6 +59,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -83,8 +84,9 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
+import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
@@ -113,6 +115,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final SelectStatementPlanner selectStatementPlanner;
     private final EvaluatingNormalizer normalizer;
 
+    private String[] awarenessAttributes;
+
 
     public static class Context {
 
@@ -125,22 +129,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final int fetchSize;
         private final RoutingBuilder routingBuilder;
         private final ClusterState clusterState;
-        private final OperationRouting operationRouting;
+        private final RoutingProvider routingProvider;
         private int executionPhaseId = 0;
         private String handlerNode;
 
         public Context(Planner planner,
                        ClusterState clusterState,
-                       OperationRouting operationRouting,
+                       RoutingProvider routingProvider,
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
                        EvaluatingNormalizer normalizer,
                        TransactionContext transactionContext,
                        int softLimit,
                        int fetchSize) {
-            this.routingBuilder = new RoutingBuilder(clusterState, operationRouting);
+            this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
+            this.routingProvider = routingProvider;
             this.clusterState = clusterState;
-            this.operationRouting = operationRouting;
             this.planner = planner;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
@@ -195,7 +199,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 fetchSize = this.fetchSize;
             }
             return planner.process(statement, new Planner.Context(
-                planner, clusterState, operationRouting, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
+                planner, clusterState, routingProvider, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
         }
 
         void applySoftLimit(QuerySpec querySpec) {
@@ -224,9 +228,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public Routing allocateRouting(TableInfo tableInfo,
                                        WhereClause where,
-                                       String preference,
+                                       RoutingProvider.ShardSelection shardSelection,
                                        SessionContext sessionContext) {
-            return routingBuilder.allocateRouting(tableInfo, where, preference, sessionContext);
+            return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionContext);
         }
 
         public ReaderAllocations buildReaderAllocations() {
@@ -236,12 +240,22 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
 
     @Inject
-    public Planner(ClusterService clusterService, Functions functions, TableStats tableStats) {
+    public Planner(Settings settings, ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
         this.consumingPlanner = new ConsumingPlanner(functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+
+        this.awarenessAttributes =
+            AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.get(settings);
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(
+            AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING,
+            this::setAwarenessAttributes);
+    }
+
+    private void setAwarenessAttributes(String[] awarenessAttributes) {
+        this.awarenessAttributes = awarenessAttributes;
     }
 
     /**
@@ -258,12 +272,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), awarenessAttributes);
         return process(
             analyzedStatement,
             new Context(
                 this,
                 clusterService.state(),
-                clusterService.operationRouting(),
+                routingProvider,
                 jobId,
                 consumingPlanner,
                 normalizer,

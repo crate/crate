@@ -28,88 +28,55 @@ import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 final class RoutingBuilder {
 
     final Map<TableIdent, List<TableRouting>> routingListByTable = new HashMap<>();
     private final ClusterState clusterState;
-    private final OperationRouting operationRouting;
+    private final RoutingProvider routingProvider;
 
     private ReaderAllocations readerAllocations;
 
-    RoutingBuilder(ClusterState clusterState, OperationRouting operationRouting) {
+    RoutingBuilder(ClusterState clusterState, RoutingProvider routingProvider) {
         this.clusterState = clusterState;
-        this.operationRouting = operationRouting;
+        this.routingProvider = routingProvider;
     }
 
     @VisibleForTesting
     static final class TableRouting {
         final WhereClause where;
-        final String preference;
+        private final RoutingProvider.ShardSelection shardSelection;
         final Routing routing;
 
-        TableRouting(WhereClause where, String preference, Routing routing) {
+        TableRouting(WhereClause where, RoutingProvider.ShardSelection shardSelection, Routing routing) {
             this.where = where;
-            this.preference = preference;
+            this.shardSelection = shardSelection;
             this.routing = routing;
         }
     }
 
     Routing allocateRouting(TableInfo tableInfo,
                             WhereClause where,
-                            @Nullable String preference,
+                            RoutingProvider.ShardSelection shardSelection,
                             SessionContext sessionContext) {
+
+        Routing routing = tableInfo.getRouting(clusterState, routingProvider, where, shardSelection, sessionContext);
         List<TableRouting> existingRoutings = routingListByTable.get(tableInfo.ident());
         if (existingRoutings == null) {
-            return allocateNewRouting(tableInfo, where, preference, sessionContext);
+            existingRoutings = new ArrayList<>();
+            routingListByTable.put(tableInfo.ident(), existingRoutings);
         }
-        Routing existing = tryFindMatchInExisting(where, preference, existingRoutings);
-        if (existing != null) return existing;
-
-        Routing routing = tableInfo.getRouting(clusterState, operationRouting, where, preference, sessionContext);
-        existingRoutings.add(new TableRouting(where, preference, routing));
-        // ensure all routings of this table are allocated
-        // and update new routing by merging with existing ones
-        for (TableRouting existingRouting : existingRoutings) {
-            // Merge locations with existing routing
-            routing.mergeLocations(existingRouting.routing.locations());
-        }
-        return routing;
-    }
-
-    private static Routing tryFindMatchInExisting(WhereClause where,
-                                                  @Nullable String preference,
-                                                  Iterable<TableRouting> existingRoutings) {
-        for (TableRouting existing : existingRoutings) {
-            assert preference == null || preference.equals(existing.preference) :
-                "preference must not be null or equals existing preference";
-            if (Objects.equals(existing.where, where)) {
-                return existing.routing;
-            }
-        }
-        return null;
-    }
-
-    private Routing allocateNewRouting(TableInfo tableInfo,
-                                       WhereClause where,
-                                       @Nullable String preference,
-                                       SessionContext sessionContext) {
-        List<TableRouting> existingRoutings = new ArrayList<>();
-        routingListByTable.put(tableInfo.ident(), existingRoutings);
-        Routing routing = tableInfo.getRouting(clusterState, operationRouting, where, preference, sessionContext);
-        existingRoutings.add(new TableRouting(where, preference, routing));
+        existingRoutings.add(new TableRouting(where, shardSelection, routing));
         return routing;
     }
 

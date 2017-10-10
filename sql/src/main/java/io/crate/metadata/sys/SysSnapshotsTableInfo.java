@@ -27,6 +27,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -38,10 +39,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class SysSnapshotsTableInfo extends StaticTableInfo {
@@ -111,11 +110,13 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(ClusterState clusterState,
-                              OperationRouting operationRouting,
-                              WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+                              RoutingProvider routingProvider,
+                              WhereClause whereClause,
+                              RoutingProvider.ShardSelection shardSelection,
+                              SessionContext sessionContext) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        return Routing.forRandomMasterOrDataNode(IDENT, clusterState);
+        return routingProvider.forRandomMasterOrDataNode(IDENT, clusterState.getNodes());
     }
 
 }

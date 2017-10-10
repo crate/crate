@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,7 @@ import static org.hamcrest.core.Is.is;
 public class SchemasITest extends SQLTransportIntegrationTest {
 
     private Schemas schemas;
+    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
 
     @Before
     public void setUpService() {
@@ -72,7 +74,12 @@ public class SchemasITest extends SQLTransportIntegrationTest {
 
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), clusterService.operationRouting(), WhereClause.MATCH_ALL, null, SessionContext.create());
+            clusterService.state(),
+            routingProvider,
+            WhereClause.MATCH_ALL,
+            RoutingProvider.ShardSelection.ANY,
+            SessionContext.create()
+        );
 
         Set<String> nodes = routing.nodes();
 
@@ -133,7 +140,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "nodes"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), clusterService.operationRouting(), null, null, SessionContext.create());
+            clusterService.state(), routingProvider, null, null, SessionContext.create());
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
         for (Map<String, List<Integer>> indices : routing.locations().values()) {
@@ -150,7 +157,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "shards"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), clusterService.operationRouting(), null, null, SessionContext.create());
+            clusterService.state(), routingProvider, null, null, SessionContext.create());
 
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet(getFqn("t2"), getFqn("t3"));
@@ -170,7 +177,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
-            clusterService.state(), clusterService.operationRouting(), null, null, SessionContext.create()
+            clusterService.state(), routingProvider, null, null, SessionContext.create()
         ).locations().size(), is(1));
     }
 }

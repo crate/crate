@@ -40,6 +40,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -51,7 +52,6 @@ import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -94,9 +94,9 @@ public class TestingTableInfo extends DocTableInfo {
 
     @Override
     public Routing getRouting(ClusterState state,
-                              OperationRouting operationRouting,
+                              RoutingProvider routingProvider,
                               WhereClause whereClause,
-                              @Nullable String preference,
+                              RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
         return routing;
     }

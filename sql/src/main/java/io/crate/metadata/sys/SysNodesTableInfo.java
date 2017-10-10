@@ -29,6 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -62,9 +63,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 
 public class SysNodesTableInfo extends StaticTableInfo {
@@ -493,9 +492,9 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(ClusterState clusterState,
-                              OperationRouting operationRouting,
+                              RoutingProvider routingProvider,
                               WhereClause whereClause,
-                              @Nullable String preference,
+                              RoutingProvider.ShardSelection shardSelection,
                               SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
