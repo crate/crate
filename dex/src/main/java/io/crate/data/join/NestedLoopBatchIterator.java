@@ -36,6 +36,7 @@ import java.util.function.Predicate;
  * - {@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
  * - {@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
  * - {@link #semiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
+ * - {@link #antiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}
  */
 public class NestedLoopBatchIterator<L, R, C> implements BatchIterator<C> {
 
