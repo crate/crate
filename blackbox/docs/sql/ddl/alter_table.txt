@@ -115,3 +115,32 @@ table will fail until the rename operation is completed.
 
     Do not run multiple concurrent rename operations on the same table. The rename
     operation is not atomic.
+
+.. _alter_table_reroute_shards:
+
+Reroute Shards
+==============
+
+With the ``REROUTE`` command it is possible to control the allocations of
+shards. This gives the opportunity to re-balance the cluster state manually.
+The supported reroute options are listed in the reference documentation of
+:ref:`ALTER TABLE <alter_table_reroute>`.
+
+Shard rerouting affects several problems:
+
+    * **Unassigned shards**: Due to cause of lack of space, shard awareness or
+      any other failure that happens during the automatic shard allocation it is
+      possible to gain unassigned shards in the cluster.
+
+    * **"Hot Shards"**: Most of your queries affect certain shards only. These
+      shards lie on a node that lacks in hardware performance.
+
+In those two cases it could be necessary to move shards manually to another node
+or force the retry of the allocation process.
+
+The process to retry the allocation of all unassigned shards in a table can be
+triggered using the ``RETRY FAILED`` command. The rowcount reflects the number
+of shards that got affected by the reroute process. ::
+
+    cr> alter table my_table1 reroute retry failed;
+    ALTER OK, ... rows affected (... sec)
