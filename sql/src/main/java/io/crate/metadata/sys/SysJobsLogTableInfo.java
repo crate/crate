@@ -35,7 +35,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -71,9 +72,7 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
             .build();
     }
 
-    private final ClusterService clusterService;
-
-    SysJobsLogTableInfo(ClusterService clusterService) {
+    SysJobsLogTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.USERNAME, DataTypes.STRING)
@@ -81,7 +80,6 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
             .register(Columns.ERROR, DataTypes.STRING), PRIMARY_KEYS);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -90,7 +88,11 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
     }
 }

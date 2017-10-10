@@ -41,10 +41,11 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -64,7 +65,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final TableIdent ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
-    private final ClusterService clusterService;
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final BytesRef blobsPath;
@@ -85,7 +85,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public BlobTableInfo(TableIdent ident,
                          String index,
-                         ClusterService clusterService,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          Map<String, Object> tableParameters,
@@ -96,7 +95,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          boolean closed) {
         this.ident = ident;
         this.index = index;
-        this.clusterService = clusterService;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
@@ -153,10 +151,14 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        GroupShardsIterator<ShardIterator> shardIterators = clusterService.operationRouting().searchShards(
-            clusterService.state(),
+        GroupShardsIterator<ShardIterator> shardIterators = operationRouting.searchShards(
+            clusterState,
             new String[]{index},
             null,
             preference

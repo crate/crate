@@ -44,7 +44,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.List;
 import java.util.Map;
@@ -334,8 +333,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    InformationTablesTableInfo(ClusterService clusterService) {
-        super(clusterService,
+    InformationTablesTableInfo() {
+        super(
             IDENT,
             ImmutableList.of(Columns.TABLE_SCHEMA, Columns.TABLE_NAME),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

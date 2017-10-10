@@ -61,7 +61,8 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -352,9 +353,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
     }
 
     private final TableColumn tableColumn;
-    private final ClusterService clusterService;
 
-    public SysNodesTableInfo(ClusterService clusterService) {
+    public SysNodesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.ID, DataTypes.STRING)
                 .register(Columns.NAME, DataTypes.STRING)
@@ -468,7 +468,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.FS_DATA_DEV, DataTypes.STRING)
                 .register(Columns.FS_DATA_PATH, DataTypes.STRING),
             PRIMARY_KEY);
-        this.clusterService = clusterService;
         this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
     }
 
@@ -493,7 +492,11 @@ public class SysNodesTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 }

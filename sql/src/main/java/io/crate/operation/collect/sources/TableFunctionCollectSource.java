@@ -43,7 +43,6 @@ import io.crate.operation.collect.ValueAndInputRow;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -53,12 +52,10 @@ import java.util.List;
 @Singleton
 public class TableFunctionCollectSource implements CollectSource {
 
-    private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
     @Inject
-    public TableFunctionCollectSource(ClusterService clusterService, Functions functions) {
-        this.clusterService = clusterService;
+    public TableFunctionCollectSource(Functions functions) {
         inputFactory = new InputFactory(functions);
     }
 
@@ -73,7 +70,7 @@ public class TableFunctionCollectSource implements CollectSource {
         }
 
         TableFunctionImplementation functionImplementation = phase.functionImplementation();
-        TableInfo tableInfo = functionImplementation.createTableInfo(clusterService);
+        TableInfo tableInfo = functionImplementation.createTableInfo();
 
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
         List<Input<?>> inputs = (List<Input<?>>) (List) phase.functionArguments();

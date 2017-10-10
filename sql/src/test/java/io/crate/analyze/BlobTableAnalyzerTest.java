@@ -42,7 +42,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).build();
     }
 

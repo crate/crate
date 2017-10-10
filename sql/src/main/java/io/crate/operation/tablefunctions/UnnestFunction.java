@@ -45,7 +45,8 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -148,7 +149,7 @@ public class UnnestFunction {
         }
 
         @Override
-        public TableInfo createTableInfo(ClusterService clusterService) {
+        public TableInfo createTableInfo() {
             int noElements = info.ident().argumentTypes().size();
             Map<ColumnIdent, Reference> columnMap = new LinkedHashMap<>(noElements);
             Collection<Reference> columns = new ArrayList<>(noElements);
@@ -163,7 +164,6 @@ public class UnnestFunction {
                 columns.add(reference);
                 columnMap.put(columnIdent, reference);
             }
-            final String localNodeId = clusterService.localNode().getId();
             return new StaticTableInfo(TABLE_IDENT, columnMap, columns, Collections.emptyList()) {
                 @Override
                 public RowGranularity rowGranularity() {
@@ -171,10 +171,12 @@ public class UnnestFunction {
                 }
 
                 @Override
-                public Routing getRouting(WhereClause whereClause,
+                public Routing getRouting(ClusterState state,
+                                          OperationRouting operationRouting,
+                                          WhereClause whereClause,
                                           @Nullable String preference,
                                           SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, localNodeId);
+                    return Routing.forTableOnSingleNode(TABLE_IDENT, state.getNodes().getLocalNodeId());
                 }
             };
         }

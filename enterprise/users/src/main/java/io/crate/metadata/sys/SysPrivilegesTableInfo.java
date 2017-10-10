@@ -34,7 +34,8 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.user.User;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -69,9 +70,8 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
         }
     }
 
-    private final ClusterService clusterService;
 
-    public SysPrivilegesTableInfo(ClusterService clusterService) {
+    public SysPrivilegesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.GRANTEE, DataTypes.STRING)
                 .register(Columns.GRANTOR, DataTypes.STRING)
@@ -80,7 +80,6 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
                 .register(Columns.CLASS, DataTypes.STRING)
                 .register(Columns.IDENT, DataTypes.STRING),
             PRIMARY_KEY);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -89,8 +88,12 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState state,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {

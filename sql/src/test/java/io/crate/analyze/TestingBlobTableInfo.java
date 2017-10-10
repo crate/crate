@@ -30,7 +30,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 
@@ -40,7 +41,6 @@ class TestingBlobTableInfo extends BlobTableInfo {
 
     TestingBlobTableInfo(TableIdent ident,
                          String index,
-                         ClusterService clusterService,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          ImmutableMap<String, Object> tableParameters,
@@ -49,7 +49,6 @@ class TestingBlobTableInfo extends BlobTableInfo {
         super(
             ident,
             index,
-            clusterService,
             numberOfShards,
             numberOfReplicas,
             tableParameters,
@@ -62,7 +61,11 @@ class TestingBlobTableInfo extends BlobTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState state,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
         return routing;
     }
 }

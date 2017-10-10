@@ -33,7 +33,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 public class InformationReferentialConstraintsTableInfo extends InformationTableInfo {
 
@@ -91,8 +90,8 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    InformationReferentialConstraintsTableInfo(ClusterService clusterService) {
-        super(clusterService,
+    InformationReferentialConstraintsTableInfo() {
+        super(
             IDENT,
             ImmutableList.of(),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

@@ -199,7 +199,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
         TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
+        Routing routing = schemas.getTableInfo(tableIdent).getRouting(
+            clusterService().state(),
+            clusterService().operationRouting(),
+            WhereClause.MATCH_ALL,
+            null,
+            SessionContext.create());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 new Reference(new ReferenceIdent(tableIdent, "id"),

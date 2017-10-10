@@ -34,6 +34,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -43,9 +44,8 @@ import java.util.List;
 import static io.crate.analyze.TableDefinitions.shardRouting;
 import static io.crate.analyze.TableDefinitions.shardRoutingForReplicas;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class RoutingBuilderTest {
+public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAllocateRouting() throws Exception {
@@ -55,7 +55,7 @@ public class RoutingBuilderTest {
         TableInfo tableInfo2 =
             TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
 
-        RoutingBuilder routingBuilder = new RoutingBuilder();
+        RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), clusterService.operationRouting());
         WhereClause whereClause = new WhereClause(
             new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME,
@@ -82,7 +82,7 @@ public class RoutingBuilderTest {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        RoutingBuilder routingBuilder = new RoutingBuilder();
+        RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), clusterService.operationRouting());
         routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null, null);
 
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();

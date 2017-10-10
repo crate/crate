@@ -77,7 +77,7 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     private BlobTableInfo innerGetTableInfo(String name) {
-        return blobTableInfoFactory.create(new TableIdent(NAME, name), clusterService);
+        return blobTableInfoFactory.create(new TableIdent(NAME, name), clusterService.state());
     }
 
     @Override

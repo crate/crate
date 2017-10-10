@@ -13,7 +13,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 
@@ -57,8 +56,8 @@ public class InformationSchemaIngestionRulesTableInfo extends InformationTableIn
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    InformationSchemaIngestionRulesTableInfo(ClusterService clusterService) {
-        super(clusterService,
+    InformationSchemaIngestionRulesTableInfo() {
+        super(
             IDENT,
             PRIMARY_KEY,
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

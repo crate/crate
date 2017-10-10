@@ -102,7 +102,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     public void testClusterLevel() throws Exception {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
-        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
+        Routing routing = tableInfo.getRouting(
+            clusterService().state(),
+            clusterService().operationRouting(),
+            WhereClause.MATCH_ALL, null, SessionContext.create());
         Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
@@ -121,7 +124,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     public void testInformationSchemaTables() throws Exception {
         InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
-        Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
+        Routing routing = tablesTableInfo.getRouting(
+            clusterService().state(),
+            clusterService().operationRouting(),
+            WhereClause.MATCH_ALL, null, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
@@ -144,7 +150,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         assert tableInfo != null;
-        Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null, SessionContext.create());
+        Routing routing = tableInfo.getRouting(
+            clusterService().state(),
+            clusterService().operationRouting(),
+            WhereClause.MATCH_ALL, null, SessionContext.create());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
             toCollect.add(ref);

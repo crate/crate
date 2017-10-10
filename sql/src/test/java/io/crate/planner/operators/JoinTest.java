@@ -97,7 +97,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private Planner.Context getContext(TableStats tableStats) {
         return new Planner.Context(
                 e.planner,
-                clusterService,
+                clusterService.state(),
+                clusterService.operationRouting(),
                 UUID.randomUUID(),
                 new ConsumingPlanner(functions, tableStats),
                 EvaluatingNormalizer.functionOnlyNormalizer(functions),

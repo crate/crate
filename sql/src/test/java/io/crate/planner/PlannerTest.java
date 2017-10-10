@@ -82,7 +82,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            clusterService,
+            clusterService.state(),
+            clusterService.operationRouting(),
             UUID.randomUUID(),
             null,
             normalizer,

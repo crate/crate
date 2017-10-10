@@ -75,7 +75,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
         );
-        analyzer = new RelationAnalyzer(clusterService, functions, schemas);
+        analyzer = new RelationAnalyzer(functions, schemas);
     }
 
     private QueriedRelation rewrite(String stmt) {

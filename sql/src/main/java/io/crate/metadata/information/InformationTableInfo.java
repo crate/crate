@@ -30,29 +30,25 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Map;
 
 public class InformationTableInfo extends StaticTableInfo {
 
-    private final ClusterService clusterService;
-
-    InformationTableInfo(ClusterService clusterService,
-                         TableIdent ident,
+    InformationTableInfo(TableIdent ident,
                          ImmutableList<ColumnIdent> primaryKeyIdentList,
                          Map<ColumnIdent, Reference> references) {
-        this(clusterService, ident, primaryKeyIdentList, references, null);
+        this(ident, primaryKeyIdentList, references, null);
     }
 
-    InformationTableInfo(ClusterService clusterService,
-                         TableIdent ident,
+    InformationTableInfo(TableIdent ident,
                          ImmutableList<ColumnIdent> primaryKeyIdentList,
                          Map<ColumnIdent, Reference> references,
                          @Nullable ImmutableList<Reference> columns) {
         super(ident, references, columns, primaryKeyIdentList);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -61,7 +57,11 @@ public class InformationTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(ident(), clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(ident(), clusterState.getNodes().getLocalNodeId());
     }
 }

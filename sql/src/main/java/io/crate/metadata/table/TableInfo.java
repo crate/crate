@@ -28,6 +28,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -56,13 +58,14 @@ public interface TableInfo extends Iterable<Reference> {
     /**
      * Retrieve the routing for the table
      * <p>
-     * The result of this method is non-deterministic for two reasons:
+     * The result of this method is non-deterministic because the shard selection is randomized for load distribution
      * <p>
-     * 1. Shard selection is randomized for load distribution.
-     * <p>
-     * 2. The underlying clusterState might change between calls.
      */
-    Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext);
+    Routing getRouting(ClusterState state,
+                       OperationRouting operationRouting,
+                       WhereClause whereClause,
+                       @Nullable String preference,
+                       SessionContext sessionContext);
 
     List<ColumnIdent> primaryKey();
 

@@ -43,7 +43,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -53,7 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.mockito.Mockito.mock;
 
 public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
@@ -86,7 +84,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 false, false,
                 new String[0],
                 new String[0],
-                mock(ClusterService.class),
                 new IndexNameExpressionResolver(Settings.EMPTY),
                 numberOfShards,
                 new BytesRef(numberOfReplicas),

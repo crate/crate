@@ -27,7 +27,6 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Collection;
 
@@ -51,8 +50,7 @@ public interface TableFunctionImplementation extends FunctionImplementation {
      * Note: The result type of the {@link FunctionInfo} that is returned by {@link #info()}
      * is ignored for table functions.
      *
-     * @param clusterService the cluster service implementation for retrieving cluster state information
      * @return a table info object representing the actual return type of the function.
      */
-    TableInfo createTableInfo(ClusterService clusterService);
+    TableInfo createTableInfo();
 }

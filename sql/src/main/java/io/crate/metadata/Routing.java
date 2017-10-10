@@ -3,9 +3,9 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
@@ -252,12 +252,12 @@ public class Routing implements Writeable {
         return new Routing(nodesMapBuilder.map());
     }
 
-    public static Routing forRandomMasterOrDataNode(TableIdent tableIdent, ClusterService clusterService) {
-        DiscoveryNode localNode = clusterService.localNode();
+    public static Routing forRandomMasterOrDataNode(TableIdent tableIdent, ClusterState state) {
+        DiscoveryNode localNode = state.getNodes().getLocalNode();
         if (localNode.isMasterNode() || localNode.isDataNode()) {
             return forTableOnSingleNode(tableIdent, localNode.getId());
         }
-        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().getMasterAndDataNodes();
+        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = state.getNodes().getMasterAndDataNodes();
         int randomIdx = Randomness.get().nextInt(masterAndDataNodes.size());
         Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
         int currIdx = 0;

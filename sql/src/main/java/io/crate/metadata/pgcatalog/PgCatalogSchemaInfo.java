@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -38,9 +37,9 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     private final ImmutableSortedMap<String, TableInfo> tableInfoMap;
 
     @Inject
-    public PgCatalogSchemaInfo(ClusterService clusterService) {
+    public PgCatalogSchemaInfo() {
         this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
-            .put(PgTypeTable.IDENT.name(), new PgTypeTable(clusterService))
+            .put(PgTypeTable.IDENT.name(), new PgTypeTable())
             .build();
     }
 

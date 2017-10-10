@@ -34,7 +34,8 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.repositories.Repository;
 
 import javax.annotation.Nullable;
@@ -63,14 +64,12 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
             .build();
     }
 
-    private final ClusterService clusterService;
 
-    SysRepositoriesTableInfo(ClusterService clusterService) {
+    SysRepositoriesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.TYPE, DataTypes.STRING)
             .register(Columns.SETTINGS, DataTypes.OBJECT), PRIMARY_KEY);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -79,7 +78,11 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forRandomMasterOrDataNode(IDENT, clusterService);
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forRandomMasterOrDataNode(IDENT, clusterState);
     }
 }

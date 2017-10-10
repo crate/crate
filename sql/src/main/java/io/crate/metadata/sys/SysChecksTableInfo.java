@@ -35,7 +35,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 
@@ -44,8 +45,6 @@ public class SysChecksTableInfo extends StaticTableInfo {
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "checks");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
-    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -67,14 +66,13 @@ public class SysChecksTableInfo extends StaticTableInfo {
             .build();
     }
 
-    SysChecksTableInfo(ClusterService clusterService) {
+    SysChecksTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.ID, DataTypes.INTEGER)
                 .register(Columns.SEVERITY, DataTypes.INTEGER)
                 .register(Columns.DESCRIPTION, DataTypes.STRING)
                 .register(Columns.PASSED, DataTypes.BOOLEAN),
             PRIMARY_KEYS);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -83,7 +81,11 @@ public class SysChecksTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 }

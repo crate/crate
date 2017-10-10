@@ -35,7 +35,6 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -258,11 +257,10 @@ public final class TableDefinitions {
                 .build();
 
 
-    public static TestingBlobTableInfo createBlobTable(TableIdent ident, ClusterService clusterService) {
+    public static TestingBlobTableInfo createBlobTable(TableIdent ident) {
         return new TestingBlobTableInfo(
             ident,
             ident.indexName(),
-            clusterService,
             5,
             new BytesRef("0"),
             ImmutableMap.<String, Object>of(),

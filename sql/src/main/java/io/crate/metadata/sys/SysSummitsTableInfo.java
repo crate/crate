@@ -36,7 +36,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.collect.files.SummitsContext;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -83,9 +84,7 @@ public class SysSummitsTableInfo extends StaticTableInfo {
             .build();
     }
 
-    private final ClusterService clusterService;
-
-    SysSummitsTableInfo(ClusterService clusterService) {
+    SysSummitsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.MOUNTAIN, DataTypes.STRING)
             .register(Columns.HEIGHT, DataTypes.INTEGER)
@@ -96,7 +95,6 @@ public class SysSummitsTableInfo extends StaticTableInfo {
             .register(Columns.REGION, DataTypes.STRING)
             .register(Columns.COUNTRY, DataTypes.STRING)
             .register(Columns.FIRST_ASCENT, DataTypes.INTEGER), PRIMARY_KEYS);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -105,7 +103,11 @@ public class SysSummitsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 }

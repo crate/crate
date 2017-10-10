@@ -40,7 +40,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -74,8 +75,7 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public TableInfo createTableInfo(ClusterService clusterService) {
-            final String localNodeId = clusterService.localNode().getId();
+        public TableInfo createTableInfo() {
             return new StaticTableInfo(TABLE_IDENT, Collections.emptyMap(), null, Collections.emptyList()) {
                 @Override
                 public RowGranularity rowGranularity() {
@@ -83,10 +83,12 @@ public class EmptyRowTableFunction {
                 }
 
                 @Override
-                public Routing getRouting(WhereClause whereClause,
+                public Routing getRouting(ClusterState clusterState,
+                                          OperationRouting operationRouting,
+                                          WhereClause whereClause,
                                           @Nullable String preference,
                                           SessionContext sessionContext) {
-                    return Routing.forTableOnSingleNode(TABLE_IDENT, localNodeId);
+                    return Routing.forTableOnSingleNode(TABLE_IDENT, clusterState.getNodes().getLocalNodeId());
                 }
             };
         }

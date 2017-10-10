@@ -126,7 +126,7 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
-        this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
+        this.relationAnalyzer = new RelationAnalyzer(functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =

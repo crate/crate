@@ -37,7 +37,7 @@ public class InformationTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        informationSchemaInfo = new InformationSchemaInfo(clusterService);
+        informationSchemaInfo = new InformationSchemaInfo();
     }
 
     @Test

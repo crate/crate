@@ -23,10 +23,10 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.TableIdent;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.ImplementedBy;
 
 @ImplementedBy(InternalDocTableInfoFactory.class)
 public interface DocTableInfoFactory {
-    DocTableInfo create(TableIdent ident, ClusterService clusterService);
+    DocTableInfo create(TableIdent ident, ClusterState state);
 }

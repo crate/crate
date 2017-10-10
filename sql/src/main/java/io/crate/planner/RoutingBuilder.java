@@ -31,6 +31,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,8 +44,15 @@ import java.util.Objects;
 final class RoutingBuilder {
 
     final Map<TableIdent, List<TableRouting>> routingListByTable = new HashMap<>();
+    private final ClusterState clusterState;
+    private final OperationRouting operationRouting;
 
     private ReaderAllocations readerAllocations;
+
+    RoutingBuilder(ClusterState clusterState, OperationRouting operationRouting) {
+        this.clusterState = clusterState;
+        this.operationRouting = operationRouting;
+    }
 
     @VisibleForTesting
     static final class TableRouting {
@@ -58,7 +67,8 @@ final class RoutingBuilder {
         }
     }
 
-    Routing allocateRouting(TableInfo tableInfo, WhereClause where,
+    Routing allocateRouting(TableInfo tableInfo,
+                            WhereClause where,
                             @Nullable String preference,
                             SessionContext sessionContext) {
         List<TableRouting> existingRoutings = routingListByTable.get(tableInfo.ident());
@@ -68,7 +78,7 @@ final class RoutingBuilder {
         Routing existing = tryFindMatchInExisting(where, preference, existingRoutings);
         if (existing != null) return existing;
 
-        Routing routing = tableInfo.getRouting(where, preference, sessionContext);
+        Routing routing = tableInfo.getRouting(clusterState, operationRouting, where, preference, sessionContext);
         existingRoutings.add(new TableRouting(where, preference, routing));
         // ensure all routings of this table are allocated
         // and update new routing by merging with existing ones
@@ -92,12 +102,13 @@ final class RoutingBuilder {
         return null;
     }
 
-    private Routing allocateNewRouting(TableInfo tableInfo, WhereClause where,
+    private Routing allocateNewRouting(TableInfo tableInfo,
+                                       WhereClause where,
                                        @Nullable String preference,
                                        SessionContext sessionContext) {
         List<TableRouting> existingRoutings = new ArrayList<>();
         routingListByTable.put(tableInfo.ident(), existingRoutings);
-        Routing routing = tableInfo.getRouting(where, preference, sessionContext);
+        Routing routing = tableInfo.getRouting(clusterState, operationRouting, where, preference, sessionContext);
         existingRoutings.add(new TableRouting(where, preference, routing));
         return routing;
     }

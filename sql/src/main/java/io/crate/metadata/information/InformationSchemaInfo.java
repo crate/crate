@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -41,18 +40,18 @@ public class InformationSchemaInfo implements SchemaInfo {
     public final ImmutableMap<String, TableInfo> tableInfoMap;
 
     @Inject
-    public InformationSchemaInfo(ClusterService clusterService) {
+    public InformationSchemaInfo() {
         this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
-            .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo(clusterService))
-            .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo(clusterService))
-            .put(InformationKeyColumnUsageTableInfo.NAME, new InformationKeyColumnUsageTableInfo(clusterService))
-            .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo(clusterService))
-            .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo(clusterService))
-            .put(InformationReferentialConstraintsTableInfo.NAME, new InformationReferentialConstraintsTableInfo(clusterService))
-            .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo(clusterService))
-            .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo(clusterService))
-            .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo(clusterService))
-            .put(InformationSchemaIngestionRulesTableInfo.NAME, new InformationSchemaIngestionRulesTableInfo(clusterService))
+            .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo())
+            .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo())
+            .put(InformationKeyColumnUsageTableInfo.NAME, new InformationKeyColumnUsageTableInfo())
+            .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo())
+            .put(InformationTableConstraintsTableInfo.NAME, new InformationTableConstraintsTableInfo())
+            .put(InformationReferentialConstraintsTableInfo.NAME, new InformationReferentialConstraintsTableInfo())
+            .put(InformationRoutinesTableInfo.NAME, new InformationRoutinesTableInfo())
+            .put(InformationSchemataTableInfo.NAME, new InformationSchemataTableInfo())
+            .put(InformationSqlFeaturesTableInfo.NAME, new InformationSqlFeaturesTableInfo())
+            .put(InformationSchemaIngestionRulesTableInfo.NAME, new InformationSchemaIngestionRulesTableInfo())
             .build();
     }
 

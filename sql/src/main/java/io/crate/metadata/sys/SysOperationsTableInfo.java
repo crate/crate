@@ -35,7 +35,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -44,7 +45,6 @@ import java.util.Map;
 public class SysOperationsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations");
-    private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -75,7 +75,7 @@ public class SysOperationsTableInfo extends StaticTableInfo {
 
     private final TableColumn nodesTableColumn;
 
-    SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
+    SysOperationsTableInfo(SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register(Columns.ID, DataTypes.STRING)
                 .register(Columns.JOB_ID, DataTypes.STRING)
@@ -83,8 +83,7 @@ public class SysOperationsTableInfo extends StaticTableInfo {
                 .register(Columns.STARTED, DataTypes.TIMESTAMP)
                 .register(Columns.USED_BYTES, DataTypes.LONG)
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
-            Collections.<ColumnIdent>emptyList());
-        this.clusterService = clusterService;
+            Collections.emptyList());
         nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
 
@@ -105,7 +104,11 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
     }
 }

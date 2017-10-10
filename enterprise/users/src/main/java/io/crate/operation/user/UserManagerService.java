@@ -99,11 +99,11 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.addListener(this);
-        sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
+        sysTableRegistry.registerSysTable(new SysUsersTableInfo(),
             () -> CompletableFuture.completedFuture(users()),
             SysUsersTableInfo.sysUsersExpressions());
 
-        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(clusterService),
+        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(),
             () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
             SysPrivilegesTableInfo.expressions());
 

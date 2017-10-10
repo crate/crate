@@ -42,9 +42,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addBlobTable(TableDefinitions.createBlobTable(
-                new TableIdent("blob", "screenshots"),
-                clusterService))
+            .addBlobTable(TableDefinitions.createBlobTable(new TableIdent("blob", "screenshots")))
             .build();
     }
 

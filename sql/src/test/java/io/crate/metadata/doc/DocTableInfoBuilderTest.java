@@ -35,41 +35,19 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+import static io.crate.testing.TestingHelpers.getFunctions;
 
 
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
-    private ThreadPool threadPool;
-    private ClusterService clusterService;
-
-    @Mock
-    Functions functions;
-
-    @Before
-    public void prepare() throws Exception {
-        threadPool = new TestThreadPool("dummy");
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
-        clusterService.close();
-    }
+    private Functions functions = getFunctions();
 
     private String randomSchema() {
         if (randomBoolean()) {
@@ -102,14 +80,11 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             .put(indexMetaDataBuilder)
             .build();
 
-        clusterService = ClusterServiceUtils.createClusterService(
-            ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build(),
-            threadPool
-        );
+        ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
             new TableIdent(schemaName, "test"),
-            clusterService,
+            state,
             new IndexNameExpressionResolver(Settings.EMPTY),
             false
         );

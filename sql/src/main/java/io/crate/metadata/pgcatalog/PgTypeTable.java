@@ -35,7 +35,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -65,16 +66,13 @@ public class PgTypeTable extends StaticTableInfo {
             .build();
     }
 
-    private final ClusterService clusterService;
-
-    PgTypeTable(ClusterService clusterService) {
+    PgTypeTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register("oid", DataTypes.INTEGER, null)
                 .register("typname", DataTypes.STRING, null)
                 .register("typdelim", DataTypes.STRING, null)
                 .register("typelem", DataTypes.INTEGER, null),
             Collections.emptyList());
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -83,7 +81,11 @@ public class PgTypeTable extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 }

@@ -48,9 +48,9 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -197,10 +197,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
         Columns.PARTITION_IDENT
     );
 
-    private final ClusterService service;
     private final TableColumn nodesTableColumn;
 
-    SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
+    SysShardsTableInfo(SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
                 .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
                 .register(Columns.TABLE_NAME, StringType.INSTANCE)
@@ -236,7 +235,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.MIN_LUCENE_VERSION, StringType.INSTANCE)
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
             PRIMARY_KEY);
-        this.service = service;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
 
@@ -249,13 +247,16 @@ public class SysShardsTableInfo extends StaticTableInfo {
         return info;
     }
 
-    private void processShardRouting(Map<String, Map<String, List<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
+    private void processShardRouting(String localNodeId,
+                                     Map<String, Map<String, List<Integer>>> routing,
+                                     ShardRouting shardRouting,
+                                     ShardId shardId) {
         String node;
         int id;
         String index = shardId.getIndex().getName();
 
         if (shardRouting == null) {
-            node = service.localNode().getId();
+            node = localNodeId;
             id = UnassignedShard.markUnassigned(shardId.id());
         } else {
             node = shardRouting.currentNodeId();
@@ -287,11 +288,14 @@ public class SysShardsTableInfo extends StaticTableInfo {
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        ClusterState state = service.state();
-        String[] concreteIndices = state.metaData().getConcreteAllOpenIndices();
+        String[] concreteIndices = clusterState.metaData().getConcreteAllOpenIndices();
 
         User user = sessionContext != null ? sessionContext.user() : null;
         if (user != null) {
@@ -306,10 +310,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
         }
 
         GroupShardsIterator<ShardIterator> groupShardsIterator =
-            state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+            clusterState.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
-            processShardRouting(locations, shardRouting, shardIt.shardId());
+            processShardRouting(clusterState.getNodes().getLocalNodeId(), locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
     }

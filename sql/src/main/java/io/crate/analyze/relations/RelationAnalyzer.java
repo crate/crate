@@ -86,7 +86,6 @@ import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
@@ -100,7 +99,6 @@ import java.util.Optional;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
-    private final ClusterService clusterService;
     private final Functions functions;
     private final Schemas schemas;
     private final RelationNormalizer relationNormalizer;
@@ -109,9 +107,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
-    public RelationAnalyzer(ClusterService clusterService, Functions functions, Schemas schemas) {
+    public RelationAnalyzer(Functions functions, Schemas schemas) {
         relationNormalizer = new RelationNormalizer(functions);
-        this.clusterService = clusterService;
         this.functions = functions;
         this.schemas = schemas;
     }
@@ -650,7 +647,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     "Non table function '%s' is not supported in from clause", ident.name()));
         }
         TableFunctionImplementation tableFunction = (TableFunctionImplementation) functionImplementation;
-        TableInfo tableInfo = tableFunction.createTableInfo(clusterService);
+        TableInfo tableInfo = tableFunction.createTableInfo();
         Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
         TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function);
         context.addSourceRelation(node.name(), tableRelation);

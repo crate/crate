@@ -24,8 +24,8 @@ package io.crate.metadata.doc;
 
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -43,12 +43,12 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
     }
 
     @Override
-    public DocTableInfo create(TableIdent ident, ClusterService clusterService) {
-        boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
+    public DocTableInfo create(TableIdent ident, ClusterState state) {
+        boolean checkAliasSchema = state.metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
             ident,
-            clusterService,
+            state,
             indexNameExpressionResolver,
             checkAliasSchema
         );

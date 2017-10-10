@@ -26,7 +26,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
@@ -39,7 +39,7 @@ class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     @Override
-    public BlobTableInfo create(TableIdent ident, ClusterService clusterService) {
+    public BlobTableInfo create(TableIdent ident, ClusterState state) {
         BlobTableInfo blobTableInfo = tables.get(ident);
         if (blobTableInfo == null) {
             throw new TableUnknownException(ident);

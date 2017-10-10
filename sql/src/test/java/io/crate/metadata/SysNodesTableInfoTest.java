@@ -26,23 +26,18 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
 import java.util.Iterator;
 
-import static org.mockito.Mockito.mock;
-
 public class SysNodesTableInfoTest extends CrateUnitTest {
-
-    private ClusterService clusterService = mock(ClusterService.class);
 
     /**
      *  Ensures that all columns registered in SysNodesTableInfo can actually be resolved
      */
     @Test
     public void testRegistered() {
-        SysNodesTableInfo info = new SysNodesTableInfo(clusterService);
+        SysNodesTableInfo info = new SysNodesTableInfo();
         ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
         Iterator<Reference> iter = info.iterator();
         while (iter.hasNext()) {

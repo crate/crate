@@ -124,8 +124,8 @@ public class SQLExecutor {
 
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
-            schemaInfoByName.put("information_schema", new InformationSchemaInfo(clusterService));
+            schemaInfoByName.put("sys", new SysSchemaInfo());
+            schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             functions = getFunctions();
         }
 
@@ -209,7 +209,7 @@ public class SQLExecutor {
                     functions,
                     tableStats
                 ),
-                new RelationAnalyzer(clusterService, functions, schemas),
+                new RelationAnalyzer(functions, schemas),
                 new SessionContext(defaultSchema, null, s -> {}, t -> {})
             );
         }

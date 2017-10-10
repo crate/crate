@@ -42,7 +42,6 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -227,8 +226,8 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, nullable);
     }
 
-    InformationColumnsTableInfo(ClusterService clusterService) {
-        super(clusterService,
+    InformationColumnsTableInfo() {
+        super(
             IDENT,
             ImmutableList.of(Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

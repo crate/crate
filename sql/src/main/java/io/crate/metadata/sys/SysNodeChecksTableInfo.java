@@ -38,7 +38,8 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.reference.sys.check.node.SysNodeCheck;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
@@ -50,7 +51,6 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID, Columns.NODE_ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    private final ClusterService clusterService;
     private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
     public static class Columns {
@@ -81,7 +81,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
             .build();
     }
 
-    SysNodeChecksTableInfo(ClusterService clusterService) {
+    SysNodeChecksTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(SysNodeChecksTableInfo.Columns.ID, DataTypes.INTEGER)
                 .register(SysNodeChecksTableInfo.Columns.NODE_ID, DataTypes.STRING)
@@ -91,7 +91,6 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
                 .register(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, DataTypes.BOOLEAN)
                 .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID)),
             PRIMARY_KEYS);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -100,8 +99,12 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnAllNodes(IDENT, clusterState.getNodes());
     }
 
     @Override

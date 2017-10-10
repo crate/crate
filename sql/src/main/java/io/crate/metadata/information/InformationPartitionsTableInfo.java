@@ -37,7 +37,6 @@ import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import io.crate.operation.reference.partitioned.PartitionsVersionExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 
@@ -163,8 +162,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    InformationPartitionsTableInfo(ClusterService clusterService) {
-        super(clusterService,
+    InformationPartitionsTableInfo() {
+        super(
             IDENT,
             ImmutableList.of(),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

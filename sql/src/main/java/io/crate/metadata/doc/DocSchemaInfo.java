@@ -136,7 +136,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private DocTableInfo innerGetTableInfo(String tableName) {
-        return docTableInfoFactory.create(new TableIdent(schemaName, tableName), clusterService);
+        return docTableInfoFactory.create(new TableIdent(schemaName, tableName), clusterService.state());
     }
 
     @Override

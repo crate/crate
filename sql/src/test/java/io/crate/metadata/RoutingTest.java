@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.transport.LocalTransportAddress;
@@ -41,12 +40,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import static org.elasticsearch.mock.orig.Mockito.mock;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
 
 public class RoutingTest extends CrateUnitTest {
 
@@ -129,14 +126,11 @@ public class RoutingTest extends CrateUnitTest {
             .add(local)
             .add(new DiscoveryNode("client_node_2", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
             .add(new DiscoveryNode("client_node_3", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
+            .localNodeId(local.getId())
             .build();
         ClusterState state = new ClusterState.Builder(new ClusterName("my_cluster")).nodes(nodes).build();
 
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(local);
-        when(clusterService.state()).thenReturn(state);
-
-        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), clusterService);
+        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), state);
         assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
     }
 
@@ -147,6 +141,7 @@ public class RoutingTest extends CrateUnitTest {
         DiscoveryNode local = new DiscoveryNode("local_data", LocalTransportAddress.buildUnique(), attr, data, null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
             .add(local)
+            .localNodeId(local.getId())
             .add(new DiscoveryNode("data_1", LocalTransportAddress.buildUnique(), attr, data, null))
             .add(new DiscoveryNode("data_2", LocalTransportAddress.buildUnique(), attr, data, null))
             .add(new DiscoveryNode("data_3", LocalTransportAddress.buildUnique(), attr, data, null))
@@ -154,11 +149,7 @@ public class RoutingTest extends CrateUnitTest {
             .build();
         ClusterState state = new ClusterState.Builder(new ClusterName("my_cluster")).nodes(nodes).build();
 
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(local);
-        when(clusterService.state()).thenReturn(state);
-
-        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), clusterService);
+        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), state);
         assertThat(routing.locations().keySet(), contains("local_data"));
     }
 }

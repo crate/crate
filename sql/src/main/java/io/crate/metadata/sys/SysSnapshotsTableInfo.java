@@ -37,7 +37,8 @@ import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -85,9 +86,8 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
             .build();
     }
 
-    private final ClusterService clusterService;
 
-    SysSnapshotsTableInfo(ClusterService clusterService) {
+    SysSnapshotsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.REPOSITORY, DataTypes.STRING)
@@ -97,7 +97,6 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
                 .register(Columns.VERSION, DataTypes.STRING)
                 .register(Columns.STATE, DataTypes.STRING),
             PRIMARY_KEY);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -111,10 +110,12 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        return Routing.forRandomMasterOrDataNode(IDENT, clusterService);
+        return Routing.forRandomMasterOrDataNode(IDENT, clusterState);
     }
 
 }

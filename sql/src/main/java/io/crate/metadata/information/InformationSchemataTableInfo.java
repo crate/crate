@@ -34,7 +34,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 
@@ -61,8 +60,9 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    InformationSchemataTableInfo(ClusterService clusterService) {
-        super(clusterService, IDENT,
+    InformationSchemataTableInfo() {
+        super(
+            IDENT,
             ImmutableList.of(Columns.SCHEMA_NAME),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
                 .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)

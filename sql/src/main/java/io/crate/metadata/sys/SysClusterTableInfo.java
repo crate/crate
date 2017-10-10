@@ -36,7 +36,8 @@ import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -46,16 +47,17 @@ public class SysClusterTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "cluster");
 
-    private final ClusterService clusterService;
-
-    SysClusterTableInfo(ClusterService clusterService) {
+    SysClusterTableInfo() {
         super(IDENT, buildColumnRegistrar(), Collections.emptyList());
-        this.clusterService = clusterService;
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState clusterState,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, clusterState.getNodes().getLocalNodeId());
     }
 
     @Override

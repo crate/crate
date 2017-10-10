@@ -35,7 +35,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 
@@ -88,8 +87,9 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationSqlFeaturesTableInfo(ClusterService clusterService) {
-        super(clusterService, IDENT,
+    protected InformationSqlFeaturesTableInfo() {
+        super(
+            IDENT,
             ImmutableList.of(Columns.FEATURE_ID,
                 Columns.FEATURE_NAME,
                 Columns.SUB_FEATURE_ID,

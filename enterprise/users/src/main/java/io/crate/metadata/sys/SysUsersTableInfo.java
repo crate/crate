@@ -33,7 +33,8 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.operation.user.User;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.OperationRouting;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -49,14 +50,12 @@ public class SysUsersTableInfo extends StaticTableInfo {
     }
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
-    private final ClusterService clusterService;
 
-    public SysUsersTableInfo(ClusterService clusterService) {
+    public SysUsersTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.SUPERUSER, DataTypes.BOOLEAN),
             PRIMARY_KEY);
-        this.clusterService = clusterService;
     }
 
     @Override
@@ -65,8 +64,12 @@ public class SysUsersTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    public Routing getRouting(ClusterState state,
+                              OperationRouting operationRouting,
+                              WhereClause whereClause,
+                              @Nullable String preference,
+                              SessionContext sessionContext) {
+        return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {

@@ -36,7 +36,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
@@ -76,8 +75,8 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     @Override
-    public BlobTableInfo create(TableIdent ident, ClusterService clusterService) {
-        IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterService.state());
+    public BlobTableInfo create(TableIdent ident, ClusterState clusterState) {
+        IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterState);
         Map<String, Object> mappingMap;
         try {
             mappingMap = indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
@@ -88,7 +87,6 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         return new BlobTableInfo(
             ident,
             indexMetaData.getIndex().getName(),
-            clusterService,
             indexMetaData.getNumberOfShards(),
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
             TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
