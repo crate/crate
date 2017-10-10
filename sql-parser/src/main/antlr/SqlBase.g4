@@ -475,10 +475,10 @@ addGeneratedColumnDefinition
     ;
 
 rerouteOption
-    : MOVE SHARD shardId=integerLiteral FROM fromNodeId=stringLiteral TO toNodeId=stringLiteral     #rerouteMoveShard
-    | CANCEL SHARD shardId=integerLiteral ON nodeId=stringLiteral withProperties?                   #rerouteCancelShard
-    | ALLOCATE REPLICA SHARD shardId=integerLiteral ON nodeId=stringLiteral                         #rerouteAllocateReplicaShard
-    | RETRY FAILED                                                                                  #rerouteRetryFailed
+    : MOVE SHARD shardId=parameterOrInteger FROM fromNodeId=parameterOrString TO toNodeId=parameterOrString #rerouteMoveShard
+    | CANCEL SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?                   #rerouteCancelShard
+    | ALLOCATE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString                         #rerouteAllocateReplicaShard
+    | RETRY FAILED                                                                                          #rerouteRetryFailed
     ;
 
 dataType
