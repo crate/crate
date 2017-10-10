@@ -140,10 +140,9 @@ public class SQLTransportExecutor {
         Random random = RandomizedContext.current().getRandom();
 
         List<String> sessionList = new ArrayList<>();
-        sessionList.add("set search_path=" + defaultSchema);
-        boolean semiJoinsEnabled = isSemiJoinsEnabled;
+        sessionList.add("set search_path='" + defaultSchema + "'");
 
-        if (semiJoinsEnabled) {
+        if (isSemiJoinsEnabled) {
             sessionList.add("set semi_joins=true");
             LOGGER.trace("Executing with semi_joins=true: {}", stmt);
         }
@@ -158,7 +157,7 @@ public class SQLTransportExecutor {
                 sessionList);
         }
         try {
-            if (semiJoinsEnabled) {
+            if (isSemiJoinsEnabled) {
                 SQLOperations.Session session = newSession();
                 sessionList.forEach((setting) -> exec(setting, session));
                 return execute(stmt, args, session).actionGet(timeout);
