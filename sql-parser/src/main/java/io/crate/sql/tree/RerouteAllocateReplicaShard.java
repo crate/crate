@@ -34,6 +34,14 @@ public class RerouteAllocateReplicaShard extends RerouteOption {
         this.nodeId = nodeId;
     }
 
+    public Expression nodeId() {
+        return nodeId;
+    }
+
+    public Expression shardId() {
+        return shardId;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(shardId, nodeId);

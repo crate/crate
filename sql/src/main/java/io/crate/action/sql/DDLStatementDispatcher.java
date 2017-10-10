@@ -43,6 +43,10 @@ import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.OptimizeSettings;
 import io.crate.analyze.OptimizeTableAnalyzedStatement;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
+import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
+import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
@@ -243,6 +247,30 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         @Override
         protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Row parameters) {
             return userManager.dropUser(analysis.userName(), analysis.ifExists());
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Row context) {
+            // TODO: implementation
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Row context) {
+            // TODO: implementation
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row context) {
+            // TODO: implementation
+            throw new UnsupportedOperationException("TODO");
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteRetryFailed(RerouteRetryFailedAnalyzedStatement analysis, Row context) {
+            // TODO: implementation
+            throw new UnsupportedOperationException("TODO");
         }
     }
 

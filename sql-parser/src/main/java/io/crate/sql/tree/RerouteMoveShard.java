@@ -36,6 +36,18 @@ public class RerouteMoveShard extends RerouteOption {
         this.toNodeId = toNodeId;
     }
 
+    public Expression shardId() {
+        return shardId;
+    }
+
+    public Expression fromNodeId() {
+        return fromNodeId;
+    }
+
+    public Expression toNodeId() {
+        return toNodeId;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(shardId, fromNodeId, toNodeId);

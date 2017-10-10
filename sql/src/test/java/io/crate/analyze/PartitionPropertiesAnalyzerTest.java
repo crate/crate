@@ -37,26 +37,40 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
 public class PartitionPropertiesAnalyzerTest extends CrateUnitTest {
 
-    @Test
-    public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("name", DataTypes.STRING, null, true)
-            .addPrimaryKey("name").build();
-
-        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+    private PartitionName getPartitionName(DocTableInfo tableInfo) {
+        return PartitionPropertiesAnalyzer.toPartitionName(
             tableInfo,
             Arrays.asList(new Assignment(
                 new QualifiedNameReference(new QualifiedName("name")),
                 new StringLiteral("foo"))),
             Row.EMPTY);
+    }
+
+    @Test
+    public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
+        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
+            new Routing(ImmutableMap.of()))
+            .add("name", DataTypes.STRING, null, true)
+            .addPrimaryKey("name").build();
+
+        PartitionName partitionName = getPartitionName(tableInfo);
         assertThat(partitionName.asIndexName(), is(".partitioned.users.0426crrf"));
+    }
+
+    @Test
+    public void testPartitionNameOnRegularTable() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("table 'doc.users' is not partitioned");
+        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
+            new Routing(ImmutableMap.of()))
+            .add("name", DataTypes.STRING, null, false)
+            .addPrimaryKey("name").build();
+
+        getPartitionName(tableInfo);
     }
 }
