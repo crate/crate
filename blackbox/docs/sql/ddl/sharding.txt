@@ -28,6 +28,9 @@ think about shards when querying a table.
 Read requests are broken down and executed in parallel across multiple shards
 on multiple nodes, massively improving read performance.
 
+Find more information on how to control the allocation of shards using
+:ref:`Shard Rerouting <alter_table_reroute_shards>`.
+
 Number of Shards
 ================
 

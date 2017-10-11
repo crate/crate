@@ -128,6 +128,8 @@ Can be used to rename a table, while maintaining its schema and data. During
 this operation the table will be closed, and all operations upon the table will
 fail until the rename operation is completed.
 
+.. _alter_table_reroute:
+
 ``REROUTE``
 -----------
 
@@ -154,8 +156,9 @@ where ``reroute_option`` is::
 :node_id:   The node ID within the cluster. See :ref:`sys-nodes` how to gain the
             unique ID.
 
+.. SEEALSO:: :ref:`alter_table_reroute_shards`
 
-``REROUTE`` suports the following options to start/stop shard allocation:
+``REROUTE`` supports the following options to start/stop shard allocation:
 
 **MOVE**
     A started shard gets moved from one node to another. It requests a
