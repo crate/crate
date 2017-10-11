@@ -22,9 +22,10 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
 import org.hamcrest.Matchers;
@@ -38,6 +39,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
 public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
 
@@ -60,35 +63,29 @@ public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
 
     @Test
     public void testPauseOnFirstBatch() throws Exception {
-        BatchSimulatingIterator it = new BatchSimulatingIterator(TestingBatchIterators.range(0, 10), 2, 5, executor);
+        BatchIterator<Integer> numbersBi = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), -1);
+        BatchSimulatingIterator<Integer> it = new BatchSimulatingIterator<>(numbersBi, 2, 5, executor);
         AtomicInteger numRows = new AtomicInteger(0);
-        AtomicInteger numBatches = new AtomicInteger(0);
         AtomicInteger numPauses = new AtomicInteger(0);
-        BatchIteratorBackpressureExecutor<Object> executor = new BatchIteratorBackpressureExecutor<>(
-            it,
+        Predicate<Integer> shouldPause = i -> {
+            if (i == 0 && numPauses.get() == 0) {
+                numPauses.incrementAndGet();
+                return true;
+            }
+            return false;
+        };
+        BatchIteratorBackpressureExecutor<Integer, Integer> executor = new BatchIteratorBackpressureExecutor<>(
             scheduler,
-            r -> numRows.incrementAndGet(),
-            () -> {
-                int rowsReceived = numRows.getAndSet(0);
-                assertThat("rowsReceived must not be larger than the bulkSize", rowsReceived, Matchers.lessThanOrEqualTo(3));
-
-                return CompletableFuture.supplyAsync(() -> { numBatches.incrementAndGet(); return null; }, this.executor);
-            },
-            () -> {
-                if (numBatches.get() == 0 && numPauses.get() == 0) {
-                    numPauses.incrementAndGet();
-                    return true;
-                }
-                return false;
-            },
-            3,
+            it,
+            i -> CompletableFuture.supplyAsync(numRows::incrementAndGet, this.executor),
+            (a, b) -> a + b,
+            0,
+            shouldPause,
             BackoffPolicy.exponentialBackoff(TimeValue.timeValueNanos(10), 1000)
         );
-        CompletableFuture<Void> result = executor.consumeIteratorAndExecute();
-
+        CompletableFuture<Integer> result = executor.consumeIteratorAndExecute();
         result.get(10, TimeUnit.SECONDS);
 
         assertThat(numPauses.get(), Matchers.is(1));
-        assertThat(numBatches.get(), Matchers.is(4));
     }
 }

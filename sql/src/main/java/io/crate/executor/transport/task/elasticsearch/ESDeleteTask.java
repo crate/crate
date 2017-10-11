@@ -31,7 +31,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.TransportShardDeleteAction;
-import io.crate.operation.projectors.ShardingUpsertExecutor;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;

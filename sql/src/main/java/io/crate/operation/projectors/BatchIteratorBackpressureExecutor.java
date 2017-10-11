@@ -23,94 +23,117 @@
 package io.crate.operation.projectors;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Row;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
- * Consumes a BatchIterator in bulks based on the configured {@link #bulkSize}. When a bulk is complete, it checks
- * whether executing the bulk is possible (based on the provided {@link #pauseConsumption}) in which case it runs
- * the {@link #executeFunction}. Otherwise, it stops consuming the iterator and schedules retrying the execution of the
- * bulk for later.
- * Iterator consumption is resumed once the parked/scheduled bulk is executed successfully.
+ * Consumes a BatchIterator, concurrently invoking {@link #execute} on
+ * each item until {@link #pauseConsumption} returns true.
  *
- * @param <R> the type of the result the {@link #executeFunction} future returns.
+ * The future returned on {@link #consumeIteratorAndExecute()} completes
+ * once all items in the BatchIterator have been processed.
+ *
+ * If {@link #pauseConsumption} returns true it will pause for a while ({@link #throttleDelay})
+ * and afterwards resume consumption.
  */
-public class BatchIteratorBackpressureExecutor<R> {
+public class BatchIteratorBackpressureExecutor<T, R> {
 
-    private final BatchIterator<Row> batchIterator;
-    private final Supplier<CompletableFuture<R>> executeFunction;
-    private final Consumer<Row> onRowConsumer;
+    private final BatchIterator<T> batchIterator;
+    private final Function<T, CompletableFuture<R>> execute;
     private final ScheduledExecutorService scheduler;
     private final Iterator<TimeValue> throttleDelay;
-    private final BooleanSupplier pauseConsumption;
-    private final BiConsumer<Object, Throwable> continueConsumptionOrFinish;
-    private final int bulkSize;
+    private final BinaryOperator<R> combiner;
+    private final Predicate<T> pauseConsumption;
+    private final BiConsumer<R, Throwable> continueConsumptionOrFinish;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
-    private final CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+    private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
     private final Semaphore semaphore = new Semaphore(1);
 
-    private int indexInBulk = 0;
+    private final AtomicReference<R> resultRef;
+    private final AtomicReference<Throwable> failureRef = new AtomicReference<>(null);
     private volatile boolean consumptionFinished = false;
 
-    public BatchIteratorBackpressureExecutor(BatchIterator<Row> batchIterator,
-                                             ScheduledExecutorService scheduler,
-                                             Consumer<Row> onRowConsumer,
-                                             Supplier<CompletableFuture<R>> executeFunction,
-                                             BooleanSupplier pauseConsumption,
-                                             int bulkSize,
+    /**
+     * @param batchIterator provides the items for {@code execute}
+     * @param execute async function which is called for each item from the batchIterator
+     * @param combiner used to combine partial results returned by the {@code execute} function
+     * @param identity default value (this is the result, if the batchIterator contains no items)
+     * @param pauseConsumption predicate used to check if the consumption should be paused
+     */
+    public BatchIteratorBackpressureExecutor(ScheduledExecutorService scheduler,
+                                             BatchIterator<T> batchIterator,
+                                             Function<T, CompletableFuture<R>> execute,
+                                             BinaryOperator<R> combiner,
+                                             R identity,
+                                             Predicate<T> pauseConsumption,
                                              BackoffPolicy backoffPolicy) {
         this.batchIterator = batchIterator;
         this.scheduler = scheduler;
-        this.onRowConsumer = onRowConsumer;
-        this.executeFunction = executeFunction;
+        this.execute = execute;
+        this.combiner = combiner;
         this.pauseConsumption = pauseConsumption;
-        this.bulkSize = bulkSize;
         this.throttleDelay = backoffPolicy.iterator();
+        this.resultRef = new AtomicReference<>(identity);
         this.continueConsumptionOrFinish = this::continueConsumptionOrFinish;
     }
 
-    public CompletableFuture<Void> consumeIteratorAndExecute() {
+    public CompletableFuture<R> consumeIteratorAndExecute() {
         consumeIterator();
         return resultFuture;
     }
 
-    private void continueConsumptionOrFinish(Object ignored, Throwable failure) {
+    private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
         int inFlight = inFlightExecutions.decrementAndGet();
         assert inFlight >= 0 : "Number of in-flight executions must not be negative";
 
         if (consumptionFinished) {
+            R finalResult = maybeUpdateResult(result);
             if (inFlight == 0) {
-                setResult(failure);
+                setResult(finalResult, failure == null ? failureRef.get() : failure);
             }
             // else: waiting for other async-operations to finish
         } else {
+            if (failure != null) {
+                failureRef.set(failure);
+            }
+            if (result != null) {
+                resultRef.accumulateAndGet(result, combiner);
+            }
             consumeIterator();
         }
     }
 
-    private void setResult(Throwable failure) {
+    private R maybeUpdateResult(@Nullable R result) {
+        if (result == null) {
+            return resultRef.get();
+        }
+        return resultRef.accumulateAndGet(result, combiner);
+    }
+
+    private void setResult(R finalResult, Throwable failure) {
         batchIterator.close();
         if (failure == null) {
-            resultFuture.complete(null);
+            resultFuture.complete(finalResult);
         } else {
             resultFuture.completeExceptionally(failure);
         }
     }
 
     /**
-     * Consumes the rows from the BatchIterator and invokes {@link #executeFunction} every {@link #bulkSize} rows.
+     * Consumes the rows from the BatchIterator and invokes {@link #execute} on each row.
      * This loop continues until either:
      *
      *  - The BatchIterator has been fully consumed.
@@ -127,31 +150,27 @@ public class BatchIteratorBackpressureExecutor<R> {
         }
         try {
             while (batchIterator.moveNext()) {
-                indexInBulk++;
-                onRowConsumer.accept(batchIterator.currentElement());
-
-                if (indexInBulk == bulkSize) {
-                    if (pauseConsumption.getAsBoolean()) {
-                        // release semaphore inside resumeConsumption: after throttle delay has passed
-                        // to make sure callbacks of previously triggered async operations don't resume consumption
-                        scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
-                        return;
-                    }
-                    executeBatch();
+                T item = batchIterator.currentElement();
+                if (pauseConsumption.test(item)) {
+                    // release semaphore inside resumeConsumption: after throttle delay has passed
+                    // to make sure callbacks of previously triggered async operations don't resume consumption
+                    scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
+                    return;
                 }
+                execute(item);
             }
 
             inFlightExecutions.incrementAndGet();
             if (batchIterator.allLoaded()) {
                 semaphore.release();
                 consumptionFinished = true;
-                executeFunction.get().whenComplete(continueConsumptionOrFinish);
+                continueConsumptionOrFinish.accept(null, null);
             } else {
                 batchIterator.loadNextBatch()
                     // consumption can only be continued after loadNextBatch completes; so keep permit until then.
                     .whenComplete((r, f) -> {
                         semaphore.release();
-                        continueConsumptionOrFinish.accept(r, f);
+                        continueConsumptionOrFinish.accept(null, f);
                     });
             }
         } catch (Throwable t) {
@@ -161,20 +180,20 @@ public class BatchIteratorBackpressureExecutor<R> {
         }
     }
 
-    private void executeBatch() {
-        indexInBulk = 0;
+    private void execute(T item) {
         inFlightExecutions.incrementAndGet();
-        executeFunction.get().whenComplete(continueConsumptionOrFinish);
+        execute.apply(item).whenComplete(continueConsumptionOrFinish);
     }
 
     private void resumeConsumption() {
-        if (pauseConsumption.getAsBoolean()) {
+        T item = batchIterator.currentElement();
+        if (pauseConsumption.test(item)) {
             scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
             return;
         }
         // Suspend happened once a batch was ready, so execute it now.
         // consumeIterator would otherwise move past the indexInBulk == bulkSize check and end up building a huge batch
-        executeBatch();
+        execute(item);
         semaphore.release();
 
         // In case executeBatch takes some time to finish - also immediately resume consumption.

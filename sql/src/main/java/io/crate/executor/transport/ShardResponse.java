@@ -196,4 +196,10 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             }
         }
     }
+
+    public int successRowCount() {
+        BitSet bitSet = new BitSet();
+        markResponseItemsAndFailures(this, bitSet);
+        return bitSet.cardinality();
+    }
 }

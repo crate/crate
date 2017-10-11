@@ -20,15 +20,35 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.operation.projectors.sharding;
 
-/**
- * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
- */
-public abstract class ForwardingBatchIterator<T> extends MappedForwardingBatchIterator<T, T> {
+import org.elasticsearch.index.shard.ShardId;
+
+class ShardLocation {
+    final ShardId shardId;
+    final String nodeId;
+
+    ShardLocation(ShardId shardId, String nodeId) {
+        this.shardId = shardId;
+        this.nodeId = nodeId;
+    }
 
     @Override
-    public T currentElement() {
-        return delegate().currentElement();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ShardLocation that = (ShardLocation) o;
+
+        if (!shardId.equals(that.shardId)) return false;
+        return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
     }
+
+    @Override
+    public int hashCode() {
+        int result = shardId.hashCode();
+        result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
+        return result;
+    }
+
 }
