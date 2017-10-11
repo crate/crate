@@ -3,7 +3,7 @@ appdirs==1.4.3
 argh==0.26.2
 Babel==2.4.0
 colorama==0.3.9
-crash==0.22.1
+crash==0.22.2
 crate==0.20.1
 
 # don't pin crate-docs-theme to a version number so the docs pick up whatever
