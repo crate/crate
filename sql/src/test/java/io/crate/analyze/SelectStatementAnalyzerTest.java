@@ -790,8 +790,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat("requiredForMerge can be empty because orderBy is moved to subRelation",
-            relation.requiredForMerge().isEmpty(),is(true));
 
         assertThat(relation.querySpec().orderBy(), nullValue());
         Iterator<Map.Entry<QualifiedName, AnalyzedRelation>> it = relation.sources().entrySet().iterator();
@@ -814,8 +812,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
-        assertThat(relation.requiredForMerge(), isSQL(
-            "doc.users_multi_pk.id, concat(doc.users.name, doc.users_multi_pk.name)"));
+        QueriedRelation u1 = (QueriedRelation) relation.sources().values().iterator().next();
+        assertThat(u1.querySpec(), isSQL("SELECT doc.users.id, doc.users.name"));
     }
 
     @Test
@@ -823,7 +821,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         SelectAnalyzedStatement stmt = analyze(
             "select u1.name from users u1 inner join users u2 on u1.id = u2.id order by u2.date");
         MultiSourceSelect rel = (MultiSourceSelect) stmt.relation();
-        assertThat(rel.requiredForMerge(), contains(isField("date")));
         assertThat(rel.querySpec().outputs(), contains(isField("name")));
     }
 

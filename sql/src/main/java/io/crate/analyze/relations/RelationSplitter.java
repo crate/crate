@@ -29,7 +29,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.fetch.FetchFieldExtractor;
 import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
@@ -65,7 +64,6 @@ public final class RelationSplitter {
     private final Set<QualifiedName> relationPartOfJoinConditions;
 
     private AnalyzedRelation firstRel;
-    private Set<Field> canBeFetched;
     private boolean orderByMoved = false;
 
     public RelationSplitter(QuerySpec querySpec,
@@ -96,14 +94,6 @@ public final class RelationSplitter {
 
     public boolean relationReOrderAllowed() {
         return orderByMoved == false;
-    }
-
-    public Set<Symbol> requiredForMerge() {
-        return requiredForMerge;
-    }
-
-    public Set<Field> canBeFetched() {
-        return canBeFetched;
     }
 
     public QuerySpec getSpec(AnalyzedRelation relation) {
@@ -165,15 +155,9 @@ public final class RelationSplitter {
             }
         }
 
-        // capture items from the outputs
-        canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), fieldsByRelation);
-
         FieldsVisitor.visitFields(querySpec.outputs(), addFieldToMap);
         for (Symbol symbol : requiredForMerge) {
-            FieldsVisitor.visitFields(symbol, f -> {
-                canBeFetched.remove(f);
-                addFieldToMap.accept(f);
-            });
+            FieldsVisitor.visitFields(symbol, addFieldToMap::accept);
         }
 
         // generate the outputs of the subSpecs

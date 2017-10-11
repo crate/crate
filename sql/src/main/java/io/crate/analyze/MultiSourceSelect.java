@@ -30,7 +30,6 @@ import io.crate.analyze.relations.RelationSplitter;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.collections.Sets2;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.TransactionContext;
@@ -40,7 +39,6 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +51,6 @@ public class MultiSourceSelect implements QueriedRelation {
     private final Fields fields;
     private final boolean relationReOrderAllowed;
     private final List<JoinPair> joinPairs;
-    private final Set<Symbol> requiredForMerge;
-    private final Set<Field> canBeFetched;
     private QualifiedName qualifiedName;
     private QuerySpec querySpec;
 
@@ -101,16 +97,12 @@ public class MultiSourceSelect implements QueriedRelation {
         for (JoinPair joinPair : mss.joinPairs) {
             joinPair.replaceCondition(convertFieldInSymbolsToNewRelations);
         }
-        Set<Symbol> requiredForMerge = Sets2.transformedCopy(splitter.requiredForMerge(), convertFieldInSymbolsToNewRelations);
-        Set<Field> canBeFetched = Sets2.transformedCopy(splitter.canBeFetched(), convertFieldToPointToNewRelations);
         return new MultiSourceSelect(
             mss.qualifiedName,
             mss.sources(),
             mss.fields(),
             querySpec,
             mss.joinPairs,
-            requiredForMerge,
-            canBeFetched,
             splitter.relationReOrderAllowed()
         );
     }
@@ -143,8 +135,6 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Path path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
-        this.requiredForMerge = Collections.emptySet();
-        this.canBeFetched = Collections.emptySet();
         this.relationReOrderAllowed = true;
     }
 
@@ -162,8 +152,6 @@ public class MultiSourceSelect implements QueriedRelation {
                               Collection<Field> fields,
                               QuerySpec querySpec,
                               List<JoinPair> joinPairs,
-                              Set<Symbol> requiredForMerge,
-                              Set<Field> canBeFetched,
                               boolean relationReOrderAllowed) {
         this.qualifiedName = relName;
         this.sources = sources;
@@ -174,8 +162,6 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Field field : fields) {
             this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
-        this.requiredForMerge = requiredForMerge;
-        this.canBeFetched = canBeFetched;
     }
 
     /**
@@ -183,18 +169,10 @@ public class MultiSourceSelect implements QueriedRelation {
      *         (Ex.: t1 ⋈ t2 ⋈ t3 may be re-ordered to ((t2 ⋈ t3) ⋈ t1)
      *
      *
-     * See also: {@link RelationSplitter#processOrderBy()} and {@link io.crate.planner.consumer.ManyTableConsumer}
+     * See also: {@link RelationSplitter#processOrderBy()} and {@link io.crate.planner.operators.JoinOrdering
      */
     public boolean isRelationReOrderAllowed() {
         return relationReOrderAllowed;
-    }
-
-    public Set<Symbol> requiredForMerge() {
-        return requiredForMerge;
-    }
-
-    public Set<Field> canBeFetched() {
-        return canBeFetched;
     }
 
     public Map<QualifiedName, AnalyzedRelation> sources() {

@@ -141,6 +141,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "]\n"));
     }
 
+    @Test
+    public void testScoreColumnIsCollectedNotFetched() throws Exception {
+        LogicalPlan plan = plan("select x, _score from t1");
+        assertThat(plan, isPlan("FetchOrEval[x, _score]\n" +
+                                "Collect[doc.t1 | [_fetchid, _score] | All]\n"));
+    }
+
     private Matcher<LogicalPlan> isPlan(String expectedPlan) {
         return new FeatureMatcher<LogicalPlan, String>(equalTo(expectedPlan), "same output", "output ") {
 

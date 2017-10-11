@@ -40,10 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -139,8 +136,6 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
 
-        assertThat(splitter.canBeFetched(), containsInAnyOrder(isField("x"), isField("y")));
-
         querySpec.limit(Literal.of(10));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10"));
@@ -169,10 +164,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
         assertThat(querySpec.orderBy(), notNullValue());
         assertThat(querySpec.orderBy(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.requiredForMerge(), isSQL("doc.t1.a, add(doc.t1.x, doc.t2.y)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
-        assertThat(splitter.canBeFetched(), empty());
     }
 
     @Test
@@ -241,23 +234,6 @@ public class RelationSplitterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testOnlyDocTablesCanBeFetched() throws Exception {
-        QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(
-            asSymbol("x"),
-            asSymbol("y"),
-            asSymbol("z"),
-            asSymbol("a")
-        ));
-        RelationSplitter splitter = split(querySpec);
-
-        assertThat(splitter.canBeFetched(), containsInAnyOrder(
-            asSymbol("x"),
-            asSymbol("y"),
-            asSymbol("a")
-        ));
-    }
-
-    @Test
     public void testSplitOfSingleRelationTree() throws Exception {
         QuerySpec querySpec = fromQuery("t1.a = t2.b and t1.a = 'employees'");
         RelationSplitter splitter = split(querySpec);
@@ -265,16 +241,6 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT true WHERE (doc.t1.a = doc.t2.b)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a WHERE (doc.t1.a = 'employees')"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b"));
-    }
-
-    @Test
-    public void testScoreCannotBeFetchd() throws Exception {
-        QuerySpec querySpec = new QuerySpec().outputs(Arrays.asList(
-            asSymbol("t1._score"),
-            asSymbol("a")
-        ));
-        RelationSplitter splitter = split(querySpec);
-        assertThat(splitter.canBeFetched(), containsInAnyOrder(asSymbol("a")));
     }
 
     @Test
