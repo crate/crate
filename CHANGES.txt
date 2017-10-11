@@ -24,6 +24,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused ``INSERT`` statements using a subquery on the
+   `sys.shards` system table to fail.
+
  - Update position of the navigation menu elements of the Admin UI.
 
  - Fixed left Join condition in shards query that previously caused
