@@ -103,7 +103,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         plannerContext = new Planner.Context(
             e.planner,
-            clusterService,
+            clusterService.localNode().getId(),
             UUID.randomUUID(),
             new ConsumingPlanner(clusterService, functions, tableStats),
             normalizer,

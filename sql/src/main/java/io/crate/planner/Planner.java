@@ -116,7 +116,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final RoutingBuilder routingBuilder = new RoutingBuilder();
         private final Planner planner;
-        private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
         private final EvaluatingNormalizer normalizer;
@@ -127,7 +126,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private String handlerNode;
 
         public Context(Planner planner,
-                       ClusterService clusterService,
+                       String localNodeId,
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
                        EvaluatingNormalizer normalizer,
@@ -135,14 +134,13 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                        int softLimit,
                        int fetchSize) {
             this.planner = planner;
-            this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
             this.normalizer = normalizer;
             this.transactionContext = transactionContext;
             this.softLimit = softLimit;
             this.fetchSize = fetchSize;
-            this.handlerNode = clusterService.localNode().getId();
+            this.handlerNode = localNodeId;
         }
 
         public EvaluatingNormalizer normalizer() {
@@ -189,7 +187,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 fetchSize = this.fetchSize;
             }
             return planner.process(statement, new Planner.Context(
-                planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
+                planner, handlerNode, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
         }
 
         void applySoftLimit(QuerySpec querySpec) {
@@ -253,7 +251,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
         return process(analyzedStatement, new Context(this,
-            clusterService, jobId, consumingPlanner, normalizer, analysis.transactionContext(), softLimit, fetchSize));
+            clusterService.localNode().getId(), jobId, consumingPlanner, normalizer, analysis.transactionContext(), softLimit, fetchSize));
     }
 
     @Override
