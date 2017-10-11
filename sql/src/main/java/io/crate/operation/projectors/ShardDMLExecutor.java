@@ -26,6 +26,7 @@ import com.google.common.base.Throwables;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.transport.ShardRequest;
@@ -40,14 +41,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
@@ -67,12 +67,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final Supplier<TReq> requestFactory;
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
-    private final BitSet responses;
-    private final Consumer<Row> rowConsumer;
-    private final BooleanSupplier shouldPause;
+    private final Predicate<TReq> shouldPause;
     private final String localNodeId;
 
-    private TReq currentRequest;
     private int numItems = -1;
 
     ShardDMLExecutor(int bulkSize,
@@ -90,43 +87,27 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         this.requestFactory = requestFactory;
         this.itemFactory = itemFactory;
         this.operation = transportAction;
-        this.responses = new BitSet();
-        this.currentRequest = requestFactory.get();
         this.localNodeId = getLocalNodeId(clusterService);
 
-        this.rowConsumer = this::addRowToRequest;
-        this.shouldPause = () ->
+        this.shouldPause = ignored ->
             nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
     }
 
-    private void addRowToRequest(Row row) {
+    private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        currentRequest.add(numItems, itemFactory.apply(((BytesRef) uidExpression.value()).utf8ToString()));
+        req.add(numItems, itemFactory.apply(((BytesRef) uidExpression.value()).utf8ToString()));
     }
 
-    private CompletableFuture<BitSet> executeBatch() {
-        /* This optimizes cases like "update t set x = ? where part_of_pk = ?"
-         * This runs the collect on *all* shards but only a small subset has any matches
-         * So this case can happen often.
-         */
-        if (currentRequest.items().isEmpty()) {
-            return CompletableFuture.completedFuture(responses);
-        }
-
-        FutureActionListener<ShardResponse, BitSet> listener = new FutureActionListener<>(this::processShardResponse);
+    private CompletableFuture<Long> executeBatch(TReq request) {
+        FutureActionListener<ShardResponse, Long> listener = new FutureActionListener<>(ShardDMLExecutor::processShardResponse);
         nodeJobsCounter.increment(localNodeId);
-        CompletableFuture<BitSet> result = listener.whenComplete((r, f) -> nodeJobsCounter.decrement(localNodeId));
-
-        operation.accept(currentRequest, withRetry(currentRequest, listener));
-
-        // The current bulk was submitted to the transport action for execution, so we'll continue to collect and
-        // accumulate data for the next bulk in a new request object
-        currentRequest = requestFactory.get();
+        CompletableFuture<Long> result = listener.whenComplete((r, f) -> nodeJobsCounter.decrement(localNodeId));
+        operation.accept(request, withRetry(request, listener));
         return result;
     }
 
-    private RetryListener<ShardResponse> withRetry(TReq request, FutureActionListener<ShardResponse, BitSet> listener) {
+    private RetryListener<ShardResponse> withRetry(TReq request, FutureActionListener<ShardResponse, Long> listener) {
         return new RetryListener<>(
             scheduler,
             l -> operation.accept(request, l),
@@ -137,20 +118,24 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
+        BatchIterator<TReq> reqBatchIterator =
+            BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest);
+        BinaryOperator<Long> combinePartialResult = (a, b) -> a + b;
+        long initialResult = 0L;
         return new BatchIteratorBackpressureExecutor<>(
-            batchIterator,
             scheduler,
-            rowConsumer,
+            reqBatchIterator,
             this::executeBatch,
+            combinePartialResult,
+            initialResult,
             shouldPause,
-            bulkSize,
             BACKOFF_POLICY
         ).consumeIteratorAndExecute()
-            .thenApply(ignored -> Collections.singletonList(new Row1((long) responses.cardinality())));
+            .thenApply(rowCount -> Collections.singletonList(new Row1(rowCount == null ? 0L : rowCount)));
     }
 
     @Nullable
-    private String getLocalNodeId(ClusterService clusterService) {
+    private static String getLocalNodeId(ClusterService clusterService) {
         String nodeId = null;
         try {
             nodeId = clusterService.localNode().getId();
@@ -160,15 +145,12 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         return nodeId;
     }
 
-    private BitSet processShardResponse(ShardResponse shardResponse) {
+    private static long processShardResponse(ShardResponse shardResponse) {
         Exception failure = shardResponse.failure();
         if (failure != null) {
             Throwables.throwIfUnchecked(failure);
             throw new RuntimeException(failure);
         }
-        synchronized (responses) {
-            ShardResponse.markResponseItemsAndFailures(shardResponse, responses);
-        }
-        return responses;
+        return shardResponse.successRowCount();
     }
 }
