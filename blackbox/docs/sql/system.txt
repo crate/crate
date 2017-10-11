@@ -1321,5 +1321,75 @@ The table is only available in the CrateDB `Enterprise Edition`_.
 |               | is a superuser.                              |             |
 +---------------+----------------------------------------------+-------------+
 
+.. _sys-allocations:
+
+Allocations
+===========
+
+The ``sys.allocations`` table contains information about shards and their
+allocation state. The table contains:
+
+* shards that are unassigned and why they are unassigned
+* shards that are assigned but cannot be moved or rebalanced and why they
+  remain on their current node
+
+It can help to identify problems if shard allocations behave different than
+expected, e.g. when a shard stays unassigned or a shard does not move off a
+node.
+
++-------------------------------+-------------------------------+-------------+
+| Column Name                   | Description                   | Return Type |
++===============================+===============================+=============+
+| ``table_schema``              | Schema name of the table of   | ``STRING``  |
+|                               | the shard.                    |             |
++-------------------------------+-------------------------------+-------------+
+| ``table_name``                | Table name of the shard.      | ``STRING``  |
++-------------------------------+-------------------------------+-------------+
+| ``partition_ident``           | Identifier of the partition   | ``STRING``  |
+|                               | of the shard.                 |             |
+|                               | ``NULL`` if the table is not  |             |
+|                               | partitioned.                  |             |
++-------------------------------+-------------------------------+-------------+
+| ``shard_id``                  | ID of the effected shard.     | ``INTEGER`` |
++-------------------------------+-------------------------------+-------------+
+| ``node_id``                   | ID of the node on which the   | ``STRING``  |
+|                               | shard resides. ``NULL`` if    |             |
+|                               | the shard is unassigned.      |             |
++-------------------------------+-------------------------------+-------------+
+| ``primary``                   | Whether the shard is a        | ``BOOLEAN`` |
+|                               | primary shard.                |             |
++-------------------------------+-------------------------------+-------------+
+| ``current_state``             | Current state of the shard.   | ``STRING``  |
+|                               | Possible states are:          |             |
+|                               | ``UNASSIGNED``,               |             |
+|                               | ``INITIALIZING``,             |             |
+|                               | ``STARTED``,                  |             |
+|                               | ``RELOCATING``                |             |
++-------------------------------+-------------------------------+-------------+
+| ``explanation``               | Explanation why the shard     | ``STRING``  |
+|                               | cannot be allocated, moved    |             |
+|                               | or rebalanced.                |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions``                 | A list of decisions that      | ``ARRAY``   |
+|                               | describe in detail why the    |             |
+|                               | shard in the current state.   |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['node_id']``      | ID of the node of the         | ``STRING``  |
+|                               | decision.                     |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['node_name']``    | Name of the node of the       | ``STRING``  |
+|                               | decision.                     |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['explanations']`` | Detailed list of human        | ``ARRAY``   |
+|                               | readable explanations why the |             |
+|                               | node's decision to allocate,  |             |
+|                               | move, or rebalance the shard  |             |
+|                               | was "no".                     |             |
+|                               | Returns ``NULL`` if the       |             |
+|                               | decision of the node was      |             |
+|                               | "yes".                        |             |
++-------------------------------+-------------------------------+-------------+
+
+
 .. _configuration: ../configuration.html
 .. _Enterprise Edition: https://crate.io/enterprise/
