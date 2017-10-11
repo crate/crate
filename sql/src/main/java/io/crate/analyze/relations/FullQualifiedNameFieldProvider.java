@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Resolves QualifiedNames to Fields considering multiple AnalyzedRelations.
@@ -52,11 +53,9 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
                                           AnalyzedRelation> sources,
                                           ParentRelations parents,
                                           String defaultSchema) {
-        assert !sources.isEmpty() : "Must have at least one source";
-        assert defaultSchema != null : "Default schema must not be null";
-        this.sources = sources;
-        this.parents = parents;
-        this.defaultSchema = defaultSchema;
+        this.sources = Objects.requireNonNull(sources, "Please provide a source map.");
+        this.parents = Objects.requireNonNull(parents, "ParentRelations must not be null");
+        this.defaultSchema = Objects.requireNonNull(defaultSchema, "Default schema must not be null");
     }
 
     public Field resolveField(QualifiedName qualifiedName, Operation operation) {

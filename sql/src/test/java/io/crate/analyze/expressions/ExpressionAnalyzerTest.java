@@ -34,6 +34,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -69,6 +70,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
@@ -87,6 +89,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private ParamTypeHints paramTypeHints;
     private Functions functions;
     private SQLExecutor executor;
+    private SqlExpressions expressions;
 
     @Before
     public void prepare() throws Exception {
@@ -100,6 +103,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(T3.T1_INFO)
             .addDocTable(T3.T2_INFO)
             .build();
+        expressions = new SqlExpressions(Collections.emptyMap());
     }
 
     @Test
@@ -277,5 +281,24 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testInPredicateWithSubqueryIsRewrittenToAnyEq() {
         Symbol symbol = executor.asSymbol(T3.SOURCES, "t1.x in (select t2.y from t2)");
         assertThat(symbol, isSQL("(doc.t1.x = ANY(SelectSymbol{integer_table}))"));
+    }
+
+    @Test
+    public void testEarlyConstantFolding() {
+        assertThat(expressions.asSymbol("1 = (1 = (1 = 1))"), isLiteral(true));
+    }
+
+    @Test
+    public void testLiteralCastsAreFlattened() {
+        Symbol symbol = expressions.asSymbol("cast(cast(1 as long) as double)");
+        assertThat(symbol, isLiteral(1.0));
+    }
+
+    @Test
+    public void testParameterSymbolCastsAreFlattened() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function comparisonFunction = (Function) expressions.asSymbol("doc.t2.i = $1");
+        assertThat(comparisonFunction.arguments().get(1), is(instanceOf(ParameterSymbol.class)));
+        assertThat(comparisonFunction.arguments().get(1).valueType(), is(DataTypes.INTEGER));
     }
 }

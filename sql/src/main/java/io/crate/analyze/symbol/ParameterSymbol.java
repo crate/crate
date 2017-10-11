@@ -56,6 +56,11 @@ public class ParameterSymbol extends Symbol {
     }
 
     @Override
+    public ParameterSymbol cast(DataType dataType, boolean tryCast) {
+        return new ParameterSymbol(index, dataType);
+    }
+
+    @Override
     public boolean canBeCasted() {
         return true;
     }

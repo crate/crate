@@ -21,6 +21,7 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;
@@ -38,6 +39,27 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
     public abstract DataType valueType();
+
+    /**
+     * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
+     * Sublasses of this class may provide another cast methods.
+     * @param newDataType The resulting data type after applying the cast
+     * @return An instance of {@link Function} which casts this symbol.
+     */
+    public final Symbol cast(DataType newDataType) {
+        return cast(newDataType, false);
+    }
+
+    /**
+     * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
+     * Sublasses of this class may provide another cast methods.
+     * @param newDataType The resulting data type after applying the cast
+     * @param tryCast If set to true, will return null the symbol cannot be casted.
+     * @return An instance of {@link Function} which casts this symbol.
+     */
+    public Symbol cast(DataType newDataType, boolean tryCast) {
+        return CastFunctionResolver.generateCastFunction(this, newDataType, tryCast);
+    }
 
     @Override
     public String toString() {

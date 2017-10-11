@@ -28,6 +28,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 public class LiteralTest extends CrateUnitTest {
@@ -102,5 +103,11 @@ public class LiteralTest extends CrateUnitTest {
         val1 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3,4,5}});
         val2 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
         assertThat(val1.equals(val2), is(false));
+    }
+
+    @Test
+    public void testCasting() {
+        Symbol intLiteral = Literal.of(1);
+        assertThat(intLiteral.cast(DataTypes.LONG), isLiteral(1L));
     }
 }
