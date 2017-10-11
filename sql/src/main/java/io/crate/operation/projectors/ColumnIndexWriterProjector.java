@@ -34,6 +34,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;

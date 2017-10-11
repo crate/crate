@@ -24,6 +24,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 public class BatchIterators {
@@ -80,5 +81,57 @@ public class BatchIterators {
             });
         }
         return resultFuture;
+    }
+
+    /**
+     * Partition the items of a BatchIterator into blocks of {@code size}.
+     *
+     * Example:
+     * <pre>
+     *     inputBi: [1, 2, 3, 4, 5]
+     *
+     *     partition(inputBi, 2, ArrayList::new, List::add) -> [[1, 2], [3, 4], [5]]
+     * </pre>
+     * @param supplier Used to create the state per partition
+     * @param accumulator Used to add items to the partitions state
+     * @param <T> input item type
+     * @param <A> output item type
+     */
+    public static <T, A> BatchIterator<A> partition(BatchIterator<T> bi,
+                                                    int size,
+                                                    Supplier<A> supplier,
+                                                    BiConsumer<A, T> accumulator) {
+        return new MappedForwardingBatchIterator<T, A>() {
+
+            private A element = null;
+            private A state = supplier.get();
+            private int idx = 0;
+
+            @Override
+            protected BatchIterator<T> delegate() {
+                return bi;
+            }
+
+            @Override
+            public boolean moveNext() {
+                while (idx < size && bi.moveNext()) {
+                    accumulator.accept(state, bi.currentElement());
+                    idx++;
+                }
+                if (idx == size || (idx > 0 && bi.allLoaded())) {
+                    element = state;
+                    state = supplier.get();
+                    idx = 0;
+                    return true;
+                }
+                element = null;
+                return false;
+            }
+
+            @Override
+            public A currentElement() {
+                return element;
+            }
+        };
     }
 }

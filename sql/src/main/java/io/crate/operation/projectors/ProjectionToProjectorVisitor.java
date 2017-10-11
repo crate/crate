@@ -49,6 +49,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.operation.projectors.fetch.TransportFetchOperation;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.StaticTableDefinition;
 import io.crate.operation.reference.sys.SysRowUpdater;

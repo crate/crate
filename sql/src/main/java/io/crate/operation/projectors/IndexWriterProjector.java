@@ -31,6 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;

@@ -22,13 +22,43 @@
 
 package io.crate.data;
 
+import javax.annotation.Nonnull;
+import java.util.concurrent.CompletionStage;
+
 /**
  * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
  */
-public abstract class ForwardingBatchIterator<T> extends MappedForwardingBatchIterator<T, T> {
+public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterator<O> {
+
+    protected abstract BatchIterator<I> delegate();
 
     @Override
-    public T currentElement() {
-        return delegate().currentElement();
+    public void moveToStart() {
+        delegate().moveToStart();
+    }
+
+    @Override
+    public boolean moveNext() {
+        return delegate().moveNext();
+    }
+
+    @Override
+    public void close() {
+        delegate().close();
+    }
+
+    @Override
+    public CompletionStage<?> loadNextBatch() {
+        return delegate().loadNextBatch();
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return delegate().allLoaded();
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        delegate().kill(throwable);
     }
 }

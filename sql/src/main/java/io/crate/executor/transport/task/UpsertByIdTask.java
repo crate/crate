@@ -34,7 +34,7 @@ import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.projectors.RetryListener;
-import io.crate.operation.projectors.ShardingUpsertExecutor;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpsertById;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;

@@ -28,7 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
-import io.crate.operation.projectors.ShardingUpsertExecutor;
+import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
