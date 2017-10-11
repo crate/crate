@@ -542,7 +542,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
         return BatchIteratorCollectorBridge.newInstance(
             RowsBatchIterator.newInstance(
-                Iterables.transform(rows, Buckets.arrayToRowFunction()), collectPhase.outputTypes().size()),
+                Iterables.transform(rows, Buckets.arrayToRowFunction()), collectPhase.toCollect().size()),
             consumer
         );
     }
