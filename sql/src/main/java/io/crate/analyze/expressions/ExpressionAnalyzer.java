@@ -285,10 +285,8 @@ public class ExpressionAnalyzer {
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
         if (sourceSymbol.valueType().equals(targetType)) {
             return sourceSymbol;
-        } else if (sourceSymbol.symbolType().isValueSymbol()) {
-            return Literal.convert(sourceSymbol, targetType);
         }
-        return CastFunctionResolver.generateCastFunction(sourceSymbol, targetType, tryCast);
+        return sourceSymbol.cast(targetType, tryCast);
     }
 
     @Nullable

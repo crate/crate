@@ -123,8 +123,13 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return SymbolType.LITERAL;
     }
 
+    @Override
+    public Symbol cast(DataType newDataType, boolean tryCast) {
+        return Literal.convert(this, newDataType);
+    }
+
     /**
-     * Literals may be casted if necessary.
+     * Literals always may be casted if required.
      */
     @Override
     public boolean canBeCasted() {
