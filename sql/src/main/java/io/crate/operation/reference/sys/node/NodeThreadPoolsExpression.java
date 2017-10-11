@@ -24,6 +24,7 @@ package io.crate.operation.reference.sys.node;
 
 import com.google.common.collect.Lists;
 import io.crate.monitor.ThreadPools;
+import io.crate.operation.reference.sys.ArrayTypeRowContextCollectorExpression;
 
 import java.util.HashMap;
 import java.util.List;

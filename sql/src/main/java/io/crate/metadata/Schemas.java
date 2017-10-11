@@ -212,7 +212,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      *
      * @param schemaName The schema name as a string.
      */
-    static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
+    public static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
         if (schemaName == null) {
             return true;
         }

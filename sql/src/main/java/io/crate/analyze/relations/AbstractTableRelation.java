@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.ArrayType;
@@ -82,8 +83,11 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         Reference tmpRI = reference;
 
         while (!tmpCI.isColumn() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
-            if (DataTypes.isCollectionType(reference.valueType())) {
-                // TODO: remove this limitation with next type refactoring
+            if (DataTypes.isCollectionType(reference.valueType()) &&
+                Schemas.isDefaultOrCustomSchema(reference.ident().tableIdent().schema())) {
+                // Arrays inside object arrays cannot be queried to to the limitations of term queries.
+                // For querying system tables this limitation does not apply so we can allow it and not not need to
+                // raise here.
                 throw new UnsupportedOperationException("cannot query for arrays inside object arrays explicitly");
             }
 

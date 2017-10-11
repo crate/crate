@@ -29,11 +29,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.core.Is.is;
@@ -76,4 +79,28 @@ public class BytesRefUtilsTest extends CrateUnitTest {
 
         assertThat((String[]) rows[0][0], Matchers.arrayContainingInAnyOrder("foo", null));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testConvertObjectValues() throws Exception {
+        DataType[] dataTypes = new DataType[]{ DataTypes.OBJECT };
+        Object[][] rows = new Object[1][1];
+        Map<String, Object> res = new HashMap<>();
+        res.put("str", BytesRefs.toBytesRef("string value"));
+        res.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null });
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("str", BytesRefs.toBytesRef("other value"));
+        nested.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v2"), null });
+        res.put("nested", nested);
+        rows[0][0] = res;
+        BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
+
+        Map<String, Object> result = (Map<String, Object>) rows[0][0];
+        assertThat(result.get("str"), is("string value"));
+        assertThat((String[]) result.get("str_array"), Matchers.arrayContainingInAnyOrder("v1", null));
+        result = (Map<String, Object>) result.get("nested");
+        assertThat(result.get("str"), is("other value"));
+        assertThat((String[]) result.get("str_array"), Matchers.arrayContainingInAnyOrder("v2", null));
+    }
+
 }

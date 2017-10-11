@@ -23,6 +23,9 @@ Breaking Changes
 Changes
 =======
 
+- Added new system table ``sys.allocations`` which lists shards and their
+  allocation state including the reasoning why they are in a certain state.
+
 - Upgraded Elasticsearch to v5.6.3
 
 - Added new table setting ``allocation.max_retries`` that defines the number of

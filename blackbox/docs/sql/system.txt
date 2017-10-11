@@ -834,25 +834,10 @@ Table Schema
 |                                    | recovery.                                          |             |
 +------------------------------------+----------------------------------------------------+-------------+
 
-Notes
------
+.. NOTE::
 
-Accessing the ``sys.shards`` table is subjected to the same privileges
-constraints as the other tables. Namely, in order to query it, the connected
-user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either
-directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information
-on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges
-<hierarchical_privileges_inheritance>`).
+   The ``sys.shards`` table is subject to :ref:`shard_table_permissions`.
 
-However, being able to query ``sys.shards`` will not allow the user to retrieve
-all the rows in the table, as it can contain information related to tables over
-which the connected user does not have any privileges. The only rows that will
-be returned will be the ones the user is allowed to access.
-
-For example, if the user ``john`` has any privilege on the ``doc.books`` table
-but no privilege at all on ``doc.locations``, when ``john`` issues a
-``SELECT * FROM sys.shards`` statement, the shards information related to the
-``doc.locations`` table will not be returned.
 
 Example
 -------
@@ -1320,6 +1305,103 @@ The table is only available in the CrateDB `Enterprise Edition`_.
 | ``superuser`` | BOOLEAN flag to indicate whether the user    | ``BOOLEAN`` |
 |               | is a superuser.                              |             |
 +---------------+----------------------------------------------+-------------+
+
+.. _sys-allocations:
+
+Allocations
+===========
+
+The ``sys.allocations`` table contains information about shards and their
+allocation state. The table contains:
+
+* shards that are unassigned and why they are unassigned
+* shards that are assigned but cannot be moved or rebalanced and why they
+  remain on their current node
+
+It can help to identify problems if shard allocations behave different than
+expected, e.g. when a shard stays unassigned or a shard does not move off a
+node.
+
++-------------------------------+-------------------------------+-------------+
+| Column Name                   | Description                   | Return Type |
++===============================+===============================+=============+
+| ``table_schema``              | Schema name of the table of   | ``STRING``  |
+|                               | the shard.                    |             |
++-------------------------------+-------------------------------+-------------+
+| ``table_name``                | Table name of the shard.      | ``STRING``  |
++-------------------------------+-------------------------------+-------------+
+| ``partition_ident``           | Identifier of the partition   | ``STRING``  |
+|                               | of the shard.                 |             |
+|                               | ``NULL`` if the table is not  |             |
+|                               | partitioned.                  |             |
++-------------------------------+-------------------------------+-------------+
+| ``shard_id``                  | ID of the effected shard.     | ``INTEGER`` |
++-------------------------------+-------------------------------+-------------+
+| ``node_id``                   | ID of the node on which the   | ``STRING``  |
+|                               | shard resides. ``NULL`` if    |             |
+|                               | the shard is unassigned.      |             |
++-------------------------------+-------------------------------+-------------+
+| ``primary``                   | Whether the shard is a        | ``BOOLEAN`` |
+|                               | primary shard.                |             |
++-------------------------------+-------------------------------+-------------+
+| ``current_state``             | Current state of the shard.   | ``STRING``  |
+|                               | Possible states are:          |             |
+|                               | ``UNASSIGNED``,               |             |
+|                               | ``INITIALIZING``,             |             |
+|                               | ``STARTED``,                  |             |
+|                               | ``RELOCATING``                |             |
++-------------------------------+-------------------------------+-------------+
+| ``explanation``               | Explanation why the shard     | ``STRING``  |
+|                               | cannot be allocated, moved    |             |
+|                               | or rebalanced.                |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions``                 | A list of decisions that      | ``ARRAY``   |
+|                               | describe in detail why the    |             |
+|                               | shard in the current state.   |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['node_id']``      | ID of the node of the         | ``STRING``  |
+|                               | decision.                     |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['node_name']``    | Name of the node of the       | ``STRING``  |
+|                               | decision.                     |             |
++-------------------------------+-------------------------------+-------------+
+| ``decisions['explanations']`` | Detailed list of human        | ``ARRAY``   |
+|                               | readable explanations why the |             |
+|                               | node decided whether to       |             |
+|                               | allocate or rebalance the     |             |
+|                               | shard. Returns ``NULL`` if    |             |
+|                               | there is no need to rebalance |             |
+|                               | the shard.                    |             |
++-------------------------------+-------------------------------+-------------+
+
+.. NOTE::
+
+   The ``sys.allocations`` table is subject to :ref:`shard_table_permissions`.
+
+.. _shard_table_permissions:
+
+Shard Table Permissions
+=======================
+
+Accessing tables that return shards (``sys.shards``, ``sys.allocations``) is
+subjected to the same privileges constraints as the other tables. Namely, in
+order to query them, the connected user needs to have the ``DQL`` privilege on
+that particular table, either directly or inherited from the ``SCHEMA`` or
+``CLUSTER`` (for more information on privileges inheritance see
+:ref:`Hierarchical Inheritance of Privileges
+<hierarchical_privileges_inheritance>`).
+
+However, being able to query shard returning system tables will not allow the
+user to retrieve all the rows in the table, as they may contain information
+related to tables, which the connected user does not have any privileges for.
+The only rows that will be returned will be the ones the user is allowed to
+access.
+
+For example, if the user ``john`` has any privilege on the ``doc.books`` table
+but no privilege at all on ``doc.locations``, when ``john`` issues a
+``SELECT * FROM sys.shards`` statement, the shards information related to the
+``doc.locations`` table will not be returned.
+
 
 .. _configuration: ../configuration.html
 .. _Enterprise Edition: https://crate.io/enterprise/

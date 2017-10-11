@@ -165,6 +165,21 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
+    public void testQuerySysAllocationsReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+        executeAsSuperuser("CREATE TABLE su.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        executeAsSuperuser("CREATE TABLE u.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+
+        executeAsSuperuser("GRANT DQL ON SCHEMA u TO " + TEST_USERNAME);
+        executeAsSuperuser("GRANT DQL ON TABLE sys.allocations TO " + TEST_USERNAME);
+
+        execute("SELECT table_schema, table_name, shard_id FROM sys.allocations", null, testUserSession());
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("u"));
+        assertThat(response.rows()[0][1], is("t1"));
+        assertThat(response.rows()[0][2], is(0));
+    }
+
+    @Test
     public void testQueryInformationSchemaShowsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");

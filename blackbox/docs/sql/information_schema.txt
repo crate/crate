@@ -78,6 +78,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | information_schema | table_partitions        |                1 | 0                  |
     | information_schema | tables                  |                1 | 0                  |
     | pg_catalog         | pg_type                 |                1 | 0                  |
+    | sys                | allocations             |                1 | 0                  |
     | sys                | checks                  |                1 | 0                  |
     | sys                | cluster                 |                1 | 0                  |
     | sys                | jobs                    |                1 | 0                  |
@@ -93,7 +94,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 |                1 | 0                  |
     | sys                | users                   |                1 | 0                  |
     +--------------------+-------------------------+------------------+--------------------+
-    SELECT 30 rows in set (... sec)
+    SELECT 31 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
