@@ -1311,4 +1311,17 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((String) response.rows()[0][1], is("foo"));
         assertThat((Long) response.rows()[0][0], is(1L));
     }
+
+    @Test
+    public void testInsertIntoFromSystemTable() throws Exception {
+        execute("create table shard_stats (" +
+                "   log_date timestamp," +
+                "   shard_id string," +
+                "   num_docs long)" +
+                " clustered into 1 shards with (number_of_replicas=0)");
+        execute("insert into shard_stats (log_date, shard_id, num_docs) (select CURRENT_TIMESTAMP as log_date, id, num_docs from sys.shards)");
+        refresh();
+        execute("select * from shard_stats");
+        assertThat(response.rowCount(), is(1L));
+    }
 }
