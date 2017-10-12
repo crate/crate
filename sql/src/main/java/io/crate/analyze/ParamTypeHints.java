@@ -44,27 +44,10 @@ public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
     }
 
     /**
-     * get the type for the parameter at position {@code index}
+     * Get the type for the parameter at position {@code index}.
      *
-     * <p>
-     * If the typeHints don't contain a type for the given index it will return Undefined.
-     * In the case of Undefined it would be necessary to figure out the type from the surrounding context.
-     * But this is not yet implemented:
-     * </p>
-     *
-     * Example:
-     *
-     * In the following case the parameter is used with another integer, so the type is likely a integer.
-     *
-     * <pre>
-     *     select $1 * 10
-     * </pre>
-     *
-     * In the following case the type cannot be determined, this should result in an error:
-     *
-     * <pre>
-     *     select $1
-     * </pre>
+     * If the typeHints don't contain a type for the given index it will return Undefined
+     * and it may become defined at a later point in time during analysis.
      */
     public DataType getType(int index) {
         if (index + 1 > types.size()) {

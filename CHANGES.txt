@@ -43,5 +43,10 @@ Changes
 
 - Added the ``pg_backend_pid()`` function for enhanced PostgreSQL compatibility.
 
+- Added support for the PSQL ParameterDescription message which allows to get
+  the parameter types in prepared statements up front without specifying the
+  actual arguments first. This fixes compatibility issues with some drivers.
+  Only works for Select statements at the moment.
+
 Fixes
 =====

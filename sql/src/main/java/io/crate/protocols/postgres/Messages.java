@@ -40,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.SortedSet;
 
 /**
  * Regular data packet is in the following format:
@@ -325,6 +326,44 @@ public class Messages {
     static void writeCString(ByteBuf buffer, byte[] valBytes) {
         buffer.writeBytes(valBytes);
         buffer.writeByte(0);
+    }
+
+    /**
+     * ParameterDescription (B)
+     *
+     *     Byte1('t')
+     *
+     *         Identifies the message as a parameter description.
+     *     Int32
+     *
+     *         Length of message contents in bytes, including self.
+     *     Int16
+     *
+     *         The number of parameters used by the statement (can be zero).
+     *
+     *     Then, for each parameter, there is the following:
+     *
+     *     Int32
+     *
+     *         Specifies the object ID of the parameter data type.
+     *
+     * @param channel The channel to write the parameter description to.
+     * @param parameters A {@link SortedSet} containing the parameters from index 1 upwards.
+     */
+    static void sendParameterDescription(Channel channel, DataType[] parameters) {
+        final int messageByteSize = 4 + 2 + parameters.length * 4;
+        ByteBuf buffer = channel.alloc().buffer(messageByteSize);
+        buffer.writeByte('t');
+        buffer.writeInt(messageByteSize);
+        if (parameters.length > Short.MAX_VALUE) {
+            throw new IllegalArgumentException("Too many parameters. Max supported: " + Short.MAX_VALUE);
+        }
+        buffer.writeShort(parameters.length);
+        for (DataType dataType : parameters) {
+            int pgTypeId = PGTypes.get(dataType).oid();
+            buffer.writeInt(pgTypeId);
+        }
+        channel.write(buffer);
     }
 
     /**

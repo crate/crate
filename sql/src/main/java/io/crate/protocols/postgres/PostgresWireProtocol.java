@@ -129,13 +129,22 @@ import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEA
  *          |  ParseComplete or ErrorResponse  |
  *          |<---------------------------------|
  *          |                                  |
+ *          |  Describe Statement (optional)   |
+ *          |--------------------------------->|
+ *          |                                  |
+ *          |  ParameterDescription (optional) |
+ *          |<-------------------------------- |
+ *          |                                  |
+ *          |  RowDescription (optional)       |
+ *          |<-------------------------------- |
+ *          |                                  |
  *          |  Bind                            |
  *          |--------------------------------->|
  *          |                                  |
  *          |  BindComplete or ErrorResponse   |
  *          |<---------------------------------|
  *          |                                  |
- *          |  Describe (optional)             |
+ *          |  Describe Portal (optional)      |
  *          |--------------------------------->|
  *          |                                  |
  *          |  RowDescription (optional)       |
@@ -203,7 +212,7 @@ class PostgresWireProtocol {
         }
     }
 
-    private static String readCString(ByteBuf buffer) {
+    static String readCString(ByteBuf buffer) {
         byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
         if (bytes.length == 0) {
             return null;
@@ -516,7 +525,12 @@ class PostgresWireProtocol {
     private void handleDescribeMessage(ByteBuf buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
-        Collection<Field> fields = session.describe((char) type, portalOrStatement);
+        SQLOperations.DescribeResult describeResult = session.describe((char) type, portalOrStatement);
+        Collection<Field> fields = describeResult.getFields();
+        DataType[] parameterTypes = describeResult.getParameterTypes();
+        if (parameterTypes != null) {
+            Messages.sendParameterDescription(channel, parameterTypes);
+        }
         if (fields == null) {
             Messages.sendNoData(channel);
         } else {
@@ -596,7 +610,8 @@ class PostgresWireProtocol {
         try {
             session.parse("", query, Collections.<DataType>emptyList());
             session.bind("", "", Collections.emptyList(), null);
-            List<Field> fields = session.describe('P', "");
+            SQLOperations.DescribeResult describeResult = session.describe('P', "");
+            List<Field> fields = describeResult.getFields();
             if (fields == null) {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());
                 session.execute("", 0, rowCountReceiver);

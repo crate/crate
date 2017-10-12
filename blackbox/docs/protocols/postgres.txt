@@ -90,8 +90,7 @@ Extended Query
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
-- ``describe`` messages for an unbound prepared statement always result in a
-  ``NoData`` message instead of a ``ParameterDescription``.
+- The DescribeParameter message only works for Select statements.
 
 - To optimize the execution of bulk operations the execution of statements is
   delayed until the ``Sync`` message is received

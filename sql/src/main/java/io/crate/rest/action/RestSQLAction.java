@@ -166,7 +166,8 @@ public class RestSQLAction extends BaseRestHandler {
             session.parse(UNNAMED, context.stmt(), Collections.emptyList());
             List<Object> args = context.args() == null ? Collections.emptyList() : Arrays.asList(context.args());
             session.bind(UNNAMED, UNNAMED, args, null);
-            List<Field> outputFields = session.describe('P', UNNAMED);
+            SQLOperations.DescribeResult describeResult = session.describe('P', UNNAMED);
+            List<Field> outputFields = describeResult.getFields();
             if (outputFields == null) {
                 return channel -> {
                     try {
@@ -223,7 +224,8 @@ public class RestSQLAction extends BaseRestHandler {
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
-            List<Field> outputColumns = session.describe('P', UNNAMED);
+            SQLOperations.DescribeResult describeResult = session.describe('P', UNNAMED);
+            List<Field> outputColumns = describeResult.getFields();
             if (outputColumns != null) {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");

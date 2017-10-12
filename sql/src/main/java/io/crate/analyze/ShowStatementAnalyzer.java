@@ -23,8 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -33,14 +31,17 @@ import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
-import org.elasticsearch.common.collect.Tuple;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+/**
+ * Rewrites the SHOW statements into Select queries.
+ *
+ * Note: Parameters passed by the user _must_ remain the same to be compatible with
+ * the Postgres ParameterDescription message. Therefore, the rewritten query must
+ * make use of the passed parameter and not add any additional parameters.
+ */
 class ShowStatementAnalyzer {
 
     private Analyzer analyzer;
@@ -76,7 +77,7 @@ class ShowStatementAnalyzer {
         return newAnalysis.analyzedStatement();
     }
 
-    Tuple<Query, ParameterContext> rewriteShow(ShowSchemas node) {
+    Query rewriteShowSchemas(ShowSchemas node) {
         /*
          * <code>
          *     SHOW SCHEMAS [ LIKE 'pattern' ];
@@ -89,31 +90,27 @@ class ShowStatementAnalyzer {
          *     ORDER BY schema_name;
          * </code>
          */
-        List<String> params = new ArrayList<>();
         StringBuilder sb = new StringBuilder("SELECT schema_name ");
         sb.append("FROM information_schema.schemata ");
         if (node.likePattern().isPresent()) {
-            params.add(node.likePattern().get());
-            sb.append("WHERE schema_name LIKE ? ");
+            sb.append("WHERE schema_name LIKE ");
+            singleQuote(sb, node.likePattern().get());
         } else if (node.whereExpression().isPresent()) {
             sb.append(String.format(Locale.ENGLISH, "WHERE %s ", node.whereExpression().get().toString()));
         }
         sb.append("ORDER BY schema_name");
-        return new Tuple<>(
-            (Query) SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList())
-        );
+        return (Query) SqlParser.createStatement(sb.toString());
     }
 
     public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
-        Tuple<Query, ParameterContext> tuple = rewriteShow(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
+        Query query = rewriteShowSchemas(node);
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
 
 
-    Tuple<Query, ParameterContext> rewriteShow(ShowColumns node, String defaultSchema) {
+    Query rewriteShowColumns(ShowColumns node, String defaultSchema) {
         /*
          * <code>
          *     SHOW COLUMNS {FROM | IN} table [{FROM | IN} schema] [LIKE 'pattern' | WHERE expr];
@@ -127,49 +124,45 @@ class ShowStatementAnalyzer {
          * ORDER BY column_name;
          * </code>
          */
-        List<String> params = new ArrayList<>();
         StringBuilder sb =
             new StringBuilder(
                 "SELECT column_name, data_type " +
                 "FROM information_schema.columns ");
-        params.add(node.table().toString());
-        sb.append("WHERE table_name = ? ");
+        sb.append("WHERE table_name = ");
+        singleQuote(sb, node.table().toString());
 
-        sb.append("AND table_schema = ? ");
+        sb.append("AND table_schema = ");
         if (node.schema().isPresent()) {
-            params.add(node.schema().get().toString());
+            singleQuote(sb, node.schema().get().toString());
         } else {
-            params.add(defaultSchema);
+            singleQuote(sb, defaultSchema);
         }
         if (node.likePattern().isPresent()) {
-            params.add(node.likePattern().get());
-            sb.append("AND column_name LIKE ? ");
+            sb.append("AND column_name LIKE ");
+            singleQuote(sb, node.likePattern().get());
         } else if (node.where().isPresent()) {
             sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where().get())));
         }
         sb.append("ORDER BY column_name");
-        return new Tuple<>(
-            (Query) SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList())
-        );
+        return (Query) SqlParser.createStatement(sb.toString());
     }
 
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
         SessionContext sessionContext = analysis.sessionContext();
-        Tuple<Query, ParameterContext> tuple = rewriteShow(node, sessionContext.defaultSchema());
-        Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), sessionContext, tuple.v2());
+        Query query = rewriteShowColumns(node, sessionContext.defaultSchema());
+        Analysis newAnalysis = analyzer.boundAnalyze(query, sessionContext, analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
 
     public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
-        Tuple<Query, ParameterContext> tuple = rewriteShow(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
+        Query query = rewriteShowTables(node);
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
 
-    public Tuple<Query, ParameterContext> rewriteShow(ShowTables node) {
+    public Query rewriteShowTables(ShowTables node) {
         /*
          * <code>
          *     SHOW TABLES [{ FROM | IN } table_schema ] [ { LIKE 'pattern' | WHERE expr } ];
@@ -184,17 +177,15 @@ class ShowStatementAnalyzer {
          *     ORDER BY 1;
          * </code>
          */
-        List<String> params = new ArrayList<>();
         StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
         Optional<QualifiedName> schema = node.schema();
         if (schema.isPresent()) {
-            params.add(schema.get().toString());
-            sb.append("WHERE table_schema = ?");
+            sb.append("WHERE table_schema = ");
+            singleQuote(sb, schema.get().toString());
         } else {
             sb.append("WHERE table_schema NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
-                params.add(explicitSchemas[i]);
-                sb.append("?");
+                singleQuote(sb, explicitSchemas[i]);
                 if (i < explicitSchemas.length - 1) {
                     sb.append(", ");
                 }
@@ -209,15 +200,16 @@ class ShowStatementAnalyzer {
         } else {
             Optional<String> likePattern = node.likePattern();
             if (likePattern.isPresent()) {
-                params.add(likePattern.get());
-                sb.append(" AND table_name like ?");
+                sb.append(" AND table_name like ");
+                singleQuote(sb, likePattern.get());
             }
         }
         sb.append(" ORDER BY 1");
 
-        return new Tuple<>(
-            (Query) SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList())
-        );
+        return (Query) SqlParser.createStatement(sb.toString());
+    }
+
+    private static void singleQuote(StringBuilder builder, String string) {
+        builder.append("'").append(string).append("'");
     }
 }

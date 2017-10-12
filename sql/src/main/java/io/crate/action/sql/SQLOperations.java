@@ -22,9 +22,17 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Preconditions;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -49,13 +57,17 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 
 @Singleton
@@ -256,12 +268,12 @@ public class SQLOperations {
             }
         }
 
-        public List<Field> describe(char type, String portalOrStatement) {
+        public DescribeResult describe(char type, String portalOrStatement) {
             LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
             switch (type) {
                 case 'P':
                     Portal portal = getSafePortal(portalOrStatement);
-                    return portal.describe();
+                    return new DescribeResult(portal.describe());
                 case 'S':
                     /*
                      * describe might be called without prior bind call.
@@ -300,9 +312,12 @@ public class SQLOperations {
                     }
                     if (analyzedRelation == null) {
                         // statement without result set -> return null for NoData msg
-                        return null;
+                        return new DescribeResult(null);
                     }
-                    return analyzedRelation.fields();
+                    ParameterTypeExtractor parameterTypeExtractor = new ParameterTypeExtractor();
+                    DataType[] parameterSymbols = parameterTypeExtractor.getParameterTypes(analyzedRelation);
+                    preparedStmt.setDescribedParameters(parameterSymbols);
+                    return new DescribeResult(analyzedRelation.fields(), parameterSymbols);
                 default:
                     throw new AssertionError("Unsupported type: " + type);
             }
@@ -359,7 +374,7 @@ public class SQLOperations {
 
         public DataType getParamType(String statementName, int idx) {
             PreparedStmt stmt = getSafeStmt(statementName);
-            return stmt.paramTypes().getType(idx);
+            return stmt.getEffectiveParameterType(idx);
         }
 
         private PreparedStmt getSafeStmt(String statementName) {
@@ -435,6 +450,96 @@ public class SQLOperations {
 
         public SQLOperations.Session getSession() {
             return session;
+        }
+    }
+
+    static class ParameterTypeExtractor extends SymbolVisitor<Void, Void> implements Consumer<Symbol> {
+
+        private final SortedSet<ParameterSymbol> parameterSymbols;
+
+        ParameterTypeExtractor() {
+            this.parameterSymbols = new TreeSet<>(Comparator.comparing(ParameterSymbol::index));
+        }
+
+        @Override
+        public void accept(Symbol symbol) {
+            process(symbol, null);
+        }
+
+        @Override
+        public Void visitFunction(Function function, Void context) {
+            for (Symbol arg : function.arguments()) {
+                process(arg, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+            return process(matchPredicate.queryTerm(), context);
+        }
+
+        @Override
+        public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
+            parameterSymbols.add(parameterSymbol);
+            return null;
+        }
+
+        /**
+         * Gets the parameters from the AnalyzedRelation, if possible.
+         * @param analyzedRelation The {@link AnalyzedRelation} to retrieve the parameters from.
+         * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if #
+         *         parameters can't be obtained.
+         */
+        @Nullable
+        DataType[] getParameterTypes(AnalyzedRelation analyzedRelation) {
+            if (!(analyzedRelation instanceof QueriedRelation)) {
+                return null;
+            }
+            QuerySpec querySpec = ((QueriedRelation) analyzedRelation).querySpec();
+            querySpec.visitSymbols(this);
+            Preconditions.checkState(parameterSymbols.isEmpty() ||
+                                     parameterSymbols.last().index() == parameterSymbols.size() - 1,
+                "The assembled list of ParameterSymbols is invalid. Missing parameters.");
+            DataType[] dataTypes = parameterSymbols.stream()
+                .map(ParameterSymbol::getBoundType)
+                .toArray(DataType[]::new);
+            parameterSymbols.clear();
+            return dataTypes;
+        }
+    }
+
+    /**
+     * Encapsulates the result of a DescribePortal or DescribeParameter message.
+     */
+    public static class DescribeResult {
+
+        @Nullable
+        private final List<Field> fields;
+        @Nullable
+        private DataType[] parameters;
+
+        DescribeResult(@Nullable List<Field> fields) {
+            this.fields = fields;
+        }
+
+        DescribeResult(@Nullable List<Field> fields, @Nullable DataType[] parameters) {
+            this.fields = fields;
+            this.parameters = parameters;
+        }
+
+        @Nullable
+        public List<Field> getFields() {
+            return fields;
+        }
+
+        /**
+         * Returns the described parameters in sorted order ($1, $2, etc.)
+         * @return An array containing the parameters, or null if they could not be obtained.
+         */
+        @Nullable
+        public DataType[] getParameterTypes() {
+            return parameters;
         }
     }
 }

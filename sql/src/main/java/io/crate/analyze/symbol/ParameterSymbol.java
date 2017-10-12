@@ -24,6 +24,7 @@ package io.crate.analyze.symbol;
 
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.UndefinedType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -32,22 +33,30 @@ import java.io.IOException;
 public class ParameterSymbol extends Symbol {
 
     private final int index;
-    private final DataType type;
+    private final DataType boundType;
+    private final DataType internalType;
 
     public ParameterSymbol(int index, DataType type) {
+        this(index, type, type);
+    }
+
+    private ParameterSymbol(int index, DataType boundType, DataType internalType) {
         this.index = index;
-        this.type = type;
+        this.boundType = boundType;
+        this.internalType = internalType;
     }
 
     public ParameterSymbol(StreamInput in) throws IOException {
         index = in.readVInt();
-        type = DataTypes.fromStream(in);
+        boundType = DataTypes.fromStream(in);
+        internalType = DataTypes.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(index);
-        DataTypes.toStream(type, out);
+        DataTypes.toStream(boundType, out);
+        DataTypes.toStream(internalType, out);
     }
 
     @Override
@@ -57,7 +66,7 @@ public class ParameterSymbol extends Symbol {
 
     @Override
     public ParameterSymbol cast(DataType dataType, boolean tryCast) {
-        return new ParameterSymbol(index, dataType);
+        return new ParameterSymbol(index, boundType, dataType);
     }
 
     @Override
@@ -70,9 +79,21 @@ public class ParameterSymbol extends Symbol {
         return visitor.visitParameterSymbol(this, context);
     }
 
+    /**
+     * Returns the bound type of the parameter. The type might be bound
+     * upfront by the client or become defined during the Analysis.
+     * @return The effective bound {@link DataType}.
+     */
+    public DataType getBoundType() {
+        if (boundType.id() == UndefinedType.ID) {
+            return internalType;
+        }
+        return boundType;
+    }
+
     @Override
     public DataType valueType() {
-        return type;
+        return internalType;
     }
 
     @Override

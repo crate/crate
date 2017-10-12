@@ -188,7 +188,7 @@ public class SQLTransportExecutor {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
         executor.getSession().parse(UNNAMED, stmt, Collections.emptyList());
         executor.getSession().bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-        List<Field> outputFields = executor.getSession().describe('P', UNNAMED);
+        List<Field> outputFields = executor.getSession().describe('P', UNNAMED).getFields();
         try {
             executor.execute(new ResultSetReceiver(actionFuture, executor.getSession().sessionContext(), outputFields), Collections.emptyList());
         } catch (Throwable t) {
@@ -230,7 +230,7 @@ public class SQLTransportExecutor {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
             session.bind(UNNAMED, UNNAMED, argsList, null);
-            List<Field> outputFields = session.describe('P', UNNAMED);
+            List<Field> outputFields = session.describe('P', UNNAMED).getFields();
             if (outputFields == null) {
                 ResultReceiver resultReceiver = new RowCountReceiver(listener, session.sessionContext());
                 session.execute(UNNAMED, 0, resultReceiver);
@@ -262,7 +262,7 @@ public class SQLTransportExecutor {
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
-            List<Field> outputColumns = session.describe('P', UNNAMED);
+            List<Field> outputColumns = session.describe('P', UNNAMED).getFields();
             if (outputColumns != null) {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");

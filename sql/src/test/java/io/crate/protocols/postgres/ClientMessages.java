@@ -99,10 +99,10 @@ class ClientMessages {
         int paramsLength = 0;
         for (Object param : params) {
             BytesRef value = DataTypes.STRING.value(param);
-            buffer.writeInt(value.length + 1);
+            buffer.writeInt(value.length);
+            // the strings here are _not_ zero-padded because we specify the length upfront
             buffer.writeBytes(value.bytes, value.offset, value.length);
-            buffer.writeByte(0);
-            paramsLength += 4 + value.length + 1;
+            paramsLength += 4 + value.length;
         }
         buffer.writeShort(0); // numResultFormatCodes - 0 to default to text for all
 
@@ -114,5 +114,28 @@ class ClientMessages {
             2 + // numParams
             paramsLength +
             2); // numResultColumnFormatCodes
+    }
+
+    enum DescribeType {
+        PORTAL('P'),
+        STATEMENT('S');
+
+        private final char identifier;
+
+        DescribeType(char identifier) {
+            this.identifier = identifier;
+        }
+    }
+
+    static void sendDescribeMessage(ByteBuf buffer,
+                                    DescribeType describeType,
+                                    String portalOrStatement) {
+        byte[] portalOrStatementBytes = portalOrStatement.getBytes(StandardCharsets.UTF_8);
+        int length = 4 + 1 + portalOrStatementBytes.length + 1;
+        buffer.writeByte('D');
+        buffer.writeInt(length);
+        buffer.writeByte(describeType.identifier);
+        buffer.writeBytes(portalOrStatementBytes);
+        buffer.writeByte(0);
     }
 }

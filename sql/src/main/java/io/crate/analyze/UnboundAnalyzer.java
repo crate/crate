@@ -36,7 +36,6 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
-import org.elasticsearch.common.collect.Tuple;
 
 /**
  * Analyzer that can analyze statements without having access to the Parameters/ParameterContext.
@@ -86,22 +85,25 @@ class UnboundAnalyzer {
 
         @Override
         protected AnalyzedRelation visitShowTables(ShowTables node, Analysis context) {
-            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node);
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.transactionContext(), tuple.v2().typeHints());
+            ParameterContext parameterContext = context.parameterContext();
+            Query query = showStatementAnalyzer.rewriteShowTables(node);
+            return relationAnalyzer.analyzeUnbound(query, context.transactionContext(), parameterContext.typeHints());
         }
 
         @Override
         protected AnalyzedRelation visitShowSchemas(ShowSchemas node, Analysis context) {
-            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(node);
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), context.transactionContext(), tuple.v2().typeHints());
+            Query query = showStatementAnalyzer.rewriteShowSchemas(node);
+            return relationAnalyzer.analyzeUnbound(query,
+                context.transactionContext(),
+                context.parameterContext().typeHints());
         }
 
         @Override
         protected AnalyzedRelation visitShowColumns(ShowColumns node, Analysis context) {
             TransactionContext transactionContext = context.transactionContext();
-            Tuple<Query, ParameterContext> tuple = showStatementAnalyzer.rewriteShow(
-                node, transactionContext.sessionContext().defaultSchema());
-            return relationAnalyzer.analyzeUnbound(tuple.v1(), transactionContext, tuple.v2().typeHints());
+            Query query = showStatementAnalyzer.rewriteShowColumns(node,
+                transactionContext.sessionContext().defaultSchema());
+            return relationAnalyzer.analyzeUnbound(query, transactionContext, context.parameterContext().typeHints());
         }
 
         @Override

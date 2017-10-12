@@ -28,9 +28,11 @@ import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DummyUserManager;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
@@ -45,6 +47,7 @@ import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -166,6 +169,104 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations.Session session = sessions.get(0);
         // If the query can be retrieved via portalName it means bind worked
         assertThat(session.getQuery("P1"), is("select ?, ?"));
+    }
+
+    @Test
+    public void testDescribePortalMessage() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new AlwaysOKNullAuthentication(),
+                null);
+
+        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        {
+            ByteBuf buffer = Unpooled.buffer();
+
+            ClientMessages.sendStartupMessage(buffer, "doc");
+            ClientMessages.sendParseMessage(buffer,
+                "S1",
+                "select ? in (1, 2, 3)",
+                new int[] { PGTypes.get(DataTypes.LONG).oid() });
+                ClientMessages.sendBindMessage(buffer,
+                    "P1",
+                    "S1",
+                    Collections.singletonList(1));
+            channel.writeInbound(buffer);
+
+            // we're not interested in the startup, parse, or bind replies
+            channel.flushOutbound();
+            channel.outboundMessages().clear();
+        }
+        {
+            // try portal describe message
+            ByteBuf buffer = Unpooled.buffer();
+            ClientMessages.sendDescribeMessage(buffer, ClientMessages.DescribeType.PORTAL, "P1");
+            channel.writeInbound(buffer);
+
+            // we should get back a RowDescription message
+            ByteBuf response = channel.readOutbound();
+            assertThat(response.readByte(), is((byte) 'T'));
+            assertThat(response.readInt(), is(42));
+            assertThat(response.readShort(), is((short) 1));
+            assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
+
+            assertThat(response.readInt(), is(0));
+            assertThat(response.readShort(), is((short) 0));
+            assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
+            assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
+            assertThat(response.readShort(), is((short) 0));
+        }
+    }
+
+    @Test
+    public void testDescribeStatementMessage() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new AlwaysOKNullAuthentication(),
+                null);
+
+        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        {
+            ByteBuf buffer = Unpooled.buffer();
+
+            ClientMessages.sendStartupMessage(buffer, "doc");
+            ClientMessages.sendParseMessage(buffer, "S1", "select ? in (1, 2, 3)", new int[0]);
+            channel.writeInbound(buffer);
+
+            // we're not interested in the startup, parse, or bind replies
+            channel.flushOutbound();
+            channel.outboundMessages().clear();
+        }
+        {
+            // try the describe statement variant
+            ByteBuf buffer = Unpooled.buffer();
+            ClientMessages.sendDescribeMessage(buffer, ClientMessages.DescribeType.STATEMENT, "S1");
+            channel.writeInbound(buffer);
+
+            // we should get back a ParameterDescription message
+            ByteBuf response = channel.readOutbound();
+            assertThat(response.readByte(), is((byte) 't'));
+            assertThat(response.readInt(), is(10));
+            assertThat(response.readShort(), is((short) 1));
+            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).oid()));
+
+            // we should get back a RowDescription message
+            response = channel.readOutbound();
+            assertThat(response.readByte(), is((byte) 'T'));
+            assertThat(response.readInt(), is(42));
+            assertThat(response.readShort(), is((short) 1));
+            assertThat(PostgresWireProtocol.readCString(response), is("($1 IN (1, 2, 3))"));
+
+            assertThat(response.readInt(), is(0));
+            assertThat(response.readShort(), is((short) 0));
+            assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
+            assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+            assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
+            assertThat(response.readShort(), is((short) 0));
+        }
     }
 
     @Test

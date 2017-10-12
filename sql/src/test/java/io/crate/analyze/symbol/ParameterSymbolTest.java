@@ -26,7 +26,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -34,7 +33,7 @@ import static org.hamcrest.core.Is.is;
 public class ParameterSymbolTest extends CrateUnitTest {
 
     @Test
-    public void testSerialization() throws Exception {
+    public void testSerializationDefined() throws Exception {
         ParameterSymbol ps1 = new ParameterSymbol(2, DataTypes.INTEGER);
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -45,13 +44,30 @@ public class ParameterSymbolTest extends CrateUnitTest {
 
         assertThat(ps2.index(), is(ps1.index()));
         assertThat(ps2.valueType(), is(ps1.valueType()));
+        assertThat(ps2.getBoundType(), is(ps1.getBoundType()));
+    }
+
+    @Test
+    public void testSerializationUndefined() throws Exception {
+        ParameterSymbol ps1 = new ParameterSymbol(1, DataTypes.UNDEFINED);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        ps1.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        ParameterSymbol ps2 = new ParameterSymbol(in);
+
+        assertThat(ps2.index(), is(ps1.index()));
+        assertThat(ps2.valueType(), is(ps1.valueType()));
+        assertThat(ps2.getBoundType(), is(ps1.getBoundType()));
     }
 
     @Test
     public void testCasting() {
         Symbol parameter = new ParameterSymbol(0, DataTypes.INTEGER);
         ParameterSymbol newParameter = (ParameterSymbol) parameter.cast(DataTypes.LONG);
-        assertThat(newParameter.valueType(), Matchers.is(DataTypes.LONG));
-        assertThat(newParameter.index(), Matchers.is(0));
+        assertThat(newParameter.valueType(), is(DataTypes.LONG));
+        assertThat(newParameter.index(), is(0));
+        assertThat(newParameter.getBoundType(), is(DataTypes.INTEGER));
     }
 }

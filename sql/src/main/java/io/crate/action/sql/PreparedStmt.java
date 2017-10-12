@@ -22,6 +22,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.Preconditions;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.sql.tree.Statement;
@@ -35,6 +36,8 @@ class PreparedStmt {
     private final Statement statement;
     private final String query;
     private final ParamTypeHints paramTypes;
+    @Nullable
+    private DataType[] describedParameterTypes;
 
     private AnalyzedRelation relation;
     private boolean relationInitialized = false;
@@ -45,6 +48,14 @@ class PreparedStmt {
         this.paramTypes = new ParamTypeHints(paramTypes);
     }
 
+    /**
+     * Sets the parameters sent back from a ParameterDescription message.
+     * @param describedParameters The parameters in sorted order.
+     */
+    void setDescribedParameters(DataType[] describedParameters) {
+        this.describedParameterTypes = describedParameters;
+    }
+
     public Statement statement() {
         return statement;
     }
@@ -53,11 +64,25 @@ class PreparedStmt {
         return paramTypes;
     }
 
+    /**
+     * Gets the list of effective parameter types which might be a combination
+     * of the {@link ParamTypeHints} and the types determined during ParameterDescription.
+     * @param idx type at index (zero-based).
+     */
+    DataType getEffectiveParameterType(int idx) {
+        if (describedParameterTypes == null) {
+            return paramTypes.getType(idx);
+        }
+        Preconditions.checkState(idx < describedParameterTypes.length,
+            "Requested parameter index exceeds the number of parameters: " + idx);
+        return describedParameterTypes[idx];
+    }
+
     public String query() {
         return query;
     }
 
-    public boolean isRelationInitialized() {
+    boolean isRelationInitialized() {
         return relationInitialized;
     }
 
