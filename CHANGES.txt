@@ -42,6 +42,8 @@ Changes
 Fixes
 =====
 
+ - Upgraded Elasticsearch to v5.6.3
+
  - Fixed an issue that caused ``INSERT`` statements using a subquery on the
    `sys.shards` system table to fail.
 
