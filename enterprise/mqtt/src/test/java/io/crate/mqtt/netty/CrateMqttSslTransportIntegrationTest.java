@@ -46,9 +46,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
-
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegrationTest {
@@ -143,6 +144,7 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
 
     @Test
     public void testPublishEncryptedMessage() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
         client.setCallback(new MqttCallback() {
             @Override
             public void connectionLost(Throwable cause) {
@@ -155,12 +157,16 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {
                 // for QoS1 this is called when PUBACK is received (ie. the message was processed successfully)
-                execute("select payload['id'] from mqtt.raw");
-                assertThat(response.rowCount(), is(1L));
-                assertThat(response.rows()[0][0], is(123L));
+                latch.countDown();
             }
         });
 
         client.publish("t1", "{\"id\": 123}".getBytes(), 1, false);
+        latch.await(5, TimeUnit.SECONDS);
+
+        refresh();
+        execute("select payload['id'] from mqtt.raw");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is(123L));
     }
 }
