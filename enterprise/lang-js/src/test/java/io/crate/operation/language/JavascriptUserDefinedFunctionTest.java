@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -228,7 +229,10 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testAccessJavaClasses() throws Exception {
         exception.expect(io.crate.exceptions.ScriptException.class);
-        exception.expectMessage(containsString("has no such function \"type\""));
+        exception.expectMessage(anyOf(
+            containsString("has no such function \"type\""),
+            containsString("ReferenceError: \"Java\" is not defined")
+        ));
         registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG),
             "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
         assertEvaluate("f(x)", 1L, Literal.of(1L));
