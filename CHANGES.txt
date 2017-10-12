@@ -21,22 +21,3 @@ Changes
 Fixes
 =====
 
- - Fixed an issue that caused ``INSERT`` statements using a subquery on the
-   `sys.shards` system table to fail.
-
- - Fixed an issue that caused wrong results for ``JOIN`` queries on 3 or more
-   tables when ``ORDER BY`` clause contains columns from more than one table.
-
- - Fixed a bug that caused incorrect results to be returned for JOIN queries
-   when the table stats indicated that the left table of a join is smaller
-   than the right.
-
- - Fixed passing arguments that contain spaces in crate shell script.
-
- - Fixed an issue that caused a table that is not part of the "doc" schema to
-   be unavailable/hidden if it gets closed using ``ALTER TABLE``.
-
- - Fixed an issue where the query circuit breaker would be tripped after
-   running several queries due to incorrect memory tracking. Subsequent
-   operations would've failed due to the lack of circuit breaker cleanup.
-
