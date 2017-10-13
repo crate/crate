@@ -23,6 +23,10 @@ Extra options::
 
     $ ./gradlew :sql:test -Dtests.iters=20
 
+    $ ./gradlew :sql:test -Dtests.nightly=true # defaults to "false"
+
+    $ ./gradlew :sql:test -Dtests.verbose=true # log result of all invoked tests
+
 
 More logging::
 

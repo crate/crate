@@ -70,6 +70,13 @@ allprojects {
                 systemProperty "$item", System.getProperty(item)
             }
         }
+        if ("true".equals(System.getProperty("tests.verbose", "false").toLowerCase())) {
+            // show which tests are actually run
+            // very helpful if you want to see if your included/excluded tests are correct
+            afterTest { descriptor, result ->
+              logger.lifecycle(" # " + descriptor + " -> " + result)
+            }
+        }
     }
 
     jacoco {
