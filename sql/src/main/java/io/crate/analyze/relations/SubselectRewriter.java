@@ -39,6 +39,7 @@ import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
+import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public final class SubselectRewriter {
                     QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                     relation = new QueriedSelectRelation(
                         relation.subRelation(),
-                        namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
+                        namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldsByQsOutputSymbols),
                         currentWithParentMerged
                     );
                     mergedWithParent = true;
@@ -113,7 +114,7 @@ public final class SubselectRewriter {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new QueriedTable(
                     table.tableRelation(),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldsByQsOutputSymbols),
                     currentWithParentMerged
                 );
             }
@@ -132,7 +133,7 @@ public final class SubselectRewriter {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new QueriedDocTable(
                     table.tableRelation(),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldsByQsOutputSymbols),
                     currentWithParentMerged
                 );
             }
@@ -151,7 +152,7 @@ public final class SubselectRewriter {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new MultiSourceSelect(
                     multiSourceSelect.sources(),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldsByQsOutputSymbols),
                     currentWithParentMerged,
                     multiSourceSelect.joinPairs()
                 );
@@ -165,10 +166,11 @@ public final class SubselectRewriter {
      *         It tries to preserve the alias/name of the parent if possible
      */
     private static Collection<Path> namesFromOutputs(Collection<? extends Symbol> outputs,
-                                                     Map<Symbol, Field> replacedFieldsByNewOutput) {
+                                                     Map<Tuple<Symbol, Integer>, Field> replacedFieldsByNewOutput) {
         List<Path> outputNames = new ArrayList<>(outputs.size());
+        int idx = 0;
         for (Symbol output : outputs) {
-            Field field = replacedFieldsByNewOutput.get(output);
+            Field field = replacedFieldsByNewOutput.get(new Tuple<>(output, idx));
             if (field == null) {
                 if (output instanceof Path) {
                     outputNames.add((Path) output);
@@ -178,6 +180,7 @@ public final class SubselectRewriter {
             } else {
                 outputNames.add(field);
             }
+            idx++;
         }
         return outputNames;
     }
@@ -293,7 +296,8 @@ public final class SubselectRewriter {
     private static final class FieldReplacer extends FunctionCopyVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final List<? extends Symbol> outputs;
-        final Map<Symbol, Field> fieldByQSOutputSymbol = new HashMap<>();
+        private final Map<Tuple<Symbol, Integer>, Field> fieldsByQsOutputSymbols = new HashMap<>();
+        private int idx = 0;
 
         FieldReplacer(List<? extends Symbol> outputs, QueriedRelation relation) {
             super();
@@ -314,21 +318,26 @@ public final class SubselectRewriter {
              *
              * divide(Field[x, rel=t1], Field[i, rel=t2]  -> divide(Field[x, rel=aliased_sub], Field[i, rel=aliased_sub])
              */
-            for (Field field : relation.fields()) {
-                fieldByQSOutputSymbol.put(apply(relation.querySpec().outputs().get(field.index())), field);
+            for (; idx < relation.fields().size(); idx++) {
+                Field field = relation.fields().get(idx);
+                addReferencedField(apply(relation.querySpec().outputs().get(field.index())), field);
             }
         }
 
         @Override
         public Symbol visitField(Field field, Void context) {
             Symbol newOutput = outputs.get(field.index());
-            fieldByQSOutputSymbol.putIfAbsent(newOutput, field);
+            addReferencedField(newOutput, field);
             return newOutput;
         }
 
         @Override
         public Symbol apply(Symbol symbol) {
             return process(symbol, null);
+        }
+
+        private void addReferencedField(Symbol symbol, Field field) {
+            fieldsByQsOutputSymbols.put(new Tuple<>(symbol, idx), field);
         }
     }
 }
