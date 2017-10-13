@@ -33,7 +33,9 @@ import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.PartitionedTableParameterInfo;
+import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.TableParameter;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -48,8 +50,13 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
+import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
@@ -71,6 +78,7 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
@@ -106,6 +114,7 @@ public class AlterTableOperation {
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
+    private final TransportClusterRerouteAction transportClusterRerouteAction;
     private final SQLOperations sqlOperations;
 
     @Inject
@@ -117,6 +126,7 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
+                               TransportClusterRerouteAction transportClusterRerouteAction,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -126,6 +136,7 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
+        this.transportClusterRerouteAction = transportClusterRerouteAction;
         this.sqlOperations = sqlOperations;
     }
 
@@ -541,6 +552,46 @@ public class AlterTableOperation {
             }
         }
         return true;
+    }
+
+    public CompletableFuture<Long> executeRerouteMoveShard(RerouteMoveShardAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+
+        TableInfo tableInfo = statement.tableInfo();
+        String index = tableInfo.ident().indexName();
+        boolean isBlobIndex = BlobIndex.isBlobIndex(index);
+
+        if (isBlobIndex == false) {
+            DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+            if (docTableInfo.isPartitioned() &&
+                statement.partitionName() != null) {
+                index = statement.partitionName().asIndexName();
+            }
+        }
+
+        String fromNodeId = statement.fromNodeId();
+        String toNodeId = statement.toNodeId();
+        int shardId = statement.shardId();
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        MoveAllocationCommand command = new MoveAllocationCommand(index, shardId, fromNodeId, toNodeId);
+        request.add(command);
+        transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
+            @Override
+            public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {
+                if (clusterRerouteResponse.isAcknowledged()) {
+                    resultFuture.complete(1L);
+                } else {
+                    resultFuture.complete(-1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
+        });
+        return resultFuture;
     }
 
     private class ResultSetReceiver implements ResultReceiver {
