@@ -21,3 +21,10 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that resulted in aliases overriding column names when a
+   subselect is used and a column appears in the outer SELECT multiple times,
+   without an alias and with alias or with multiple aliases. E.g.::
+
+     SELECT a, a AS newcol FROM (SELECT a FROM t WHERE a > 1)
+     SELECT a AS newcol1, a AS newcol2 FROM (SELECT a FROM t WHERE a > 1)
+
