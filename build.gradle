@@ -61,6 +61,15 @@ allprojects {
 
         // tell ES to add required permissions for gradle
         systemProperty "tests.gradle", "true"
+
+        // pass system properties to gradle process
+        // you you can filter tests by test groups,
+        // e.g. -Dtests.nightly=true
+        System.properties.keySet().each { item ->
+            if (item.startsWith("tests.")) {
+                systemProperty "$item", System.getProperty(item)
+            }
+        }
     }
 
     jacoco {

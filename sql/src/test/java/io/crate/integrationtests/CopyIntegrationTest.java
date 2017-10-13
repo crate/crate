@@ -240,6 +240,19 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
+    public void testCopyFromFileIntoSinglePartition() throws Exception {
+        execute("CREATE TABLE quotes (id INTEGER, quote STRING) PARTITIONED BY (id)");
+        ensureGreen();
+        execute("COPY quotes PARTITION (id = 1) FROM ? WITH (shared = true)", new Object[]{
+            copyFilePath + "test_copy_from.json"});
+        refresh();
+
+        execute("SELECT * FROM quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    @Nightly
     public void testCopyFromFileWithPartitionCreation() throws Exception {
         // test with many shards and a small bulk size because this would trigger race conditions more reliably
         // also use a larger data set to import
