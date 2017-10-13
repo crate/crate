@@ -229,7 +229,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPreserveAliasedOnSubSelect() throws Exception {
+    public void testPreserveAliasesOnSubSelect() throws Exception {
         SelectAnalyzedStatement statement = analyze("SELECT tt1.x as a1, min(tt1.x) as a2 " +
                                                     "FROM (select * from t1) as tt1 " +
                                                     "GROUP BY a1");
@@ -237,6 +237,22 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("a1"));
         assertThat(relation.fields().get(1), isField("a2"));
+        assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
+    }
+
+    @Test
+    public void testPreserveMultipleAliasesOnSubSelect() throws Exception {
+        SelectAnalyzedStatement statement =
+            analyze("SELECT tt1.i, i as ii, tt1.ii + 2, ii as iii, abs(x), abs(tt1.x) as absx " +
+                    "FROM (select i, i+1 as ii, x from t1) as tt1");
+        QueriedDocTable relation = (QueriedDocTable) statement.relation();
+        assertThat(relation.fields().size(), is(6));
+        assertThat(relation.fields().get(0), isField("i"));
+        assertThat(relation.fields().get(1), isField("ii"));
+        assertThat(relation.fields().get(2), isField("(ii + 2)"));
+        assertThat(relation.fields().get(3), isField("iii"));
+        assertThat(relation.fields().get(4), isField("abs(x)"));
+        assertThat(relation.fields().get(5), isField("absx"));
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 }
