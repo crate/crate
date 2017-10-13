@@ -23,6 +23,8 @@ Breaking Changes
 Changes
 =======
 
+- Upgraded Elasticsearch to v5.6.3
+
 - Added new table setting ``allocation.max_retries`` that defines the number of
   attempts to allocate a shard before giving up and leaving it unallocated.
 
@@ -44,12 +46,8 @@ Changes
 Fixes
 =====
 
- - Upgraded Elasticsearch to v5.6.3
-
  - Fixed an issue that caused ``INSERT`` statements using a subquery on the
    `sys.shards` system table to fail.
-
- - Upgraded Elasticsearch to v5.6.2
 
  - Update position of the navigation menu elements of the Admin UI.
 
