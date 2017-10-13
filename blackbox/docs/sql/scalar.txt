@@ -905,6 +905,26 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
+
+``scale(number)``
+-----------------
+
+The ``scale`` function returns the scale of the argument (the number of decimal digits in the fractional part)
+
+If the input is float or double the result will be the scale of the argument. In other cases the result will be ``0``.
+Returns: ``integer``
+
+See below for an example::
+
+    cr> select scale(32.2);
+    +-------------+
+    | round(32.2) |
+    +-------------+
+    |           1 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 ``sqrt(number)``
 ----------------
 

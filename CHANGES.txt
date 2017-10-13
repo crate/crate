@@ -39,6 +39,9 @@ Changes
 - Functions which accept regular expression flags now throw an error when
   invalid flags are provided.
 
+ - Add scale for Scalar functions.
+
+
 Fixes
 =====
 
