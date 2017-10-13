@@ -27,8 +27,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * The handler for dealing with Postgres SSLRequest messages.
@@ -43,7 +41,6 @@ import org.elasticsearch.common.logging.Loggers;
  */
 public final class SslReqHandler {
 
-    private static final Logger log = Loggers.getLogger(SslReqHandler.class);
     /** The total size of the SslRequest message (including the size itself) */
     static final int SSL_REQUEST_BYTE_LENGTH = 8;
     /* The payload of the SSL Request message */
