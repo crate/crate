@@ -62,7 +62,11 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
     public void testNetworkStats() throws Exception {
         ExtendedNetworkStats stats = extendedNodeInfo.networkStats();
         assertThat(stats.timestamp(), greaterThan(0L));
-        assertThat(stats.tcp().activeOpens(), greaterThan(0L));
+        if (isNewMacOSX()) {
+            assertThat(stats.tcp().currEstab(), greaterThan(0L));
+        } else {
+            assertThat(stats.tcp().activeOpens(), greaterThan(0L));
+        }
     }
 
     @Test

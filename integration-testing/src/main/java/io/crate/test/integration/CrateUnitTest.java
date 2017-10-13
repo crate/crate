@@ -48,7 +48,21 @@ public abstract class CrateUnitTest extends ESTestCase {
         MockitoAnnotations.initMocks(this);
     }
 
-    public static boolean isRunningOnWindows() {
+    protected static boolean isRunningOnWindows() {
         return System.getProperty("os.name").startsWith("Windows");
+    }
+
+    protected static boolean isNewMacOSX() {
+        if (!System.getProperty("os.name").equals("Mac OS X")) {
+            return false;
+        }
+        String[] osVersionArray = System.getProperty("os.version").split("\\.");
+        if (Integer.parseInt(osVersionArray[0]) > 10) {
+            return true;
+        }
+        if (Integer.parseInt(osVersionArray[1]) >= 13) {
+            return true;
+        }
+        return false;
     }
 }
