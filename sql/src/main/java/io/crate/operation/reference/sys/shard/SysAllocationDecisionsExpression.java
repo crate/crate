@@ -20,16 +20,21 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys.shard;
 
 import io.crate.operation.reference.sys.ArrayTypeRowContextCollectorExpression;
 
-public abstract class NodeStatsArrayTypeExpression<I, R>
-    extends ArrayTypeRowContextCollectorExpression<NodeStatsContext, I, R> {
+import java.util.List;
+
+public abstract class SysAllocationDecisionsExpression<ReturnType> extends ArrayTypeRowContextCollectorExpression<SysAllocation, SysAllocation.SysAllocationNodeDecision, ReturnType> {
 
     @Override
-    public R[] value() {
-        return row.isComplete() ? super.value() : null;
+    protected List<SysAllocation.SysAllocationNodeDecision> items() {
+        return this.row.decisions();
+    }
+
+    @Override
+    public ReturnType[] value() {
+        return items() == null ? null : super.value();
     }
 }
-

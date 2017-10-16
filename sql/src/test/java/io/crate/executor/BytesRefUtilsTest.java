@@ -85,14 +85,14 @@ public class BytesRefUtilsTest extends CrateUnitTest {
     public void testConvertObjectValues() throws Exception {
         DataType[] dataTypes = new DataType[]{ DataTypes.OBJECT };
         Object[][] rows = new Object[1][1];
-        rows[0][0] = new HashMap<String, Object>(){{
-            put("str", BytesRefs.toBytesRef("string value"));
-            put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null });
-            put("nested", new HashMap<String, Object>(){{
-                put("str", BytesRefs.toBytesRef("other value"));
-                put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v2"), null });
-            }});
-        }};
+        Map<String, Object> res = new HashMap<>();
+        res.put("str", BytesRefs.toBytesRef("string value"));
+        res.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null });
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("str", BytesRefs.toBytesRef("other value"));
+        nested.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v2"), null });
+        res.put("nested", nested);
+        rows[0][0] = res;
         BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
 
         Map<String, Object> result = (Map<String, Object>) rows[0][0];

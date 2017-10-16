@@ -52,7 +52,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by table_schema, table_name");
-        assertEquals(23L, response.rowCount());
+        assertEquals(24L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| columns| information_schema| BASE TABLE| NULL\n" +
@@ -66,6 +66,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| table_partitions| information_schema| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| tables| information_schema| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| pg_catalog| pg_type| pg_catalog| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| allocations| sys| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| checks| sys| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| cluster| sys| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| jobs| sys| BASE TABLE| NULL\n" +
@@ -117,13 +118,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testSearchInformationSchemaTablesRefresh() throws Exception {
         execute("select * from information_schema.tables");
-        assertEquals(23L, response.rowCount());
+        assertEquals(24L, response.rowCount());
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertEquals(24L, response.rowCount());
+        assertEquals(25L, response.rowCount());
     }
 
     @Test
@@ -294,7 +295,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testSelectFromTableConstraints() throws Exception {
 
         execute("select * from INFORMATION_SCHEMA.table_constraints order by table_schema asc, table_name asc");
-        assertEquals(14L, response.rowCount());
+        assertEquals(15L, response.rowCount());
         assertThat(response.cols(),
             arrayContaining("constraint_name", "constraint_type", "table_name", "table_schema"));
         assertThat(TestingHelpers.printedTable(response.rows()),
@@ -304,6 +305,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "[schema_name]| PRIMARY_KEY| schemata| information_schema\n" +
             "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| sql_features| information_schema\n" +
             "[table_schema, table_name]| PRIMARY_KEY| tables| information_schema\n" +
+            "[table_schema, table_name, partition_ident, shard_id]| PRIMARY_KEY| allocations| sys\n" +
             "[id]| PRIMARY_KEY| checks| sys\n" +
             "[id]| PRIMARY_KEY| jobs| sys\n" +
             "[id]| PRIMARY_KEY| jobs_log| sys\n" +
@@ -473,7 +475,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(445, response.rowCount());
+        assertEquals(457, response.rowCount());
     }
 
     @Test
@@ -690,12 +692,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(26L, response.rows()[0][0]);
+        assertEquals(27L, response.rows()[0][0]);
     }
 
     @Test
     public void testGlobalCountDistinct() throws Exception {
-        execute("create table t3 (id integer, col1 string)");
+        execute("create table t3 (TableInfoid integer, col1 string)");
         ensureGreen();
         execute("select count(distinct table_schema) from information_schema.tables order by count(distinct table_schema)");
         assertEquals(1, response.rowCount());

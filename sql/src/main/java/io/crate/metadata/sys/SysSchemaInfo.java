@@ -55,6 +55,7 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo());
         tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo());
         tableInfos.put(SysSummitsTableInfo.IDENT.name(), new SysSummitsTableInfo());
+        tableInfos.put(SysAllocationsTableInfo.IDENT.name(), new SysAllocationsTableInfo());
     }
 
     @Override
