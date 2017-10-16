@@ -30,6 +30,7 @@ import io.crate.operation.reference.StaticTableDefinition;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.check.node.SysNodeChecks;
+import io.crate.operation.reference.sys.shard.SysAllocations;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import org.elasticsearch.common.inject.Inject;
@@ -52,7 +53,8 @@ public class SysTableDefinitions {
                                Set<SysCheck> sysChecks,
                                SysNodeChecks sysNodeChecks,
                                RepositoriesService repositoriesService,
-                               SysSnapshots sysSnapshots) {
+                               SysSnapshots sysSnapshots,
+                               SysAllocations sysAllocations) {
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
             SysJobsTableInfo.expressions()
@@ -87,6 +89,11 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             snapshotSupplier(sysSnapshots),
             SysSnapshotsTableInfo.expressions()
+        ));
+
+        tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(sysAllocations),
+            SysAllocationsTableInfo.expressions()
         ));
 
         SummitsIterable summits = new SummitsIterable();

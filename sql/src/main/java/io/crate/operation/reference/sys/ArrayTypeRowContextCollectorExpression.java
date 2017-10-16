@@ -20,13 +20,13 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference.sys;
 
 import io.crate.metadata.RowContextCollectorExpression;
 
 import java.util.List;
 
-abstract class ArrayTypeRowContextCollectorExpression<RowType, IterType, ReturnType>
+public abstract class ArrayTypeRowContextCollectorExpression<RowType, IterType, ReturnType>
     extends RowContextCollectorExpression<RowType, ReturnType[]> {
 
     protected abstract List<IterType> items();
