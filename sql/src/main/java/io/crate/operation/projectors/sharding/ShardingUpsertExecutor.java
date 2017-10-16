@@ -62,6 +62,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -136,6 +137,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private CompletableFuture<Long> execRequests(Map<ShardLocation, TReq> itemsByShard) {
         final AtomicInteger numRequests = new AtomicInteger(itemsByShard.size());
         final AtomicLong rowCount = new AtomicLong(0L);
+        final AtomicReference<Exception> interrupt = new AtomicReference<>(null);
         final CompletableFuture<Long> rowCountFuture = new CompletableFuture<>();
         Iterator<Map.Entry<ShardLocation, TReq>> it = itemsByShard.entrySet().iterator();
         while (it.hasNext()) {
@@ -146,7 +148,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             String nodeId = entry.getKey().nodeId;
             nodeJobsCounter.increment(nodeId);
             ActionListener<ShardResponse> listener =
-                new ShardResponseActionListener(nodeId, rowCount, numRequests, rowCountFuture);
+                new ShardResponseActionListener(nodeId, rowCount, numRequests, interrupt, rowCountFuture);
 
             listener = new RetryListener<>(
                 scheduler,
@@ -204,18 +206,19 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         private final String operationNodeId;
         private final AtomicLong rowCount;
         private final AtomicInteger numRequests;
+        private final AtomicReference<Exception> interrupt;
         private final CompletableFuture<Long> rowCountFuture;
-        InterruptedException interruptedException;
 
         ShardResponseActionListener(String operationNodeId,
                                     AtomicLong rowCount,
                                     AtomicInteger numRequests,
+                                    AtomicReference<Exception> interrupt,
                                     CompletableFuture<Long> rowCountFuture) {
             this.operationNodeId = operationNodeId;
             this.rowCount = rowCount;
             this.numRequests = numRequests;
+            this.interrupt = interrupt;
             this.rowCountFuture = rowCountFuture;
-            interruptedException = null;
         }
 
         @Override
@@ -234,6 +237,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
         private void countdown() {
             if (numRequests.decrementAndGet() == 0) {
+                Exception interruptedException = interrupt.get();
                 if (interruptedException == null) {
                     rowCountFuture.complete(rowCount.get());
                 } else {
@@ -244,7 +248,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
         private void maybeSetInterrupt(@Nullable Exception failure) {
             if (failure instanceof InterruptedException) {
-                interruptedException = (InterruptedException) failure;
+                interrupt.set(failure);
             }
         }
     }
