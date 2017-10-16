@@ -60,6 +60,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FetchProjection;
@@ -613,10 +614,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
+            new LogicalPlanner(e.functions(), new TableStats()),
             clusterService.state(),
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
-            null,
             normalizer,
             new TransactionContext(SessionContext.create()),
             softLimit,

@@ -29,10 +29,12 @@ import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
+import io.crate.planner.consumer.FetchMode;
+import io.crate.planner.operators.LogicalPlanner;
 
 import java.util.Map;
 
@@ -40,8 +42,8 @@ class SelectStatementPlanner {
 
     private final Visitor visitor;
 
-    SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(consumingPlanner);
+    SelectStatementPlanner(LogicalPlanner logicalPlanner) {
+        visitor = new Visitor(logicalPlanner);
     }
 
     public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
@@ -50,14 +52,14 @@ class SelectStatementPlanner {
 
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
 
-        private final ConsumingPlanner consumingPlanner;
+        private final LogicalPlanner logicalPlanner;
 
-        public Visitor(ConsumingPlanner consumingPlanner) {
-            this.consumingPlanner = consumingPlanner;
+        public Visitor(LogicalPlanner logicalPlanner) {
+            this.logicalPlanner = logicalPlanner;
         }
 
-        private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
-            Plan plan = consumingPlanner.plan(relation, context);
+        private Plan invokeLogicalPlanner(QueriedRelation relation, Planner.Context context) {
+            Plan plan = logicalPlanner.plan(relation, context, FetchMode.WITH_PROPAGATION);
             if (plan == null) {
                 throw new UnsupportedOperationException("Cannot create plan for: " + relation);
             }
@@ -66,7 +68,12 @@ class SelectStatementPlanner {
 
         @Override
         protected Plan visitAnalyzedRelation(AnalyzedRelation relation, Planner.Context context) {
-            return invokeConsumingPlanner(relation, context);
+            throw new UnsupportedOperationException("Cannot create plan for: " + relation);
+        }
+
+        @Override
+        public Plan visitQueriedRelation(QueriedRelation relation, Planner.Context context) {
+            return invokeLogicalPlanner(relation, context);
         }
 
         @Override
@@ -80,7 +87,7 @@ class SelectStatementPlanner {
             QuerySpec querySpec = table.querySpec();
             context.applySoftLimit(querySpec);
             if (querySpec.hasAggregates() || (!querySpec.groupBy().isEmpty())) {
-                return invokeConsumingPlanner(table, context);
+                return invokeLogicalPlanner(table, context);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
                 SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
@@ -94,14 +101,14 @@ class SelectStatementPlanner {
             if (querySpec.where().noMatch() || (querySpec.limit() != null && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
-            return invokeConsumingPlanner(table, context);
+            return invokeLogicalPlanner(table, context);
         }
 
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
             QuerySpec querySpec = mss.querySpec();
             context.applySoftLimit(querySpec);
-            return invokeConsumingPlanner(mss, context);
+            return invokeLogicalPlanner(mss, context);
         }
     }
 }

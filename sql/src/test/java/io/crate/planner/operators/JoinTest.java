@@ -34,7 +34,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
-import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -99,10 +98,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private Planner.Context getContext(TableStats tableStats) {
         return new Planner.Context(
                 e.planner,
+                new LogicalPlanner(e.functions(), tableStats),
                 clusterService.state(),
                 new RoutingProvider(Randomness.get().nextInt(), new String[0]),
                 UUID.randomUUID(),
-                new ConsumingPlanner(functions, tableStats),
                 EvaluatingNormalizer.functionOnlyNormalizer(functions),
                 new TransactionContext(SessionContext.create()),
                 -1,

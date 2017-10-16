@@ -30,22 +30,22 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 
-final class OptimizingRewriter {
+public final class OptimizingRewriter {
 
     private final Functions functions;
 
-    OptimizingRewriter(Functions functions) {
+    public OptimizingRewriter(Functions functions) {
         this.functions = functions;
     }
 
     /**
      * Return the relation as is or a re-written relation
      */
-    public AnalyzedRelation optimize(AnalyzedRelation relation, TransactionContext transactionContext) {
+    public QueriedRelation optimize(QueriedRelation relation, TransactionContext transactionContext) {
         return new Visitor(new SemiJoins(functions), transactionContext).process(relation, null);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<Void, AnalyzedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<Void, QueriedRelation> {
 
         private final SemiJoins semiJoins;
         private final TransactionContext transactionContext;
@@ -56,17 +56,22 @@ final class OptimizingRewriter {
         }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected QueriedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            throw new UnsupportedOperationException("Cannot optimize relation: " + relation);
+        }
+
+        @Override
+        public QueriedRelation visitQueriedRelation(QueriedRelation relation, Void context) {
             return relation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, Void context) {
+        public QueriedRelation visitQueriedTable(QueriedTable table, Void context) {
             return maybeApplySemiJoinRewrite(table);
         }
 
         @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Void context) {
+        public QueriedRelation visitQueriedDocTable(QueriedDocTable table, Void context) {
             return maybeApplySemiJoinRewrite(table);
         }
 

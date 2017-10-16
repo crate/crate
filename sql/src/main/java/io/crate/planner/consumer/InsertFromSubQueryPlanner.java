@@ -48,8 +48,7 @@ public final class InsertFromSubQueryPlanner {
     private InsertFromSubQueryPlanner() {
     }
 
-    public static Plan plan(InsertFromSubQueryAnalyzedStatement statement, ConsumerContext context) {
-
+    public static Plan plan(InsertFromSubQueryAnalyzedStatement statement, Planner.Context plannerContext) {
         final ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
             null,
@@ -75,9 +74,7 @@ public final class InsertFromSubQueryPlanner {
                                                   "supported on insert using a sub-query");
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-        context.setFetchMode(FetchMode.NEVER);
-        Planner.Context plannerContext = context.plannerContext();
-        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
+        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, FetchMode.NEVER);
         if (plannedSubQuery == null) {
             return null;
         }

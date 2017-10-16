@@ -39,7 +39,6 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -235,9 +234,7 @@ public class CopyStatementPlanner {
             statement.outputNames(),
             outputFormat);
 
-        ConsumerContext consumerContext = new ConsumerContext(context);
-        consumerContext.setFetchMode(FetchMode.NEVER);
-        Plan plan = context.planSubRelation(statement.subQueryRelation(), consumerContext);
+        Plan plan = context.planSubRelation(statement.subQueryRelation(), FetchMode.NEVER);
         if (plan == null) {
             return null;
         }

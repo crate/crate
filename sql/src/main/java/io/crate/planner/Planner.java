@@ -49,7 +49,7 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
@@ -64,8 +64,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.consumer.ConsumerContext;
-import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
@@ -77,6 +76,7 @@ import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
@@ -109,11 +109,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
-    private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
     private final CopyStatementPlanner copyStatementPlanner;
     private final SelectStatementPlanner selectStatementPlanner;
     private final EvaluatingNormalizer normalizer;
+    private final LogicalPlanner logicalPlanner;
 
     private String[] awarenessAttributes;
 
@@ -122,7 +122,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         private final Planner planner;
         private final UUID jobId;
-        private final ConsumingPlanner consumingPlanner;
         private final EvaluatingNormalizer normalizer;
         private final TransactionContext transactionContext;
         private final int softLimit;
@@ -130,24 +129,25 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final RoutingBuilder routingBuilder;
         private final ClusterState clusterState;
         private final RoutingProvider routingProvider;
+        private final LogicalPlanner logicalPlanner;
         private int executionPhaseId = 0;
         private String handlerNode;
 
         public Context(Planner planner,
+                       LogicalPlanner logicalPlanner,
                        ClusterState clusterState,
                        RoutingProvider routingProvider,
                        UUID jobId,
-                       ConsumingPlanner consumingPlanner,
                        EvaluatingNormalizer normalizer,
                        TransactionContext transactionContext,
                        int softLimit,
                        int fetchSize) {
+            this.logicalPlanner = logicalPlanner;
             this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
             this.routingProvider = routingProvider;
             this.clusterState = clusterState;
             this.planner = planner;
             this.jobId = jobId;
-            this.consumingPlanner = consumingPlanner;
             this.normalizer = normalizer;
             this.transactionContext = transactionContext;
             this.softLimit = softLimit;
@@ -198,8 +198,19 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 softLimit = this.softLimit;
                 fetchSize = this.fetchSize;
             }
-            return planner.process(statement, new Planner.Context(
-                planner, clusterState, routingProvider, subJobId, consumingPlanner, normalizer, transactionContext, softLimit, fetchSize));
+            return planner.process(
+                statement,
+                new Planner.Context(
+                    planner,
+                    logicalPlanner,
+                    clusterState,
+                    routingProvider,
+                    subJobId,
+                    normalizer,
+                    transactionContext,
+                    softLimit,
+                    fetchSize)
+            );
         }
 
         void applySoftLimit(QuerySpec querySpec) {
@@ -213,9 +224,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
 
-        public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
-            assert consumingPlanner != null : "consumingPlanner needs to be present to plan sub relations";
-            return consumingPlanner.plan(relation, consumerContext);
+        public Plan planSubRelation(QueriedRelation relation, FetchMode fetchMode) {
+            assert logicalPlanner != null : "consumingPlanner needs to be present to plan sub relations";
+            return logicalPlanner.plan(relation, this, fetchMode);
         }
 
         public UUID jobId() {
@@ -242,9 +253,9 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Inject
     public Planner(Settings settings, ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
-        this.consumingPlanner = new ConsumingPlanner(functions, tableStats);
+        this.logicalPlanner = new LogicalPlanner(functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
-        this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
+        this.selectStatementPlanner = new SelectStatementPlanner(logicalPlanner);
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
 
         this.awarenessAttributes =
@@ -277,10 +288,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             analyzedStatement,
             new Context(
                 this,
+                logicalPlanner,
                 clusterService.state(),
                 routingProvider,
                 jobId,
-                consumingPlanner,
                 normalizer,
                 analysis.transactionContext(),
                 softLimit,
@@ -313,7 +324,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, Context context) {
-        return InsertFromSubQueryPlanner.plan(statement, new ConsumerContext(context));
+        return InsertFromSubQueryPlanner.plan(statement, context);
     }
 
     @Override

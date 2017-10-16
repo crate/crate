@@ -30,11 +30,16 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RefVisitor;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Functions;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
+import io.crate.planner.consumer.OptimizingRewriter;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
@@ -42,6 +47,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -50,16 +56,26 @@ import java.util.Set;
 public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
+    private final OptimizingRewriter optimizingRewriter;
+    private final ProjectionBuilder projectionBuilder;
+    private final TableStats tableStats;
 
-    public Plan plan(TableStats tableStats,
-                     QueriedRelation queriedRelation,
-                     Planner.Context plannerContext,
-                     ProjectionBuilder projectionBuilder,
-                     FetchMode fetchMode) {
-        LogicalPlan logicalPlan = plan(queriedRelation, fetchMode, true)
-            .build(tableStats, new HashSet<>(queriedRelation.outputs()))
+    public LogicalPlanner(Functions functions, TableStats tableStats) {
+        this.optimizingRewriter = new OptimizingRewriter(functions);
+        this.projectionBuilder = new ProjectionBuilder(functions);
+        this.tableStats = tableStats;
+    }
+
+    public Plan plan(QueriedRelation queriedRelation, Planner.Context plannerContext, FetchMode fetchMode) {
+
+        QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
+
+        LogicalPlan logicalPlan = plan(relation, fetchMode, true)
+            .build(tableStats, new HashSet<>(relation.outputs()))
             .tryCollapse();
 
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
+        Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation.querySpec());
         Plan plan = logicalPlan.build(
             plannerContext,
             projectionBuilder,
@@ -68,10 +84,15 @@ public class LogicalPlanner {
             null,
             null
         );
-        return plan;
+        return MultiPhasePlan.createIfNeeded(
+            plan,
+            subQueries
+        );
     }
 
-    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode, boolean isLastFetch) {
+    static LogicalPlan.Builder plan(QueriedRelation relation,
+                                    FetchMode fetchMode,
+                                    boolean isLastFetch) {
         SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
         LogicalPlan.Builder sourceBuilder =
             FetchOrEval.create(
