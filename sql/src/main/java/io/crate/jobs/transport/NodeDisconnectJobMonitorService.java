@@ -23,7 +23,6 @@
 package io.crate.jobs.transport;
 
 import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
 import org.apache.logging.log4j.Logger;
@@ -39,8 +38,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -98,16 +97,16 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
             contexts.addAll(jobContextService.getJobIdsByParticipatingNodes(node.getId()).collect(Collectors.toList()));
             KillJobsRequest killJobsRequest = new KillJobsRequest(contexts);
             if (!contexts.isEmpty()) {
-                killJobsNodeAction.broadcast(killJobsRequest, new ActionListener<KillResponse>() {
+                killJobsNodeAction.broadcast(killJobsRequest, new ActionListener<Long>() {
                     @Override
-                    public void onResponse(KillResponse killResponse) {
+                    public void onResponse(Long numKilled) {
                     }
 
                     @Override
                     public void onFailure(Exception e) {
                         LOGGER.warn("failed to send kill request to nodes");
                     }
-                }, Arrays.asList(node.getId()));
+                }, Collections.singletonList(node.getId()));
             } else {
                 return;
             }

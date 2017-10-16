@@ -21,28 +21,18 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
-import java.util.function.Function;
 
 public class KillTask extends JobTask {
 
-    static final Function<KillResponse, Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
-        @Nullable
-        @Override
-        public Row apply(@Nullable KillResponse input) {
-            return new Row1(input == null ? -1 : input.numKilled());
-        }
-    };
     private final TransportKillAllNodeAction nodeAction;
 
     public KillTask(TransportKillAllNodeAction nodeAction, UUID jobId) {
@@ -52,7 +42,6 @@ public class KillTask extends JobTask {
 
     @Override
     public void execute(RowConsumer consumer, Row parameters) {
-        nodeAction.broadcast(new KillAllRequest(),
-            new OneRowActionListener<>(consumer, KILL_RESPONSE_TO_ROW_FUNCTION));
+        nodeAction.broadcast(new KillAllRequest(), new OneRowActionListener<>(consumer, Row1::new));
     }
 }

@@ -27,10 +27,9 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -176,10 +175,10 @@ public class RemoteCollector implements CrateCollector {
 
     private void killRemoteContext() {
         transportKillJobsNodeAction.broadcast(new KillJobsRequest(Collections.singletonList(jobId)),
-            new ActionListener<KillResponse>() {
+            new ActionListener<Long>() {
 
                 @Override
-                public void onResponse(KillResponse killResponse) {
+                public void onResponse(Long numKilled) {
                     context.kill();
                 }
 

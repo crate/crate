@@ -82,17 +82,19 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
     /**
      * Broadcasts the given kill request to all nodes in the cluster
      */
-    public void broadcast(Request request, ActionListener<KillResponse> listener) {
+    public void broadcast(Request request, ActionListener<Long> listener) {
         broadcast(request, listener, Collections.emptyList());
     }
 
-    public void broadcast(Request request, ActionListener<KillResponse> listener, Collection<String> excludedNodeIds) {
+    public void broadcast(Request request, ActionListener<Long> listener, Collection<String> excludedNodeIds) {
         Stream<DiscoveryNode> nodes = StreamSupport.stream(clusterService.state().nodes().spliterator(), false);
         Collection<DiscoveryNode> filteredNodes = nodes.filter(node -> !excludedNodeIds.contains(node.getId())).collect(Collectors.toList());
 
-        listener = new MultiActionListener<>(filteredNodes.size(), KillResponse.MERGE_FUNCTION, listener);
+        MultiActionListener<KillResponse, ?, Long> multiListener =
+            new MultiActionListener<>(filteredNodes.size(), Collectors.summingLong(KillResponse::numKilled), listener);
+
         TransportResponseHandler<KillResponse> responseHandler =
-            new ActionListenerResponseHandler<>(listener, () -> new KillResponse(0));
+            new ActionListenerResponseHandler<>(multiListener, () -> new KillResponse(0));
         for (DiscoveryNode node : filteredNodes) {
             transportService.sendRequest(node, name, request, responseHandler);
         }

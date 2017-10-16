@@ -24,32 +24,43 @@ package io.crate.executor;
 
 import org.elasticsearch.action.ActionListener;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
-public class MultiActionListener<SingleResponse, FinalResponse> implements ActionListener<SingleResponse> {
+public class MultiActionListener<I, S, R> implements ActionListener<I> {
 
     private final AtomicInteger counter;
     private final AtomicReference<Exception> lastExceptions = new AtomicReference<>(null);
-    private final Function<List<SingleResponse>, FinalResponse> mergeFunction;
-    private final ActionListener<? super FinalResponse> actionListener;
-    private final ArrayList<SingleResponse> results;
+    private final BiConsumer<S, I> accumulator;
+    private final Function<S, R> finisher;
+    private final ActionListener<? super R> actionListener;
+    private final S state;
+
+    public MultiActionListener(int numResponses, Collector<I, S, R> collector, ActionListener<? super R> listener) {
+        this(numResponses, collector.supplier(), collector.accumulator(), collector.finisher(), listener);
+    }
 
     public MultiActionListener(int numResponses,
-                               Function<List<SingleResponse>, FinalResponse> mergeFunction,
-                               ActionListener<? super FinalResponse> actionListener) {
-        this.mergeFunction = mergeFunction;
+                               Supplier<S> stateSupplier,
+                               BiConsumer<S, I> accumulator,
+                               Function<S, R> finisher,
+                               ActionListener<? super R> actionListener) {
+        this.accumulator = accumulator;
+        this.finisher = finisher;
         this.actionListener = actionListener;
-        results = new ArrayList<>(numResponses);
+        this.state = stateSupplier.get();
         counter = new AtomicInteger(numResponses);
     }
 
     @Override
-    public void onResponse(SingleResponse response) {
-        results.add(response);
+    public void onResponse(I response) {
+        synchronized (state) {
+            accumulator.accept(state, response);
+        }
         countdown();
     }
 
@@ -63,7 +74,7 @@ public class MultiActionListener<SingleResponse, FinalResponse> implements Actio
         if (counter.decrementAndGet() == 0) {
             Exception e = lastExceptions.get();
             if (e == null) {
-                actionListener.onResponse(mergeFunction.apply(results));
+                actionListener.onResponse(finisher.apply(state));
             } else {
                 actionListener.onFailure(e);
             }

@@ -27,7 +27,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -82,10 +81,10 @@ class InterceptingRowConsumer implements RowConsumer {
             consumer.accept(iterator, null);
         } else {
             transportKillJobsNodeAction.broadcast(
-                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
+                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<Long>() {
                     @Override
-                    public void onResponse(KillResponse killResponse) {
-                        LOGGER.trace("Killed {} jobs before forwarding the failure={}", killResponse.numKilled(), failure);
+                    public void onResponse(Long numKilled) {
+                        LOGGER.trace("Killed {} jobs before forwarding the failure={}", numKilled, failure);
                         consumer.accept(null, failure);
                     }
 
