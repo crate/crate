@@ -256,20 +256,17 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Row context) {
-            // TODO: implementation
-            throw new UnsupportedOperationException("TODO");
+            return alterTableOperation.executeRerouteCancelShard(analysis);
         }
 
         @Override
         protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row context) {
-            // TODO: implementation
-            throw new UnsupportedOperationException("TODO");
+            return alterTableOperation.executeRerouteAllocateReplicaShard(analysis);
         }
 
         @Override
         protected CompletableFuture<Long> visitRerouteRetryFailed(RerouteRetryFailedAnalyzedStatement analysis, Row context) {
-            // TODO: implementation
-            throw new UnsupportedOperationException("TODO");
+            return alterTableOperation.executeRerouteRetryFailed(analysis);
         }
     }
 

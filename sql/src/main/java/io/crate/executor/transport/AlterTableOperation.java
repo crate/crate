@@ -33,7 +33,11 @@ import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.PartitionedTableParameterInfo;
+import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
+import io.crate.analyze.RerouteAnalyzedStatement;
+import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.TableParameter;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.concurrent.CompletableFutures;
@@ -78,6 +82,8 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -554,9 +560,7 @@ public class AlterTableOperation {
         return true;
     }
 
-    public CompletableFuture<Long> executeRerouteMoveShard(RerouteMoveShardAnalyzedStatement statement) {
-        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
-
+    static String getRerouteIndex(RerouteAnalyzedStatement statement) {
         TableInfo tableInfo = statement.tableInfo();
         String index = tableInfo.ident().indexName();
         boolean isBlobIndex = BlobIndex.isBlobIndex(index);
@@ -568,7 +572,13 @@ public class AlterTableOperation {
                 index = statement.partitionName().asIndexName();
             }
         }
+        return index;
+    }
 
+    public CompletableFuture<Long> executeRerouteMoveShard(RerouteMoveShardAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+
+        String index = getRerouteIndex(statement);
         String fromNodeId = statement.fromNodeId();
         String toNodeId = statement.toNodeId();
         int shardId = statement.shardId();
@@ -576,6 +586,86 @@ public class AlterTableOperation {
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         MoveAllocationCommand command = new MoveAllocationCommand(index, shardId, fromNodeId, toNodeId);
         request.add(command);
+        transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
+            @Override
+            public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {
+                if (clusterRerouteResponse.isAcknowledged()) {
+                    resultFuture.complete(1L);
+                } else {
+                    resultFuture.complete(-1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
+        });
+        return resultFuture;
+    }
+
+    public CompletableFuture<Long> executeRerouteCancelShard(RerouteCancelShardAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+
+        String index = getRerouteIndex(statement);
+        String nodeId = statement.nodeId();
+        int shardId = statement.shardId();
+        boolean allowPrimary = statement.allowPrimary();
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        CancelAllocationCommand command = new CancelAllocationCommand(index, shardId, nodeId, allowPrimary);
+        request.add(command);
+        transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
+            @Override
+            public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {
+                if (clusterRerouteResponse.isAcknowledged()) {
+                    resultFuture.complete(1L);
+                } else {
+                    resultFuture.complete(-1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
+        });
+        return resultFuture;
+    }
+
+    public CompletableFuture<Long> executeRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+
+        String index = getRerouteIndex(statement);
+        String nodeId = statement.nodeId();
+        int shardId = statement.shardId();
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(index, shardId, nodeId);
+        request.add(command);
+        transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
+            @Override
+            public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {
+                if (clusterRerouteResponse.isAcknowledged()) {
+                    resultFuture.complete(1L);
+                } else {
+                    resultFuture.complete(-1L);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                resultFuture.completeExceptionally(e);
+            }
+        });
+        return resultFuture;
+    }
+
+    public CompletableFuture<Long> executeRerouteRetryFailed(RerouteRetryFailedAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        request.setRetryFailed(true);
         transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
             @Override
             public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {

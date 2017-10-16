@@ -23,7 +23,9 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -35,16 +37,6 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTest {
-
-    class RerouteInfo {
-        public final String fromNodeId;
-        public final String toNodeId;
-
-        public RerouteInfo(String fromNodeId, String toNodeId) {
-            this.fromNodeId = fromNodeId;
-            this.toNodeId = toNodeId;
-        }
-    }
 
     private void createPartedTable() {
         execute("create table parted (" +
@@ -63,13 +55,12 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
         execute("create table my_table (" +
             "id int primary key," +
             "date timestamp" +
-            ") clustered into 2 shards " +
+            ") clustered into 1 shards " +
             "with (number_of_replicas=0)");
         ensureGreen();
     }
 
-
-    private RerouteInfo getNodesForShardMovement(String table, int shardId, Map partition) {
+    private Tuple<String, String> getNodesForShardMovement(String table, int shardId, Map partition) {
         String partitionIdent = "";
         if (partition.isEmpty() == false) {
             execute("select partition_ident from information_schema.table_partitions where table_name = ? and values = ?", new Object[]{table, partition});
@@ -80,17 +71,25 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
         execute("select id from sys.nodes where id != ?", new Object[]{fromNode});
         String toNode = (String) response.rows()[0][0];
 
-        return new RerouteInfo(fromNode, toNode);
+        return new Tuple<>(fromNode, toNode);
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        execute("reset global \"cluster.routing.allocation.enable\"");
+        execute("reset global \"cluster.routing.allocation.allow_rebalance\"");
     }
 
     @Test
     @Repeat(iterations = 10)
     public void testMoveShard() throws Exception {
-        createTable();
         int shardId = 0;
-        RerouteInfo nodes = getNodesForShardMovement("my_table", shardId, Collections.emptyMap());
-        execute("ALTER TABLE my_table REROUTE MOVE SHARD ? FROM ? TO ?", new Object[]{shardId, nodes.fromNodeId, nodes.toNodeId});
-        execute("select count(*) from sys.shards where id = ? and _node['id'] = ? and table_name = 'my_table'", new Object[]{shardId, nodes.toNodeId});
+        createTable();
+        Tuple<String, String> rerouteInfo = getNodesForShardMovement("my_table", shardId, Collections.emptyMap());
+
+        execute("ALTER TABLE my_table REROUTE MOVE SHARD ? FROM ? TO ?", new Object[]{shardId, rerouteInfo.v1(), rerouteInfo.v2()});
+        assertThat(response.rowCount(), is(1L));
+        execute("select count(*) from sys.shards where id = ? and _node['id'] = ? and table_name = 'my_table'", new Object[]{shardId, rerouteInfo.v2()});
         assertThat(response.rows()[0][0], is(1L));
     }
 
@@ -102,11 +101,70 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
         partition.put("date", 1483228800000L);
 
         createPartedTable();
+        Tuple<String, String> rerouteInfo = getNodesForShardMovement("parted", shardId, partition);
 
-        RerouteInfo shardInfo = getNodesForShardMovement("parted", shardId, partition);
-        execute("ALTER TABLE parted PARTITION (date = ?) REROUTE MOVE SHARD ? from ? TO ?", new Object[]{partition.get("date"), shardId, shardInfo.fromNodeId, shardInfo.toNodeId});
-        execute("select partition_ident from sys.shards where id = ? and _node['id'] = ? and table_name = 'parted'", new Object[]{shardId, shardInfo.toNodeId});
+        execute("ALTER TABLE parted PARTITION (date = ?) REROUTE MOVE SHARD ? from ? TO ?", new Object[]{partition.get("date"), shardId, rerouteInfo.v1(), rerouteInfo.v2()});
+        assertThat(response.rowCount(), is(1L));
+        execute("select partition_ident from sys.shards where id = ? and _node['id'] = ? and table_name = 'parted'", new Object[]{shardId, rerouteInfo.v2()});
         assertThat(response.rowCount(), is(2L));
         assertNotEquals(response.rows()[0][0], response.rows()[1][0]);
+    }
+
+    @Test
+    @Repeat(iterations = 10)
+    public void testCancelAllowPrimaryAllocationOfShard() throws Exception {
+        int shardId = 0;
+        createTable();
+        Tuple<String, String> rerouteInfo = getNodesForShardMovement("my_table", shardId, Collections.emptyMap());
+
+        execute("ALTER TABLE my_table REROUTE MOVE SHARD ? FROM ? TO ?", new Object[]{shardId, rerouteInfo.v1(), rerouteInfo.v2()});
+        execute("ALTER TABLE my_table REROUTE CANCEL SHARD ? ON ? WITH (allow_primary = TRUE)", new Object[]{shardId, rerouteInfo.v2()});
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    @Repeat(iterations = 10)
+    public void testAllocateReplicaShard() throws Exception {
+        int shardId = 0;
+        createTable();
+        execute("set global \"cluster.routing.allocation.enable\"=\"primaries\"");
+        execute("set global \"cluster.routing.allocation.allow_rebalance\"=\"indices_all_active\"");
+        execute("alter table my_table set (number_of_replicas = 1)");
+        ensureYellow();
+        execute("select count(*) from sys.shards where state = 'UNASSIGNED' and table_name = 'my_table'");
+        assertThat(response.rows()[0][0], is(1L));
+
+        Tuple<String, String> rerouteInfo = getNodesForShardMovement("my_table", shardId, Collections.emptyMap());
+
+        execute("reset global \"cluster.routing.allocation.enable\"");
+        execute("ALTER TABLE my_table REROUTE ALLOCATE REPLICA SHARD ? ON ?", new Object[]{shardId, rerouteInfo.v2()});
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        execute("select count(*) from sys.shards where state = 'UNASSIGNED' and table_name = 'my_table'");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+    @Test
+    @Repeat(iterations = 10)
+    public void testRetryFailedShards() throws Exception {
+        createTable();
+        execute("set global \"cluster.routing.allocation.enable\"=\"primaries\"");
+        execute("set global \"cluster.routing.allocation.allow_rebalance\"=\"indices_all_active\"");
+        execute("alter table my_table set (number_of_replicas = 1)");
+        execute("select count(*) from sys.shards where state = 'UNASSIGNED' and table_name = 'my_table'");
+        assertThat(response.rows()[0][0], is(1L));
+
+        execute("reset global \"cluster.routing.allocation.enable\"");
+        execute("ALTER TABLE my_table REROUTE RETRY FAILED");
+        assertThat(response.rowCount(), is(1L));
+        ensureGreen();
+        execute("select count(*) from sys.shards where state = 'UNASSIGNED' and table_name = 'my_table'");
+        assertThat(response.rows()[0][0], is(0L));
+    }
+
+
+    @Test
+    public void testRerouteMoveBlobIndex() throws Exception {
+        assertTrue(true);
     }
 }
