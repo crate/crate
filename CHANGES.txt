@@ -39,6 +39,19 @@ Changes
 Fixes
 =====
 
+ - Keep input of console when changing tabs in the Admin UI.
+
+ - Added focus on text box when the console view is loaded and after
+   clicking on the `Execute Query` button in the Admin UI.
+
+ - Shard and node details are now loaded on demand in the shards view of
+   the Admin UI.
+
+ - Fixed issue that caused the cluster check display to be delayed in
+   the Admin UI.
+
+ - Fix formating of strings in the console view.
+
  - Upgraded Elasticsearch to v5.6.2
 
  - Update position of the navigation menu elements of the Admin UI.
