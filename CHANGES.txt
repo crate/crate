@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+- Added pagination to Console results in the Admin UI.
+
 - Added cluster checks that warn if some tables need to be recreated so that
   they are compatible with future versions of CrateDB >= 3.0.0.
 
