@@ -24,10 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.symbol.FieldReplacer;
-import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.collections.Lists2;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
@@ -37,7 +34,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -77,28 +73,6 @@ import java.util.function.Function;
  * </pre>
  */
 public interface LogicalPlan {
-
-    static List<Symbol> mappedSymbols(List<Symbol> sourceOutputs, Map<Symbol, Symbol> mapping) {
-        if (mapping.isEmpty()) {
-            return sourceOutputs;
-        }
-        return Lists2.copyAndReplace(sourceOutputs, getMapper(mapping));
-    }
-
-    static Function<Symbol, Symbol> getMapper(Map<Symbol, Symbol> mapping) {
-        return s -> {
-            Symbol mapped = mapping.get(s);
-            if (mapped != null) {
-                return mapped;
-            }
-            mapped = FieldReplacer.replaceFields(s, f -> mapping.getOrDefault(f, f));
-            if (mapped != s) {
-                return mapped;
-            }
-            mapped = RefReplacer.replaceRefs(s, r -> mapping.getOrDefault(r, r));
-            return mapped;
-        };
-    }
 
     interface Builder {
 

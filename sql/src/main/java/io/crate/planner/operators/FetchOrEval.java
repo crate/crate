@@ -64,7 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import static io.crate.planner.operators.Collect.getUnusedColumns;
+import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
+
 
 /**
  * The FetchOrEval operator is producing the values for all selected expressions.

@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -30,10 +29,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.SymbolVisitors;
@@ -66,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
+import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 
 /**
  * An Operator for data-collection.
@@ -146,43 +144,6 @@ class Collect implements LogicalPlan {
             preFetchSymbols.add(scoreCol);
         }
         return preFetchSymbols;
-    }
-
-    /**
-     * Return columns which are not used.
-     *
-     * Examples:
-     *
-     * <pre>
-     * toCollect: [f(x)]        used: x
-     * unused:    []
-     *
-     * toCollect: [x, f(x)]     used: [f(x)]
-     * unused:    []
-     *
-     * toCollect: [x, y]        used: [x]
-     * unused:    [y]
-     * </pre>
-     */
-    @VisibleForTesting
-    static List<Symbol> getUnusedColumns(List<Symbol> toCollect, Set<Symbol> usedColumns) {
-        List<Symbol> unusedCols = new ArrayList<>();
-        for (Symbol symbol : toCollect) {
-            if (usedColumns.contains(symbol)) {
-                continue;
-            }
-            RefVisitor.visitRefs(symbol, r -> {
-                if (!usedColumns.contains(r) && !Symbols.containsColumn(usedColumns, r.ident().columnIdent())) {
-                    unusedCols.add(r);
-                }
-            });
-            FieldsVisitor.visitFields(symbol, f -> {
-                if (!usedColumns.contains(f) && !Symbols.containsColumn(usedColumns, f.path())) {
-                    unusedCols.add(f);
-                }
-            });
-        }
-        return unusedCols;
     }
 
     @Override

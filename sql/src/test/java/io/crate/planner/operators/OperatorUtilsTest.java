@@ -33,10 +33,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThat;
 
-public class CollectTest {
-
+public class OperatorUtilsTest {
 
     @Test
     public void testGetUnusedColsWithNoUnused() throws Exception {
@@ -48,7 +47,7 @@ public class CollectTest {
         Set<Symbol> used = Collections.singleton(xAdd1);
 
         assertThat(
-            Collect.getUnusedColumns(toCollect, used),
+            OperatorUtils.getUnusedColumns(toCollect, used),
             Matchers.emptyIterable()
         );
     }

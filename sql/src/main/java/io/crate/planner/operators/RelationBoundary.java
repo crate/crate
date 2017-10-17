@@ -63,7 +63,7 @@ public class RelationBoundary implements LogicalPlan {
                     field,
                     ((QueriedRelation) field.relation()).querySpec().outputs().get(field.index()));
             }
-            Function<Symbol, Symbol> mapper = LogicalPlan.getMapper(expressionMapping);
+            Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(expressionMapping);
             HashSet<Symbol> mappedUsedColumns = new HashSet<>();
             for (Symbol beforeNextFetch : usedBeforeNextFetch) {
                 mappedUsedColumns.add(mapper.apply(beforeNextFetch));
@@ -90,7 +90,7 @@ public class RelationBoundary implements LogicalPlan {
                 }
             });
         }
-        this.outputs = LogicalPlan.mappedSymbols(source.outputs(), reverseMapping);
+        this.outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
         expressionMapping.putAll(source.expressionMapping());
     }
 
