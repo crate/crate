@@ -22,24 +22,16 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToNumberVisitor;
-import io.crate.analyze.expressions.ExpressionToObjectVisitor;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.data.Row;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
 import io.crate.sql.tree.RerouteRetryFailed;
-
-import java.util.Locale;
 
 public class AlterTableRerouteAnalyzer {
 
@@ -51,74 +43,32 @@ public class AlterTableRerouteAnalyzer {
     }
 
     public AnalyzedStatement analyze(AlterTableReroute node, Analysis context) {
-        TableInfo tableInfo = schemas.getTableInfo(
+        ShardedTable tableInfo = schemas.getTableInfo(
             TableIdent.of(node.table(), context.sessionContext().defaultSchema()),
-            Operation.ALTER);
-        Row parameters = context.parameterContext().parameters();
-        PartitionName partitionName = AlterTableAnalyzer.createPartitionName(node.table().partitionProperties(),
-            (DocTableInfo) tableInfo, parameters);
-        return REROUTE_OPTION_VISITOR.process(node.rerouteOption(), new Context(tableInfo, partitionName, parameters));
+            Operation.ALTER_REROUTE);
+        return REROUTE_OPTION_VISITOR.process(node.rerouteOption(), tableInfo.concreteIndices());
     }
 
-    private class Context {
-
-        final TableInfo tableInfo;
-        final PartitionName partitionName;
-        final Row params;
-
-        private Context(TableInfo tableInfo, PartitionName partitionName, Row params) {
-            this.tableInfo = tableInfo;
-            this.partitionName = partitionName;
-            this.params = params;
-        }
-
-    }
-
-    private static class RerouteOptionVisitor extends AstVisitor<RerouteAnalyzedStatement, Context> {
-
-        private static final String ALLOW_PRIMARY = "allow_primary";
+    private static class RerouteOptionVisitor extends AstVisitor<RerouteAnalyzedStatement, String[]> {
 
         @Override
-        public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard node, Context context) {
-            int shardId = ExpressionToNumberVisitor.convert(node.shardId(), context.params).intValue();
-            String fromNodeId = ExpressionToStringVisitor.convert(node.fromNodeId(), context.params);
-            String toNodeId = ExpressionToStringVisitor.convert(node.toNodeId(), context.params);
-            return new RerouteMoveShardAnalyzedStatement(context.tableInfo, context.partitionName,
-                shardId, fromNodeId, toNodeId);
+        public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard node, String[] context) {
+            return new RerouteMoveShardAnalyzedStatement(context, node.shardId(), node.fromNodeId(), node.toNodeId());
         }
 
         @Override
-        public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard node, Context context) {
-            int shardId = ExpressionToNumberVisitor.convert(node.shardId(), context.params).intValue();
-            String nodeId = ExpressionToStringVisitor.convert(node.nodeId(), context.params);
-            boolean allowPrimary = false;
-            if (node.properties().isPresent()) {
-                for (String key : node.properties().get().keys()) {
-                    if (ALLOW_PRIMARY.equals(key)) {
-                        allowPrimary = (boolean) ExpressionToObjectVisitor.convert(
-                            node.properties().get().get(ALLOW_PRIMARY),
-                            context.params);
-                    } else {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "\"%s\" is not a valid setting for CANCEL SHARD", key));
-                    }
-                }
-            }
-            return new RerouteCancelShardAnalyzedStatement(context.tableInfo, context.partitionName,
-                shardId, nodeId, allowPrimary);
+        public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard node, String[] context) {
+            return new RerouteCancelShardAnalyzedStatement(context, node.shardId(), node.nodeId(), node.properties());
         }
 
         @Override
-        public RerouteAnalyzedStatement visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, Context context) {
-            int shardId = ExpressionToNumberVisitor.convert(node.shardId(), context.params).intValue();
-            String nodeId = ExpressionToStringVisitor.convert(node.nodeId(), context.params);
-            return new RerouteAllocateReplicaShardAnalyzedStatement(context.tableInfo, context.partitionName,
-                shardId, nodeId);
+        public RerouteAnalyzedStatement visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, String[] context) {
+            return new RerouteAllocateReplicaShardAnalyzedStatement(context, node.shardId(), node.nodeId());
         }
 
         @Override
-        public RerouteAnalyzedStatement visitRerouteRetryFailed(RerouteRetryFailed node, Context context) {
-            return new RerouteRetryFailedAnalyzedStatement(context.tableInfo, context.partitionName);
+        public RerouteAnalyzedStatement visitRerouteRetryFailed(RerouteRetryFailed node, String[] context) {
+            return new RerouteRetryFailedAnalyzedStatement(context);
         }
     }
 }

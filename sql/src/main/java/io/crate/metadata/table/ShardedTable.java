@@ -35,4 +35,6 @@ public interface ShardedTable {
     String routingHashFunction();
 
     boolean isClosed();
+
+    String[] concreteIndices();
 }

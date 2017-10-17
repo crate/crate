@@ -22,29 +22,15 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
-
-import javax.annotation.Nullable;
-
 public abstract class RerouteAnalyzedStatement implements DDLStatement {
 
-    private TableInfo tableInfo;
-    @Nullable
-    private PartitionName partitionName;
+    private final String[] concreteIndices;
 
-    public RerouteAnalyzedStatement(TableInfo tableInfo, PartitionName partitionName) {
-        this.tableInfo = tableInfo;
-        this.partitionName = partitionName;
+    public RerouteAnalyzedStatement(String[] concreteIndices) {
+        this.concreteIndices = concreteIndices;
     }
 
-    public TableInfo tableInfo() {
-        return tableInfo;
+    public String[] concreteIndices() {
+        return concreteIndices;
     }
-
-    @Nullable
-    public PartitionName partitionName() {
-        return partitionName;
-    }
-
 }

@@ -22,21 +22,19 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.Expression;
 
 public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement {
 
-    private final int shardId;
-    private final String fromNodeId;
-    private final String toNodeId;
+    private final Expression shardId;
+    private final Expression fromNodeId;
+    private final Expression toNodeId;
 
-    public RerouteMoveShardAnalyzedStatement(TableInfo tableInfo,
-                                             PartitionName partitionName,
-                                             int shardId,
-                                             String fromNodeId,
-                                             String toNodeId) {
-        super(tableInfo, partitionName);
+    public RerouteMoveShardAnalyzedStatement(String[] concreteIndices,
+                                             Expression shardId,
+                                             Expression fromNodeId,
+                                             Expression toNodeId) {
+        super(concreteIndices);
         this.shardId = shardId;
         this.fromNodeId = fromNodeId;
         this.toNodeId = toNodeId;
@@ -47,15 +45,15 @@ public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement 
         return visitor.visitRerouteMoveShard(this, context);
     }
 
-    public int shardId() {
+    public Expression shardId() {
         return shardId;
     }
 
-    public String fromNodeId() {
+    public Expression fromNodeId() {
         return fromNodeId;
     }
 
-    public String toNodeId() {
+    public Expression toNodeId() {
         return toNodeId;
     }
 }

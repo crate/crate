@@ -250,25 +250,25 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Row context) {
+        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Row parameters) {
             // TODO: implementation
             throw new UnsupportedOperationException("TODO");
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Row context) {
+        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Row parameters) {
             // TODO: implementation
             throw new UnsupportedOperationException("TODO");
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row context) {
+        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row parameters) {
             // TODO: implementation
             throw new UnsupportedOperationException("TODO");
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteRetryFailed(RerouteRetryFailedAnalyzedStatement analysis, Row context) {
+        protected CompletableFuture<Long> visitRerouteRetryFailed(RerouteRetryFailedAnalyzedStatement analysis, Row parameters) {
             // TODO: implementation
             throw new UnsupportedOperationException("TODO");
         }

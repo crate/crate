@@ -25,18 +25,18 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 
 public class RerouteCancelShard extends RerouteOption {
 
-    private final Optional<GenericProperties> properties;
     private final Expression nodeId;
     private final Expression shardId;
+    @Nullable
+    private final GenericProperties properties;
 
     public RerouteCancelShard(Expression shardId, Expression nodeId, @Nullable GenericProperties properties) {
         this.shardId = shardId;
         this.nodeId = nodeId;
-        this.properties = Optional.ofNullable(properties);
+        this.properties = properties;
     }
 
     public Expression nodeId() {
@@ -47,7 +47,8 @@ public class RerouteCancelShard extends RerouteOption {
         return shardId;
     }
 
-    public Optional<GenericProperties> properties() {
+    @Nullable
+    public GenericProperties properties() {
         return properties;
     }
 

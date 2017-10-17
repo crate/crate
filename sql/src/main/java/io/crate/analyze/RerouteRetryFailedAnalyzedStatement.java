@@ -22,14 +22,10 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
-
 public class RerouteRetryFailedAnalyzedStatement extends RerouteAnalyzedStatement {
 
-    public RerouteRetryFailedAnalyzedStatement(TableInfo tableInfo,
-                                               PartitionName partitionName) {
-        super(tableInfo, partitionName);
+    public RerouteRetryFailedAnalyzedStatement(String[] concreteIndices) {
+        super(concreteIndices);
     }
 
     @Override

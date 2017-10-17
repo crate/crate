@@ -22,24 +22,25 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.common.Nullable;
 
 public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatement {
 
-    private final int shardId;
-    private final String nodeId;
-    private final boolean allowPrimary;
+    private final Expression shardId;
+    private final Expression nodeId;
+    @Nullable
+    private final GenericProperties properties;
 
-    public RerouteCancelShardAnalyzedStatement(TableInfo tableInfo,
-                                               PartitionName partitionName,
-                                               int shardId,
-                                               String nodeId,
-                                               boolean allowPrimary) {
-        super(tableInfo, partitionName);
+    public RerouteCancelShardAnalyzedStatement(String[] concreteIndices,
+                                               Expression shardId,
+                                               Expression nodeId,
+                                               @Nullable GenericProperties properties) {
+        super(concreteIndices);
         this.shardId = shardId;
         this.nodeId = nodeId;
-        this.allowPrimary = allowPrimary;
+        this.properties = properties;
     }
 
     @Override
@@ -47,15 +48,16 @@ public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatemen
         return visitor.visitRerouteCancelShard(this, context);
     }
 
-    public int shardId() {
+    public Expression shardId() {
         return shardId;
     }
 
-    public String nodeId() {
+    public Expression nodeId() {
         return nodeId;
     }
 
-    public boolean allowPrimary() {
-        return allowPrimary;
+    @Nullable
+    public GenericProperties properties() {
+        return properties;
     }
 }
