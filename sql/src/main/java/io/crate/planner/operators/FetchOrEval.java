@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -30,6 +31,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
@@ -62,8 +64,10 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 
 
@@ -116,6 +120,10 @@ class FetchOrEval implements LogicalPlan {
         return (tableStats, usedBeforeNextFetch) -> {
             final LogicalPlan source;
 
+            // This avoids collecting scalars unnecessarily if their source-columns are already collected
+            // Ex. cases like: select xx from (select x + x as xx, ... from t1 order by x ..)
+            usedBeforeNextFetch = extractColumns(usedBeforeNextFetch);
+
             boolean doFetch = isLastFetch;
             if (fetchMode == FetchMode.NEVER_CLEAR) {
                 source = sourceBuilder.build(tableStats, usedBeforeNextFetch);
@@ -147,24 +155,74 @@ class FetchOrEval implements LogicalPlan {
             if (source.outputs().equals(outputs)) {
                 return source;
             }
-            return new FetchOrEval(source, outputs, fetchMode, doFetch);
+            if (!doFetch && Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
+                if (usedBeforeNextFetch.isEmpty()) {
+                    return new FetchOrEval(source, source.outputs(), fetchMode, false);
+                } else {
+                    return new FetchOrEval(source, generateOutputs(outputs, source.outputs()), fetchMode, false);
+                }
+            } else {
+                return new FetchOrEval(source, outputs, fetchMode, true);
+            }
         };
     }
 
-    private FetchOrEval(LogicalPlan source,
-                        List<Symbol> outputs,
-                        FetchMode fetchMode,
-                        boolean doFetch) {
+    private FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
         this.source = source;
+        this.outputs = outputs;
         this.fetchMode = fetchMode;
         this.doFetch = doFetch;
-        if (doFetch) {
-            this.outputs = outputs;
-        } else {
-            if (Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
-                this.outputs = source.outputs();
+    }
+
+    /**
+     * Returns the source outputs and if there are scalars in the wantedOutputs which can be evaluated
+     * using the sourceOutputs these scalars are included as well.
+     *
+     * <pre>
+     *     wantedOutputs: R.x + R.y, R.i
+     *      -> wantedColumns: { R.x + R.y: {R.x, R.y} }
+     *     sourceOutputs: R._fetchId, R.x, R.y
+     *
+     *     result: R._fetchId, R.x + R.x
+     * </pre>
+     */
+    private static List<Symbol> generateOutputs(List<Symbol> wantedOutputs, List<Symbol> sourceOutputs) {
+        ArrayList<Symbol> result = new ArrayList<>();
+        Set<Symbol> sourceColumns = extractColumns(sourceOutputs);
+        addFetchIdColumns(sourceOutputs, result);
+
+        HashMap<Symbol, Set<Symbol>> wantedColumnsByScalar = new HashMap<>();
+        for (int i = 0; i < wantedOutputs.size(); i++) {
+            Symbol wantedOutput = wantedOutputs.get(i);
+            if (wantedOutput instanceof Function) {
+                wantedColumnsByScalar.put(wantedOutput, extractColumns(wantedOutput));
             } else {
-                this.outputs = outputs;
+                if (sourceColumns.contains(wantedOutput)) {
+                    result.add(wantedOutput);
+                }
+            }
+        }
+        addScalarsWithAvailableSources(result, sourceColumns, wantedColumnsByScalar);
+        return result;
+    }
+
+    private static void addScalarsWithAvailableSources(ArrayList<Symbol> result,
+                                                       Set<Symbol> sourceColumns,
+                                                       HashMap<Symbol, Set<Symbol>> wantedColumnsByScalar) {
+        for (Map.Entry<Symbol, Set<Symbol>> wantedEntry : wantedColumnsByScalar.entrySet()) {
+            Symbol wantedOutput = wantedEntry.getKey();
+            Set<Symbol> columnsUsedInScalar = wantedEntry.getValue();
+            if (Sets.difference(columnsUsedInScalar, sourceColumns).isEmpty()) {
+                result.add(wantedOutput);
+            }
+        }
+    }
+
+    private static void addFetchIdColumns(List<Symbol> sourceOutputs, ArrayList<Symbol> result) {
+        for (int i = 0; i < sourceOutputs.size(); i++) {
+            Symbol sourceOutput = sourceOutputs.get(i);
+            if (Symbols.containsColumn(sourceOutput, DocSysColumns.FETCHID)) {
+                result.add(sourceOutput);
             }
         }
     }
@@ -183,7 +241,7 @@ class FetchOrEval implements LogicalPlan {
             return plan;
         }
 
-        if (Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
+        if (doFetch && Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
             return planWithFetch(plannerContext, plan, sourceOutputs);
         }
         return planWithEvalProjection(plannerContext, plan, sourceOutputs);

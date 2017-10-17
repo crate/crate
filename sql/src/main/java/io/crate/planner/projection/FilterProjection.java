@@ -45,7 +45,7 @@ public class FilterProjection extends Projection {
 
     public FilterProjection(Symbol query, List<Symbol> outputs) {
         assert !SymbolVisitors.any(Symbols.IS_COLUMN, query)
-            : "FilterProjection cannot operate on Reference or Field symbols";
+            : "FilterProjection cannot operate on Reference or Field symbols: " + query;
         this.query = query;
         this.outputs = outputs;
     }

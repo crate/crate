@@ -41,7 +41,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -118,7 +117,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("xx is collected as add(x, x) instead of just one x")
     public void testSimpleSubSelectWithLateFetchWhereClauseMatchesQueryColumn() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select xx, i from (select x + x as xx, i from t1 order by x asc limit 10) ti " +
@@ -127,14 +125,16 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(FilterProjection.class),
             instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class)
         ));
-        FilterProjection filterProjection = (FilterProjection) projections.get(1);
-        // filter is before fetch; preFetchOutputs: [_fetchId, x]
-        assertThat(filterProjection.query(), isSQL("(add(INPUT(1), INPUT(1)) = 10)"));
+        assertThat(projections.get(1).outputs(), isSQL("INPUT(0), add(INPUT(1), INPUT(1))"));
+        FilterProjection filterProjection = (FilterProjection) projections.get(2);
+        // filter is before fetch; preFetchOutputs: [_fetchId, add(x, x)]
+        assertThat(filterProjection.query(), isSQL("(INPUT(1) = 10)"));
     }
 
     @Test
@@ -157,12 +157,13 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
             isTopN(10, 0),
+            instanceOf(EvalProjection.class),
             instanceOf(OrderedTopNProjection.class),
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
-        assertThat(projections.get(4).outputs(), isSQL("INPUT(0)"));
+        assertThat(projections.get(5).outputs(), isSQL("INPUT(1)"));
     }
 
     @Test
