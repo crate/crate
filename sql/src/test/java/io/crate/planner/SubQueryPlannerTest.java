@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
@@ -50,7 +51,7 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -79,19 +80,19 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't support early fetch in this case yet")
     public void testNestedSimpleSelectWithEarlyFetchBecauseOfWhereClause() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select x, i from (select x, i from t1 order by x asc limit 10) ti where ti.i = 10 order by x desc limit 3");
         Collect collect = (Collect) qtf.subPlan();
-        assertThat(collect.collectPhase().projections(), Matchers.contains(
-            instanceOf(TopNProjection.class),
-            instanceOf(TopNProjection.class),
+        List<Projection> projections = collect.collectPhase().projections();
+        assertThat(projections, Matchers.contains(
+            isTopN(10, 0),
             instanceOf(FetchProjection.class),
             instanceOf(FilterProjection.class),
 
             // order by is on query symbol but LIMIT must be applied after WHERE
-            instanceOf(OrderedTopNProjection.class)
+            instanceOf(OrderedTopNProjection.class),
+            isTopN(3, 0)
         ));
     }
 
@@ -105,7 +106,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     ") ttt " +
                                     "order by ttt.x asc limit 10");
         Collect collect = (Collect) qtf.subPlan();
-        assertThat(collect.collectPhase().projections(), Matchers.contains(
+        List<Projection> projections = collect.collectPhase().projections();
+        assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
             instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class),
@@ -178,7 +180,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
     @SuppressWarnings("ConstantConditions")
     public void testJoinOnSubSelectsWithLimitAndOffset() throws Exception {
         NestedLoop nl = e.plan("select * from " +
@@ -188,39 +189,26 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "on t1.i = t2.i");
         assertThat(nl.nestedLoopPhase().projections().size(), is(1));
         assertThat(nl.nestedLoopPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(5));
-        assertThat(topNProjection.offset(), is(2));
-        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(10));
-        assertThat(topNProjection.offset(), is(5));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
 
-        Collect leftPlan = (Collect) nl.left();
-        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
-        assertThat(leftPlan.limit(), is(5));
-        assertThat(leftPlan.offset(), is(2));
-        assertThat(leftPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(7));
-        assertThat(topNProjection.offset(), is(0));
-
-        Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
-        assertThat(rightPlan.limit(), is(10));
-        assertThat(rightPlan.offset(), is(5));
-        assertThat(rightPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(15));
-        assertThat(topNProjection.offset(), is(0));
+        Collect left = (Collect) nl.left();
+        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(left.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
+        assertThat(left.collectPhase().projections(), contains(
+            isTopN(5, 2)
+        ));
+        Collect right = (Collect) nl.right();
+        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
+        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.b"));
+        assertThat(right.collectPhase().projections(), contains(
+            isTopN(10, 5),
+            instanceOf(EvalProjection.class) // strips `b` used in order by from the outputs
+        ));
     }
 
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
     @SuppressWarnings("ConstantConditions")
     public void testJoinWithAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
         NestedLoop nl = e.plan("select t1.a, count(*) from " +
@@ -229,40 +217,34 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                " (select i from t2 order by i desc limit 10 offset 5) t2 " +
                                "on t1.i = t2.i " +
                                "group by t1.a");
-        assertThat(nl.nestedLoopPhase().projections().size(), is(3));
-        assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(GroupProjection.class));
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(5));
-        assertThat(topNProjection.offset(), is(2));
-        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(10));
-        assertThat(topNProjection.offset(), is(5));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
 
-        Collect leftPlan = (Collect) nl.left();
-        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[false], nullsFirst=[null]}"));
-        assertThat(leftPlan.limit(), is(5));
-        assertThat(leftPlan.offset(), is(2));
-        assertThat(leftPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(7));
-        assertThat(topNProjection.offset(), is(0));
+        Collect left = (Collect) nl.left();
+        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
+        assertThat(left.collectPhase().projections(), contains(
+            isTopN(5, 2)
+        ));
+        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.a, doc.t1.i"));
 
-        Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[true], nullsFirst=[null]}"));
-        assertThat(rightPlan.limit(), is(10));
-        assertThat(rightPlan.offset(), is(5));
-        assertThat(rightPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(15));
-        assertThat(topNProjection.offset(), is(0));
+
+        Collect right = (Collect) nl.right();
+        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
+        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
+        assertThat(right.collectPhase().projections(), contains(
+            isTopN(10, 5)
+        ));
+
+
+        List<Projection> nlProjections = nl.nestedLoopPhase().projections();
+        assertThat(nlProjections, contains(
+            instanceOf(EvalProjection.class),
+            instanceOf(GroupProjection.class)
+        ));
     }
 
     @Test
-    @Ignore("LogicalPlanner doesn't propagate fetch yet")
     @SuppressWarnings("ConstantConditions")
     public void testJoinWithGlobalAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
         NestedLoop nl = e.plan("select count(*) from " +
@@ -270,36 +252,33 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "join" +
                                " (select i from t2 order by i desc limit 10 offset 5) t2 " +
                                "on t1.i = t2.i");
-        assertThat(nl.nestedLoopPhase().projections().size(), is(3));
-        assertThat(nl.nestedLoopPhase().projections().get(1), instanceOf(AggregationProjection.class));
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), notNullValue());
-        assertThat(nl.nestedLoopPhase().leftMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topNProjection = (TopNProjection) nl.nestedLoopPhase().leftMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(5));
-        assertThat(topNProjection.offset(), is(2));
-        assertThat(nl.nestedLoopPhase().rightMergePhase().projections().get(0), instanceOf(TopNProjection.class));
-        topNProjection = (TopNProjection) nl.nestedLoopPhase().rightMergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(10));
-        assertThat(topNProjection.offset(), is(5));
 
-        Collect leftPlan = (Collect) nl.left();
-        assertThat(leftPlan.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
-        assertThat(leftPlan.limit(), is(5));
-        assertThat(leftPlan.offset(), is(2));
-        assertThat(leftPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) leftPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(7));
-        assertThat(topNProjection.offset(), is(0));
+        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
+        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
 
-        Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.orderBy(), isSQL("OrderByPositions{indices=[0], reverseFlags=[true], nullsFirst=[null]}"));
-        assertThat(rightPlan.limit(), is(10));
-        assertThat(rightPlan.offset(), is(5));
-        assertThat(rightPlan.collectPhase().projections().size(), is(1));
-        topNProjection = (TopNProjection) rightPlan.collectPhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(15));
-        assertThat(topNProjection.offset(), is(0));
+        Collect left = (Collect) nl.left();
+        assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
+        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
+        assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
+        assertThat(left.collectPhase().projections(), contains(
+            isTopN(5, 2),
+            instanceOf(EvalProjection.class)
+        ));
+
+
+        Collect right = (Collect) nl.right();
+        assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
+        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
+        assertThat(right.collectPhase().projections(), contains(
+            isTopN(10, 5)
+        ));
+
+
+        List<Projection> nlProjections = nl.nestedLoopPhase().projections();
+        assertThat(nlProjections, contains(
+            instanceOf(EvalProjection.class),
+            instanceOf(AggregationProjection.class)
+        ));
     }
 
     @Test

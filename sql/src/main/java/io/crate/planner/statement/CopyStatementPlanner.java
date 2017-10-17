@@ -234,7 +234,7 @@ public class CopyStatementPlanner {
             statement.outputNames(),
             outputFormat);
 
-        Plan plan = context.planSubRelation(statement.subQueryRelation(), FetchMode.NEVER);
+        Plan plan = context.planSubRelation(statement.subQueryRelation(), FetchMode.NEVER_CLEAR);
         if (plan == null) {
             return null;
         }

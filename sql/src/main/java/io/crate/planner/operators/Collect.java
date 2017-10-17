@@ -30,6 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.RefVisitor;
@@ -173,6 +174,11 @@ class Collect implements LogicalPlan {
             RefVisitor.visitRefs(symbol, r -> {
                 if (!usedColumns.contains(r) && !Symbols.containsColumn(usedColumns, r.ident().columnIdent())) {
                     unusedCols.add(r);
+                }
+            });
+            FieldsVisitor.visitFields(symbol, f -> {
+                if (!usedColumns.contains(f) && !Symbols.containsColumn(usedColumns, f.path())) {
+                    unusedCols.add(f);
                 }
             });
         }

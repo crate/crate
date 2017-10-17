@@ -64,6 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import static io.crate.planner.operators.Collect.getUnusedColumns;
+
 /**
  * The FetchOrEval operator is producing the values for all selected expressions.
  *
@@ -103,34 +105,59 @@ class FetchOrEval implements LogicalPlan {
     final List<Symbol> outputs;
 
     private final FetchMode fetchMode;
-    private final boolean isLastFetch;
+    private final boolean doFetch;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                       List<Symbol> outputs,
                                       FetchMode fetchMode,
-                                      boolean isLastFetch) {
+                                      boolean isLastFetch,
+                                      boolean childIsLimited) {
         return (tableStats, usedBeforeNextFetch) -> {
             final LogicalPlan source;
-            if (fetchMode == FetchMode.NEVER || !isLastFetch) {
+
+            boolean doFetch = isLastFetch;
+            if (fetchMode == FetchMode.NEVER_CLEAR) {
                 source = sourceBuilder.build(tableStats, usedBeforeNextFetch);
-            } else {
+            } else if (isLastFetch) {
                 source = sourceBuilder.build(tableStats, Collections.emptySet());
+            } else {
+                /*
+                 * In a case like
+                 *      select sum(x) from (select x from t limit 10)
+                 *
+                 * It makes sense to do an intermediate fetch, to reduce the amount of rows.
+                 * All columns are used, so a _fetchId propagation wouldn't work.
+                 *
+                 *
+                 * But in a case like
+                 *      select x, y from (select x, y from t order by x limit 10) order by x asc limit 5
+                 *
+                 * A _fetchId propagation makes sense because there are unusedColumns (y), which can be fetched
+                 * at the end.
+                 */
+                List<Symbol> unusedColumns = getUnusedColumns(outputs, usedBeforeNextFetch);
+                if (unusedColumns.isEmpty() && childIsLimited) {
+                    source = sourceBuilder.build(tableStats, Collections.emptySet());
+                    doFetch = true;
+                } else {
+                    source = sourceBuilder.build(tableStats, usedBeforeNextFetch);
+                }
             }
             if (source.outputs().equals(outputs)) {
                 return source;
             }
-            return new FetchOrEval(source, outputs, fetchMode, isLastFetch);
+            return new FetchOrEval(source, outputs, fetchMode, doFetch);
         };
     }
 
     private FetchOrEval(LogicalPlan source,
                         List<Symbol> outputs,
                         FetchMode fetchMode,
-                        boolean isLastFetch) {
+                        boolean doFetch) {
         this.source = source;
         this.fetchMode = fetchMode;
-        this.isLastFetch = isLastFetch;
-        if (isLastFetch) {
+        this.doFetch = doFetch;
+        if (doFetch) {
             this.outputs = outputs;
         } else {
             if (Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
@@ -349,7 +376,7 @@ class FetchOrEval implements LogicalPlan {
         if (collapsed == this) {
             return this;
         }
-        return new FetchOrEval(collapsed, outputs, fetchMode, isLastFetch);
+        return new FetchOrEval(collapsed, outputs, fetchMode, doFetch);
     }
 
     @Override

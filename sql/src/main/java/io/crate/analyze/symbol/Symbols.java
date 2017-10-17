@@ -24,7 +24,6 @@ package io.crate.analyze.symbol;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
@@ -70,19 +69,19 @@ public class Symbols {
      * returns true if the symbol contains the given columnIdent.
      * If symbol is a Function the function tree will be traversed
      */
-    public static boolean containsColumn(@Nullable Symbol symbol, ColumnIdent columnIdent) {
+    public static boolean containsColumn(@Nullable Symbol symbol, Path path) {
         if (symbol == null) {
             return false;
         }
-        return HAS_COLUMN_VISITOR.process(symbol, columnIdent);
+        return HAS_COLUMN_VISITOR.process(symbol, path);
     }
 
     /**
      * returns true if any of the symbols contains the given column
      */
-    public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent columnIdent) {
+    public static boolean containsColumn(Iterable<? extends Symbol> symbols, Path path) {
         for (Symbol symbol : symbols) {
-            if (containsColumn(symbol, columnIdent)) {
+            if (containsColumn(symbol, path)) {
                 return true;
             }
         }
@@ -123,17 +122,17 @@ public class Symbols {
         return new OutputName(SymbolPrinter.INSTANCE.printSimple(symbol));
     }
 
-    private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
+    private static class HasColumnVisitor extends SymbolVisitor<Path, Boolean> {
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, ColumnIdent context) {
+        protected Boolean visitSymbol(Symbol symbol, Path column) {
             return false;
         }
 
         @Override
-        public Boolean visitFunction(Function symbol, ColumnIdent context) {
+        public Boolean visitFunction(Function symbol, Path column) {
             for (Symbol arg : symbol.arguments()) {
-                if (process(arg, context)) {
+                if (process(arg, column)) {
                     return true;
                 }
             }
@@ -141,21 +140,21 @@ public class Symbols {
         }
 
         @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent context) {
-            if (process(fetchReference.fetchId(), context)) {
+        public Boolean visitFetchReference(FetchReference fetchReference, Path column) {
+            if (process(fetchReference.fetchId(), column)) {
                 return true;
             }
-            return process(fetchReference.ref(), context);
+            return process(fetchReference.ref(), column);
         }
 
         @Override
-        public Boolean visitField(Field field, ColumnIdent needle) {
-            return field.path().equals(needle) || field.path().outputName().equals(needle.outputName());
+        public Boolean visitField(Field field, Path column) {
+            return field.path().equals(column) || field.path().outputName().equals(column.outputName());
         }
 
         @Override
-        public Boolean visitReference(Reference symbol, ColumnIdent context) {
-            return context.equals(symbol.ident().columnIdent());
+        public Boolean visitReference(Reference symbol, Path column) {
+            return column.equals(symbol.ident().columnIdent());
         }
     }
 

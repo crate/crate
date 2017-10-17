@@ -56,7 +56,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan plan(String statement) {
         SelectAnalyzedStatement analyzedStatement = sqlExecutor.analyze(statement);
         QueriedRelation relation = analyzedStatement.relation();
-        return LogicalPlanner.plan(relation, FetchMode.WITH_PROPAGATION, true)
+        return LogicalPlanner.plan(relation, FetchMode.MAYBE_CLEAR, true)
             .build(tableStats, LogicalPlanner.extractColumns(relation.querySpec().outputs()))
             .tryCollapse();
     }
@@ -102,6 +102,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "Limit[3;0]\n" +
                                 "OrderBy[a]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
+    }
+
+    @Test
+    public void testIntermediateFetch() throws Exception {
+        LogicalPlan plan = plan("select sum(x) from (select x from t1 limit 10) tt");
+        assertThat(plan, isPlan("Aggregate[sum(x)]\n" +
+                                "Boundary[x]\n" +
+                                "FetchOrEval[x]\n" +
+                                "Limit[10;0]\n" +
+                                "Collect[doc.t1 | [_fetchid] | All]\n"));
     }
 
     @Test

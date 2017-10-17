@@ -23,14 +23,19 @@
 package io.crate.planner.consumer;
 
 /**
- * Component to help make decisions in the planner on how/if fetch-phases should be planned.
- *
- * This is mostly relevant for nested-relations where the plan being created will also contain one or more sub-plans.
- * A planner component for a parent-relation can set a FetchMode on the {@link ConsumerContext} to influence the planning of
- * child-relations.
+ * Used in {@link io.crate.planner.operators.LogicalPlanner} to control how the {@link io.crate.planner.operators.FetchOrEval}
+ * operator should behave.
  */
 public enum FetchMode {
 
-    NEVER,
-    WITH_PROPAGATION
+    /**
+     * Indicates that FetchOrEval should not clear the {@code usedBeforeNextFetch} columns,
+     * but instead propagate them to it's child.
+     */
+    NEVER_CLEAR,
+
+    /**
+     * Indicate that FetchOrEval should clear {@code usedBeforeNextFetch} columns and do a fetch if sensible
+     */
+    MAYBE_CLEAR
 }

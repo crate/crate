@@ -24,11 +24,9 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
-import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -67,15 +65,12 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     }
 
     @Test
-    @Ignore("TODO: optimize this case again to do early fetch")
-    public void testAggregateOnSubQueryUsesQueryThenFetchIfPossible() throws Exception {
-        QueryThenFetch plan = e.plan("select sum(x) from (select x, i from t1 order by x limit 10) ti");
-        List<Projection> projections = ((Collect) plan.subPlan()).collectPhase().projections();
+    public void testAggregateOnSubQueryNoFetchBecauseColumnInUse() throws Exception {
+        Collect plan = e.plan("select sum(x) from (select x, i from t1 order by x limit 10) ti");
+        List<Projection> projections = plan.collectPhase().projections();
         assertThat(projections, contains(
             instanceOf(TopNProjection.class),
-            instanceOf(FetchProjection.class),
-            instanceOf(AggregationProjection.class),
-            instanceOf(EvalProjection.class)
+            instanceOf(AggregationProjection.class)
         ));
     }
 

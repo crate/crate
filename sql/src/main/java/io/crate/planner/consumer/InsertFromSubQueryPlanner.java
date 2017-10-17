@@ -74,7 +74,7 @@ public final class InsertFromSubQueryPlanner {
                                                   "supported on insert using a sub-query");
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, FetchMode.NEVER);
+        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, FetchMode.NEVER_CLEAR);
         if (plannedSubQuery == null) {
             return null;
         }

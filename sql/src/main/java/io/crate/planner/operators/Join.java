@@ -148,8 +148,11 @@ public class Join implements LogicalPlan {
             addColumnsFrom(usedColsByParent, usedFromLeft::add, lhs);
             addColumnsFrom(usedColsByParent, usedFromRight::add, rhs);
 
-            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER, false).build(tableStats, usedFromLeft);
-            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER, false).build(tableStats, usedFromRight);
+            // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
+            // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
+            // have more than 1 fetchProjection within a single execution
+            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromLeft);
+            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromRight);
             Symbol query = removeParts(queryParts, lhsName, rhsName);
             LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition, query != null && !(query instanceof Literal));
 
@@ -207,7 +210,7 @@ public class Join implements LogicalPlan {
         }
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER, false).build(tableStats, usedFromNext);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromNext);
 
         Symbol query = AndOperator.join(
             Stream.of(

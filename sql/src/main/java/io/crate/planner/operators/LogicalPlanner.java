@@ -103,7 +103,8 @@ public class LogicalPlanner {
                                 collectAndFilter(
                                     relation,
                                     splitPoints.toCollect(),
-                                    relation.where()
+                                    relation.where(),
+                                    fetchMode
                                 ),
                                 relation.groupBy(),
                                 splitPoints.aggregates()),
@@ -116,7 +117,8 @@ public class LogicalPlanner {
                 ),
                 relation.querySpec().outputs(),
                 fetchMode,
-                isLastFetch
+                isLastFetch,
+                relation.limit() != null
             );
         if (isLastFetch) {
             return sourceBuilder;
@@ -139,7 +141,8 @@ public class LogicalPlanner {
 
     private static LogicalPlan.Builder collectAndFilter(QueriedRelation queriedRelation,
                                                         List<Symbol> toCollect,
-                                                        WhereClause where) {
+                                                        WhereClause where,
+                                                        FetchMode fetchMode) {
         if (queriedRelation instanceof QueriedTableRelation) {
             return createCollect((QueriedTableRelation) queriedRelation, toCollect, where);
         }
@@ -149,7 +152,7 @@ public class LogicalPlanner {
         if (queriedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), FetchMode.WITH_PROPAGATION, false),
+                plan(selectRelation.subRelation(), fetchMode, false),
                 where
             );
         }
