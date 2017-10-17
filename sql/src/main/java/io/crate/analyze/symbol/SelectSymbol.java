@@ -37,7 +37,6 @@ public class SelectSymbol extends Symbol {
     private final QueriedRelation relation;
     private final SingleColumnTableType dataType;
     private final ResultType resultType;
-    private boolean isPlanned;
 
     public enum ResultType {
         SINGLE_COLUMN_SINGLE_VALUE,
@@ -95,14 +94,6 @@ public class SelectSymbol extends Symbol {
     @Override
     public String representation() {
         return "SubQuery{" + relation.getQualifiedName() + '}';
-    }
-
-    public boolean isPlanned() {
-        return isPlanned;
-    }
-
-    public void markAsPlanned() {
-        isPlanned = true;
     }
 
     public ResultType getResultType() {
