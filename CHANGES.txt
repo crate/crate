@@ -23,6 +23,8 @@ Breaking Changes
 Changes
 =======
 
+- Added pagination to Console results in the Admin UI.
+
 - Added new system table ``sys.allocations`` which lists shards and their
   allocation state including the reasoning why they are in a certain state.
 
