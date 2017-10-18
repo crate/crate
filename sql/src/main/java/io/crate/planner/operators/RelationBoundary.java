@@ -52,46 +52,46 @@ public class RelationBoundary implements LogicalPlan {
 
     final LogicalPlan source;
     private final List<Symbol> outputs;
-    private final HashMap<Symbol, Symbol> expressionMapping;
+    private final Map<Symbol, Symbol> expressionMapping;
     private final QueriedRelation relation;
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, QueriedRelation relation) {
         return (tableStats, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
+            HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
             for (Field field : relation.fields()) {
-                expressionMapping.put(
-                    field,
-                    ((QueriedRelation) field.relation()).querySpec().outputs().get(field.index()));
+                Symbol value = ((QueriedRelation) field.relation()).querySpec().outputs().get(field.index());
+                expressionMapping.put(field, value);
+                reverseMapping.put(value, field);
             }
             Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(expressionMapping);
             HashSet<Symbol> mappedUsedColumns = new HashSet<>();
             for (Symbol beforeNextFetch : usedBeforeNextFetch) {
                 mappedUsedColumns.add(mapper.apply(beforeNextFetch));
             }
-            return new RelationBoundary(sourceBuilder.build(tableStats, mappedUsedColumns), relation);
+            LogicalPlan source = sourceBuilder.build(tableStats, mappedUsedColumns);
+            for (Symbol symbol : source.outputs()) {
+                RefVisitor.visitRefs(symbol, r -> {
+                    Field field = new Field(relation, r.ident().columnIdent(), r.valueType());
+                    if (reverseMapping.putIfAbsent(r, field) == null) {
+                        expressionMapping.put(field, r);
+                    }
+                });
+            }
+            List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
+            expressionMapping.putAll(source.expressionMapping());
+            return new RelationBoundary(source, relation, outputs, expressionMapping);
         };
     }
 
-    private RelationBoundary(LogicalPlan source, QueriedRelation relation) {
-        this.expressionMapping = new HashMap<>();
+    private RelationBoundary(LogicalPlan source,
+                             QueriedRelation relation,
+                             List<Symbol> outputs,
+                             Map<Symbol, Symbol> expressionMapping) {
+        this.expressionMapping = expressionMapping;
         this.source = source;
         this.relation = relation;
-        HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
-        for (Field field : relation.fields()) {
-            Symbol value = ((QueriedRelation) field.relation()).querySpec().outputs().get(field.index());
-            expressionMapping.put(field, value);
-            reverseMapping.put(value, field);
-        }
-        for (Symbol symbol : source.outputs()) {
-            RefVisitor.visitRefs(symbol, r -> {
-                Field field = new Field(relation, r.ident().columnIdent(), r.valueType());
-                if (reverseMapping.putIfAbsent(r, field) == null) {
-                    expressionMapping.put(field, r);
-                }
-            });
-        }
-        this.outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
-        expressionMapping.putAll(source.expressionMapping());
+        this.outputs = outputs;
     }
 
     @Override
@@ -114,7 +114,7 @@ public class RelationBoundary implements LogicalPlan {
         if (collapsed == source) {
             return this;
         }
-        return new RelationBoundary(source, relation);
+        return new RelationBoundary(source, relation, outputs, expressionMapping);
     }
 
     @Override
