@@ -129,8 +129,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testSimpleTopNProjection() throws Exception {
-        List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0));
-        TopNProjection projection = new TopNProjection(10, 2, outputs);
+        TopNProjection projection = new TopNProjection(10, 2, Collections.singletonList(DataTypes.LONG));
 
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
@@ -140,7 +139,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
         List<Object[]> result = consumer.getResult();
         assertThat(result.size(), is(10));
-        assertThat(result.get(0), is(new Object[]{new BytesRef("foo"), 2}));
+        assertThat(result.get(0), is(new Object[]{2}));
     }
 
     @Test

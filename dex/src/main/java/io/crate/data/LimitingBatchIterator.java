@@ -26,16 +26,16 @@ import io.crate.concurrent.CompletableFutures;
 
 import java.util.concurrent.CompletionStage;
 
-public class LimitingBatchIterator extends CloseAssertingBatchIterator {
+public class LimitingBatchIterator<T> extends CloseAssertingBatchIterator<T> {
 
     private final int endPos;
     private int pos = -1;
 
-    public static BatchIterator newInstance(BatchIterator delegate, int limit) {
-        return new LimitingBatchIterator(delegate, limit);
+    public static <T> BatchIterator<T> newInstance(BatchIterator<T> delegate, int limit) {
+        return new LimitingBatchIterator<>(delegate, limit);
     }
 
-    private LimitingBatchIterator(BatchIterator delegate, int limit) {
+    private LimitingBatchIterator(BatchIterator<T> delegate, int limit) {
         super(delegate);
         this.endPos = limit - 1;
     }

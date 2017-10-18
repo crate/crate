@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.data.InMemoryBatchIterator;
@@ -156,7 +157,7 @@ public class ESGetTask extends JobTask {
                 Projection projection;
                 if (task.esGet.sortSymbols().isEmpty()) {
                     projection = new TopNProjection(
-                        task.esGet.limit(), task.esGet.offset(), InputColumn.fromSymbols(task.esGet.outputs()));
+                        task.esGet.limit(), task.esGet.offset(), Symbols.typeView(task.esGet.outputs()));
                 } else {
                     projection = new OrderedTopNProjection(
                         task.esGet.limit(),

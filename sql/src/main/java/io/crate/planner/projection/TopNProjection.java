@@ -22,12 +22,13 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExplainLeaf;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -42,14 +43,12 @@ public class TopNProjection extends Projection {
     private final int offset;
     private final List<Symbol> outputs;
 
-    public TopNProjection(int limit, int offset, List<Symbol> outputs) {
-        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "TopNProjection doesn't support Field or Reference symbols";
+    public TopNProjection(int limit, int offset, List<DataType> outputTypes) {
         assert limit > TopN.NO_LIMIT : "limit of TopNProjection must not be negative/unlimited";
 
         this.limit = limit;
         this.offset = offset;
-        this.outputs = outputs;
+        this.outputs = InputColumn.fromTypes(outputTypes);
     }
 
     public TopNProjection(StreamInput in) throws IOException {

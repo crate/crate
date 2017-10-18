@@ -23,49 +23,33 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.LimitingBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;
-import io.crate.operation.aggregation.RowTransformingBatchIterator;
-import io.crate.operation.collect.CollectExpression;
-
-import java.util.List;
 
 public class SimpleTopNProjector implements Projector {
 
-    private final List<Input<?>> inputs;
-    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final int offset;
     private final int limit;
 
-    public SimpleTopNProjector(List<Input<?>> inputs,
-                               Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                               int limit,
-                               int offset) {
+    public SimpleTopNProjector(int limit, int offset) {
         Preconditions.checkArgument(limit >= 0, "Invalid LIMIT: value must be >= 0; got: " + limit);
         Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
-        this.inputs = inputs;
-        this.collectExpressions = collectExpressions;
         this.limit = limit;
         this.offset = offset;
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
         if (batchIterator == null) {
             return null;
         }
         if (offset > 0) {
-            batchIterator = new SkippingBatchIterator(batchIterator, offset);
+            batchIterator = new SkippingBatchIterator<>(batchIterator, offset);
         }
-        return new RowTransformingBatchIterator(
-            LimitingBatchIterator.newInstance(batchIterator, limit),
-            inputs,
-            collectExpressions
-        );
+        return LimitingBatchIterator.newInstance(batchIterator, limit);
     }
 
     @Override

@@ -153,7 +153,7 @@ public class ProjectionBuilder {
             }
             return new EvalProjection(InputColumn.fromTypes(strippedInputs));
         }
-        return new TopNProjection(limit, offset, InputColumn.fromTypes(strippedInputs));
+        return new TopNProjection(limit, offset, strippedInputs);
     }
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,

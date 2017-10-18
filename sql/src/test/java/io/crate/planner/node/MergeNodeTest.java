@@ -24,8 +24,8 @@ package io.crate.planner.node;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -66,7 +66,7 @@ public class MergeNodeTest extends CrateUnitTest {
         );
         GroupProjection groupProjection = new GroupProjection(
             keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER);
-        TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.fromSymbols(groupProjection.outputs()));
+        TopNProjection topNProjection = new TopNProjection(10, 0, Symbols.typeView(groupProjection.outputs()));
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
         MergePhase node = new MergePhase(

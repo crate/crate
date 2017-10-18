@@ -29,24 +29,17 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.metadata.Scalar;
-import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
 
@@ -59,7 +52,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     private TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SimpleTopNProjector prepareProjector(int limit, int offset) {
-        return new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, limit, offset);
+        return new SimpleTopNProjector(limit, offset);
     }
 
     @Test
@@ -144,31 +137,14 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     public void testNegativeOffset() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid OFFSET");
-        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, 10, -10);
+        new SimpleTopNProjector(10, -10);
     }
 
     @Test
     public void testNegativeLimit() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid LIMIT");
-        new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, -100, TopN.NO_OFFSET);
-    }
-
-    @Test
-    public void testFunctionExpression() throws Throwable {
-        Scalar floor =
-            (Scalar) TestingHelpers.getFunctions().getBuiltin("floor", Collections.singletonList(DataTypes.DOUBLE));
-        FunctionExpression<Number, ?> funcExpr = new FunctionExpression<>(floor, new Input[]{input});
-        Projector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
-
-        Iterable<Row> rows = RowGenerator.fromSingleColValues(
-            () -> IntStream.range(0, 12).mapToDouble(i -> 42.3d).iterator());
-
-        BatchIterator<Row> batchIterator = projector.apply(InMemoryBatchIterator.of(rows, SENTINEL));
-        consumer.accept(batchIterator, null);
-        Bucket result = consumer.getBucket();
-        assertThat(result.size(), is(10));
-        assertThat(result.iterator().next(), isRow(42L));
+        new SimpleTopNProjector(-100, TopN.NO_OFFSET);
     }
 
     @Test
@@ -186,7 +162,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testProjectLimitLessThanLimitUpStream() throws Throwable {
         Projector projector = prepareProjector(10, TopN.NO_OFFSET);
-        BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
+        BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
         assertThat(projected.size(), is(5));

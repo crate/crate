@@ -193,13 +193,8 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
-        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(projection.outputs());
         assert projection.limit() > TopN.NO_LIMIT : "TopNProjection must have a limit";
-        return new SimpleTopNProjector(
-            ctx.topLevelInputs(),
-            ctx.expressions(),
-            projection.limit(),
-            projection.offset());
+        return new SimpleTopNProjector(projection.limit(), projection.offset());
     }
 
     @Override

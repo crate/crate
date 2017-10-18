@@ -24,9 +24,9 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -34,6 +34,7 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -76,14 +77,14 @@ class Limit implements LogicalPlan {
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
 
         Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
-        List<Symbol> inputCols = InputColumn.fromSymbols(source.outputs());
+        List<DataType> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = plan.resultDescription();
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             plan.addProjection(
-                new TopNProjection(limit, offset, inputCols), TopN.NO_LIMIT, 0, resultDescription.orderBy());
+                new TopNProjection(limit, offset, sourceTypes), TopN.NO_LIMIT, 0, resultDescription.orderBy());
         } else if (resultDescription.limit() != limit || resultDescription.offset() != 0) {
             plan.addProjection(
-                new TopNProjection(limit + offset, 0, inputCols), limit, offset, resultDescription.orderBy());
+                new TopNProjection(limit + offset, 0, sourceTypes), limit, offset, resultDescription.orderBy());
         }
         return plan;
     }
