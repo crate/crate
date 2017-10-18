@@ -36,7 +36,6 @@ import io.crate.testing.TestingBatchIterators;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -47,7 +46,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 public class RowTransformingBatchIteratorTest extends CrateUnitTest {
 
     private List<Input<?>> inputs;
-    private Collection<CollectExpression<Row, ?>> expressions;
+    private List<CollectExpression<Row, ?>> expressions;
 
     private List<Object[]> expectedResult = LongStream.range(0, 10)
         .mapToObj(l -> new Object[] { l + 2L })

@@ -30,6 +30,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
+import java.util.RandomAccess;
 
 /**
  * BatchIterator implementation that can transform rows using {@link Input}s and {@link CollectExpression}s.
@@ -52,12 +53,15 @@ import java.util.List;
 public class RowTransformingBatchIterator extends ForwardingBatchIterator<Row> {
 
     private final BatchIterator<Row> delegate;
-    private final Iterable<? extends CollectExpression<Row, ?>> expressions;
+    private final List<? extends CollectExpression<Row, ?>> expressions;
     private final Row rowData;
 
     public RowTransformingBatchIterator(BatchIterator<Row> delegate,
                                         List<? extends Input<?>> inputs,
-                                        Iterable<? extends CollectExpression<Row, ?>> expressions) {
+                                        List<? extends CollectExpression<Row, ?>> expressions) {
+        assert expressions instanceof RandomAccess
+            : "Must be able to use fast indexed for loop to avoid iterator allocations";
+
         this.delegate = delegate;
         this.expressions = expressions;
         this.rowData = new InputRow(inputs);
@@ -76,8 +80,9 @@ public class RowTransformingBatchIterator extends ForwardingBatchIterator<Row> {
     @Override
     public boolean moveNext() {
         if (delegate.moveNext()) {
-            for (CollectExpression<Row, ?> expression : expressions) {
-                expression.setNextRow(delegate.currentElement());
+            Row row = delegate.currentElement();
+            for (int i = 0; i < expressions.size(); i++) {
+                expressions.get(i).setNextRow(row);
             }
             return true;
         }

@@ -37,16 +37,16 @@ import java.util.List;
 public class InputRowProjector implements Projector {
 
     protected final List<Input<?>> inputs;
-    protected final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+    protected final List<? extends CollectExpression<Row, ?>> collectExpressions;
 
     public InputRowProjector(List<Input<?>> inputs,
-                             Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
+                             List<? extends CollectExpression<Row, ?>> collectExpressions) {
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
     }
 
     @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
         return new RowTransformingBatchIterator(batchIterator, inputs, collectExpressions);
     }
 
