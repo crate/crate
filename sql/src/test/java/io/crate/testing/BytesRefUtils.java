@@ -31,29 +31,36 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class BytesRefUtils {
 
-    private final static Set<DataType> BYTES_REF_TYPES = ImmutableSet.<DataType>of(DataTypes.STRING, DataTypes.IP);
+    private final static Set<DataType> BYTES_REF_TYPES = ImmutableSet.of(DataTypes.STRING, DataTypes.IP);
 
     public static void ensureStringTypesAreStrings(DataType[] dataTypes, Object[][] rows) {
         if (rows.length == 0) {
             return;
         }
 
-        // NOTE: currently BytesRef inside Maps aren't converted here because
-        // if the map is coming from a ESSearchTask/EsGetTask they already contain strings
-        // and we have no case in which another Task returns a Map with ByteRefs/Strings inside.
         final IntArrayList stringColumns = new IntArrayList();
         final IntArrayList stringCollectionColumns = new IntArrayList();
+        final IntArrayList objectColumns = new IntArrayList();
+        final IntArrayList objectCollectionColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
             if (BYTES_REF_TYPES.contains(dataType)) {
                 stringColumns.add(idx);
-            } else if ((DataTypes.isCollectionType(dataType)
-                        && (BYTES_REF_TYPES.contains(((CollectionType) dataType).innerType())))) {
-                stringCollectionColumns.add(idx);
+            } else if ((DataTypes.isCollectionType(dataType))) {
+                DataType<?> innerType = ((CollectionType) dataType).innerType();
+                if (BYTES_REF_TYPES.contains(innerType)) {
+                    stringCollectionColumns.add(idx);
+                } else if (DataTypes.OBJECT.equals(innerType)) {
+                    objectCollectionColumns.add(idx);
+                }
+            } else if (DataTypes.OBJECT.equals(dataType)) {
+                objectColumns.add(idx);
             }
             idx++;
         }
@@ -61,6 +68,8 @@ public class BytesRefUtils {
         for (Object[] row : rows) {
             convertStringColumns(row, stringColumns);
             convertStringCollectionColumns(row, stringCollectionColumns);
+            convertObjectColumns(row, objectColumns);
+            convertObjectCollectionColumns(row, objectCollectionColumns);
         }
     }
 
@@ -76,6 +85,42 @@ public class BytesRefUtils {
                 row[stringCollectionColumn.value] = objectArrayToStringArray(((BytesRef[]) value));
             } else if (value instanceof Object[]) {
                 row[stringCollectionColumn.value] = objectArrayToStringArray(((Object[]) value));
+            }
+        }
+    }
+
+    private static void convertStringColumns(Object[] row, IntArrayList stringColumns) {
+        for (IntCursor stringColumn : stringColumns) {
+            Object value = row[stringColumn.value];
+            if (value instanceof BytesRef) {
+                row[stringColumn.value] = ((BytesRef) value).utf8ToString();
+            }
+        }
+    }
+
+    private static void convertObjectColumns(Object[] row, IntArrayList columns) {
+        for (IntCursor indexRef : columns) {
+            Object value = row[indexRef.value];
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof Map) {
+                row[indexRef.value] = ensureStringValuesInMap((Map<String, Object>) value);
+            }
+        }
+    }
+
+    private static void convertObjectCollectionColumns(Object[] row, IntArrayList columns) {
+        for (IntCursor indexRef : columns) {
+            Object value = row[indexRef.value];
+            if (value == null) {
+                continue;
+            }
+            if (value instanceof Object[]) {
+                Object[] objectArr = (Object[]) value;
+                for (int i = 0; i < objectArr.length; i++) {
+                    objectArr[i] = ensureStringValuesInMap((Map<String, Object>) objectArr[i]);
+                }
             }
         }
     }
@@ -98,12 +143,23 @@ public class BytesRefUtils {
         return strings;
     }
 
-    private static void convertStringColumns(Object[] row, IntArrayList stringColumns) {
-        for (IntCursor stringColumn : stringColumns) {
-            Object value = row[stringColumn.value];
-            if (value instanceof BytesRef) {
-                row[stringColumn.value] = ((BytesRef) value).utf8ToString();
+    private static Map<String, Object> ensureStringValuesInMap(Map<String, Object> value) {
+        HashMap<String, Object> mapCopy = new HashMap<>(value);
+        for (Map.Entry<String, Object> entry : mapCopy.entrySet()) {
+            Object innerValue = entry.getValue();
+            if (innerValue == null) {
+                continue;
+            }
+            if (innerValue instanceof BytesRef) {
+                entry.setValue(BytesRefs.toString(innerValue));
+            } else if (innerValue instanceof BytesRef[]) {
+                entry.setValue(objectArrayToStringArray((BytesRef[]) innerValue));
+            } else if (innerValue instanceof Object[]) {
+                entry.setValue(objectArrayToStringArray((Object[]) innerValue));
+            } else if (innerValue instanceof Map) {
+                entry.setValue(ensureStringValuesInMap((Map<String, Object>) innerValue));
             }
         }
+        return mapCopy;
     }
 }
