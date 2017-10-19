@@ -28,6 +28,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -39,10 +40,8 @@ import io.crate.operation.reference.sys.shard.SysAllocationDecisionsExpression;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -152,7 +151,7 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(ClusterState state, OperationRouting operationRouting, WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause, RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
     }
 }
