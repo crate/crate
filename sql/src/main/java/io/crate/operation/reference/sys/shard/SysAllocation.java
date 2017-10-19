@@ -116,6 +116,10 @@ public class SysAllocation {
         return decisions;
     }
 
+    public String fqn() {
+        return indexParts.toFullyQualifiedName();
+    }
+
     public static class SysAllocationNodeDecision {
 
         final String nodeId;

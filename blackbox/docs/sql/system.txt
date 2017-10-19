@@ -834,25 +834,10 @@ Table Schema
 |                                    | recovery.                                          |             |
 +------------------------------------+----------------------------------------------------+-------------+
 
-Notes
------
+.. NOTE::
 
-Accessing the ``sys.shards`` table is subjected to the same privileges
-constraints as the other tables. Namely, in order to query it, the connected
-user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either
-directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information
-on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges
-<hierarchical_privileges_inheritance>`).
+   The ``sys.shards`` table is subject to :ref:`shard_table_permissions`.
 
-However, being able to query ``sys.shards`` will not allow the user to retrieve
-all the rows in the table, as it can contain information related to tables over
-which the connected user does not have any privileges. The only rows that will
-be returned will be the ones the user is allowed to access.
-
-For example, if the user ``john`` has any privilege on the ``doc.books`` table
-but no privilege at all on ``doc.locations``, when ``john`` issues a
-``SELECT * FROM sys.shards`` statement, the shards information related to the
-``doc.locations`` table will not be returned.
 
 Example
 -------
@@ -1389,6 +1374,34 @@ node.
 |                               | decision of the node was      |             |
 |                               | "yes".                        |             |
 +-------------------------------+-------------------------------+-------------+
+
+.. NOTE::
+
+   The ``sys.allocations`` table is subject to :ref:`shard_table_permissions`.
+
+.. _shard_table_permissions:
+
+Shard Table Permissions
+=======================
+
+Accessing tables that return shards (``sys.shards``, ``sys.allocations``) is
+subjected to the same privileges constraints as the other tables. Namely, in
+order to query them, the connected user needs to have the ``DQL`` privilege on
+that particular table, either directly or inherited from the ``SCHEMA`` or
+``CLUSTER`` (for more information on privileges inheritance see
+:ref:`Hierarchical Inheritance of Privileges
+<hierarchical_privileges_inheritance>`).
+
+However, being able to query shard returning system tables will not allow the
+user to retrieve all the rows in the table, as they may contain information
+related to tables, which the connected user does not have any privileges for.
+The only rows that will be returned will be the ones the user is allowed to
+access.
+
+For example, if the user ``john`` has any privilege on the ``doc.books`` table
+but no privilege at all on ``doc.locations``, when ``john`` issues a
+``SELECT * FROM sys.shards`` statement, the shards information related to the
+``doc.locations`` table will not be returned.
 
 
 .. _configuration: ../configuration.html

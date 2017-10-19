@@ -23,6 +23,7 @@
 package io.crate.metadata.sys;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.user.Privilege;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -92,7 +93,8 @@ public class SysTableDefinitions {
         ));
 
         tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(sysAllocations),
+            () -> sysAllocations,
+            (user, allocation) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, allocation.fqn()),
             SysAllocationsTableInfo.expressions()
         ));
 
