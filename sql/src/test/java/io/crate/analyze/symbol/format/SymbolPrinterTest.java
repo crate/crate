@@ -287,7 +287,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
         expectedException.expect(MaxDepthReachedException.class);
         expectedException.expectMessage("max depth of 5 reached while traversing symbol");
 
-        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+current_timestamp(3)+1+1+1+1)))");
+        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+(current_timestamp(3)::long)+1+1+1+1)))");
         printer.print(nestedFn, 5, true, true);
     }
 

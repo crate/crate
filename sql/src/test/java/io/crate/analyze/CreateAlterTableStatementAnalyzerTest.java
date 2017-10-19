@@ -885,7 +885,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (ts timestamp, day timestamp GENERATED ALWAYS as ts + 1)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("day"), is("cast((cast(ts AS long) + 1) AS timestamp)"));
+        assertThat(generatedColumnsMapping.get("day"), is("(ts + 1)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
@@ -926,8 +926,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("generated expression value type 'timestamp' not supported for conversion to 'string'");
-        e.analyze("create table foo (ts timestamp, day string GENERATED ALWAYS as date_trunc('day', ts))");
+        expectedException.expectMessage("generated expression value type 'timestamp' not supported for conversion to 'ip'");
+        e.analyze("create table foo (ts timestamp, day ip GENERATED ALWAYS as date_trunc('day', ts))");
     }
 
     @Test

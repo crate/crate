@@ -4,17 +4,18 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.IntegerType;
+import io.crate.types.TimestampType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -150,6 +151,8 @@ public class ArithmeticFunctions {
             } else {
                 if (containsType(IntegerType.INSTANCE, dataTypes)) {
                     scalar = new BinaryScalar<>(integerFunction, name, DataTypes.INTEGER, features);
+                } else if (containsType(TimestampType.INSTANCE, dataTypes)) {
+                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.TIMESTAMP, features);
                 } else {
                     scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
                 }

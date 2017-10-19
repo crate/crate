@@ -55,6 +55,11 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testTimestampCalculationsWithNumerics() throws Exception {
+        assertEvaluate("current_timestamp between current_timestamp - 10 and current_timestamp + 10", true);
+    }
+
+    @Test
     public void testCase() throws Exception {
         assertEvaluate("case 1 when 1 then 'foo' else 'bar' end", "foo");
         assertEvaluate("case 1 when 1.1 then 'foo' else 'bar' end", "bar");

@@ -220,9 +220,9 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         execute("show create table test_generated_column");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
-                  "   \"col1\" LONG GENERATED ALWAYS AS CAST(\"ts\" AS long) + 1,\n" +
-                  "   \"col2\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
-                  "   \"col3\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
+                  "   \"col1\" TIMESTAMP GENERATED ALWAYS AS \"ts\" + 1,\n" +
+                  "   \"col2\" STRING GENERATED ALWAYS AS CAST((\"ts\" + 1) AS string),\n" +
+                  "   \"col3\" STRING GENERATED ALWAYS AS CAST((\"ts\" + 1) AS string),\n" +
                   "   \"day1\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"day2\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
                   "   \"day3\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +

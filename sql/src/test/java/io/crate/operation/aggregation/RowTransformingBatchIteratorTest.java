@@ -33,6 +33,7 @@ import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingBatchIterators;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,7 +59,7 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         inputs = Collections.singletonList(ctx.add(ArithmeticFunctions.of(
             ArithmeticFunctions.Names.ADD,
-            new InputColumn(0),
+            new InputColumn(0, DataTypes.LONG),
             Literal.of(2L),
             FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
         )));
