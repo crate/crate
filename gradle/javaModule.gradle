@@ -46,6 +46,7 @@ if (project.hasProperty('lint-deprecation')) {
 forbiddenApisMain {
     bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
     signaturesFiles = files("$rootDir/gradle/forbidden-signatures.txt")
+    suppressAnnotations = ['**.SuppressForbidden']
     ignoreFailures = false
 }
 

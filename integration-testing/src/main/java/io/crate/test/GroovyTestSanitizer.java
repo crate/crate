@@ -110,7 +110,7 @@ public class GroovyTestSanitizer {
                 // reset it as private
                 field.setAccessible(false);
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
 

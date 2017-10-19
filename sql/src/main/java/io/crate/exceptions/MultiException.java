@@ -24,6 +24,7 @@ package io.crate.exceptions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import org.elasticsearch.common.SuppressForbidden;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -43,6 +44,7 @@ public class MultiException extends RuntimeException {
         this.exceptions = exceptions;
     }
 
+    @SuppressForbidden(reason = "Throwable#printStackTrace")
     @Override
     public void printStackTrace() {
         for (Throwable exception : exceptions) {

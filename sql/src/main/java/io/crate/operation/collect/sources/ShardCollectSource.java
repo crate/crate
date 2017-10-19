@@ -521,7 +521,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     unassignedShards.add(toUnassignedShard(shardId));
                 } catch (Throwable t) {
-                    t.printStackTrace();
                     throw new UnhandledServerException(t);
                 }
             }

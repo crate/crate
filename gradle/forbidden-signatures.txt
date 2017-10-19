@@ -18,3 +18,5 @@ java.util.concurrent.CompletableFuture#thenComposeAsync(java.util.function.Funct
 java.util.concurrent.CompletableFuture#whenCompleteAsync(java.util.function.BiConsumer)
 java.util.concurrent.CompletableFuture#handleAsync(java.util.function.BiFunction)
 
+@defaultMessage Use a logger to print the stacktrace
+java.lang.Throwable#printStackTrace()
