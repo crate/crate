@@ -84,7 +84,7 @@ class OptimizeTableAnalyzer {
         for (Table nodeTable : tables) {
             TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema), Operation.OPTIMIZE);
             if (tableInfo instanceof BlobTableInfo) {
-                indexNames.add(((BlobTableInfo) tableInfo).concreteIndex());
+                indexNames.add(((BlobTableInfo) tableInfo).concreteIndices()[0]);
             } else {
                 indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,

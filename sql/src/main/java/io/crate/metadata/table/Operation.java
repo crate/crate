@@ -41,24 +41,25 @@ public enum Operation {
     ALTER("ALTER"),
     ALTER_BLOCKS("ALTER"),
     ALTER_OPEN_CLOSE("ALTER OPEN/CLOSE"),
+    ALTER_REROUTE("ALTER REROUTE"),
     REFRESH("REFRESH"),
     SHOW_CREATE("SHOW CREATE"),
     OPTIMIZE("OPTIMIZE"),
     COPY_TO("COPY TO"),
     RESTORE_SNAPSHOT("RESTORE SNAPSHOT"),
-    CREATE_SNAPSHOT("CREATE SNAPSHOT");
+    CREATE_SNAPSHOT("CREATE SNAPSHOT"),;
 
     public static final EnumSet<Operation> ALL = EnumSet.allOf(Operation.class);
     public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
     public static final EnumSet<Operation> READ_ONLY = EnumSet.of(READ, ALTER_BLOCKS);
     public static final EnumSet<Operation> OPEN_CLOSE_ONLY = EnumSet.of(ALTER_OPEN_CLOSE);
-    public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE);
+    public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE, ALTER_REROUTE);
     public static final EnumSet<Operation> READ_DISABLED_OPERATIONS = EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER,
-        ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
+        ALTER_OPEN_CLOSE, ALTER_REROUTE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
     public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE,
-        ALTER_BLOCKS, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
+        ALTER_BLOCKS, ALTER_REROUTE, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
-        ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
+        ALTER_BLOCKS, ALTER_OPEN_CLOSE, ALTER_REROUTE, REFRESH, SHOW_CREATE, OPTIMIZE);
 
     private final String representation;
 

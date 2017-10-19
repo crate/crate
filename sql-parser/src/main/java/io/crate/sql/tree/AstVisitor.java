@@ -433,6 +433,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
+    public R visitAlterTableReroute(AlterTableReroute node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitAlterBlobTable(AlterBlobTable node, C context) {
         return visitStatement(node, context);
     }
@@ -471,6 +475,10 @@ public abstract class AstVisitor<R, C> {
 
     public R visitAlterTableAddColumnStatement(AlterTableAddColumn node, C context) {
         return visitStatement(node, context);
+    }
+
+    public R visitRerouteMoveShard(RerouteMoveShard node, C context) {
+        return visitNode(node, context);
     }
 
     public R visitAddColumnDefinition(AddColumnDefinition node, C context) {

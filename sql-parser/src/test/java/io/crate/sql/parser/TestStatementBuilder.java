@@ -1118,6 +1118,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterTableReroute() throws Exception {
+        printStatement("alter table t reroute move shard 1 from 'node1' to 'node2'");
+        printStatement("alter table t partition (parted_col = ?) reroute move shard ? from ? to ?");
+    }
+
+    @Test
     public void testSubSelects() throws Exception {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");

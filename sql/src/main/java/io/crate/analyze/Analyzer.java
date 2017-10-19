@@ -35,6 +35,7 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.CopyFrom;
@@ -118,6 +119,7 @@ public class Analyzer {
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final CreateIngestionRuleAnalyzer createIngestionRuleAnalyzer;
+    private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -150,6 +152,7 @@ public class Analyzer {
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, fulltextAnalyzerResolver, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
+        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(schemas);
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
@@ -307,6 +310,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitAlterTableOpenClose(AlterTableOpenClose node, Analysis context) {
             return alterTableOpenCloseAnalyzer.analyze(node, context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterTableReroute(AlterTableReroute node, Analysis context) {
+            return alterTableRerouteAnalyzer.analyze(node, context);
         }
 
         @Override
