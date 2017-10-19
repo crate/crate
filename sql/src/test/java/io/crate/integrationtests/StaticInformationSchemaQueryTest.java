@@ -34,7 +34,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     public void tableCreation() throws Exception {
         execute("create table t1 (col1 integer, col2 string) clustered into 7 shards");
         execute("create table t2 (col1 integer, col2 string) clustered into 10 shards");
-        execute("create table t3 (col1 integer, col2 string)");
+        execute("create table t3 (col1 integer, col2 string) clustered into 4 shards");
     }
 
     @Test
