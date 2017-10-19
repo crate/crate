@@ -54,7 +54,7 @@ import java.util.function.Supplier;
 import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<Row>>> {
+    implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
 
     private static final Logger LOGGER = Loggers.getLogger(ShardDMLExecutor.class);
 
