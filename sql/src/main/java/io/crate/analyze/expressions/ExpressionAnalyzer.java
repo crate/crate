@@ -800,7 +800,7 @@ public class ExpressionAnalyzer {
                 lte.arguments(),
                 context);
 
-            return AndOperator.of(gteFunc, lteFunc);
+            return allocateFunction(AndOperator.NAME, ImmutableList.of(gteFunc, lteFunc), context);
         }
 
         @Override

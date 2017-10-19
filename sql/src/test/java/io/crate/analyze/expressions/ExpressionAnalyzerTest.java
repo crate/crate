@@ -233,14 +233,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Symbol symbol = expressions.asSymbol("10 between 1 and 10");
-        assertThat(symbol, isSQL("(true AND true)"));
+        assertThat(symbol, isSQL("true"));
     }
 
     @Test
     public void testBetweenNullIsRewrittenToLteAndGte() throws Exception {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Symbol symbol = expressions.asSymbol("10 between 1 and NULL");
-        assertThat(symbol, isSQL("(true AND NULL)"));
+        assertThat(symbol, isSQL("NULL"));
     }
 
     @Test
@@ -300,5 +300,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function comparisonFunction = (Function) expressions.asSymbol("doc.t2.i = $1");
         assertThat(comparisonFunction.arguments().get(1), is(instanceOf(ParameterSymbol.class)));
         assertThat(comparisonFunction.arguments().get(1).valueType(), is(DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
+        Symbol x = expressions.asSymbol("5 between 1 and 10");
+        assertThat(x, isLiteral(true));
     }
 }
