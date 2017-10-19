@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed issue that caused ``NULL`` values to be displayed as
+   empty objects in the console view of the Admin UI.
+
  - Fixed an issue that resulted in aliases overriding column names when a
    subselect is used and a column appears in the outer SELECT multiple times,
    without an alias and with alias or with multiple aliases. E.g.::
