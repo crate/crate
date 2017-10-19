@@ -61,7 +61,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor shardingUpsertExecutor;
+    private final ShardingUpsertExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardingUpsertExecutor;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -125,7 +125,7 @@ public class IndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return CollectingBatchIterator.<Row>newInstance(batchIterator, shardingUpsertExecutor);
+        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor);
     }
 
     @Override

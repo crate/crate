@@ -22,8 +22,9 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,23 +36,23 @@ import java.util.function.Supplier;
  */
 public final class BatchIteratorCollectorBridge {
 
-    public static CrateCollector newInstance(BatchIterator batchIterator, RowConsumer consumer) {
+    public static CrateCollector newInstance(BatchIterator<Row> batchIterator, RowConsumer consumer) {
         return new SyncBatchItCollector(batchIterator, consumer);
     }
 
-    public static CrateCollector newInstance(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
+    public static CrateCollector newInstance(Supplier<CompletableFuture<BatchIterator<Row>>> batchIteratorFuture,
                                              RowConsumer consumer) {
         return new AsyncBatchItCollector(batchIteratorFuture, consumer);
     }
 
     private static class SyncBatchItCollector implements CrateCollector {
 
-        private final BatchIterator batchIterator;
+        private final BatchIterator<Row> batchIterator;
         private final RowConsumer consumer;
 
         private final AtomicBoolean running = new AtomicBoolean(false);
 
-        SyncBatchItCollector(BatchIterator batchIterator, RowConsumer consumer) {
+        SyncBatchItCollector(BatchIterator<Row> batchIterator, RowConsumer consumer) {
             this.batchIterator = batchIterator;
             this.consumer = consumer;
         }
@@ -78,14 +79,14 @@ public final class BatchIteratorCollectorBridge {
 
     private static class AsyncBatchItCollector implements CrateCollector {
 
-        private final Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier;
+        private final Supplier<CompletableFuture<BatchIterator<Row>>> batchIteratorSupplier;
         private final RowConsumer consumer;
 
-        private BatchIterator batchIterator;
+        private BatchIterator<Row> batchIterator;
         private Throwable killed = null;
 
 
-        AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier,
+        AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator<Row>>> batchIteratorSupplier,
                               RowConsumer consumer) {
             this.batchIteratorSupplier = batchIteratorSupplier;
             this.consumer = consumer;
@@ -107,7 +108,7 @@ public final class BatchIteratorCollectorBridge {
             }
         }
 
-        private void invokeConsumer(BatchIterator iterator, Throwable throwable) {
+        private void invokeConsumer(BatchIterator<Row> iterator, Throwable throwable) {
             synchronized (consumer) {
                 if (killed == null) {
                     batchIterator = iterator;
