@@ -347,6 +347,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
             "round(%s)",
             "sqrt(%s)"
         };
+        execute("select b + b, s + s, i + i, l + l, f + f, d + d, t + t from t");
 
         for (String functionCall : functionCalls) {
             String byteCall = String.format(Locale.ENGLISH, functionCall, "b");

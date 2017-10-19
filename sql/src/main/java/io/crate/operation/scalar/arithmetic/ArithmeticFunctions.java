@@ -11,10 +11,14 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
 import java.util.Arrays;
@@ -141,25 +145,40 @@ public class ArithmeticFunctions {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            BinaryScalar<?> scalar;
-            if (containsTypesWithDecimal(dataTypes)) {
-                if (containsType(DoubleType.INSTANCE, dataTypes)) {
+            assert dataTypes.size() == 2 && dataTypes.get(0).equals(dataTypes.get(1))
+                : "Arithmetic operator must receive two arguments with a matching type";
+
+            DataType dataType = dataTypes.get(0);
+            final BinaryScalar<?> scalar;
+            switch (dataType.id()) {
+                case DoubleType.ID:
                     scalar = new BinaryScalar<>(doubleFunction, name, DataTypes.DOUBLE, features);
-                } else {
+                    break;
+
+                case FloatType.ID:
                     scalar = new BinaryScalar<>(floatFunction, name, DataTypes.FLOAT, features);
-                }
-            } else {
-                if (containsType(IntegerType.INSTANCE, dataTypes)) {
+                    break;
+
+                case ByteType.ID:
+                case ShortType.ID:
+                case IntegerType.ID:
                     scalar = new BinaryScalar<>(integerFunction, name, DataTypes.INTEGER, features);
-                } else if (containsType(TimestampType.INSTANCE, dataTypes)) {
-                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.TIMESTAMP, features);
-                } else {
+                    break;
+
+                case LongType.ID:
                     scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
-                }
+                    break;
+
+                case TimestampType.ID:
+                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.TIMESTAMP, features);
+                    break;
+
+                default:
+                    throw new UnsupportedOperationException(
+                        operator + " is not supported on expressions of type " + dataType.getName());
             }
             return Scalar.withOperator(scalar, operator);
         }
-
     }
 
     public static Function of(String name, Symbol first, Symbol second, Set<FunctionInfo.Feature> features) {
