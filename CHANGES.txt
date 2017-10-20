@@ -26,6 +26,10 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that delayed the overview chart's initial display.
+
+ - Fixed casting issue in the Monitoring query.
+
  - Keep input of console when changing tabs in the Admin UI.
 
  - Added focus on text box when the console view is loaded and after
