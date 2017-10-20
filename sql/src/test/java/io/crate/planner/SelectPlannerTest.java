@@ -669,8 +669,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect plan = e.plan("select sum(profit) from gc_table");
         List<Projection> projections = plan.collectPhase().projections();
         assertThat(projections, contains(
-            instanceOf(AggregationProjection.class))
-        );
+            instanceOf(AggregationProjection.class), // iter-partial on shard level
+            instanceOf(AggregationProjection.class)  // partial-final on node level
+        ));
         assertThat(
             ((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
             isSQL("INPUT(0)"));

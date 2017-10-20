@@ -76,12 +76,15 @@ public class HashAggregate implements LogicalPlan {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
+            if (source.preferShardProjections()) {
+                plan.addProjection(projectionBuilder.aggregationProjection(
+                    sourceOutputs, aggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
+                plan.addProjection(projectionBuilder.aggregationProjection(
+                    aggregates, aggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER));
+                return plan;
+            }
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
-                sourceOutputs,
-                aggregates,
-                AggregateMode.ITER_FINAL,
-                RowGranularity.CLUSTER
-            );
+                sourceOutputs, aggregates, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
             plan.addProjection(fullAggregation);
             return plan;
         }
