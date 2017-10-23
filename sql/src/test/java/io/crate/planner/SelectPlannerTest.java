@@ -564,7 +564,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("would require merge with more than 1 nodeIds", collect.nodeIds().size(), is(1));
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, contains(
-            instanceOf(GroupProjection.class),
+            instanceOf(GroupProjection.class), // parallel on shard-level
+            instanceOf(GroupProjection.class), // node-level
             instanceOf(FilterProjection.class),
             instanceOf(EvalProjection.class)
         ));

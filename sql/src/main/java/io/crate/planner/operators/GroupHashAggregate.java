@@ -90,20 +90,30 @@ public class GroupHashAggregate implements LogicalPlan {
             plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         List<Symbol> sourceOutputs = source.outputs();
-        boolean clusteredByGroupBy = clusteredByGroupKey();
-        if (clusteredByGroupBy ||
-            ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
-
+        if (shardsContainAllGroupKeyValues()) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 sourceOutputs,
                 groupKeys,
                 aggregates,
                 AggregateMode.ITER_FINAL,
-                // if not clusteredByGroupBy we need to use CLUSTER/NODE granularity to merge across shards
-                clusteredByGroupBy && source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
+                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
             );
             plan.addProjection(groupProjection);
             return plan;
+        }
+
+        if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
+            if (source.preferShardProjections()) {
+                plan.addProjection(projectionBuilder.groupProjection(
+                    sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
+                plan.addProjection(projectionBuilder.groupProjection(
+                    outputs, groupKeys, aggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.NODE));
+                return plan;
+            } else {
+                plan.addProjection(projectionBuilder.groupProjection(
+                    sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_FINAL, RowGranularity.NODE));
+                return plan;
+            }
         }
 
         GroupProjection toPartial = projectionBuilder.groupProjection(
@@ -160,7 +170,7 @@ public class GroupHashAggregate implements LogicalPlan {
      * @return true if it's guaranteed that a group-key-value doesn't occur in more than 1 shard.
      *         Each shard has "group or row authority"
      */
-    private boolean clusteredByGroupKey() {
+    private boolean shardsContainAllGroupKeyValues() {
         return source instanceof Collect &&
                ((Collect) source).tableInfo instanceof DocTableInfo &&
                GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(

@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.symbol.Function;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -174,7 +175,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                  "limit 100");
         // We assume that an add function is present in the group projection keys.
         List<Projection> projections = collect.collectPhase().projections();
-        GroupProjection projection = (GroupProjection) projections.get(1);
+        GroupProjection projection = (GroupProjection) projections.get(2);
         Function function = (Function) projection.keys().get(0);
 
         assertEquals(ArithmeticFunctions.Names.ADD, function.info().ident().name());
@@ -296,10 +297,16 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         assertThat(nl.left(), instanceOf(Collect.class));
         Collect leftPlan = (Collect) nl.left();
-        assertThat(leftPlan.collectPhase().projections().size(), is(1));
+        assertThat(leftPlan.collectPhase().projections().size(), is(2));
         assertThat(leftPlan.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(leftPlan.collectPhase().projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(leftPlan.collectPhase().projections().get(1), instanceOf(GroupProjection.class));
+        assertThat(leftPlan.collectPhase().projections().get(1).requiredGranularity(), is(RowGranularity.NODE));
         Collect rightPlan = (Collect) nl.right();
-        assertThat(rightPlan.collectPhase().projections().size(), is(1));
-        assertThat(rightPlan.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(rightPlan.collectPhase().projections().size(), is(2));
+        assertThat(rightPlan.collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(GroupProjection.class)
+        ));
     }
 }
