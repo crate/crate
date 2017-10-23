@@ -51,6 +51,7 @@ statement
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
     | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
     | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
+    | ALTER TABLE alterTableDefinition REROUTE rerouteOption                         #alterTableReroute
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
     | SET (SESSION | LOCAL)? qname
@@ -473,6 +474,12 @@ addGeneratedColumnDefinition
     | subscriptSafe (dataType GENERATED ALWAYS)? AS generatedExpr=expr columnConstraint*
     ;
 
+rerouteOption
+    : MOVE SHARD shardId=parameterOrInteger FROM fromNodeId=parameterOrString TO toNodeId=parameterOrString #rerouteMoveShard
+    | CANCEL SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?                   #rerouteCancelShard
+    | ALLOCATE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString                         #rerouteAllocateReplicaShard
+    ;
+
 dataType
     : STRING_TYPE
     | BOOLEAN
@@ -597,6 +604,7 @@ nonReserved
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE
+    | REROUTE | MOVE | SHARD | CANCEL | ALLOCATE | REPLICA
     ;
 
 SELECT: 'SELECT';
@@ -692,6 +700,13 @@ OPEN: 'OPEN';
 CLOSE: 'CLOSE';
 
 RENAME: 'RENAME';
+
+REROUTE: 'REROUTE';
+MOVE: 'MOVE';
+SHARD: 'SHARD';
+CANCEL: 'CANCEL';
+ALLOCATE: 'ALLOCATE';
+REPLICA: 'REPLICA';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';

@@ -185,10 +185,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return Operation.BLOB_OPERATIONS;
     }
 
-    public String concreteIndex() {
-        return index;
-    }
-
     @Override
     public String routingHashFunction() {
         return routingHashFunction;
@@ -197,6 +193,11 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public boolean isClosed() {
         return closed;
+    }
+
+    @Override
+    public String[] concreteIndices() {
+        return new String[] {index};
     }
 
     @Nullable
