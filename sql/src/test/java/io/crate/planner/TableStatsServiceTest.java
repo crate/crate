@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongMap;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.RowN;
 import io.crate.metadata.TableIdent;
@@ -163,7 +164,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         when(clusterService.localNode()).thenReturn(null);
         when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = mock(SQLOperations.class);
-        SQLOperations.Session session = mock(SQLOperations.Session.class);
+        Session session = mock(Session.class);
         when(sqlOperations.createSession(anyString(), anyObject(), any(), anyInt())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(

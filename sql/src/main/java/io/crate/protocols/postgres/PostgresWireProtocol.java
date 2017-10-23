@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.analyze.symbol.Field;
 import io.crate.collections.Lists2;
 import io.crate.operation.auth.Authentication;
@@ -183,7 +184,7 @@ class PostgresWireProtocol {
 
     private int msgLength;
     private byte msgType;
-    private SQLOperations.Session session;
+    private Session session;
     private boolean ignoreTillSync = false;
 
     enum State {
@@ -525,9 +526,9 @@ class PostgresWireProtocol {
     private void handleDescribeMessage(ByteBuf buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
-        SQLOperations.DescribeResult describeResult = session.describe((char) type, portalOrStatement);
+        Session.DescribeResult describeResult = session.describe((char) type, portalOrStatement);
         Collection<Field> fields = describeResult.getFields();
-        DataType[] parameterTypes = describeResult.getParameterTypes();
+        DataType[] parameterTypes = describeResult.getParameters();
         if (parameterTypes != null) {
             Messages.sendParameterDescription(channel, parameterTypes);
         }
@@ -610,7 +611,7 @@ class PostgresWireProtocol {
         try {
             session.parse("", query, Collections.<DataType>emptyList());
             session.bind("", "", Collections.emptyList(), null);
-            SQLOperations.DescribeResult describeResult = session.describe('P', "");
+            Session.DescribeResult describeResult = session.describe('P', "");
             List<Field> fields = describeResult.getFields();
             if (fields == null) {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());

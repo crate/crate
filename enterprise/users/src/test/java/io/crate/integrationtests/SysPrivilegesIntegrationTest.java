@@ -18,8 +18,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.user.Privilege;
 import io.crate.operation.user.UserManager;
 import io.crate.settings.SharedSettings;
@@ -50,16 +50,16 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private String nodeEnterpriseDisabled;
 
     @Override
-    protected SQLOperations.Session createSuperUserSession() {
+    protected Session createSuperUserSession() {
         return createSuperUserSession(true);
     }
 
-    private SQLOperations.Session createSuperUserSession(boolean enterpriseEnabled) {
+    private Session createSuperUserSession(boolean enterpriseEnabled) {
         return createSuperUserSession(enterpriseEnabled ? nodeEnterpriseEnabled : nodeEnterpriseDisabled);
     }
 
     @Override
-    protected SQLOperations.Session createUserSession() {
+    protected Session createUserSession() {
         return createUserSession(nodeEnterpriseEnabled);
     }
 

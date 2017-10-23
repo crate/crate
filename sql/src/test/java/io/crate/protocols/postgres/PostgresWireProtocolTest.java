@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
 import io.crate.operation.auth.AlwaysOKNullAuthentication;
@@ -64,7 +65,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private static final Provider<UserManager> USER_MANAGER_PROVIDER = DummyUserManager::new;
 
     private SQLOperations sqlOperations;
-    private List<SQLOperations.Session> sessions = new ArrayList<>();
+    private List<Session> sessions = new ArrayList<>();
     private EmbeddedChannel channel;
 
     @Before
@@ -129,7 +130,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
-        SQLOperations.Session session = mock(SQLOperations.Session.class);
+        Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
@@ -166,7 +167,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         channel.writeInbound(buffer);
 
-        SQLOperations.Session session = sessions.get(0);
+        Session session = sessions.get(0);
         // If the query can be retrieved via portalName it means bind worked
         assertThat(session.getQuery("P1"), is("select ?, ?"));
     }

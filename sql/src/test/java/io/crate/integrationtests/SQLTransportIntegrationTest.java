@@ -28,6 +28,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
@@ -354,7 +355,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                             String statement,
                             Matcher<SQLResponse> matcher) {
         for (List<String> setSessionStatements : setSessionStatementsList) {
-            SQLOperations.Session session = sqlExecutor.newSession();
+            Session session = sqlExecutor.newSession();
 
             for (String setSessionStatement : setSessionStatements) {
                 sqlExecutor.exec(setSessionStatement, session);
@@ -448,7 +449,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
-     * Execute an SQL Statement using a specific {@link SQLOperations.Session}
+     * Execute an SQL Statement using a specific {@link Session}
      * This is useful to execute a query on a specific node or to test using
      * session options like default schema.
      *
@@ -456,7 +457,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @param session the Session to use
      * @return the SQLResponse
      */
-    public SQLResponse execute(String stmt, Object[] args, SQLOperations.Session session) {
+    public SQLResponse execute(String stmt, Object[] args, Session session) {
         response = SQLTransportExecutor.execute(stmt, args, session)
             .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
         return response;
@@ -566,20 +567,20 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
-     * Creates an {@link SQLOperations.Session} on a specific node.
+     * Creates an {@link Session} on a specific node.
      * This can be used to ensure that a request is performed on a specific node.
      *
      * @param nodeName The name of the node to create the session
      * @return The created session
      */
-    SQLOperations.Session createSessionOnNode(String nodeName) {
+    Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
             sqlExecutor.getDefaultSchema(), new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**
-     * Creates a {@link SQLOperations.Session} with the given default schema
+     * Creates a {@link Session} with the given default schema
      * and an options list. This is useful if you require a session which differs
      * from the default one.
      *
@@ -587,7 +588,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @param options Session options. If no specific options are required, use {@link Option#NONE}
      * @return The created session
      */
-    SQLOperations.Session createSession(@Nullable String defaultSchema, Set<Option> options) {
+    Session createSession(@Nullable String defaultSchema, Set<Option> options) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
         return sqlOperations.createSession(defaultSchema, null, options, DEFAULT_SOFT_LIMIT);
     }

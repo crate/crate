@@ -25,6 +25,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
@@ -81,7 +82,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
+import static io.crate.action.sql.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -162,7 +163,7 @@ public class SQLTransportExecutor {
         }
         try {
             if (isSemiJoinsEnabled) {
-                SQLOperations.Session session = newSession();
+                Session session = newSession();
                 sessionList.forEach((setting) -> exec(setting, session));
                 return execute(stmt, args, session).actionGet(timeout);
             }
@@ -201,7 +202,7 @@ public class SQLTransportExecutor {
         return execute(stmt, args, newSession());
     }
 
-    public SQLOperations.Session newSession() {
+    public Session newSession() {
         return clientProvider.sqlOperations().createSession(
             defaultSchema,
             null,
@@ -210,13 +211,13 @@ public class SQLTransportExecutor {
         );
     }
 
-    public SQLResponse exec(String statement, SQLOperations.Session session) {
+    public SQLResponse exec(String statement, Session session) {
         return execute(statement, null, session).actionGet(REQUEST_TIMEOUT);
     }
 
     public static ActionFuture<SQLResponse> execute(String stmt,
                                                     @Nullable Object[] args,
-                                                    SQLOperations.Session session) {
+                                                    Session session) {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
         execute(stmt, args, actionFuture, session);
         return actionFuture;
@@ -225,7 +226,7 @@ public class SQLTransportExecutor {
     private static void execute(String stmt,
                                 @Nullable Object[] args,
                                 ActionListener<SQLResponse> listener,
-                                SQLOperations.Session session) {
+                                Session session) {
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
@@ -245,7 +246,7 @@ public class SQLTransportExecutor {
     }
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
-        SQLOperations.Session session = newSession();
+        Session session = newSession();
         try {
             session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
             if (bulkArgs == null) {

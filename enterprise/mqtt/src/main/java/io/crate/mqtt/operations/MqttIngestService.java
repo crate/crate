@@ -21,6 +21,7 @@ package io.crate.mqtt.operations;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -182,7 +183,7 @@ public class MqttIngestService implements IngestRuleListener {
 
         boolean messageMatchedRule = false;
         boolean callbackNotified = false;
-        SQLOperations.Session session = sqlOperations.createSession(Schemas.DOC_SCHEMA_NAME, crateUser, Option.NONE, 1);
+        Session session = sqlOperations.createSession(Schemas.DOC_SCHEMA_NAME, crateUser, Option.NONE, 1);
         List<CompletableFuture<?>> insertOperationsFuture = new ArrayList<>(predicateAndIngestRules.size());
         for (Tuple<Predicate<Row>, IngestRule> entry : predicateAndIngestRules) {
             if (entry.v1().test(new RowN(args))) {
@@ -193,7 +194,7 @@ public class MqttIngestService implements IngestRuleListener {
                     session.parse(ingestRule.getName(), "insert into " + TableIdent.fromIndexName(ingestRule.getTargetTable()).fqn() +
                                                   " (\"client_id\", \"packet_id\", \"topic\", \"ts\", \"payload\") " +
                                                   "values (?, ?, ?, CURRENT_TIMESTAMP, ?)", FIELD_TYPES);
-                    session.bind(SQLOperations.Session.UNNAMED, ingestRule.getName(), argsAsList, null);
+                    session.bind(Session.UNNAMED, ingestRule.getName(), argsAsList, null);
                     BaseResultReceiver resultReceiver = new BaseResultReceiver();
                     insertOperationsFuture.add(resultReceiver.completionFuture().exceptionally(t -> {
                         if (SQLExceptions.isDocumentAlreadyExistsException(t)) {
@@ -207,7 +208,7 @@ public class MqttIngestService implements IngestRuleListener {
                         Exceptions.rethrowUnchecked(t);
                         return null;
                     }));
-                    session.execute(SQLOperations.Session.UNNAMED, 0, resultReceiver);
+                    session.execute(Session.UNNAMED, 0, resultReceiver);
                     session.sync();
                 } catch (SQLActionException e) {
                     ackCallback.accept(null, e);

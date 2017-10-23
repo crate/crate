@@ -20,6 +20,7 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerService;
@@ -30,28 +31,28 @@ import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 
 public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTest {
 
-    private SQLOperations.Session superUserSession;
-    private SQLOperations.Session normalUserSession;
+    private Session superUserSession;
+    private Session normalUserSession;
 
-    protected SQLOperations.Session createSuperUserSession() {
+    protected Session createSuperUserSession() {
         return createSuperUserSession(null);
     }
 
-    SQLOperations.Session createSuperUserSession(String node) {
+    Session createSuperUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, UserManagerService.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
-    protected SQLOperations.Session createUserSession() {
+    protected Session createUserSession() {
         return createUserSession(null);
     }
 
-    SQLOperations.Session createUserSession(String node) {
+    Session createUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
-    SQLOperations.Session createNullUserSession(String node) {
+    Session createNullUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, null, Option.NONE, DEFAULT_SOFT_LIMIT);
     }

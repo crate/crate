@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
@@ -66,7 +67,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
+import static io.crate.action.sql.Session.UNNAMED;
 
 @Singleton
 public class RestSQLAction extends BaseRestHandler {
@@ -156,7 +157,7 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
-        SQLOperations.Session session = sqlOperations.createSession(
+        Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             userFromRequest(request),
             toOptions(request),
@@ -166,7 +167,7 @@ public class RestSQLAction extends BaseRestHandler {
             session.parse(UNNAMED, context.stmt(), Collections.emptyList());
             List<Object> args = context.args() == null ? Collections.emptyList() : Arrays.asList(context.args());
             session.bind(UNNAMED, UNNAMED, args, null);
-            SQLOperations.DescribeResult describeResult = session.describe('P', UNNAMED);
+            Session.DescribeResult describeResult = session.describe('P', UNNAMED);
             List<Field> outputFields = describeResult.getFields();
             if (outputFields == null) {
                 return channel -> {
@@ -204,7 +205,7 @@ public class RestSQLAction extends BaseRestHandler {
     }
 
     private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
-        SQLOperations.Session session = sqlOperations.createSession(
+        Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             userFromRequest(request),
             toOptions(request),
@@ -224,7 +225,7 @@ public class RestSQLAction extends BaseRestHandler {
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
-            SQLOperations.DescribeResult describeResult = session.describe('P', UNNAMED);
+            Session.DescribeResult describeResult = session.describe('P', UNNAMED);
             List<Field> outputColumns = describeResult.getFields();
             if (outputColumns != null) {
                 throw new UnsupportedOperationException(

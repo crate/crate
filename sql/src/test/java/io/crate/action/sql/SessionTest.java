@@ -47,7 +47,7 @@ public class SessionTest extends CrateUnitTest {
 
     @Test
     public void testParameterTypeExtractorNotApplicable() {
-        SQLOperations.ParameterTypeExtractor typeExtractor = new SQLOperations.ParameterTypeExtractor();
+        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
 
         assertThat(typeExtractor.getParameterTypes(null), is(nullValue()));
 
@@ -57,7 +57,7 @@ public class SessionTest extends CrateUnitTest {
 
     @Test
     public void testParameterTypeExtractor() {
-        SQLOperations.ParameterTypeExtractor typeExtractor = new SQLOperations.ParameterTypeExtractor();
+        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
         List<Symbol> symbolsToVisit = new ArrayList<>();
         symbolsToVisit.add(Literal.of(1));
         symbolsToVisit.add(Literal.of("foo"));

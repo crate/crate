@@ -18,6 +18,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.udf.UserDefinedFunctionService;
@@ -54,7 +55,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rows()[0][0], is(0L));
     }
 
-    private SQLOperations.Session testUserSession() {
+    private Session testUserSession() {
         User user = userManager.findUser(TEST_USERNAME);
         assertThat(user, notNullValue());
         return sqlOperations.createSession(null, user);
