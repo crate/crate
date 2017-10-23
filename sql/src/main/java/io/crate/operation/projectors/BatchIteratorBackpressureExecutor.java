@@ -96,31 +96,24 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     }
 
     private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
+        if (result != null) {
+            resultRef.accumulateAndGet(result, combiner);
+        }
+        if (failure != null) {
+            failureRef.set(failure);
+        }
+
         int inFlight = inFlightExecutions.decrementAndGet();
         assert inFlight >= 0 : "Number of in-flight executions must not be negative";
 
         if (consumptionFinished) {
-            R finalResult = maybeUpdateResult(result);
             if (inFlight == 0) {
-                setResult(finalResult, failure == null ? failureRef.get() : failure);
+                setResult(resultRef.get(), failure == null ? failureRef.get() : failure);
             }
             // else: waiting for other async-operations to finish
         } else {
-            if (failure != null) {
-                failureRef.set(failure);
-            }
-            if (result != null) {
-                resultRef.accumulateAndGet(result, combiner);
-            }
             consumeIterator();
         }
-    }
-
-    private R maybeUpdateResult(@Nullable R result) {
-        if (result == null) {
-            return resultRef.get();
-        }
-        return resultRef.accumulateAndGet(result, combiner);
     }
 
     private void setResult(R finalResult, Throwable failure) {
