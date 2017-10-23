@@ -122,7 +122,7 @@ public class Session {
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionContext = sessionContext;
-        this.parameterTypeExtractor = new ParameterTypeExtractor();
+        this.parameterTypeExtractor = new Session.ParameterTypeExtractor();
     }
 
     private Portal getOrCreatePortal(String portalName) {

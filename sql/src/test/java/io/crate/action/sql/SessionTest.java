@@ -29,13 +29,17 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.executor.Executor;
+import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -43,7 +47,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class SessionTest extends CrateUnitTest {
+public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParameterTypeExtractorNotApplicable() {
@@ -96,6 +100,34 @@ public class SessionTest extends CrateUnitTest {
         // remove the double parameter => make the input invalid
         symbolsToVisit.remove(6);
         typeExtractor.getParameterTypes(analyzedRelation);
+    }
+
+    @Test
+    public void testGetParamType() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+
+        Executor executor = Mockito.mock(Executor.class);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            SessionContext.create());
+
+        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
+        assertThat(session.getParamType("S_1", 0), is(DataTypes.UNDEFINED));
+        assertThat(session.getParamType("S_1", 2), is(DataTypes.UNDEFINED));
+
+        Session.DescribeResult describe = session.describe('S', "S_1");
+        assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.LONG, DataTypes.LONG }));
+
+        assertThat(session.getParamType("S_1", 0), is(DataTypes.LONG));
+        assertThat(session.getParamType("S_1", 1), is(DataTypes.LONG));
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Requested parameter index exceeds the number of parameters");
+        assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
     }
 
     private static class MyQuerySpec extends QuerySpec {

@@ -80,7 +80,13 @@ public class SQLOperations {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
-        return new Session(analyzer, planner, jobsLogs, isReadOnly, executorProvider.get(), sessionContext);
+        return new Session(
+            analyzer,
+            planner,
+            jobsLogs,
+            isReadOnly,
+            executorProvider.get(),
+            sessionContext);
     }
 
     public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
