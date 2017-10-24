@@ -65,6 +65,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
@@ -150,27 +151,27 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     }
 
     /**
-     * asserts that the given functionExpression evaluates to the expectedValue.
+     * asserts that the given functionExpression matches the given matcher.
      * If the functionExpression contains references the inputs will be used in the order the references appear.
      * <p>
      * E.g.
      * <code>
-     * assertEvaluate("foo(name, age)", "expectedValue", inputForName, inputForAge)
-     * </code>
-     * or
-     * <code>
-     * assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
+     * assertEvaluate("foo(name, age)", anyOf("expectedValue1", "expectedValue2"), inputForName, inputForAge)
      * </code>
      */
     @SuppressWarnings("unchecked")
-    public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
+    public void assertEvaluate(String functionExpression, Matcher<Object> expectedValue, Input... inputs) {
+        if (expectedValue == null) {
+            expectedValue = nullValue();
+        }
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
-        if (expectedValue instanceof String) {
-            expectedValue = new BytesRef((String) expectedValue);
-        }
         if (functionSymbol instanceof Literal) {
-            assertThat(((Literal) functionSymbol).value(), is(expectedValue));
+            Object value = ((Literal) functionSymbol).value();
+            if (value instanceof BytesRef) {
+                value = BytesRefs.toString(value);
+            }
+            assertThat(value, expectedValue);
             return;
         }
         Function function = (Function) functionSymbol;
@@ -186,18 +187,48 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
             }
         }
-        if (expectedValue instanceof BytesRef) {
-            // readable output for the AssertionError
-            Object actualValue = scalar.compile(function.arguments()).evaluate((Input[]) arguments);
-            assertThat(BytesRefs.toString(actualValue), is(BytesRefs.toString(expectedValue)));
-        } else {
-            assertThat(scalar.compile(function.arguments()).evaluate((Input[]) arguments), is(expectedValue));
+
+        Object actualValue = scalar.compile(function.arguments()).evaluate((Input[]) arguments);
+        // readable output for the AssertionError
+        if (actualValue instanceof BytesRef) {
+            actualValue = BytesRefs.toString(actualValue);
         }
+        assertThat(actualValue, expectedValue);
+
+        // Reset calls
         for (AssertingInput argument : arguments) {
             argument.calls = 0;
         }
-        assertThat(scalar.evaluate((Input[]) arguments), is(expectedValue));
 
+        actualValue = scalar.evaluate((Input[]) arguments);
+        // readable output for the AssertionError
+        if (actualValue instanceof BytesRef) {
+            actualValue = BytesRefs.toString(actualValue);
+        }
+        assertThat(actualValue, expectedValue);
+    }
+
+    /**
+     * asserts that the given functionExpression evaluates to the expectedValue.
+     * If the functionExpression contains references the inputs will be used in the order the references appear.
+     * <p>
+     * E.g.
+     * <code>
+     * assertEvaluate("foo(name, age)", "expectedValue", inputForName, inputForAge)
+     * </code>
+     * or
+     * <code>
+     * assertEvaluate("foo('literalName', age)", "expectedValue", inputForAge)
+     * </code>
+     */
+    public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
+        if (expectedValue == null) {
+            assertEvaluate(functionExpression, nullValue());
+        } else if (expectedValue instanceof BytesRef) {
+            assertEvaluate(functionExpression, is(BytesRefs.toString(expectedValue)), inputs);
+        } else {
+            assertEvaluate(functionExpression, is(expectedValue), inputs);
+        }
     }
 
     public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
