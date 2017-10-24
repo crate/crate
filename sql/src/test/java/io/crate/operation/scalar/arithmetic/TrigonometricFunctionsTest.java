@@ -29,6 +29,8 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 
 public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
 
@@ -61,7 +63,7 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertEvaluate("tan(double_val)", 1.5574077246549023, Literal.of(1.0));
         assertEvaluate("tan(float_val)", -2.185039863261519, Literal.of(2.0F));
         assertEvaluate("tan(x)", -0.1425465430742778, Literal.of(3L));
-        assertEvaluate("tan(id)", 1.1578212823495777, Literal.of(4));
+        assertEvaluate("tan(id)", anyOf(is(1.1578212823495777), is(1.1578212823495775)), Literal.of(4));
         assertEvaluate("tan(short_val)", -3.380515006246586, Literal.of(DataTypes.SHORT, (short) 5));
 
         assertEvaluate("atan(double_val)", 0.12277930094473836, Literal.of(0.1234));
@@ -136,7 +138,9 @@ public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("tan(1.0)", isLiteral(1.5574077246549023, DataTypes.DOUBLE));
         assertNormalize("tan(cast (2.0 as float))", isLiteral(-2.185039863261519, DataTypes.DOUBLE));
         assertNormalize("tan(3)", isLiteral(-0.1425465430742778, DataTypes.DOUBLE));
-        assertNormalize("tan(cast (4 as integer))", isLiteral(1.1578212823495777, DataTypes.DOUBLE));
+        assertNormalize("tan(cast (4 as integer))",
+            anyOf(isLiteral(1.1578212823495775, DataTypes.DOUBLE),
+                  isLiteral(1.1578212823495777, DataTypes.DOUBLE)));
         assertNormalize("tan(cast (5 as short))", isLiteral(-3.380515006246586, DataTypes.DOUBLE));
 
         // AtanFunction
