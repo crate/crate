@@ -30,6 +30,7 @@ import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
+import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
 
 import java.util.List;
@@ -74,6 +75,12 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, Context context) {
             return new RerouteAllocateReplicaShardAnalyzedStatement(
                 context.tableInfo, context.partitionProperties, node.shardId(), node.nodeId());
+        }
+
+        @Override
+        public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard node, Context context) {
+            return new RerouteCancelShardAnalyzedStatement(
+                context.tableInfo, context.partitionProperties, node.shardId(), node.nodeId(), node.properties());
         }
     }
 }

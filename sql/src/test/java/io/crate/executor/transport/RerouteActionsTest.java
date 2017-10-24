@@ -23,6 +23,7 @@
 package io.crate.executor.transport;
 
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
+import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
@@ -31,12 +32,16 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.junit.Test;
 
@@ -174,5 +179,40 @@ public class RerouteActionsTest extends CrateUnitTest {
             TableDefinitions.USER_TABLE_INFO.ident().indexName(), 0, "node1", "node2");
         request.add(command);
         assertEquals(request, actualRequest);
+    }
+
+    @Test
+    public void testCancelShardRequest() throws Exception {
+        GenericProperties properties = new GenericProperties();
+        properties.add(new GenericProperty("allow_primary", BooleanLiteral.TRUE_LITERAL));
+        RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
+            TableDefinitions.USER_TABLE_INFO,
+            Collections.EMPTY_LIST,
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            properties);
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareRequest(statement, Row.EMPTY);
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        CancelAllocationCommand command = new CancelAllocationCommand(
+            TableDefinitions.USER_TABLE_INFO.ident().indexName(), 0, "node1", true);
+        request.add(command);
+        assertEquals(request, actualRequest);
+    }
+
+    @Test
+    public void testCancelShardRequestWithInvalidProperty() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"invalid\" is not a valid setting for CANCEL SHARD");
+        GenericProperties properties = new GenericProperties();
+        properties.add(new GenericProperty("invalid", BooleanLiteral.FALSE_LITERAL));
+
+        RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
+            TableDefinitions.USER_TABLE_INFO,
+            Collections.EMPTY_LIST,
+            SqlParser.createExpression("0"),
+            SqlParser.createExpression("node1"),
+            properties);
+        RerouteActions.prepareRequest(statement, Row.EMPTY);
     }
 }

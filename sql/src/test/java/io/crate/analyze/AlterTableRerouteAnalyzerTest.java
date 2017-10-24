@@ -87,4 +87,23 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(analyzed.nodeId(), is(Literal.fromObject("nodeOne")));
         assertThat(analyzed.isWriteOperation(), is(true));
     }
+
+    @Test
+    public void testRerouteCancelShard() throws Exception {
+        RerouteCancelShardAnalyzedStatement analyzed = e.analyze("ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'nodeOne'");
+        assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
+        assertThat(analyzed.tableInfo().concreteIndices()[0], is("users"));
+        assertThat(analyzed.shardId(), is(Literal.fromObject(0)));
+        assertThat(analyzed.nodeId(), is(Literal.fromObject("nodeOne")));
+        assertNull(analyzed.properties().get("allow_primary"));
+        assertThat(analyzed.isWriteOperation(), is(true));
+    }
+
+    @Test
+    public void testRerouteCancelShardWithOptions() throws Exception {
+        RerouteCancelShardAnalyzedStatement analyzed = e.analyze("ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'nodeOne' WITH (allow_primary = TRUE)");
+        assertThat(analyzed.properties().get("allow_primary"), is(Literal.fromObject(true)));
+        analyzed = e.analyze("ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'nodeOne' WITH (allow_primary = FALSE)");
+        assertThat(analyzed.properties().get("allow_primary"), is(Literal.fromObject(false)));
+    }
 }

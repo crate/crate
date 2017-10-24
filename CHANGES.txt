@@ -25,7 +25,7 @@ Changes
 
 - Added support to manually control the allocation of shards using
   ``ALTER TABLE REROUTE``.
-  Supported reroute-options: MOVE, ALLOCATE REPLICA
+  Supported reroute-options: MOVE, ALLOCATE REPLICA, CANCEL
 
 - Added new system table ``sys.allocations`` which lists shards and their
   allocation state including the reasoning why they are in a certain state.

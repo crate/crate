@@ -129,6 +129,7 @@ import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Relation;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
+import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
 import io.crate.sql.tree.RerouteOption;
 import io.crate.sql.tree.ResetStatement;
@@ -658,6 +659,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new RerouteAllocateReplicaShard(
             (Expression) visit(context.shardId),
             (Expression) visit(context.nodeId));
+    }
+
+    @Override
+    public Node visitRerouteCancelShard(SqlBaseParser.RerouteCancelShardContext context) {
+        return new RerouteCancelShard(
+            (Expression) visit(context.shardId),
+            (Expression) visit(context.nodeId),
+            visitIfPresent(context.withProperties(), GenericProperties.class)
+                .orElse(GenericProperties.EMPTY));
     }
 
     // Properties

@@ -27,19 +27,24 @@ import io.crate.analyze.AlterTableAnalyzer;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteAnalyzedStatement;
+import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
+import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
@@ -93,6 +98,22 @@ public final class RerouteActions {
         return shardedTable.concreteIndices()[0];
     }
 
+    static boolean validateCancelRerouteProperty(String propertyKey, GenericProperties properties, Row parameters) throws IllegalArgumentException {
+        if (properties != null) {
+            for (String key : properties.keys()) {
+                if (propertyKey.equals(key)) {
+                    return (boolean) ExpressionToObjectVisitor.convert(
+                        properties.get(propertyKey),
+                        parameters);
+                } else {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "\"%s\" is not a valid setting for CANCEL SHARD", key));
+                }
+            }
+        }
+        return false;
+    }
+
     private static class RequestBuilder extends AnalyzedStatementVisitor<Row, ClusterRerouteRequest> {
 
         private static final RequestBuilder INSTANCE = new RequestBuilder();
@@ -119,6 +140,22 @@ public final class RerouteActions {
             String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
 
             AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(indexName, shardId, nodeId);
+            ClusterRerouteRequest request = new ClusterRerouteRequest();
+            request.add(command);
+            return request;
+        }
+
+        @Override
+        protected ClusterRerouteRequest visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement statement,
+                                                                Row parameters) {
+            final String ALLOW_PRIMARY = "allow_primary";
+
+            String indexName = getRerouteIndex(statement, parameters);
+            int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
+            String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
+            boolean allowPrimary = validateCancelRerouteProperty(ALLOW_PRIMARY, statement.properties(), parameters);
+
+            CancelAllocationCommand command = new CancelAllocationCommand(indexName, shardId, nodeId, allowPrimary);
             ClusterRerouteRequest request = new ClusterRerouteRequest();
             request.add(command);
             return request;
