@@ -1121,6 +1121,7 @@ public class TestStatementBuilder {
     public void testAlterTableReroute() throws Exception {
         printStatement("alter table t reroute move shard 1 from 'node1' to 'node2'");
         printStatement("alter table t partition (parted_col = ?) reroute move shard ? from ? to ?");
+        printStatement("alter table t reroute allocate replica shard 1 on 'node1'");
     }
 
     @Test

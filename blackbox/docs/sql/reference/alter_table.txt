@@ -141,7 +141,9 @@ allocation of shards. It allows to move shards between nodes in a cluster.
 
 where ``reroute_option`` is::
 
-    { MOVE SHARD shard_id FROM node_id TO node_id }
+    { MOVE SHARD shard_id FROM node_id TO node_id
+      | ALLOCATE REPLICA SHARD shard_id ON node_id
+    }
 
 :shard_id:  The shard id. Ranges from 0 up to the specified number of
             :ref:`sys-shards`  shards of a table.
@@ -158,3 +160,6 @@ where ``reroute_option`` is::
     new allocation. Specify ``FROM node_id`` for the node to move the shard from
     and ``TO node_id`` to move the shard to.
 
+**ALLOCATE REPLICA**
+    Allows to force allocation of an unassigned replica shard on a specific
+    node.

@@ -476,6 +476,7 @@ addGeneratedColumnDefinition
 
 rerouteOption
     : MOVE SHARD shardId=parameterOrInteger FROM fromNodeId=parameterOrString TO toNodeId=parameterOrString #rerouteMoveShard
+    | ALLOCATE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString                         #rerouteAllocateReplicaShard
     ;
 
 dataType
@@ -602,7 +603,7 @@ nonReserved
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE
-    | REROUTE | MOVE | SHARD
+    | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA
     ;
 
 SELECT: 'SELECT';
@@ -702,6 +703,8 @@ RENAME: 'RENAME';
 REROUTE: 'REROUTE';
 MOVE: 'MOVE';
 SHARD: 'SHARD';
+ALLOCATE: 'ALLOCATE';
+REPLICA: 'REPLICA';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';

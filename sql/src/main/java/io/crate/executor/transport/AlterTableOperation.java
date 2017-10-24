@@ -26,20 +26,15 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
-import io.crate.analyze.AlterTableAnalyzer;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.PartitionedTableParameterInfo;
-import io.crate.analyze.RerouteAnalyzedStatement;
-import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.TableParameter;
-import io.crate.analyze.expressions.ExpressionToNumberVisitor;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -54,13 +49,8 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ShardedTable;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
-import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
@@ -82,8 +72,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
@@ -97,7 +85,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -120,7 +107,6 @@ public class AlterTableOperation {
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
-    private final TransportClusterRerouteAction transportClusterRerouteAction;
     private final SQLOperations sqlOperations;
 
     @Inject
@@ -132,8 +118,8 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
-                               TransportClusterRerouteAction transportClusterRerouteAction,
                                SQLOperations sqlOperations) {
+
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
@@ -142,7 +128,6 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
-        this.transportClusterRerouteAction = transportClusterRerouteAction;
         this.sqlOperations = sqlOperations;
     }
 
@@ -558,70 +543,6 @@ public class AlterTableOperation {
             }
         }
         return true;
-    }
-
-    @VisibleForTesting
-    static String getRerouteIndex(RerouteAnalyzedStatement statement, Row parameters) throws SQLException {
-        ShardedTable shardedTable = statement.tableInfo();
-        if (shardedTable instanceof DocTableInfo) {
-            DocTableInfo docTableInfo = (DocTableInfo) shardedTable;
-            String indexName = docTableInfo.ident().indexName();
-            PartitionName partitionName = AlterTableAnalyzer.createPartitionName(statement.partitionProperties(),
-                docTableInfo, parameters);
-            if (partitionName != null) {
-                indexName = partitionName.asIndexName();
-            } else if (docTableInfo.isPartitioned()) {
-                throw new SQLException("table is partitioned however no partition clause has been specified");
-            }
-
-            return indexName;
-        }
-
-        // Table is a blob table
-        assert shardedTable.concreteIndices().length == 1 : "table has to contain only 1 index name";
-        return shardedTable.concreteIndices()[0];
-    }
-
-    private CompletableFuture<Long> executeRerouteRequest(AllocationCommand command) {
-        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
-
-        ClusterRerouteRequest request = new ClusterRerouteRequest();
-        request.add(command);
-        transportClusterRerouteAction.execute(request, new ActionListener<ClusterRerouteResponse>() {
-            @Override
-            public void onResponse(ClusterRerouteResponse clusterRerouteResponse) {
-                if (clusterRerouteResponse.isAcknowledged()) {
-                    resultFuture.complete(1L);
-                } else {
-                    resultFuture.complete(-1L);
-                }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                resultFuture.completeExceptionally(e);
-            }
-        });
-        return resultFuture;
-    }
-
-    public CompletableFuture<Long> executeRerouteMoveShard(RerouteMoveShardAnalyzedStatement statement, Row parameters) {
-        String indexName;
-        int shardId;
-        String fromNodeId;
-        String toNodeId;
-
-        try {
-            indexName = getRerouteIndex(statement, parameters);
-            shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-            fromNodeId = ExpressionToStringVisitor.convert(statement.fromNodeId(), parameters);
-            toNodeId = ExpressionToStringVisitor.convert(statement.toNodeId(), parameters);
-        } catch (Exception e) {
-            return CompletableFutures.failedFuture(e);
-        }
-
-        MoveAllocationCommand command = new MoveAllocationCommand(indexName, shardId, fromNodeId, toNodeId);
-        return executeRerouteRequest(command);
     }
 
     private class ResultSetReceiver implements ResultReceiver {

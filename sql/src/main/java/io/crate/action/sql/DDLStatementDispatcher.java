@@ -43,16 +43,19 @@ import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.OptimizeSettings;
 import io.crate.analyze.OptimizeTableAnalyzedStatement;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.executor.transport.AlterTableOperation;
 import io.crate.executor.transport.RepositoryService;
+import io.crate.executor.transport.RerouteActions;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
+import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -92,6 +95,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
     private final UserManager userManager;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
+    private final TransportClusterRerouteAction rerouteAction;
 
 
     @Inject
@@ -101,6 +105,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   UserDefinedFunctionDDLClient udfDDLClient,
+                                  TransportClusterRerouteAction rerouteAction,
                                   Provider<UserManager> userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
@@ -115,6 +120,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.userManager = userManagerProvider.get();
+        this.rerouteAction = rerouteAction;
     }
 
     @Override
@@ -248,7 +254,12 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Row parameters) {
-            return alterTableOperation.executeRerouteMoveShard(analysis, parameters);
+            return RerouteActions.execute(rerouteAction::execute, analysis, parameters);
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Row parameters) {
+            return RerouteActions.execute(rerouteAction::execute, analysis, parameters);
         }
     }
 

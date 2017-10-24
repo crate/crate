@@ -77,4 +77,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(analyzed.tableInfo().concreteIndices()[0], is("blob.blobs"));
         assertThat(analyzed.isWriteOperation(), is(true));
     }
+
+    @Test
+    public void testRerouteAllocateReplicaShard() throws Exception {
+        RerouteAllocateReplicaShardAnalyzedStatement analyzed = e.analyze("ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON 'nodeOne'");
+        assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
+        assertThat(analyzed.tableInfo().concreteIndices()[0], is("users"));
+        assertThat(analyzed.shardId(), is(Literal.fromObject(0)));
+        assertThat(analyzed.nodeId(), is(Literal.fromObject("nodeOne")));
+        assertThat(analyzed.isWriteOperation(), is(true));
+    }
 }

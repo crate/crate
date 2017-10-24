@@ -481,6 +481,10 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
+    public R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitAddColumnDefinition(AddColumnDefinition node, C context) {
         return visitTableElement(node, context);
     }

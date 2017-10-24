@@ -192,4 +192,8 @@ public class AnalyzedStatementVisitor<C, R> {
     protected R visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
+
+    protected R visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
 }
