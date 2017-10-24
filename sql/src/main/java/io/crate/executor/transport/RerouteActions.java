@@ -51,7 +51,7 @@ public final class RerouteActions {
 
     }
 
-    static final CompletableFuture<Long> execute(
+    public static CompletableFuture<Long> execute(
         BiConsumer<ClusterRerouteRequest, ActionListener<ClusterRerouteResponse>> rerouteAction,
         RerouteAnalyzedStatement stmt,
         Row parameters) {
