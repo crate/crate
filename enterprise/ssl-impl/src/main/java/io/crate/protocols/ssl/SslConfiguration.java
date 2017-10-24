@@ -55,6 +55,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Optional;
 
+import static io.crate.Constants.KEYSTORE_DEFAULT_TYPE;
+
 /**
  * Builds a Netty {@link SSLContext} which is passed upon creation of a {@link SslHandler}
  * which is responsible for establishing the SSL connection in a Netty pipeline.
@@ -138,7 +140,7 @@ public final class SslConfiguration {
         AbstractKeyStoreSettings(Settings settings) throws Exception {
             this.keyStorePath = checkStorePath(getPathSetting().setting().get(settings));
             this.keyStorePassword = getPassword(getPasswordSetting().setting().get(settings));
-            this.keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            this.keyStore = KeyStore.getInstance(KEYSTORE_DEFAULT_TYPE);
         }
 
         abstract CrateSetting<String> getPathSetting();
