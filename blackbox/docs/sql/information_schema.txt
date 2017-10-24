@@ -411,6 +411,30 @@ type, name and which table they are defined in.
     +--------------------+------------+-...------------------+-------------+
     SELECT 3 rows in set (... sec)
 
+``key_column_usage``
+--------------------
+
+This table may be queried to retrieve primary key information from all user
+tables:
+
+.. hide:
+
+    cr> create table students (id long, department integer, name string, primary key(id, department))
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> select constraint_name, table_name, column_name, ordinal_position
+    ... from information_schema.key_column_usage
+    ... where table_name = 'students'
+    +-----------------+------------+-------------+------------------+
+    | constraint_name | table_name | column_name | ordinal_position |
+    +-----------------+------------+-------------+------------------+
+    | id_pk           | students   | id          |                1 |
+    | department_pk   | students   | department  |                2 |
+    +-----------------+------------+-------------+------------------+
+    SELECT 2 rows in set (... sec)
+
 .. _is_table_partitions:
 
 ``table_partitions``

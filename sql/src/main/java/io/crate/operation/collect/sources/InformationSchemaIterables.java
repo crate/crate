@@ -22,6 +22,8 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.IngestionRuleInfo;
@@ -32,7 +34,12 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -50,20 +57,28 @@ import org.elasticsearch.common.inject.Inject;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.PrimitiveIterator;
 import java.util.Set;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 public class InformationSchemaIterables implements ClusterStateListener {
+
+    public static final String PK_SUFFIX = "_pk";
+
+    private static final Set<String> IGNORED_SCHEMAS =
+        ImmutableSet.of(InformationSchemaInfo.NAME, SysSchemaInfo.NAME, BlobSchemaInfo.NAME, PgCatalogSchemaInfo.NAME);
 
     private final Schemas schemas;
     private final FluentIterable<TableInfo> tablesIterable;
     private final PartitionInfos partitionInfos;
     private final FluentIterable<ColumnContext> columnsIterable;
+    private final FluentIterable<TableInfo> primaryKeyTableInfos;
     private final FluentIterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
-    private final FluentIterable<Void> keyColumnUsages;
     private final FluentIterable<Void> referentialConstraints;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
@@ -82,19 +97,19 @@ public class InformationSchemaIterables implements ClusterStateListener {
         partitionInfos = new PartitionInfos(clusterService);
         columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
 
-        // Check if primary key is defined and is not _id.
-        FluentIterable<ConstraintInfo> primaryKeyConstraints = tablesIterable
+        primaryKeyTableInfos = tablesIterable
             .filter(i -> i != null && (i.primaryKey().size() > 1 ||
-                        (i.primaryKey().size() == 1 && i.primaryKey().get(0).name().equals("_id") == false)))
+                                       (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))));
+        FluentIterable<ConstraintInfo> primaryKeyConstraints = primaryKeyTableInfos
             .transform(t -> new ConstraintInfo(
                 t.ident(),
-                t.ident().name() + "_pk",
+                t.ident().name() + PK_SUFFIX,
                 ConstraintInfo.Constraint.PRIMARY_KEY));
         FluentIterable<ConstraintInfo> notnullConstraints = tablesIterable.transformAndConcat(NotNullConstraintIterable::new);
         constraints = FluentIterable.concat(primaryKeyConstraints, notnullConstraints);
 
         sqlFeatures = new SqlFeaturesIterable();
-        keyColumnUsages = FluentIterable.from(Collections.emptyList());
+
         referentialConstraints = FluentIterable.from(Collections.emptyList());
 
         createMetaDataBasedIterables(clusterService.state().getMetaData());
@@ -133,8 +148,16 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return ingestionRules;
     }
 
-    public Iterable<Void> keyColumnUsageInfos() {
-        return keyColumnUsages;
+    public Iterable<KeyColumnUsage> keyColumnUsage() {
+        return primaryKeyTableInfos.stream()
+            .filter(tableInfo -> !IGNORED_SCHEMAS.contains(tableInfo.ident().schema()))
+            .flatMap(tableInfo -> {
+                List<ColumnIdent> pks = tableInfo.primaryKey();
+                PrimitiveIterator.OfInt ids = IntStream.range(1, pks.size() + 1).iterator();
+                TableIdent ident = tableInfo.ident();
+                return pks.stream().map(
+                    pk -> new KeyColumnUsage(ident, pk, ids.next()));
+            })::iterator;
     }
 
 
@@ -268,6 +291,39 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 return new ColumnContext(tableInfo, column, null);
             }
             return new ColumnContext(tableInfo, column, ordinal++);
+        }
+    }
+
+    public static class KeyColumnUsage {
+
+        private final TableIdent tableIdent;
+        private final ColumnIdent pkColumnIdent;
+        private final int ordinal;
+
+        KeyColumnUsage(TableIdent tableIdent, ColumnIdent pkColumnIdent, int ordinal) {
+            this.tableIdent = tableIdent;
+            this.pkColumnIdent = pkColumnIdent;
+            this.ordinal = ordinal;
+        }
+
+        public String getSchema() {
+            return tableIdent.schema();
+        }
+
+        public String getPkColumnName() {
+            return pkColumnIdent.name();
+        }
+
+        public int getOrdinal() {
+            return ordinal;
+        }
+
+        public String getTableName() {
+            return tableIdent.name();
+        }
+
+        public String getFQN() {
+            return tableIdent.fqn();
         }
     }
 }

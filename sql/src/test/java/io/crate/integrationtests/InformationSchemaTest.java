@@ -1182,11 +1182,30 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFromKeyColumnUsage() throws Exception {
-        execute("select * from information_schema.key_column_usage");
-        assertEquals(0L, response.rowCount());
-        assertThat(response.cols(),
-            arrayContaining("column_name", "constraint_catalog", "constraint_name", "constraint_schema",
-                "ordinal_position", "table_catalog", "table_name", "table_schema"));
+        execute("create table table1 (id1 integer)");
+        execute("create table table2 (id2 integer primary key)");
+        execute("create table table3 (id3 integer, name string, other double, primary key (id3, name))");
+        ensureYellow();
+
+        execute("select * from information_schema.key_column_usage order by table_name, ordinal_position asc");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.cols(), arrayContaining(
+            "column_name",
+            "constraint_catalog",
+            "constraint_name",
+            "constraint_schema",
+            "ordinal_position",
+            "table_catalog",
+            "table_name",
+            "table_schema"
+        ));
+
+        final String defaultSchema = sqlExecutor.getDefaultSchema();
+        assertThat(response.rows(), arrayContaining(
+            new Object[] {"id2",  defaultSchema, "id2_pk",  "public", 1, defaultSchema, "table2", "public"},
+            new Object[] {"id3",  defaultSchema, "id3_pk",  "public", 1, defaultSchema, "table3", "public"},
+            new Object[] {"name", defaultSchema, "name_pk", "public", 2, defaultSchema, "table3", "public"}
+        ));
     }
 
     @Test

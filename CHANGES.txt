@@ -28,6 +28,9 @@ Breaking Changes
 Changes
 =======
 
+- Table ``information_schema.key_column_usage`` now gets populated with primary
+  key information of user tables.
+
 - Table ``information_schema.table_constraints`` is now returning ``NOT_NULL``
   constraints.
 

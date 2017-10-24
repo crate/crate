@@ -28,13 +28,20 @@ import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.operation.collect.sources.InformationSchemaIterables;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import static io.crate.metadata.RowContextCollectorExpression.forFunction;
+import static io.crate.metadata.RowContextCollectorExpression.objToBytesRef;
+import static io.crate.operation.collect.sources.InformationSchemaIterables.PK_SUFFIX;
+
+/**
+ * Table which contains the primary keys of all user tables.
+ */
 public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
 
     public static final String NAME = "key_column_usage";
@@ -59,27 +66,27 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
         static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
         static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
         static final Reference COLUMN_NAME = createRef(Columns.COLUMN_NAME, DataTypes.STRING);
-        static final Reference ORDINAL_POSITION = createRef(Columns.ORDINAL_POSITION, DataTypes.SHORT);
+        static final Reference ORDINAL_POSITION = createRef(Columns.ORDINAL_POSITION, DataTypes.INTEGER);
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>>builder()
             .put(Columns.CONSTRAINT_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(k -> "public"))
             .put(Columns.CONSTRAINT_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(k -> k.getPkColumnName() + PK_SUFFIX))
             .put(Columns.TABLE_CATALOG,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_SCHEMA,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(k -> "public"))
             .put(Columns.TABLE_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getTableName))
             .put(Columns.COLUMN_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getPkColumnName))
             .put(Columns.ORDINAL_POSITION,
-                () -> RowContextCollectorExpression.forFunction(null))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal))
             .build();
     }
 
