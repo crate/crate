@@ -24,6 +24,7 @@ dependencies {
     compile "com.google.guava:guava:${versions.guava}"
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
+    compile "javax.xml:jaxb-api:${versions.jaxb_api}"
 
     testCompile project(':integration-testing')
     testCompile project(path: ':dex', configuration: 'testOutput')
