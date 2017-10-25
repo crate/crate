@@ -293,58 +293,78 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectFromTableConstraints() throws Exception {
-
-        execute("select * from INFORMATION_SCHEMA.table_constraints order by table_schema asc, table_name asc");
-        assertEquals(15L, response.rowCount());
-        assertThat(response.cols(),
-            arrayContaining("constraint_name", "constraint_type", "table_name", "table_schema"));
+        execute("SELECT column_name FROM information_schema.columns WHERE table_schema='information_schema' " +
+                "AND table_name='table_constraints'");
+        assertEquals(9L, response.rowCount());
+        assertThat(TestingHelpers.getColumn(response.rows(),0),
+            arrayContaining("constraint_catalog", "constraint_name", "constraint_schema", "constraint_type", "initially_deferred",
+                "is_deferrable", "table_catalog", "table_name", "table_schema"));
+        execute("SELECT constraint_name, constraint_type, table_name, table_schema FROM " +
+                "information_schema.table_constraints ORDER BY table_schema ASC, table_name ASC");
+        assertEquals(23L, response.rowCount());
         assertThat(TestingHelpers.printedTable(response.rows()),
             is(
-            "[table_name, table_schema, column_name]| PRIMARY_KEY| columns| information_schema\n" +
-            "[rule_name]| PRIMARY_KEY| ingestion_rules| information_schema\n" +
-            "[schema_name]| PRIMARY_KEY| schemata| information_schema\n" +
-            "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| sql_features| information_schema\n" +
-            "[table_schema, table_name]| PRIMARY_KEY| tables| information_schema\n" +
-            "[table_schema, table_name, partition_ident, shard_id]| PRIMARY_KEY| allocations| sys\n" +
-            "[id]| PRIMARY_KEY| checks| sys\n" +
-            "[id]| PRIMARY_KEY| jobs| sys\n" +
-            "[id]| PRIMARY_KEY| jobs_log| sys\n" +
-            "[id, node_id]| PRIMARY_KEY| node_checks| sys\n" +
-            "[id]| PRIMARY_KEY| nodes| sys\n" +
-            "[name]| PRIMARY_KEY| repositories| sys\n" +
-            "[schema_name, table_name, id, partition_ident]| PRIMARY_KEY| shards| sys\n" +
-            "[name, repository]| PRIMARY_KEY| snapshots| sys\n" +
-            "[mountain]| PRIMARY_KEY| summits| sys\n"
-        ));
+                "columns_pk| PRIMARY KEY| columns| information_schema\n" +
+                "information_schema_columns_column_name_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_data_type_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_is_generated_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_is_nullable_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_ordinal_position_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_table_catalog_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_table_name_not_null| CHECK| columns| information_schema\n" +
+                "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema\n" +
+                "ingestion_rules_pk| PRIMARY KEY| ingestion_rules| information_schema\n" +
+                "schemata_pk| PRIMARY KEY| schemata| information_schema\n" +
+                "sql_features_pk| PRIMARY KEY| sql_features| information_schema\n" +
+                "tables_pk| PRIMARY KEY| tables| information_schema\n" +
+                "allocations_pk| PRIMARY KEY| allocations| sys\n" +
+                "checks_pk| PRIMARY KEY| checks| sys\n" +
+                "jobs_pk| PRIMARY KEY| jobs| sys\n" +
+                "jobs_log_pk| PRIMARY KEY| jobs_log| sys\n" +
+                "node_checks_pk| PRIMARY KEY| node_checks| sys\n" +
+                "nodes_pk| PRIMARY KEY| nodes| sys\n" +
+                "repositories_pk| PRIMARY KEY| repositories| sys\n" +
+                "shards_pk| PRIMARY KEY| shards| sys\n" +
+                "snapshots_pk| PRIMARY KEY| snapshots| sys\n" +
+                "summits_pk| PRIMARY KEY| summits| sys\n"
+            ));
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("CREATE TABLE test (col1 INTEGER, col2 INTEGER, col3 INT NOT NULL, col4 STRING, " +
+                "PRIMARY KEY(col1,col2))");
         ensureGreen();
-        execute("select constraint_type, constraint_name, " +
-                "table_name from information_schema.table_constraints where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
-        assertEquals(1L, response.rowCount());
-        assertEquals("PRIMARY_KEY", response.rows()[0][0]);
-        assertThat(commaJoiner.join((Object[]) response.rows()[0][1]), is("col1"));
-        assertEquals("test", response.rows()[0][2]);
+        execute("SELECT constraint_type, constraint_name, table_name FROM information_schema.table_constraints " +
+                "WHERE table_schema = ?",
+            new Object[]{sqlExecutor.getDefaultSchema()});
+        assertEquals(2L, response.rowCount());
+        assertThat(response.rows()[0][0], is("PRIMARY KEY"));
+        assertThat(response.rows()[0][1], is("test_pk"));
+        assertThat(response.rows()[0][2], is("test"));
+        assertThat(response.rows()[1][0], is("CHECK"));
+        assertThat(response.rows()[1][1], is(sqlExecutor.getDefaultSchema() + "_test_col3_not_null"));
+        assertThat(response.rows()[1][2], is("test"));
     }
 
     @Test
     public void testRefreshTableConstraints() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("CREATE TABLE test (col1 INTEGER PRIMARY KEY, col2 STRING)");
         ensureGreen();
-        execute("select table_name, constraint_name from INFORMATION_SCHEMA" +
-                ".table_constraints where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
+        execute("SELECT table_name, constraint_name FROM Information_schema" +
+                ".table_constraints WHERE table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
         assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertThat(commaJoiner.join((Object[]) response.rows()[0][1]), is("col1"));
+        assertThat(response.rows()[0][0], is("test"));
+        assertThat(response.rows()[0][1], is("test_pk"));
 
-        execute("create table test2 (col1a string primary key, col2a timestamp)");
+        execute("CREATE TABLE test2 (col1a STRING PRIMARY KEY, \"Col2a\" TIMESTAMP NOT NULL)");
         ensureGreen();
-        execute("select table_name, constraint_name from INFORMATION_SCHEMA.table_constraints where table_schema = ? order by table_name asc",
+        execute("SELECT table_name, constraint_name FROM information_schema.table_constraints WHERE table_schema = ? " +
+                "ORDER BY table_name ASC",
             new Object[]{sqlExecutor.getDefaultSchema()});
 
-        assertEquals(2L, response.rowCount());
-        assertEquals("test2", response.rows()[1][0]);
-        assertThat(commaJoiner.join((Object[]) response.rows()[1][1]), is("col1a"));
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[1][0], is("test2"));
+        assertThat(response.rows()[1][1], is("test2_pk"));
+        assertThat(response.rows()[2][0], is("test2"));
+        assertThat(response.rows()[2][1], is(sqlExecutor.getDefaultSchema() + "_test2_Col2a_not_null"));
     }
 
     @Test
@@ -475,7 +495,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(457, response.rowCount());
+        assertEquals(462, response.rowCount());
     }
 
     @Test

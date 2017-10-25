@@ -185,7 +185,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
         executeAsSuperuser("insert into t1 values (2)");
-        executeAsSuperuser("create table my_schema.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table my_schema.t2 (x int primary key) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("create table other_schema.t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
         executeAsSuperuser("create function my_schema.foo(long)" +

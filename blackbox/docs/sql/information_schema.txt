@@ -388,6 +388,11 @@ type, name and which table they are defined in.
 
     Currently only ``PRIMARY_KEY`` constraints are supported.
 
+.. hide:
+
+    cr> create table tbl (col STRING NOT NULL);
+    CREATE OK, 1 row affected (... sec)
+
 ::
 
     cr> select table_schema, table_name, constraint_name, constraint_type as type
@@ -395,14 +400,15 @@ type, name and which table they are defined in.
     ... where table_name = 'tables'
     ...   or table_name = 'quotes'
     ...   or table_name = 'documents'
-    ... order by table_schema desc, table_name desc limit 10;
-    +--------------------+------------+--------------------------------+-------------+
-    | table_schema       | table_name | constraint_name                | type        |
-    +--------------------+------------+--------------------------------+-------------+
-    | information_schema | tables     | ["table_schema", "table_name"] | PRIMARY_KEY |
-    | doc                | quotes     | ["id"]                         | PRIMARY_KEY |
-    | doc                | documents  | ["_id"]                        | PRIMARY_KEY |
-    +--------------------+------------+--------------------------------+-------------+
+    ...   or table_name = 'tbl'
+    ... order by table_schema desc, table_name asc limit 10;
+    +--------------------+------------+-...------------------+-------------+
+    | table_schema       | table_name | constraint_name      | type        |
+    +--------------------+------------+-...------------------+-------------+
+    | information_schema | tables     | tables_pk            | PRIMARY KEY |
+    | doc                | quotes     | quotes_pk            | PRIMARY KEY |
+    | doc                | tbl        | doc_tbl_col_not_null | CHECK       |
+    +--------------------+------------+-...------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. _is_table_partitions:

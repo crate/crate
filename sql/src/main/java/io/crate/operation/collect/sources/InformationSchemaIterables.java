@@ -33,6 +33,7 @@ import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
+import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.files.SqlFeatureContext;
@@ -60,7 +61,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final FluentIterable<TableInfo> tablesIterable;
     private final PartitionInfos partitionInfos;
     private final FluentIterable<ColumnContext> columnsIterable;
-    private final FluentIterable<TableInfo> constraints;
+    private final FluentIterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
     private final FluentIterable<Void> keyColumnUsages;
     private final FluentIterable<Void> referentialConstraints;
@@ -81,7 +82,16 @@ public class InformationSchemaIterables implements ClusterStateListener {
         partitionInfos = new PartitionInfos(clusterService);
         columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
 
-        constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
+        // Check if primary key is defined and is not _id.
+        FluentIterable<ConstraintInfo> primaryKeyConstraints = tablesIterable
+            .filter(i -> i != null && (i.primaryKey().size() > 1 ||
+                        (i.primaryKey().size() == 1 && i.primaryKey().get(0).name().equals("_id") == false)))
+            .transform(t -> new ConstraintInfo(
+                t.ident(),
+                t.ident().name() + "_pk",
+                ConstraintInfo.Constraint.PRIMARY_KEY));
+        FluentIterable<ConstraintInfo> notnullConstraints = tablesIterable.transformAndConcat(NotNullConstraintIterable::new);
+        constraints = FluentIterable.concat(primaryKeyConstraints, notnullConstraints);
 
         sqlFeatures = new SqlFeaturesIterable();
         keyColumnUsages = FluentIterable.from(Collections.emptyList());
@@ -107,7 +117,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return columnsIterable;
     }
 
-    public Iterable<TableInfo> constraints() {
+    public Iterable<ConstraintInfo> constraints() {
         return constraints;
     }
 
@@ -147,6 +157,73 @@ public class InformationSchemaIterables implements ClusterStateListener {
             metaData.custom(UserDefinedFunctionsMetaData.TYPE));
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         ingestionRules = new IngestionRuleInfos(metaData.custom(IngestRulesMetaData.TYPE));
+    }
+
+    /**
+     * Iterable for extracting not null constraints from table info.
+     */
+    static class NotNullConstraintIterable implements Iterable<ConstraintInfo> {
+
+        private final TableInfo ti;
+
+        NotNullConstraintIterable(TableInfo ti) {
+            this.ti = ti;
+        }
+
+        @Override
+        public Iterator<ConstraintInfo> iterator() {
+            return new NotNullConstraintIterator(ti);
+        }
+    }
+
+    /**
+     * Iterator that returns ConstraintInfo for each TableInfo with not null constraints.
+     */
+    static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
+        private final TableInfo tableInfo;
+        private final Iterator<Reference> nullableColumns;
+
+        NotNullConstraintIterator(TableInfo tableInfo) {
+            this.tableInfo = tableInfo;
+            nullableColumns = StreamSupport.stream(tableInfo.spliterator(), false)
+                .filter(reference -> reference.ident().columnIdent().isSystemColumn() == false &&
+                                     reference.valueType() != DataTypes.NOT_SUPPORTED &&
+                                     reference.isNullable() == false)
+                .iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return nullableColumns.hasNext();
+        }
+
+        @Override
+        public ConstraintInfo next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("Not null constraint iterator exhausted");
+            }
+
+            // Building not null constraint name with following pattern:
+            // {table_schema}_{table_name}_{column_name}_not_null
+            // Currently the longest not null constraint of information_schema
+            // is 56 characters long, that's why default string length is set to
+            // 60.
+            String constraintName = new StringBuilder(60)
+                .append(this.tableInfo.ident().schema())
+                .append("_")
+                .append(this.tableInfo.ident().name())
+                .append("_")
+                .append(this.nullableColumns.next().ident().columnIdent().name())
+                .append("_not_null")
+                .toString();
+
+            // Return nullable columns instead.
+            return new ConstraintInfo(
+                this.tableInfo.ident(),
+                constraintName,
+                ConstraintInfo.Constraint.CHECK
+            );
+        }
     }
 
     static class ColumnsIterable implements Iterable<ColumnContext> {

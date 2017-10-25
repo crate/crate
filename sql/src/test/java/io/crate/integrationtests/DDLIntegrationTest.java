@@ -401,10 +401,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("alter table t add column name string primary key");
         execute("select constraint_name from information_schema.table_constraints " +
-                "where table_name = 't' and table_schema = 'doc' and constraint_type = 'PRIMARY_KEY'");
+                "where table_name = 't' and table_schema = 'doc' and constraint_type = 'PRIMARY KEY'");
 
         assertThat(response.rowCount(), is(1L));
-        assertThat((Object[]) response.rows()[0][0], arrayContaining(new Object[]{"name", "id"}));
+        assertThat(response.rows()[0][0], is("t_pk"));
     }
 
     @Test
