@@ -83,6 +83,11 @@ public class GeoPointTypeTest extends CrateUnitTest {
     }
 
     @Test
+    public void testConversionFromArrayType() {
+        assertThat(new ArrayType(DataTypes.LONG).isConvertableTo(GeoPointType.INSTANCE), is(true));
+    }
+
+    @Test
     public void testInvalidLatitude() throws Exception {
         expectedException.expectMessage("Failed to validate geo point [lon=54.321000, lat=-123.456000], not a valid location.");
         DataTypes.GEO_POINT.value(new Double[]{54.321, -123.456});
