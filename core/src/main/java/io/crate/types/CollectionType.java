@@ -115,7 +115,7 @@ public abstract class CollectionType extends DataType {
 
     @Override
     public boolean isConvertableTo(DataType other) {
-        return other.id() == UndefinedType.ID ||
+        return other.id() == UndefinedType.ID || other.id() == GeoPointType.ID ||
                ((other instanceof CollectionType)
                 && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
     }
