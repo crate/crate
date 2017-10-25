@@ -57,6 +57,8 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLTransportIntegrationTest {
 
+    private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";
+
     private static String jdbcCrateUrl;
     private static String jdbcCrateUrlReadOnly;
 
@@ -65,7 +67,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @BeforeClass
     public static void setupClass() {
-        useIPv6 = randomBoolean();
+        useIPv6 = randomBoolean() && !"true".equalsIgnoreCase(System.getenv(NO_IPV6));
         if (useIPv6) {
             jdbcCrateUrlReadOnly = "jdbc:crate://::1:4243/";
             jdbcCrateUrl = "jdbc:crate://::1:4242/";

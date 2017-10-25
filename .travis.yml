@@ -7,6 +7,7 @@ env:
   global:
     - secure: "LLqhKxqgRMp/C/TzZWv8YuhpmEm1twggm76NBUAQfZmOPLCkQSpAO8hoBM3qaIlDPSKPgoYj9f0TBuNi0iIFghQf0Xc4pXPCV0AnoGpXwRGiJATTAXfnG7RBa/hXRRBeAKlGmAI9GLtIoCQbUKYhq8gqwbzQVQXq+90rhsMH4zo="
     - CRATE_TESTS_SQL_REQUEST_TIMEOUT="20"
+    - CRATE_TESTS_NO_IPV6=true
     - _JAVA_OPTIONS="-Xms1g -Xmx1g"
     - GRADLE_OPTS="-Dorg.gradle.daemon=false"
 
