@@ -128,12 +128,23 @@ Can be used to rename a table, while maintaining its schema and data. During
 this operation the table will be closed, and all operations upon the table will
 fail until the rename operation is completed.
 
+.. _alter_table_reroute:
+
 ``REROUTE``
 -----------
 
 The ``REROUTE`` command provides various options to manually control the
-allocation of shards. It allows to enforce explicit allocations, cancel them and
-makes it possible to move shards between nodes in a cluster.
+allocation of shards. It allows the enforcement of explicit allocations,
+cancellations and the moving of shards between nodes in a cluster. See
+:ref:`ddl_reroute_shards` to get the convenient use-cases.
+
+The rowcount defines if the reroute or allocation process of a shard was
+acknowledged or rejected.
+
+.. NOTE::
+
+   Partitioned tables require a :ref:`Partition Clause <ref-alter-table-partition-clause>`
+   in order to specify a unique ``shard_id``.
 
 ::
 

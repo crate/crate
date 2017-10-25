@@ -115,3 +115,31 @@ table will fail until the rename operation is completed.
 
     Do not run multiple concurrent rename operations on the same table. The rename
     operation is not atomic.
+
+.. _ddl_reroute_shards:
+
+Reroute Shards
+==============
+
+With the ``REROUTE`` command it is possible to control the allocations of
+shards. This gives you the ability to re-balance the cluster state manually.
+The supported reroute options are listed in the reference documentation of
+:ref:`ALTER TABLE REROUTE <alter_table_reroute>`.
+
+Shard rerouting can help solve several problems:
+
+    * **Unassigned shards**: Due to cause of lack of space, shard awareness or
+      any other failure that happens during the automatic shard allocation it is
+      possible to gain unassigned shards in the cluster.
+
+    * **"Hot Shards"**: Most of your queries affect certain shards only. These
+      shards lie on a node that has insufficient resources.
+
+.. NOTE::
+
+    The command only triggers the allocation and reports back if the process has
+    been acknowledged or rejected. Moving or allocating large shards takes more
+    time to complete.
+
+In those two cases it may be necessary to move shards manually to another node
+or force the retry of the allocation process.
