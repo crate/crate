@@ -50,15 +50,19 @@ public class S3ClientHelperTest extends CrateUnitTest {
         assertNotNull(s3ClientHelper.client(new URI("s3://foo:inv%2Falid@baz/path/to/file")));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWrongURIEncodingSecretKey() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'inv/alid' should be 'inv%2Falid'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
         s3ClientHelper.client(new URI("s3://foo:inv/alid@baz/path/to/file"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWrongURIEncodingAccessKey() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
         // 'fo/o' should be 'fo%2Fo'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
         s3ClientHelper.client(new URI("s3://fo/o:inv%2Falid@baz"));
@@ -70,5 +74,4 @@ public class S3ClientHelperTest extends CrateUnitTest {
         URL url = s3Client.generatePresignedUrl("bucket", "key", new Date(0L));
         assertThat(url.toString(), is("https://bucket.s3.amazonaws.com/key?AWSAccessKeyId=user&Expires=0&Signature=o5V2voSQbVEErsUXId6SssCq9OY%3D"));
     }
-
 }
