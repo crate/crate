@@ -21,5 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an error ``Primary key value must not be NULL``
+  to be thrown when trying to insert rows in a table that has a generated
+  column which is used both in ``PARTITION_BY`` and ``PRIMARY KEY``.
+
 - The postgres wire protocol service can now be bound to IPv6 addresses as
   documented.

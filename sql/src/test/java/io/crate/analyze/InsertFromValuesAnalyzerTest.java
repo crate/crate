@@ -132,6 +132,17 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .addPrimaryKey("id2");
         executorBuilder.addDocTable(generatedPkColumnTable);
 
+        TableIdent generatedPkAndPartedColumnTableIdent =
+            new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_pk_parted_column");
+        TestingTableInfo.Builder generatedPkAndPartedColumnTable = new TestingTableInfo.Builder(
+            generatedPkAndPartedColumnTableIdent, SHARD_ROUTING)
+            .add("ts", DataTypes.TIMESTAMP, null, true)
+            .add("value", DataTypes.INTEGER, null)
+            .addGeneratedColumn("part_key__generated", DataTypes.INTEGER, "date_trunc('day', ts)", true)
+            .addPrimaryKey("value")
+            .addPrimaryKey("part_key__generated");
+        executorBuilder.addDocTable(generatedPkAndPartedColumnTable);
+
         TableIdent generatedClusteredByTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "generated_clustered_by_column");
         TestingTableInfo.Builder clusteredByGeneratedTable = new TestingTableInfo.Builder(
             generatedClusteredByTableIdent, SHARD_ROUTING)
@@ -1109,6 +1120,19 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(analysis.routingValues(), contains("AgEyATI="));
         assertThat(analysis.ids().get(0),
             is(generateId(Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")), Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))));
+    }
+
+    @Test
+    public void testInsertGeneratedPrimaryKeyAndPartedColumn() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "INSERT INTO generated_pk_parted_column (ts, value) VALUES (1508848674000, 1)");
+        assertThat(analysis.ids().size(), is(1));
+        assertThat(analysis.ids().get(0),
+            is(generateId(
+                Arrays.asList(new ColumnIdent("value"), new ColumnIdent("part_key__generated")),
+                Arrays.asList(new BytesRef("1"), new BytesRef("1508803200000")),
+                null)));
+        assertThat(analysis.generatePartitions().size(), is(1));
     }
 
     @Test
