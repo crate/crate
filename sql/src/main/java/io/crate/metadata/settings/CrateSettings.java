@@ -120,6 +120,7 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
             // CLUSTER ROUTING
             CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING, DataTypes.STRING),
+            CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING, DataTypes.STRING),
             CrateSetting.of(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING, DataTypes.STRING),
             CrateSetting.of(ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING, DataTypes.INTEGER),
             CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),

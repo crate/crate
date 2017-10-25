@@ -28,11 +28,13 @@ Breaking Changes
 Changes
 =======
 
+- Added new cluster setting ``routing.rebalance.enable`` that allows to
+  enable or disable shard rebalancing on the cluster.
+
 - Table ``information_schema.key_column_usage`` now gets populated with primary
   key information of user tables.
 
 - Table ``information_schema.table_constraints`` is now returning ``NOT_NULL``
-  constraints.
 
 - Fixed an issue that caused an error ``Primary key value must not be NULL``
   to be thrown when trying to insert rows in a table that has a generated

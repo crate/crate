@@ -587,6 +587,23 @@ Routing Allocation
    recover their unassigned local primary shards immediatelly after restart, in
    case the ``recovery.initial_shards`` setting is satisfied.
 
+.. _cluster.routing.rebalance.enable:
+
+**cluster.routing.rebalance.enable**
+  | *Default:*   ``all``
+  | *Runtime:*  ``yes``
+  | *Allowed Values:* ``all | none | primaries | replicas``
+
+  Enables/Disables rebalancing for different types of shards.
+
+  ``all`` allows shard rebalancing for all types of shards.
+
+  ``none`` disables shard rebalancing for any types.
+
+  ``primaries`` allows shard rebalancing only for primary shards.
+
+  ``replicas`` allows shard rebalancing only for replica shards.
+
 .. _cluster.routing.allocation.allow_rebalance:
 
 **cluster.routing.allocation.allow_rebalance**

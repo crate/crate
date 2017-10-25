@@ -121,6 +121,8 @@ applied cluster settings.
     | settings['cluster']['routing']['allocation']['require']['_id']                    | string       |
     | settings['cluster']['routing']['allocation']['require']['_ip']                    | string       |
     | settings['cluster']['routing']['allocation']['require']['_name']                  | string       |
+    | settings['cluster']['routing']['rebalance']                                       | object       |
+    | settings['cluster']['routing']['rebalance']['enable']                             | string       |
     | settings['discovery']                                                             | object       |
     | settings['discovery']['zen']                                                      | object       |
     | settings['discovery']['zen']['minimum_master_nodes']                              | integer      |
