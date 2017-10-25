@@ -20,3 +20,6 @@ Changes
 
 Fixes
 =====
+
+- The postgres wire protocol service can now be bound to IPv6 addresses as
+  documented.
