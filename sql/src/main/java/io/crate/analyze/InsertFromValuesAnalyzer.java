@@ -446,6 +446,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             return mapValue;
         } else if (partitionMap != null) {
             partitionMap.put(columnIdent.name(), BytesRefs.toString(columnValue));
+            return columnValue;
         }
         return null;
     }
