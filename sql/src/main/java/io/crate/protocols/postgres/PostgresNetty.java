@@ -61,6 +61,7 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import java.io.IOException;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -196,7 +197,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         try {
             InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
             for (InetAddress address : hostAddresses) {
-                if (address instanceof Inet4Address) {
+                if (address instanceof Inet4Address || address instanceof Inet6Address) {
                     boundAddresses.add(bindAddress(address));
                 }
             }

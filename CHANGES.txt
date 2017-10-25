@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- The postgres wire protocol service can now be bound to IPv6 addresses as
+  documented.
+
  - Fixed issue that caused ``NULL`` values to be displayed as
    empty objects in the console view of the Admin UI.
 
@@ -30,4 +33,3 @@ Fixes
 
      SELECT a, a AS newcol FROM (SELECT a FROM t WHERE a > 1)
      SELECT a AS newcol1, a AS newcol2 FROM (SELECT a FROM t WHERE a > 1)
-
