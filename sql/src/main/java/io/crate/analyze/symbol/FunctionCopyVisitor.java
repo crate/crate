@@ -24,7 +24,6 @@ package io.crate.analyze.symbol;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -114,11 +113,4 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         return symbol;
     }
 
-    public List<Symbol> process(Collection<? extends Symbol> symbols, C context) {
-        ArrayList<Symbol> copy = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            copy.add(process(symbol, context));
-        }
-        return copy;
-    }
 }

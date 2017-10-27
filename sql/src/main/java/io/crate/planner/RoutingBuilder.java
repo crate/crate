@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
@@ -41,7 +40,7 @@ import java.util.Map;
 
 final class RoutingBuilder {
 
-    final Map<TableIdent, List<TableRouting>> routingListByTable = new HashMap<>();
+    final Map<TableIdent, List<Routing>> routingListByTable = new HashMap<>();
     private final ClusterState clusterState;
     private final RoutingProvider routingProvider;
 
@@ -52,31 +51,18 @@ final class RoutingBuilder {
         this.routingProvider = routingProvider;
     }
 
-    @VisibleForTesting
-    static final class TableRouting {
-        final WhereClause where;
-        private final RoutingProvider.ShardSelection shardSelection;
-        final Routing routing;
-
-        TableRouting(WhereClause where, RoutingProvider.ShardSelection shardSelection, Routing routing) {
-            this.where = where;
-            this.shardSelection = shardSelection;
-            this.routing = routing;
-        }
-    }
-
     Routing allocateRouting(TableInfo tableInfo,
                             WhereClause where,
                             RoutingProvider.ShardSelection shardSelection,
                             SessionContext sessionContext) {
 
         Routing routing = tableInfo.getRouting(clusterState, routingProvider, where, shardSelection, sessionContext);
-        List<TableRouting> existingRoutings = routingListByTable.get(tableInfo.ident());
+        List<Routing> existingRoutings = routingListByTable.get(tableInfo.ident());
         if (existingRoutings == null) {
             existingRoutings = new ArrayList<>();
             routingListByTable.put(tableInfo.ident(), existingRoutings);
         }
-        existingRoutings.add(new TableRouting(where, shardSelection, routing));
+        existingRoutings.add(routing);
         return routing;
     }
 
@@ -89,13 +75,13 @@ final class RoutingBuilder {
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
         Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
 
-        for (final Map.Entry<TableIdent, List<TableRouting>> tableRoutingEntry : routingListByTable.entrySet()) {
+        for (final Map.Entry<TableIdent, List<Routing>> tableRoutingEntry : routingListByTable.entrySet()) {
             TableIdent table = tableRoutingEntry.getKey();
-            List<TableRouting> routingList = tableRoutingEntry.getValue();
-            for (TableRouting tr : routingList) {
-                allocateRoutingNodes(shardNodes, tr.routing.locations());
+            List<Routing> routingList = tableRoutingEntry.getValue();
+            for (Routing routing : routingList) {
+                allocateRoutingNodes(shardNodes, routing.locations());
 
-                for (Map.Entry<String, Map<String, List<Integer>>> entry : tr.routing.locations().entrySet()) {
+                for (Map.Entry<String, Map<String, List<Integer>>> entry : routing.locations().entrySet()) {
                     Map<String, List<Integer>> shardsByIndex = entry.getValue();
                     indicesByTable.putAll(table, shardsByIndex.keySet());
 

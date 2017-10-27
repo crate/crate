@@ -89,10 +89,6 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
         }
     }
 
-    public int numOutputs() {
-        return numOutputs;
-    }
-
     @Override
     public Supplier<RowPriorityQueue<Object[]>> supplier() {
         return () -> new RowPriorityQueue<>(maxSize, comparator);

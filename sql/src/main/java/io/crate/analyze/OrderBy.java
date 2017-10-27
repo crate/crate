@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class OrderBy implements Writeable {
 
@@ -82,25 +81,6 @@ public class OrderBy implements Writeable {
             pos++;
         }
         return new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
-    }
-
-    /**
-     * Create a new OrderBy with symbols that match the predicate
-     */
-    @Nullable
-    public OrderBy subset(Predicate<? super Symbol> predicate) {
-        List<Integer> subSet = new ArrayList<>();
-        Integer i = 0;
-        for (Symbol orderBySymbol : orderBySymbols) {
-            if (predicate.test(orderBySymbol)) {
-                subSet.add(i);
-            }
-            i++;
-        }
-        if (subSet.isEmpty()) {
-            return null;
-        }
-        return subset(subSet);
     }
 
     public OrderBy(StreamInput in) throws IOException {

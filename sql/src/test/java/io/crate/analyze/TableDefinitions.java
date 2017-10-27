@@ -65,13 +65,6 @@ public final class TableDefinitions {
             .map());
     }
 
-    public static Routing shardRoutingForReplicas(String tableName) {
-        return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
-            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-            .map());
-    }
-
     public static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users");
 
     public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)

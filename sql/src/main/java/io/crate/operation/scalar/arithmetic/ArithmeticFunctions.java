@@ -202,15 +202,6 @@ public class ArithmeticFunctions {
         return false;
     }
 
-    static boolean containsType(DataType type, List<DataType> dataTypes) {
-        for (DataType dataType : dataTypes) {
-            if (dataType.equals(type)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static FunctionInfo genDecimalInfo(String functionName,
                                                List<DataType> dataTypes,
                                                Set<FunctionInfo.Feature> features) {

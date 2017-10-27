@@ -71,13 +71,13 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         routingBuilder.allocateRouting(tableInfo2, whereClause, null, null);
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
-        List<RoutingBuilder.TableRouting> tableRoutings = routingBuilder.routingListByTable.get(custom);
+        List<Routing> tableRoutings = routingBuilder.routingListByTable.get(custom);
         assertThat(tableRoutings.size(), is(2));
 
         // The routings are the same because the RoutingProvider enforces this - this test doesn't reflect that fact
         // currently because the used routing are stubbed via the TestingTableInfo
-        Routing routing1 = tableRoutings.get(0).routing;
-        Routing routing2 = tableRoutings.get(1).routing;
+        Routing routing1 = tableRoutings.get(0);
+        Routing routing2 = tableRoutings.get(1);
         assertThat(routing1, is(routing2));
     }
 
