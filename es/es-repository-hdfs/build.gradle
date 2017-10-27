@@ -52,6 +52,7 @@ dependencies {
         exclude module: "guava"
         exclude module: "log4j"
         exclude module: "junit"
+        exclude group: "io.netty", module: "netty"
     }
     requiredLibs "commons-collections:commons-collections:3.2.1"
     requiredLibs "commons-configuration:commons-configuration:1.6"
@@ -60,6 +61,7 @@ dependencies {
     requiredLibs "org.apache.hadoop:hadoop-auth:${versions.hadoop2}"
     requiredLibs "org.apache.hadoop:hadoop-common:${versions.hadoop2}"
     requiredLibs "org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}"
+    requiredLibs "org.apache.hadoop:hadoop-hdfs-client:${versions.hadoop2}"
     requiredLibs "com.google.protobuf:protobuf-java:2.5.0"
 
     extraLibs "org.apache.directory.server:apacheds-i18n:2.0.0-M15"
@@ -78,7 +80,7 @@ dependencies {
     extraLibs "com.google.code.gson:gson:2.2.4"
     extraLibs "org.apache.hadoop:hadoop-annotations:${versions.hadoop2}"
     extraLibs "org.apache.hadoop:hadoop-client:${versions.hadoop2}"
-    extraLibs "org.apache.htrace:htrace-core:3.1.0-incubating"
+    extraLibs "org.apache.htrace:htrace-core4:4.0.1-incubating"
     extraLibs "org.codehaus.jackson:jackson-mapper-asl:1.9.13"
     extraLibs "jline:jline:0.9.94"
     extraLibs "javax.servlet.jsp:jsp-api:2.1"

@@ -28,6 +28,8 @@ Breaking Changes
 Changes
 =======
 
+- Hadoop2 dependencies for HDFS repository plugin has been upgraded to 2.8.1.
+
 - Added new cluster setting ``routing.rebalance.enable`` that allows to
   enable or disable shard rebalancing on the cluster.
 

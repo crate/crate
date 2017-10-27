@@ -35,7 +35,7 @@ from crate.testing.layer import CrateLayer
 from crate.client import connect
 from urllib.request import urlretrieve
 
-HADOOP_VERSION = '2.7.1'
+HADOOP_VERSION = '2.8.1'
 HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
                  'hadoop-{version}/hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
 CACHE_DIR = os.environ.get(

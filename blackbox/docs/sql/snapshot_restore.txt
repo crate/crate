@@ -266,11 +266,12 @@ ignored::
  - curator-framework-2.7.1.jar
  - curator-recipes-2.7.1.jar
  - gson-2.2.4.jar
- - hadoop-annotations-2.7.1.jar
- - hadoop-auth-2.7.1.jar
- - hadoop-client-2.7.1.jar
- - hadoop-common-2.7.1.jar
- - hadoop-hdfs-2.7.1.jar
+ - hadoop-annotations-2.8.1.jar
+ - hadoop-auth-2.8.1.jar
+ - hadoop-client-2.8.1.jar
+ - hadoop-common-2.8.1.jar
+ - hadoop-hdfs-2.8.1.jar
+ - hadoop-hdfs-client-2.8.1.jar
  - htrace-core-3.1.0-incubating.jar
  - jackson-core-asl-1.9.13.jar
  - jackson-mapper-asl-1.9.13.jar
@@ -290,8 +291,8 @@ ignored::
 .. NOTE::
 
    Only `Hadoop` version **2.x** is supported and as of writing this
-   documentation, the latest stable `Hadoop (YARN)` version is **2.7.1**.
+   documentation, the latest stable `Hadoop (YARN)` version is **2.8.1**.
    Required libraries may differ for other versions.
 
 .. _Hadoop: https://hadoop.apache.org/
-.. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.7.1/hadoop-yarn/hadoop-yarn-site/YARN.html
+.. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.8.0/hadoop-yarn/hadoop-yarn-site/YARN.html
