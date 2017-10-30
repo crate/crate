@@ -104,7 +104,7 @@ public class RelationBoundary implements LogicalPlan {
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
         return MultiPhasePlan.createIfNeeded(
             source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint),
-            subqueryPlanner.planSubQueries(relation.querySpec())
+            subqueryPlanner.planSubQueries(relation)
         );
     }
 

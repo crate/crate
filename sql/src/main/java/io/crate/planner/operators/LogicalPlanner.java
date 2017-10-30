@@ -74,7 +74,7 @@ public class LogicalPlanner {
             .tryCollapse();
 
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
-        Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation.querySpec());
+        Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
         Plan plan = logicalPlan.build(
             plannerContext,
             projectionBuilder,

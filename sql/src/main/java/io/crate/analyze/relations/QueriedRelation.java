@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface QueriedRelation extends AnalyzedRelation {
 
@@ -89,5 +90,13 @@ public interface QueriedRelation extends AnalyzedRelation {
 
     default boolean hasAggregates() {
         return querySpec().hasAggregates();
+    }
+
+    /**
+     * Calls the consumer for each top-level symbol in the relation
+     * (Arguments/children of function symbols are not visited)
+     */
+    default void visitSymbols(Consumer<? super Symbol> consumer) {
+        querySpec().visitSymbols(consumer);
     }
 }

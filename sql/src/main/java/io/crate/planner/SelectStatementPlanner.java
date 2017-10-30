@@ -91,7 +91,7 @@ class SelectStatementPlanner {
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
                 SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
-                Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(table.querySpec());
+                Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(table);
                 return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context), subQueries);
             }
             if (querySpec.where().hasVersions()) {
