@@ -67,7 +67,6 @@ public class LogicalPlanner {
     }
 
     public Plan plan(QueriedRelation queriedRelation, Planner.Context plannerContext, FetchMode fetchMode) {
-
         QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
 
         LogicalPlan logicalPlan = plan(relation, fetchMode, true)
@@ -90,10 +89,8 @@ public class LogicalPlanner {
         );
     }
 
-    static LogicalPlan.Builder plan(QueriedRelation relation,
-                                    FetchMode fetchMode,
-                                    boolean isLastFetch) {
-        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode, boolean isLastFetch) {
+        SplitPoints splitPoints = SplitPoints.create(relation);
         LogicalPlan.Builder sourceBuilder =
             FetchOrEval.create(
                 Limit.create(

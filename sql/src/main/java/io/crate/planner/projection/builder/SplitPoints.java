@@ -22,7 +22,7 @@
 package io.crate.planner.projection.builder;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
@@ -49,25 +49,24 @@ public class SplitPoints {
     private final ArrayList<Symbol> toCollect;
     private final ArrayList<Function> aggregates;
 
-    public static SplitPoints create(QuerySpec querySpec) {
-        SplitPoints splitPoints = new SplitPoints(querySpec);
-        if (querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
-            SplitPointVisitor.addAggregatesAndToCollectSymbols(querySpec, splitPoints);
+    public static SplitPoints create(QueriedRelation relation) {
+        SplitPoints splitPoints = new SplitPoints();
+        if (relation.hasAggregates() || !relation.groupBy().isEmpty()) {
+            SplitPointVisitor.addAggregatesAndToCollectSymbols(relation, splitPoints);
         } else {
-            OrderBy orderBy = querySpec.orderBy();
+            OrderBy orderBy = relation.orderBy();
             if (orderBy == null) {
-                splitPoints.toCollect.addAll(querySpec.outputs());
+                splitPoints.toCollect.addAll(relation.outputs());
             } else {
-                splitPoints.toCollect.addAll(Lists2.concatUnique(querySpec.outputs(), orderBy.orderBySymbols()));
+                splitPoints.toCollect.addAll(Lists2.concatUnique(relation.outputs(), orderBy.orderBySymbols()));
             }
         }
         return splitPoints;
     }
 
-    private SplitPoints(QuerySpec querySpec) {
-        int estimate = querySpec.outputs().size();
-        this.toCollect = new ArrayList<>(estimate);
-        this.aggregates = new ArrayList<>(estimate);
+    private SplitPoints() {
+        this.toCollect = new ArrayList<>();
+        this.aggregates = new ArrayList<>();
     }
 
     public ArrayList<Symbol> toCollect() {

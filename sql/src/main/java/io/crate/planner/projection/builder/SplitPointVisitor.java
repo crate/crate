@@ -23,7 +23,7 @@ package io.crate.planner.projection.builder;
 
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
@@ -65,18 +65,18 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         }
     }
 
-    static void addAggregatesAndToCollectSymbols(QuerySpec querySpec, SplitPoints splitContext) {
+    static void addAggregatesAndToCollectSymbols(QueriedRelation relation, SplitPoints splitContext) {
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
-        INSTANCE.process(querySpec.outputs(), context);
-        OrderBy orderBy = querySpec.orderBy();
+        INSTANCE.process(relation.outputs(), context);
+        OrderBy orderBy = relation.orderBy();
         if (orderBy != null) {
             INSTANCE.process(orderBy.orderBySymbols(), context);
         }
-        HavingClause having = querySpec.having();
+        HavingClause having = relation.having();
         if (having != null && having.hasQuery()) {
             INSTANCE.process(having.query(), context);
         }
-        for (Symbol groupKey : querySpec.groupBy()) {
+        for (Symbol groupKey : relation.groupBy()) {
             context.allocateCollectSymbol(groupKey);
         }
     }

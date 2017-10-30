@@ -86,4 +86,8 @@ public interface QueriedRelation extends AnalyzedRelation {
     default Symbol offset() {
         return querySpec().offset();
     }
+
+    default boolean hasAggregates() {
+        return querySpec().hasAggregates();
+    }
 }

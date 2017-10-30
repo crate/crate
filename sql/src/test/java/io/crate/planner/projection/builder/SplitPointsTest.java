@@ -44,7 +44,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
         QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
 
-        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+        SplitPoints splitPoints = SplitPoints.create(relation);
 
         //noinspection unchecked
         assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
@@ -58,7 +58,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
         QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
 
-        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+        SplitPoints splitPoints = SplitPoints.create(relation);
 
         //noinspection unchecked
         assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
@@ -73,7 +73,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyze = e.analyze("select x + 1 from t1 group by x");
         QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
 
-        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+        SplitPoints splitPoints = SplitPoints.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));
         assertThat(splitPoints.aggregates(), Matchers.emptyIterable());
     }
