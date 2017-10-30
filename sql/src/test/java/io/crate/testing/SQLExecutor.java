@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -44,6 +45,7 @@ import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -62,12 +64,15 @@ import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -110,6 +115,20 @@ public class SQLExecutor {
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
+
+    public Planner.Context getPlannerContext(ClusterState clusterState, TableStats tableStats) {
+        return new Planner.Context(
+            planner,
+            new LogicalPlanner(functions, tableStats),
+            clusterState,
+            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
+            UUID.randomUUID(),
+            EvaluatingNormalizer.functionOnlyNormalizer(functions),
+            new TransactionContext(sessionContext),
+            -1,
+            -1
+        );
+    }
 
     public static class Builder {
 

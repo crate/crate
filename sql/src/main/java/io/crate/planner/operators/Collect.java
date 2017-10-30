@@ -90,11 +90,16 @@ class Collect implements LogicalPlan {
     private final List<AbstractTableRelation> baseTables;
     private final long numExpectedRows;
 
-    Collect(QueriedTableRelation relation,
-            List<Symbol> toCollect,
-            WhereClause where,
-            Set<Symbol> usedBeforeNextFetch,
-            long numExpectedRows) {
+    public static LogicalPlan.Builder create(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
+        return (tableStats, usedColumns) -> new Collect(
+            relation, toCollect, where, usedColumns, tableStats.numDocs(relation.tableRelation().tableInfo().ident()));
+    }
+
+    private Collect(QueriedTableRelation relation,
+                    List<Symbol> toCollect,
+                    WhereClause where,
+                    Set<Symbol> usedBeforeNextFetch,
+                    long numExpectedRows) {
 
         this.numExpectedRows = numExpectedRows;
         if (where.hasVersions()) {

@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.ResultDescription;
@@ -79,6 +80,12 @@ class Limit implements LogicalPlan {
         Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         List<DataType> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = plan.resultDescription();
+        if (resultDescription.hasRemainingLimitOrOffset()
+            && (resultDescription.limit() != limit || resultDescription.offset() != offset)) {
+
+            plan = Merge.ensureOnHandler(plan, plannerContext);
+            resultDescription = plan.resultDescription();
+        }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             plan.addProjection(
                 new TopNProjection(limit, offset, sourceTypes), TopN.NO_LIMIT, 0, resultDescription.orderBy());

@@ -141,7 +141,7 @@ public class LogicalPlanner {
                                                         WhereClause where,
                                                         FetchMode fetchMode) {
         if (queriedRelation instanceof QueriedTableRelation) {
-            return createCollect((QueriedTableRelation) queriedRelation, toCollect, where);
+            return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
             return Join.createNodes(((MultiSourceSelect) queriedRelation), where);
@@ -154,13 +154,6 @@ public class LogicalPlanner {
             );
         }
         throw new UnsupportedOperationException("Cannot create LogicalPlan from: " + queriedRelation);
-    }
-
-    private static LogicalPlan.Builder createCollect(QueriedTableRelation relation,
-                                                     List<Symbol> toCollect,
-                                                     WhereClause where) {
-        return (tableStats, usedColumns) -> new Collect(
-            relation, toCollect, where, usedColumns, tableStats.numDocs(relation.tableRelation().tableInfo().ident()));
     }
 
     static Set<Symbol> extractColumns(Symbol symbol) {

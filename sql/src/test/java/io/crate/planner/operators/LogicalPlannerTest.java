@@ -27,6 +27,7 @@ import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.metadata.Functions;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -158,16 +159,20 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "Collect[doc.t1 | [_fetchid, _score] | All]\n"));
     }
 
-    private Matcher<LogicalPlan> isPlan(String expectedPlan) {
+    public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {
         return new FeatureMatcher<LogicalPlan, String>(equalTo(expectedPlan), "same output", "output ") {
 
 
             @Override
             protected String featureValueOf(LogicalPlan actual) {
-                Printer printer = new Printer(new SymbolPrinter(sqlExecutor.functions()));
+                Printer printer = new Printer(new SymbolPrinter(functions));
                 return printer.printPlan(actual);
             }
         };
+    }
+
+    private Matcher<LogicalPlan> isPlan(String expectedPlan) {
+        return isPlan(sqlExecutor.functions(), expectedPlan);
     }
 
     private static class Printer {
