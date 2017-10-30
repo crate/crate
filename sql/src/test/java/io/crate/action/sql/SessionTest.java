@@ -41,7 +41,6 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -75,7 +74,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         symbolsToVisit.add(Literal.of(1.2));
 
         QueriedRelation analyzedRelation = Mockito.mock(QueriedRelation.class);
-        Mockito.when(analyzedRelation.querySpec()).thenReturn(new MyQuerySpec(symbolsToVisit));
+        Mockito.when(analyzedRelation.querySpec()).thenReturn(new QuerySpec().outputs(symbolsToVisit));
 
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedRelation);
         assertThat(parameterTypes, equalTo(new DataType[] {
@@ -128,21 +127,5 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Requested parameter index exceeds the number of parameters");
         assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
-    }
-
-    private static class MyQuerySpec extends QuerySpec {
-
-        private final List<Symbol> symbolsToVisit;
-
-        private MyQuerySpec(List<Symbol> symbolsToVisit) {
-            this.symbolsToVisit = symbolsToVisit;
-        }
-
-        @Override
-        public void visitSymbols(Consumer<? super Symbol> consumer) {
-            for (Symbol symbol : symbolsToVisit) {
-                consumer.accept(symbol);
-            }
-        }
     }
 }
