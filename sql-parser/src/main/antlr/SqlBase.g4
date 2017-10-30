@@ -52,6 +52,7 @@ statement
     | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
     | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
     | ALTER TABLE alterTableDefinition REROUTE rerouteOption                         #alterTableReroute
+    | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
     | SET (SESSION | LOCAL)? qname
@@ -604,7 +605,7 @@ nonReserved
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE
-    | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL
+    | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     ;
 
 SELECT: 'SELECT';
@@ -687,6 +688,7 @@ RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
+CLUSTER: 'CLUSTER';
 REPOSITORY: 'REPOSITORY';
 SNAPSHOT: 'SNAPSHOT';
 ALTER: 'ALTER';
@@ -707,6 +709,8 @@ SHARD: 'SHARD';
 ALLOCATE: 'ALLOCATE';
 REPLICA: 'REPLICA';
 CANCEL: 'CANCEL';
+RETRY: 'RETRY';
+FAILED: 'FAILED';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';

@@ -31,6 +31,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.AlterBlobTable;
+import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
@@ -295,6 +296,11 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTable(AlterTable node, Analysis context) {
             return alterTableAnalyzer.analyze(
                 node, context.parameterContext().parameters(), context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterClusterRerouteRetryFailed(AlterClusterRerouteRetryFailed node, Analysis context) {
+            return new RerouteRetryFailedAnalyzedStatement();
         }
 
         @Override

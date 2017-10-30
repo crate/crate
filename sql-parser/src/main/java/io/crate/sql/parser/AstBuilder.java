@@ -32,6 +32,7 @@ import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterBlobTable;
+import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
@@ -758,6 +759,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new AlterTableReroute(
             (Table) visit(context.alterTableDefinition()),
             (RerouteOption) visit(context.rerouteOption()));
+    }
+
+    @Override
+    public Node visitAlterClusterRerouteRetryFailed(SqlBaseParser.AlterClusterRerouteRetryFailedContext context) {
+        return new AlterClusterRerouteRetryFailed();
     }
 
     @Override

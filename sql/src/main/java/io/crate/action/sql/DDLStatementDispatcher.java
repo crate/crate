@@ -46,6 +46,7 @@ import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
@@ -159,6 +160,11 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         @Override
         public CompletableFuture<Long> visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, Row parameters) {
             return alterTableOperation.executeAlterTableRenameTable(analysis);
+        }
+
+        @Override
+        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Row parameters) {
+            return RerouteActions.executeRetryFailed(rerouteAction::execute);
         }
 
         @Override
