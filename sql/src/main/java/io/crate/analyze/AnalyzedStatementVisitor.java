@@ -121,6 +121,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     public R visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

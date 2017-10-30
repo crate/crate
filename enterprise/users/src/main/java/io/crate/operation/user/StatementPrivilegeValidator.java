@@ -55,6 +55,7 @@ import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.analyze.SelectAnalyzedStatement;
@@ -136,6 +137,12 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        public Void visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, User user) {
             throwUnauthorized(user);
             return null;
         }

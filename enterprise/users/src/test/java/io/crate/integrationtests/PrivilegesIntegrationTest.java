@@ -285,4 +285,14 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expectMessage("TableUnknownException: Table 'custom_schema.t1' unknown");
         executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
     }
+
+    @Test
+    public void testAlterClusterRerouteRetryFailedPrivileges() {
+        executeAsSuperuser("alter cluster reroute retry failed");
+        assertThat(response.rowCount(), is (0L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("UnauthorizedException: User \"normal\" is not authorized to execute statement"));
+        executeAsNormalUser("alter cluster reroute retry failed");
+    }
 }

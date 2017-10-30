@@ -40,10 +40,14 @@ import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
+import org.elasticsearch.cluster.routing.RoutingNode;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -71,6 +75,41 @@ public final class RerouteActions {
             new FutureActionListener<>(r -> r.isAcknowledged() ? 1L : -1L);
         rerouteAction.accept(request, listener);
         return listener;
+    }
+
+    public static CompletableFuture<Long> executeRetryFailed(
+        BiConsumer<ClusterRerouteRequest, ActionListener<ClusterRerouteResponse>> rerouteAction) {
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        request.setRetryFailed(true);
+        FutureActionListener<ClusterRerouteResponse, Long> listener =
+            new FutureActionListener<>(RerouteActions::retryFailedAffectedShardsRowCount);
+        rerouteAction.accept(request, listener);
+        return listener;
+    }
+
+    static long retryFailedAffectedShardsRowCount(ClusterRerouteResponse response) {
+        if (response.isAcknowledged()) {
+            long rowCount = 0L;
+            Iterator<RoutingNode> it = response.getState().getRoutingNodes().iterator();
+            while (it.hasNext()) {
+                RoutingNode routingNode = it.next();
+                // filter shards with failed allocation attempts
+                // failed allocation attempts can appear for shards with state UNASSIGNED and INITIALIZING
+                rowCount += routingNode.shardsWithState(ShardRoutingState.UNASSIGNED, ShardRoutingState.INITIALIZING)
+                    .stream()
+                    .filter(s -> {
+                        if (s.unassignedInfo() != null) {
+                            return s.unassignedInfo().getReason().equals(UnassignedInfo.Reason.ALLOCATION_FAILED);
+                        }
+                        return false;
+                    })
+                    .count();
+            }
+            return rowCount;
+        } else {
+            return -1L;
+        }
     }
 
     static ClusterRerouteRequest prepareRequest(RerouteAnalyzedStatement stmt, Row parameters) {

@@ -149,6 +149,18 @@ public class RerouteActionsTest extends CrateUnitTest {
     }
 
     @Test
+    public void testRerouteRetryFailedExecution() throws Exception {
+        AtomicReference<ClusterRerouteRequest> reqRef = new AtomicReference<>();
+
+        RerouteActions.executeRetryFailed((req, listener) -> reqRef.set(req));
+        ClusterRerouteRequest actualRequest = reqRef.get();
+
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        request.setRetryFailed(true);
+        assertEquals(request, actualRequest);
+    }
+
+    @Test
     public void testAllocateReplicaShardRequest() throws Exception {
         RerouteAllocateReplicaShardAnalyzedStatement statement = new RerouteAllocateReplicaShardAnalyzedStatement(
             TableDefinitions.USER_TABLE_INFO,
