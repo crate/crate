@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -65,11 +64,10 @@ public final class InsertFromSubQueryPlanner {
         );
 
         QueriedRelation subRelation = statement.subQueryRelation();
-        QuerySpec subQuerySpec = subRelation.querySpec();
 
         // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
         // the indexWriterProjection can be added
-        if (subQuerySpec.limit() != null || subQuerySpec.offset() != null || subQuerySpec.orderBy() != null) {
+        if (subRelation.limit() != null || subRelation.offset() != null || subRelation.orderBy() != null) {
             throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
                                                   "supported on insert using a sub-query");
         }
