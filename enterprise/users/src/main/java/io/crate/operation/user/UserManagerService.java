@@ -53,7 +53,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     public static final User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
     @VisibleForTesting
-    static final StatementAuthorizedValidator NOOP_STATEMENT_VALIDATOR = s -> {
+    static final StatementAuthorizedValidator BYPASS_AUTHORIZATION_CHECKS = s -> {
     };
     @VisibleForTesting
     static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
@@ -178,10 +178,10 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         if (user == null) {
             return ALWAYS_FAIL_STATEMENT_VALIDATOR;
         }
-        if (authorizedValidationRequired(user)) {
-            return new StatementPrivilegeValidator(user);
+        if (user.isSuperUser()) {
+            return BYPASS_AUTHORIZATION_CHECKS;
         }
-        return NOOP_STATEMENT_VALIDATOR;
+        return new StatementPrivilegeValidator(user);
     }
 
     @Override
@@ -189,15 +189,10 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         if (user == null) {
             return ALWAYS_FAIL_EXCEPTION_VALIDATOR;
         }
-        if (authorizedValidationRequired(user)) {
-            return new ExceptionPrivilegeValidator(user);
+        if (user.isSuperUser()) {
+            return NOOP_EXCEPTION_VALIDATOR;
         }
-        return NOOP_EXCEPTION_VALIDATOR;
-    }
-
-    @SuppressWarnings({"SimplifiableIfStatement", "PointlessBooleanExpression"})
-    private boolean authorizedValidationRequired(@Nullable User user) {
-        return user.isSuperUser() == false;
+        return new ExceptionPrivilegeValidator(user);
     }
 
     @Override

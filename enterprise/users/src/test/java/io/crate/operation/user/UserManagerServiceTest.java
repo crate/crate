@@ -34,7 +34,7 @@ import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_EXCEPTION_V
 import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_STATEMENT_VALIDATOR;
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
 import static io.crate.operation.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
-import static io.crate.operation.user.UserManagerService.NOOP_STATEMENT_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -75,7 +75,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetNoopStatementValidatorForSuperUser() throws Exception {
         StatementAuthorizedValidator validator = userManagerService.getStatementValidator(CRATE_USER);
-        assertThat(validator, is(NOOP_STATEMENT_VALIDATOR));
+        assertThat(validator, is(BYPASS_AUTHORIZATION_CHECKS));
     }
 
     @Test
