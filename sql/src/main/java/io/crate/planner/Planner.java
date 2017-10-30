@@ -189,7 +189,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return transactionContext;
         }
 
-        Plan planSubselect(AnalyzedStatement statement, SelectSymbol selectSymbol) {
+        Plan planSubselect(SelectSymbol selectSymbol) {
             UUID subJobId = UUID.randomUUID();
             final int softLimit, fetchSize;
             if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
@@ -199,7 +199,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 fetchSize = this.fetchSize;
             }
             return planner.process(
-                statement,
+                new SelectAnalyzedStatement(selectSymbol.relation()),
                 new Planner.Context(
                     planner,
                     logicalPlanner,
