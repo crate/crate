@@ -28,6 +28,9 @@ Breaking Changes
 Changes
 =======
 
+- Fixed an issue where internal cluster state updates could reset the active 
+  ingestion rules, causing all ingest operations to stop.
+
 - Hadoop2 dependencies for HDFS repository plugin has been upgraded to 2.8.1.
 
 - Added new cluster setting ``routing.rebalance.enable`` that allows to

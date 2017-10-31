@@ -112,6 +112,26 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(receivedRules.get().size(), is(0));
     }
 
+    @Test
+    public void testClusterStateWithNullIngestRuleMetaDataDoesntResetActiveRules() {
+        MetaData emptyCustomsMetaData = MetaData.builder()
+            .customs(ImmutableOpenMap.of())
+            .build();
+
+        ClusterState emptyCustomsClusterState = ClusterState.builder(clusterService.state())
+            .metaData(emptyCustomsMetaData)
+            .build();
+
+        final AtomicReference<Set<IngestRule>> receivedRules = new AtomicReference<>();
+        ingestionService.registerIngestRuleListener(UNDER_TEST_SOURCE_IDENT, rules -> receivedRules.set(rules));
+        ingestionService.clusterChanged(
+            new ClusterChangedEvent("new_node_added", emptyCustomsClusterState, clusterService.state()));
+
+        assertThat(receivedRules.get(), notNullValue());
+        assertThat("Received rules should be the same as before the cluster event",
+            receivedRules.get().size(), is(1));
+    }
+
     private ClusterState newClusterState() {
         MetaData newMetaData = MetaData.builder(clusterService.state().metaData())
             .putCustom(IngestRulesMetaData.TYPE, new IngestRulesMetaData(Collections.emptyMap()))
