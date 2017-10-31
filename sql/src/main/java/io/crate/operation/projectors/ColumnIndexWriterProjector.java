@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchIterator;
@@ -72,7 +71,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                List<Input<?>> insertInputs,
                                List<? extends CollectExpression<Row, ?>> collectExpressions,
                                @Nullable Map<Reference, Symbol> updateAssignments,
-                               @Nullable Integer bulkActions,
+                               int bulkActions,
                                boolean autoCreateIndices,
                                UUID jobId) {
         RowShardResolver rowShardResolver = new RowShardResolver(
@@ -107,7 +106,7 @@ public class ColumnIndexWriterProjector implements Projector {
             nodeJobsCounter,
             scheduler,
             executor,
-            MoreObjects.firstNonNull(bulkActions, 100),
+            bulkActions,
             jobId,
             rowShardResolver,
             itemFactory,

@@ -45,7 +45,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     private static final String BULK_SIZE = "bulk_size";
     private static final int BULK_SIZE_DEFAULT = 10000;
 
-    private Integer bulkActions;
+    private final int bulkActions;
     protected TableIdent tableIdent;
     protected String partitionIdent;
     protected List<ColumnIdent> primaryKeys;
@@ -137,7 +137,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         return OUTPUTS;
     }
 
-    public Integer bulkActions() {
+    public int bulkActions() {
         return bulkActions;
     }
 
@@ -158,7 +158,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         AbstractIndexWriterProjection that = (AbstractIndexWriterProjection) o;
 
         if (autoCreateIndices != that.autoCreateIndices) return false;
-        if (!bulkActions.equals(that.bulkActions)) return false;
+        if (bulkActions != that.bulkActions) return false;
         if (clusteredByColumn != null ? !clusteredByColumn.equals(that.clusteredByColumn) :
             that.clusteredByColumn != null)
             return false;
@@ -179,7 +179,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + bulkActions.hashCode();
+        result = 31 * result + Integer.hashCode(bulkActions);
         result = 31 * result + tableIdent.hashCode();
         result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
         result = 31 * result + primaryKeys.hashCode();

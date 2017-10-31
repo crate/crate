@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -80,7 +79,7 @@ public class IndexWriterProjector implements Projector {
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
                                 List<? extends CollectExpression<Row, ?>> collectExpressions,
-                                @Nullable Integer bulkActions,
+                                int bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
@@ -112,7 +111,7 @@ public class IndexWriterProjector implements Projector {
             nodeJobsCounter,
             scheduler,
             executor,
-            MoreObjects.firstNonNull(bulkActions, 100),
+            bulkActions,
             jobId,
             rowShardResolver,
             itemFactory,
