@@ -85,6 +85,7 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -126,6 +127,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.query.ExistsQueryBuilder;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
+import org.elasticsearch.index.search.geo.GeoPolygonQuery;
 import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Rectangle;
@@ -1056,26 +1058,48 @@ public class LuceneQueryBuilder {
                 if (geometry.isRectangle()) {
                     return getBoundingBoxQuery(shape, fieldData);
                 } else {
-                    return getPolygonQuery(geometry, fieldData);
+                    final Version indexVersionCreated = context.queryShardContext.indexVersionCreated();
+                    return getPolygonQuery(geometry, fieldData, indexVersionCreated, geoPointFieldType);
                 }
             }
 
-            private static Query getPolygonQuery(Geometry geometry, IndexGeoPointFieldData fieldData) {
+            private static Query getPolygonQuery(Geometry geometry,
+                                                 IndexGeoPointFieldData fieldData,
+                                                 Version indexVersionCreated,
+                                                 BaseGeoPointFieldMapper.GeoPointFieldType fieldType) {
                 Coordinate[] coordinates = geometry.getCoordinates();
                 // close the polygon shape if startpoint != endpoint
                 if (!CoordinateArrays.isRing(coordinates)) {
                     coordinates = Arrays.copyOf(coordinates, coordinates.length + 1);
                     coordinates[coordinates.length - 1] = coordinates[0];
                 }
+
+                if (indexVersionCreated.before(Version.V_2_2_0)) {
+                    GeoPoint[] points = new GeoPoint[coordinates.length];
+                    for (int i = 0; i < coordinates.length; i++) {
+                        points[i] = new GeoPoint(coordinates[i].y, coordinates[i].x);
+                    }
+                    return new GeoPolygonQuery(fieldData, points);
+                }
+
                 final double[] lats = new double[coordinates.length];
                 final double[] lons = new double[coordinates.length];
                 for (int i = 0; i < coordinates.length; i++) {
                     lats[i] = coordinates[i].y;
                     lons[i] = coordinates[i].x;
                 }
+
+                if (indexVersionCreated.onOrAfter(LatLonPointFieldMapper.LAT_LON_FIELD_VERSION)) {
+                    return LatLonPoint.newPolygonQuery(fieldType.name(), new Polygon(lats, lons));
+                }
+
+                // if index created V_2_2 use (soon to be legacy) numeric encoding postings format
+                // if index created V_2_3 > use prefix encoded postings format
+                final GeoPointField.TermEncoding encoding = indexVersionCreated.before(Version.V_2_3_0) ?
+                    GeoPointField.TermEncoding.NUMERIC : GeoPointField.TermEncoding.PREFIX;
                 return new GeoPointInPolygonQuery(
                     fieldData.getFieldName(),
-                    GeoPointField.TermEncoding.PREFIX,
+                    encoding,
                     new Polygon(lats, lons)
                 );
             }
