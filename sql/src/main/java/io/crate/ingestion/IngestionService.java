@@ -111,6 +111,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         if (ingestionRules == null) {
             return;
         }
+
         removeRulesWithoutActiveTargetTable(ingestionRules);
         for (Map.Entry<String, IngestRuleListener> entry : listeners.entrySet()) {
             String sourceIdent = entry.getKey();
@@ -140,7 +141,7 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         if (ingestRulesMetaData != null) {
             return ingestRulesMetaData.getIngestRules();
         } else {
-            return Collections.emptyMap();
+            return null;
         }
     }
 
