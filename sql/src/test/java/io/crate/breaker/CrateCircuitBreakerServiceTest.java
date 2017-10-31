@@ -92,7 +92,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testBreakerSettingsAssignment() throws Exception {
+    public void testQueryBreakerAssignment() throws Exception {
         Settings settings = Settings.builder()
             .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
             .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 1.0)
@@ -121,6 +121,42 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         clusterSettings.applySettings(newSettings);
 
         verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
+    }
+
+    @Test
+    public void testStatsBreakerAssignment() throws Exception {
+        Settings settings = Settings.builder()
+            .put(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
+            .put(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
+            .build();
+        CircuitBreakerService esBreakerService = spy(new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings));
+        CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(settings, clusterSettings, esBreakerService);
+        CircuitBreaker breaker;
+
+        breaker = breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG);
+        assertThat(breaker.getLimit(), is(10_485_760L));
+        breaker = breakerService.getBreaker(CrateCircuitBreakerService.OPERATIONS_LOG);
+        assertThat(breaker.getLimit(), is(10_485_760L));
+
+        Settings newSettings = Settings.builder()
+            .put(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+            .put(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+            .build();
+        clusterSettings.applySettings(newSettings);
+
+        // expecting 5 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService 3 times
+        // and twice from the new settings
+        verify(esBreakerService, times(5)).registerBreaker(Matchers.any());
+
+        breaker = breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG);
+        assertThat(breaker.getLimit(), is(104_857_600L));
+        breaker = breakerService.getBreaker(CrateCircuitBreakerService.OPERATIONS_LOG);
+        assertThat(breaker.getLimit(), is(104_857_600L));
+
+        // updating with same settings should not register a new breaker
+        clusterSettings.applySettings(newSettings);
+
+        verify(esBreakerService, times(5)).registerBreaker(Matchers.any());
     }
 
     @Test

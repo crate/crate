@@ -74,5 +74,8 @@ Changes
 Fixes
 =====
 
+- Fix the problem that ``stats.breaker.*`` settings were not applied to the
+  correct circuit breaker.
+
 - The postgres wire protocol service can now be bound to IPv6 addresses as
   documented.
