@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fix a problem that caused ``WITHIN`` queries to return no or incorrect
+  results.
+
 - Fix the problem that ``stats.breaker.*`` settings were not applied to the
   correct circuit breaker.
 

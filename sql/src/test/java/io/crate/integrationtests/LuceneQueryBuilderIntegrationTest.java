@@ -173,6 +173,24 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
         execute("select * from shaped where within(point, shape) order by id");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testWithinQueryMatches() throws Exception {
+        // test a regression where wrong lucene query was used and therefore did not return any results
+        execute("CREATE TABLE locations (id INT, point GEO_POINT) WITH (number_of_replicas=0)");
+        ensureYellow();
+        execute("INSERT INTO locations (id, point) VALUES (?, ?)", $$(
+            $(1, "POINT(-71.06244564056396 42.35373619523924)")
+        ));
+        execute("REFRESH TABLE locations");
+        execute("SELECT * FROM locations WHERE within(point, 'POLYGON((" +
+                "-71.06042861938477 42.35473836290108," +
+                "-71.05982780456543 42.35251834962908," +
+                "-71.06463432312012 42.35213776805158," +
+                "-71.06403350830078 42.35359665158396," +
+                "-71.06042861938477 42.35473836290108))')");
+        assertThat(response.rowCount(), is(1L));
 
     }
 
