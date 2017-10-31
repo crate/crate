@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where internal cluster state updates could reset the active
+  ingestion rules, causing all ingest operations to stop.
+
 - Fix the problem that ``stats.breaker.*`` settings were not applied to the
   correct circuit breaker.
 
