@@ -22,28 +22,44 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
-public class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
+import java.io.IOException;
+
+public class IdCollectorExpression extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
 
-    private CollectorFieldsVisitor visitor;
+    private RandomAccessOrds values;
+    private BytesRef value;
 
-    public IdCollectorExpression() {
-        super(COLUMN_NAME);
+    public IdCollectorExpression(MappedFieldType mappedFieldType) {
+        super(COLUMN_NAME, mappedFieldType);
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
-        this.visitor.addField("_uid");
+    public void setNextDocId(int doc) {
+        values.setDocument(doc);
+        switch (values.cardinality()) {
+            case 1:
+                value = BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
+                break;
+            default:
+                throw new IllegalStateException(columnName + " must only have a single value");
+        }
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(visitor.uid().id());
+        return value;
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        values = indexFieldData.load(context).getOrdinalsValues();
     }
 }

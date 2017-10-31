@@ -51,6 +51,8 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Locale;
 
+import static java.util.Objects.requireNonNull;
+
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final FieldTypeLookup fieldTypeLookup;
@@ -77,9 +79,18 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                         columnIdent.fqn()));
             }
         } else if (UidCollectorExpression.COLUMN_NAME.equals(name)) {
+            if (indexSettings.isSingleType()) {
+                // _uid and _id is the same
+                return new IdCollectorExpression(
+                    requireNonNull(fieldTypeLookup.get(IdCollectorExpression.COLUMN_NAME), "_id field must have a fieldType"));
+            }
             return new UidCollectorExpression();
         } else if (IdCollectorExpression.COLUMN_NAME.equals(name)) {
-            return new IdCollectorExpression();
+            if (indexSettings.isSingleType()) {
+                return new IdCollectorExpression(
+                    requireNonNull(fieldTypeLookup.get(IdCollectorExpression.COLUMN_NAME), "_id field must have a fieldType"));
+            }
+            return new IdFromUidCollectorExpression();
         } else if (DocCollectorExpression.COLUMN_NAME.equals(name)) {
             return DocCollectorExpression.create(refInfo);
         } else if (FetchIdCollectorExpression.COLUMN_NAME.equals(name)) {
@@ -90,41 +101,41 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return new VersionCollectorExpression();
         }
 
-        String colName = columnIdent.fqn();
-        MappedFieldType fieldType = fieldTypeLookup.get(colName);
+        String fqn = columnIdent.fqn();
+        MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return new NullValueCollectorExpression(colName);
+            return new NullValueCollectorExpression(fqn);
         }
         switch (refInfo.valueType().id()) {
             case ByteType.ID:
-                return new ByteColumnReference(colName);
+                return new ByteColumnReference(fqn);
             case ShortType.ID:
-                return new ShortColumnReference(colName);
+                return new ShortColumnReference(fqn);
             case IpType.ID:
                 Version indexVersionCreated = indexSettings.getIndexVersionCreated();
                 if (indexVersionCreated.before(Version.V_5_0_0)) {
-                    return new LegacyIPColumnReference(colName);
+                    return new LegacyIPColumnReference(fqn);
                 }
-                return new IpColumnReference(colName);
+                return new IpColumnReference(fqn);
             case StringType.ID:
-                return new BytesRefColumnReference(colName, fieldType);
+                return new BytesRefColumnReference(fqn, fieldType);
             case DoubleType.ID:
-                return new DoubleColumnReference(colName, fieldType);
+                return new DoubleColumnReference(fqn, fieldType);
             case BooleanType.ID:
-                return new BooleanColumnReference(colName);
+                return new BooleanColumnReference(fqn);
             case ObjectType.ID:
-                return new ObjectColumnReference(colName);
+                return new ObjectColumnReference(fqn);
             case FloatType.ID:
-                return new FloatColumnReference(colName, fieldType);
+                return new FloatColumnReference(fqn, fieldType);
             case LongType.ID:
             case TimestampType.ID:
-                return new LongColumnReference(colName);
+                return new LongColumnReference(fqn);
             case IntegerType.ID:
-                return new IntegerColumnReference(colName);
+                return new IntegerColumnReference(fqn);
             case GeoPointType.ID:
-                return new GeoPointColumnReference(colName, fieldType);
+                return new GeoPointColumnReference(fqn, fieldType);
             case GeoShapeType.ID:
-                return new GeoShapeColumnReference(colName);
+                return new GeoShapeColumnReference(fqn);
             case ArrayType.ID:
             case SetType.ID:
                 return DocCollectorExpression.create(DocReferences.toSourceLookup(refInfo));

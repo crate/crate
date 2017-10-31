@@ -47,6 +47,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 
+import static org.elasticsearch.index.mapper.MapperService.INDEX_MAPPING_SINGLE_TYPE_SETTING;
+
 public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
     CreateTableStatementAnalyzer.Context> {
 
@@ -123,6 +125,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         statement.tableParameter().settingsBuilder().put(tableElements.settings());
         statement.tableParameter().settingsBuilder().put(
             IndexMetaData.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
+        statement.tableParameter().settingsBuilder().put(INDEX_MAPPING_SINGLE_TYPE_SETTING.getKey(), true);
 
         Context context = new Context(statement, parameterContext);
         statement.analyzedTableElements(tableElements);
