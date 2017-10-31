@@ -100,10 +100,10 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                 setQueryBreakerLimit(queryBreakerSettings, QUERY, s -> this.queryBreakerSettings = s, newLimit, newOverhead));
         clusterSettings.addSettingsUpdateConsumer(JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
             (newLimit) ->
-                setQueryBreakerLimit(logJobsBreakerSettings, QUERY, s -> this.logJobsBreakerSettings = s, newLimit, null));
+                setQueryBreakerLimit(logJobsBreakerSettings, JOBS_LOG, s -> this.logJobsBreakerSettings = s, newLimit, null));
         clusterSettings.addSettingsUpdateConsumer(OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
             (newLimit) ->
-                setQueryBreakerLimit(logOperationsBreakerSettings, QUERY, s -> this.logOperationsBreakerSettings = s, newLimit, null));
+                setQueryBreakerLimit(logOperationsBreakerSettings, OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit, null));
     }
 
     @Override
