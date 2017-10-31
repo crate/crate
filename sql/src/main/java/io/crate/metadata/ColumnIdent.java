@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class ColumnIdent implements Path, Comparable<ColumnIdent> {
@@ -142,6 +143,28 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
         List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
         return new ColumnIdent(parent.name, childPath);
     }
+
+    /**
+     * Get the first non-map value from a map by traversing the name/path of the column
+     */
+    public static Object get(Map map, ColumnIdent column) {
+        Object obj = map.get(column.name);
+        if (obj instanceof Map) {
+            Map m = (Map) obj;
+            Object element = null;
+            for (int i = 0; i < column.path.size(); i++) {
+                element = m.get(column.path.get(i));
+                if (element instanceof Map) {
+                    m = (Map) element;
+                } else {
+                    return element;
+                }
+            }
+            return element;
+        }
+        return obj;
+    }
+
 
     /**
      * Checks whether this ColumnIdent is a child of <code>parentIdent</code>

@@ -28,7 +28,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import javax.annotation.Nullable;
-import java.util.LinkedList;
 import java.util.Map;
 
 public class LineContext {
@@ -56,35 +55,15 @@ public class LineContext {
     }
 
     public Object get(ColumnIdent columnIdent) {
-        // TODO: change interface in order to not compute the path for every row
-        if (parsedSource == null) {
-            // TODO: optimize if collectorContext has prefetchColumns
-
-            try {
-                parsedSource = XContentHelper.convertToMap(new BytesArray(rawSource), false, XContentType.JSON).v2();
-            } catch (NullPointerException e) {
-                return null;
-            }
+        Map<String, Object> parentMap = sourceAsMap();
+        if (parentMap == null) {
+            return null;
         }
-
-        LinkedList<String> path = new LinkedList<>(columnIdent.path());
-        path.add(0, columnIdent.name());
-        Map parentMap = parsedSource;
-
-        while (path.size() > 1) {
-            Object o = parentMap.get(path.pollFirst());
-            if (o == null) {
-                return null;
-            }
-            assert o instanceof Map : "o must be instance of Map";
-            parentMap = (Map) o;
+        Object val = ColumnIdent.get(parentMap, columnIdent);
+        if (val instanceof String) {
+            return new BytesRef((String) val);
         }
-
-        Object o = parentMap.get(path.peekFirst());
-        if (o instanceof String) {
-            return new BytesRef((String) o);
-        }
-        return o;
+        return val;
     }
 
     public void rawSource(byte[] bytes) {
