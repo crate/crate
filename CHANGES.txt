@@ -74,6 +74,9 @@ Changes
 Fixes
 =====
 
+- Fix a problem that caused ``WITHIN`` queries to return no or incorrect
+  results.
+
 - Fixed an issue where internal cluster state updates could reset the active
   ingestion rules, causing all ingest operations to stop.
 
