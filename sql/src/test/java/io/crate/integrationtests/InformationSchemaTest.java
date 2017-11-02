@@ -1202,9 +1202,20 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         final String defaultSchema = sqlExecutor.getDefaultSchema();
         assertThat(response.rows(), arrayContaining(
-            new Object[] {"id2",  defaultSchema, "id2_pk",  "public", 1, defaultSchema, "table2", "public"},
-            new Object[] {"id3",  defaultSchema, "id3_pk",  "public", 1, defaultSchema, "table3", "public"},
-            new Object[] {"name", defaultSchema, "name_pk", "public", 2, defaultSchema, "table3", "public"}
+            new Object[] {"id2",  defaultSchema, "table2_pk",  "public", 1, defaultSchema, "table2", "public"},
+            new Object[] {"id3",  defaultSchema, "table3_pk",  "public", 1, defaultSchema, "table3", "public"},
+            new Object[] {"name", defaultSchema, "table3_pk",  "public", 2, defaultSchema, "table3", "public"}
+        ));
+
+        // check that the constraint name is the same as in table_constraints by joining the two tables
+        execute("select t1.* from information_schema.key_column_usage t1 " +
+                "join information_schema.table_constraints t2 " +
+                "on t1.constraint_name = t2.constraint_name " +
+                "order by t1.table_name, t1.ordinal_position asc");
+        assertThat(response.rows(), arrayContaining(
+            new Object[] {"id2",  defaultSchema, "table2_pk",  "public", 1, defaultSchema, "table2", "public"},
+            new Object[] {"id3",  defaultSchema, "table3_pk",  "public", 1, defaultSchema, "table3", "public"},
+            new Object[] {"name", defaultSchema, "table3_pk",  "public", 2, defaultSchema, "table3", "public"}
         ));
     }
 

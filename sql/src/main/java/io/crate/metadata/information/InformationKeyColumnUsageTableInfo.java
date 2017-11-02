@@ -76,7 +76,7 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
             .put(Columns.CONSTRAINT_SCHEMA,
                 () -> objToBytesRef(k -> "public"))
             .put(Columns.CONSTRAINT_NAME,
-                () -> objToBytesRef(k -> k.getPkColumnName() + PK_SUFFIX))
+                () -> objToBytesRef(k -> k.getTableName() + PK_SUFFIX))
             .put(Columns.TABLE_CATALOG,
                 () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_SCHEMA,
