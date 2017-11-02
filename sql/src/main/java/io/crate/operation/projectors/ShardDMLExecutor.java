@@ -43,6 +43,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -62,6 +63,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     private final int bulkSize;
     private final ScheduledExecutorService scheduler;
+    private final Executor executor;
     private final CollectExpression<Row, ?> uidExpression;
     private final NodeJobsCounter nodeJobsCounter;
     private final Supplier<TReq> requestFactory;
@@ -74,6 +76,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     ShardDMLExecutor(int bulkSize,
                      ScheduledExecutorService scheduler,
+                     Executor executor,
                      CollectExpression<Row, ?> uidExpression,
                      ClusterService clusterService,
                      NodeJobsCounter nodeJobsCounter,
@@ -82,6 +85,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                      BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
+        this.executor = executor;
         this.uidExpression = uidExpression;
         this.nodeJobsCounter = nodeJobsCounter;
         this.requestFactory = requestFactory;
@@ -124,6 +128,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         long initialResult = 0L;
         return new BatchIteratorBackpressureExecutor<>(
             scheduler,
+            executor,
             reqBatchIterator,
             this::executeBatch,
             combinePartialResult,

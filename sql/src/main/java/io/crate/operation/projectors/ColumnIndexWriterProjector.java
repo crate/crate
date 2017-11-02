@@ -47,6 +47,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -58,6 +59,7 @@ public class ColumnIndexWriterProjector implements Projector {
     ColumnIndexWriterProjector(ClusterService clusterService,
                                NodeJobsCounter nodeJobsCounter,
                                ScheduledExecutorService scheduler,
+                               Executor executor,
                                Functions functions,
                                Settings settings,
                                Supplier<String> indexNameResolver,
@@ -104,6 +106,7 @@ public class ColumnIndexWriterProjector implements Projector {
             clusterService,
             nodeJobsCounter,
             scheduler,
+            executor,
             MoreObjects.firstNonNull(bulkActions, 100),
             jobId,
             rowShardResolver,
