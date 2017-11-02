@@ -430,8 +430,8 @@ tables:
     +-----------------+------------+-------------+------------------+
     | constraint_name | table_name | column_name | ordinal_position |
     +-----------------+------------+-------------+------------------+
-    | id_pk           | students   | id          |                1 |
-    | department_pk   | students   | department  |                2 |
+    | students_pk     | students   | id          |                1 |
+    | students_pk     | students   | department  |                2 |
     +-----------------+------------+-------------+------------------+
     SELECT 2 rows in set (... sec)
 
