@@ -43,6 +43,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
@@ -51,7 +53,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.mockito.Mockito.mock;
@@ -66,6 +71,23 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;
 
+    private ExecutorService executor;
+    private ScheduledExecutorService scheduler;
+
+    @Before
+    public void setUpExecutors() throws Exception {
+        scheduler = Executors.newScheduledThreadPool(1);
+        executor = Executors.newFixedThreadPool(1);
+    }
+
+    @After
+    public void tearDownExecutors() throws Exception {
+        scheduler.shutdown();
+        executor.shutdown();
+        scheduler.awaitTermination(10, TimeUnit.SECONDS);
+        executor.awaitTermination(10, TimeUnit.SECONDS);
+    }
+
     @Test
     public void testNullPKValue() throws Throwable {
         InputCollectExpression sourceInput = new InputCollectExpression(0);
@@ -75,7 +97,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
             new NodeJobsCounter(),
-            Executors.newScheduledThreadPool(1),
+            scheduler,
+            executor,
             TestingHelpers.getFunctions(),
             Settings.EMPTY,
             transportBulkCreateIndicesAction,

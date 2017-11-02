@@ -313,6 +313,7 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
             functions,
             clusterService.state().metaData().settings(),
             transportActionProvider.transportBulkCreateIndicesAction(),
@@ -349,6 +350,7 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
             functions,
             clusterService.state().metaData().settings(),
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
@@ -387,6 +389,7 @@ public class ProjectionToProjectorVisitor
         ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
@@ -409,6 +412,7 @@ public class ProjectionToProjectorVisitor
         ShardDMLExecutor<ShardDeleteRequest, ShardDeleteRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
+            threadPool.executor(ThreadPool.Names.SEARCH),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,

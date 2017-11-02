@@ -25,10 +25,13 @@ package io.crate.operation.projectors;
 import io.crate.data.BatchIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +54,7 @@ import java.util.function.Predicate;
  */
 public class BatchIteratorBackpressureExecutor<T, R> {
 
+    private final Executor executor;
     private final BatchIterator<T> batchIterator;
     private final Function<T, CompletableFuture<R>> execute;
     private final ScheduledExecutorService scheduler;
@@ -74,12 +78,14 @@ public class BatchIteratorBackpressureExecutor<T, R> {
      * @param pauseConsumption predicate used to check if the consumption should be paused
      */
     public BatchIteratorBackpressureExecutor(ScheduledExecutorService scheduler,
+                                             Executor executor,
                                              BatchIterator<T> batchIterator,
                                              Function<T, CompletableFuture<R>> execute,
                                              BinaryOperator<R> combiner,
                                              R identity,
                                              Predicate<T> pauseConsumption,
                                              BackoffPolicy backoffPolicy) {
+        this.executor = executor;
         this.batchIterator = batchIterator;
         this.scheduler = scheduler;
         this.execute = execute;
@@ -184,6 +190,14 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
             return;
         }
+        try {
+            executor.execute(() -> doResumeConsumption(item));
+        } catch (EsRejectedExecutionException | RejectedExecutionException e) {
+            doResumeConsumption(item);
+        }
+    }
+
+    private void doResumeConsumption(T item) {
         // Suspend happened once a batch was ready, so execute it now.
         // consumeIterator would otherwise move past the indexInBulk == bulkSize check and end up building a huge batch
         execute(item);

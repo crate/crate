@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -62,6 +63,7 @@ public class IndexWriterProjector implements Projector {
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
                                 ScheduledExecutorService scheduler,
+                                Executor executor,
                                 Functions functions,
                                 Settings settings,
                                 TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
@@ -105,6 +107,7 @@ public class IndexWriterProjector implements Projector {
             clusterService,
             nodeJobsCounter,
             scheduler,
+            executor,
             MoreObjects.firstNonNull(bulkActions, 100),
             jobId,
             rowShardResolver,
