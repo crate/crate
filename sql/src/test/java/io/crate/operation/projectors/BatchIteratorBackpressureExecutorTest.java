@@ -76,6 +76,7 @@ public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
         };
         BatchIteratorBackpressureExecutor<Integer, Integer> executor = new BatchIteratorBackpressureExecutor<>(
             scheduler,
+            this.executor,
             it,
             i -> CompletableFuture.supplyAsync(numRows::incrementAndGet, this.executor),
             (a, b) -> a + b,

@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,6 +81,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final GroupRowsByShard<TReq, TItem> grouper;
     private final NodeJobsCounter nodeJobsCounter;
     private final ScheduledExecutorService scheduler;
+    private final Executor executor;
     private final int bulkSize;
     private final UUID jobId;
     private final BiFunction<ShardId, String, TReq> requestFactory;
@@ -89,6 +91,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
                                   ScheduledExecutorService scheduler,
+                                  Executor executor,
                                   int bulkSize,
                                   UUID jobId,
                                   RowShardResolver rowShardResolver,
@@ -101,6 +104,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                                   TransportBulkCreateIndicesAction createIndicesAction) {
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
+        this.executor = executor;
         this.bulkSize = bulkSize;
         this.jobId = jobId;
         this.requestFactory = requestFactory;
@@ -184,6 +188,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
         BatchIteratorBackpressureExecutor<ShardedRequests<TReq, TItem>, Long> executor = new BatchIteratorBackpressureExecutor<>(
             scheduler,
+            this.executor,
             reqBatchIterator,
             this::execute,
             (a, b) -> a + b,
