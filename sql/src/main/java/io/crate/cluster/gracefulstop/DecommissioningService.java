@@ -112,11 +112,15 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_FORCE_SETTING.setting(), this::setGracefulStopForce);
         clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::setDataAvailability);
 
-        try {
-            Signal signal = new Signal("USR2");
-            Signal.handle(signal, this);
-        } catch (IllegalArgumentException e) {
-            logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
+        // Signal handling here breaks FlightRecorder
+        // So this is a undocumented switch to disable this for benchmarking purposes
+        if (!System.getProperty("crate.signal_handler.disabled", "false").equalsIgnoreCase("true")) {
+            try {
+                Signal signal = new Signal("USR2");
+                Signal.handle(signal, this);
+            } catch (IllegalArgumentException e) {
+                logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
+            }
         }
     }
 
