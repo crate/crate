@@ -41,7 +41,7 @@ which is why clients should generally enable ``autocommit``.
 Server Compatibility and Implementation Status
 ==============================================
 
-CrateDB emulates PostgreSQL server version ``9.5``
+CrateDB emulates PostgreSQL server version ``9.5``.
 
 Start-Up
 --------
@@ -66,6 +66,21 @@ configured using :doc:`/administration/hba`.
 
 If the enterprise functionality is disabled, all "start up" requests are
 answered with an ``AuthenticationOK`` response.
+
+
+ParameterStatus
+...............
+
+After the authentication has succeeded the server has the possibility to send
+multiple ``ParameterStatus`` messages to the client.
+These are used to communicate information like ``server_version`` (emulates
+PostgreSQL 9.5) or ``server_encoding``.
+
+``CrateDB`` also sends a message containing the ``crate_version`` parameter.
+This contains the current ``CrateDB`` version number.
+
+This information is useful for clients to detect that they're connecting to
+``CrateDB`` instead of a PostgreSQL instance.
 
 
 Database selection

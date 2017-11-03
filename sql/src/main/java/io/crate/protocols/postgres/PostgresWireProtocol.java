@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.Version;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
@@ -384,14 +385,15 @@ class PostgresWireProtocol {
                 }
                 session = sqlOperations.createSession(properties.getProperty("database"), user);
                 Messages.sendAuthenticationOK(channel)
-                    .addListener(f -> sendReadyForQuery(channel));
+                    .addListener(f -> sendParamsAndRdyForQuery(channel));
             } catch (Exception e) {
                 Messages.sendAuthenticationError(channel, e.getMessage());
             }
         }
     }
 
-    private void sendReadyForQuery(Channel channel) {
+    private void sendParamsAndRdyForQuery(Channel channel) {
+        Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.toString());
         Messages.sendParameterStatus(channel, "server_version", "9.5.0");
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");

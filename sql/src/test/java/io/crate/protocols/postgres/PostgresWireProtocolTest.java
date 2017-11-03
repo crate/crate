@@ -22,8 +22,9 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.Session;
+import io.crate.Version;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.executor.Executor;
 import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -295,4 +296,27 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
     }
 
+    @Test
+    public void testCrateServerVersionIsReceivedOnStartup() throws Exception {
+        PostgresWireProtocol ctx = new PostgresWireProtocol(
+            sqlOperations, new AlwaysOKNullAuthentication(), null);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buf = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buf, "doc");
+        channel.writeInbound(buf);
+
+        ByteBuf respBuf;
+        respBuf = channel.readOutbound();
+        assertThat((char) respBuf.readByte(), is('R')); // Auth OK
+
+        respBuf = channel.readOutbound();
+        assertThat((char) respBuf.readByte(), is('S')); // ParameterStatus
+        respBuf.readInt(); // length
+        String key = PostgresWireProtocol.readCString(respBuf);
+        String value = PostgresWireProtocol.readCString(respBuf);
+
+        assertThat(key, is("crate_version"));
+        assertThat(value, is(Version.CURRENT.toString()));
+    }
 }

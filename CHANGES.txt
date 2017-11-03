@@ -28,6 +28,10 @@ Breaking Changes
 Changes
 =======
 
+- Clients using the postgres wire protocol will now receive an additional
+  ``crate_version`` ``ParameterStatus`` message during the connection
+  establishment. This can be used to identify the server as ``CrateDB``.
+
 - Added support to manually retry the allocation of shards that failed to
   allocate using ``ALTER CLUSTER REROUTE RETRY FAILED``.
 
