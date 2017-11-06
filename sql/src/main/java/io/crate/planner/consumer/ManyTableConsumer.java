@@ -471,7 +471,6 @@ public class ManyTableConsumer implements Consumer {
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> relations = entry.getKey();
             Symbol joinCondition = entry.getValue();
-            if (relations.contains(leftName) || relations.contains(rightName)) {
                 FieldsVisitor.visitFields(joinCondition,
                                           f -> {
                                             if (f.relation().getQualifiedName().equals(leftName) ||
@@ -479,7 +478,6 @@ public class ManyTableConsumer implements Consumer {
                                                 fields.add(f);
                                             }
                                           });
-            }
         }
         newQuerySpec.outputs(new ArrayList<>(fields));
     }

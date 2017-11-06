@@ -800,4 +800,27 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "        unnest([2]) tt2");
         assertThat(printedTable(response.rows()), is("1| 1| 2\n"));
     }
+
+    @Test
+    public void testJoinWithConditionsReferringToTheFirstTable() {
+        execute("create table j1 (id1 int, id2 int, id3 int, id4 int, id5 int) clustered into 1 shards");
+        execute("create table j2 (id int) clustered into 1 shards");
+        execute("create table j3 (id int) clustered into 1 shards");
+        execute("create table j4 (id int) clustered into 1 shards");
+
+        execute("insert into j1 values (1, 1, 1, 1)");
+        execute("insert into j2 values (1)");
+        execute("insert into j3 values (1)");
+        execute("insert into j4 values (1)");
+
+        refresh();
+
+        execute("select id1 from (select id1, id2, id3, id4 from j1) a" +
+                " left join j2 b on a.id2 = b.id" +
+                " left join j3 c on a.id3 = c.id" +
+                " left join j4 d on a.id4 = d.id");
+
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+
+    }
 }
