@@ -511,9 +511,7 @@ public class ManyTableConsumer implements Consumer {
                 // it's not necessary to extend the output
                 continue;
             }
-            if (relations.contains(leftName) || relations.contains(rightName)) {
-                FieldsVisitor.visitFields(symbol, fieldConsumer);
-            }
+            FieldsVisitor.visitFields(symbol, fieldConsumer);
         }
     }
 
