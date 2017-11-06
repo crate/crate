@@ -81,6 +81,9 @@ Changes
 Fixes
 =====
 
+- Improves resiliency of ``COPY FROM`` and ``INSERT FROM SUBQUERY`` statements
+  when lot of new partitions will be created on demand.
+
 - Fix a problem that caused ``WITHIN`` queries to return no or incorrect
   results.
 

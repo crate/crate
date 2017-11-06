@@ -45,6 +45,7 @@ import io.crate.operation.AggregationContext;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.RowFilter;
+import io.crate.operation.TableSettingsResolver;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.fetch.FetchProjectorContext;
@@ -306,6 +307,8 @@ public class ProjectionToProjectorVisitor
         Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
+        Settings tableSettings = TableSettingsResolver.get(clusterService.state().getMetaData(),
+            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
         return new IndexWriterProjector(
             clusterService,
             nodeJobsCounter,
@@ -313,6 +316,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             functions,
             clusterService.state().metaData().settings(),
+            tableSettings,
             transportActionProvider.transportBulkCreateIndicesAction(),
             transportActionProvider.transportShardUpsertAction()::execute,
             indexNameResolver,
@@ -343,6 +347,8 @@ public class ProjectionToProjectorVisitor
         for (Symbol symbol : projection.columnSymbols()) {
             insertInputs.add(ctx.add(symbol));
         }
+        Settings tableSettings = TableSettingsResolver.get(clusterService.state().getMetaData(),
+            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
         return new ColumnIndexWriterProjector(
             clusterService,
             nodeJobsCounter,
@@ -350,6 +356,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             functions,
             clusterService.state().metaData().settings(),
+            tableSettings,
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             transportActionProvider,
             projection.primaryKeys(),
