@@ -38,7 +38,7 @@ import io.crate.operation.collect.RowShardResolver;
 import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -71,7 +71,7 @@ public class IndexWriterProjector implements Projector {
                                 Functions functions,
                                 Settings settings,
                                 Settings tableSettings,
-                                TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                                TransportCreatePartitionsAction transportCreatePartitionsAction,
                                 BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
                                 Reference rawSourceReference,
@@ -122,7 +122,7 @@ public class IndexWriterProjector implements Projector {
             indexNameResolver,
             autoCreateIndices,
             shardUpsertAction,
-            transportBulkCreateIndicesAction,
+            transportCreatePartitionsAction,
             tableSettings
         );
     }

@@ -38,9 +38,9 @@ import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpsertById;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
-import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsResponse;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.ClusterState;
@@ -77,7 +77,7 @@ public class UpsertByIdTask extends JobTask {
 
     private final ClusterService clusterService;
     private final ShardUpsertRequest.Builder reqBuilder;
-    private final TransportBulkCreateIndicesAction createIndicesAction;
+    private final TransportCreatePartitionsAction createIndicesAction;
     private final List<UpsertById.Item> items;
     private final ScheduledExecutorService scheduler;
     private final BulkRequestExecutor<ShardUpsertRequest> upsertAction;
@@ -92,11 +92,11 @@ public class UpsertByIdTask extends JobTask {
                           ScheduledExecutorService scheduler,
                           Settings settings,
                           BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
-                          TransportBulkCreateIndicesAction transportBulkCreateIndicesAction) {
+                          TransportCreatePartitionsAction transportCreatePartitionsAction) {
         super(upsertById.jobId());
         this.scheduler = scheduler;
         this.upsertAction = transportShardUpsertAction;
-        this.createIndicesAction = transportBulkCreateIndicesAction;
+        this.createIndicesAction = transportCreatePartitionsAction;
         this.clusterService = clusterService;
         this.items = upsertById.items();
         this.bulkIndices = upsertById.bulkIndices();
@@ -318,9 +318,9 @@ public class UpsertByIdTask extends JobTask {
         return requestsByShard;
     }
 
-    private CompletableFuture<BulkCreateIndicesResponse> createPendingIndices(Collection<String> indices) {
-        FutureActionListener<BulkCreateIndicesResponse, BulkCreateIndicesResponse> listener = new FutureActionListener<>(r -> r);
-        createIndicesAction.execute(new BulkCreateIndicesRequest(indices, jobId()), listener);
+    private CompletableFuture<CreatePartitionsResponse> createPendingIndices(Collection<String> indices) {
+        FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = new FutureActionListener<>(r -> r);
+        createIndicesAction.execute(new CreatePartitionsRequest(indices, jobId()), listener);
         return listener;
     }
 
