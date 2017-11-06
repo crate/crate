@@ -58,6 +58,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                Executor executor,
                                Functions functions,
                                Settings settings,
+                               Settings tableSettings,
                                Supplier<String> indexNameResolver,
                                TransportActionProvider transportActionProvider,
                                List<ColumnIdent> primaryKeyIdents,
@@ -112,7 +113,8 @@ public class ColumnIndexWriterProjector implements Projector {
             indexNameResolver,
             autoCreateIndices,
             transportActionProvider.transportShardUpsertAction()::execute,
-            transportActionProvider.transportBulkCreateIndicesAction()
+            transportActionProvider.transportBulkCreateIndicesAction(),
+            tableSettings
         );
     }
 

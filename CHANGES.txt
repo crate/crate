@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Improves resiliency of ``COPY FROM`` and ``INSERT FROM SUBQUERY`` statements
+  when lot of new partitions will be created on demand.
+
 - Fix a NPE exception which could occur when joining four tables with a join
   condition which referred to fields from the leftmost relation.
 

@@ -47,6 +47,7 @@ import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -88,6 +89,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final BiFunction<ShardId, String, TReq> requestFactory;
     private final BulkRequestExecutor<TReq> requestExecutor;
     private final TransportBulkCreateIndicesAction createIndicesAction;
+    private final BulkShardCreationLimiter<TReq, TItem> bulkShardCreationLimiter;
+    private volatile boolean createPartitionsRequestOngoing = false;
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -102,7 +105,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                                   Supplier<String> indexNameResolver,
                                   boolean autoCreateIndices,
                                   BulkRequestExecutor<TReq> requestExecutor,
-                                  TransportBulkCreateIndicesAction createIndicesAction) {
+                                  TransportBulkCreateIndicesAction createIndicesAction,
+                                  Settings tableSettings) {
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
         this.executor = executor;
@@ -119,18 +123,20 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             itemFactory,
             autoCreateIndices
         );
+        bulkShardCreationLimiter = new BulkShardCreationLimiter<>(tableSettings,
+            clusterService.state().nodes().getDataNodes().size());
     }
 
     public CompletableFuture<Long> execute(ShardedRequests<TReq, TItem> requests) {
         if (requests.itemsByMissingIndex.isEmpty()) {
             return execRequests(requests.itemsByShard);
         }
-        return createIndices(requests.itemsByMissingIndex)
+        createPartitionsRequestOngoing = true;
+        return createPartitions(requests.itemsByMissingIndex)
             .thenCompose(resp -> {
-                if (grouper.reResolveShardLocations(requests)) {
-                    return execRequests(requests.itemsByShard);
-                }
-                return execute(requests);
+                grouper.reResolveShardLocations(requests);
+                createPartitionsRequestOngoing = false;
+                return execRequests(requests.itemsByShard);
             });
     }
 
@@ -165,7 +171,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
 
-    private CompletableFuture<BulkCreateIndicesResponse> createIndices(Map<String, List<ShardedRequests.ItemAndRouting<TItem>>> itemsByMissingIndex) {
+    private CompletableFuture<BulkCreateIndicesResponse> createPartitions(Map<String, List<ShardedRequests.ItemAndRouting<TItem>>> itemsByMissingIndex) {
         FutureActionListener<BulkCreateIndicesResponse, BulkCreateIndicesResponse> listener = FutureActionListener.newInstance();
         createIndicesAction.execute(
             new BulkCreateIndicesRequest(itemsByMissingIndex.keySet(), jobId), listener);
@@ -173,6 +179,11 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     private boolean shouldPause(ShardedRequests<TReq, TItem> requests) {
+        if (createPartitionsRequestOngoing) {
+            LOGGER.debug("partition creation in progress, will pause");
+            return true;
+        }
+
         for (ShardLocation shardLocation : requests.itemsByShard.keySet()) {
             String requestNodeId = shardLocation.nodeId;
             if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
@@ -186,7 +197,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         BatchIterator<ShardedRequests<TReq, TItem>> reqBatchIterator =
-            BatchIterators.partition(batchIterator, bulkSize, () -> new ShardedRequests<>(requestFactory), grouper);
+            BatchIterators.partition(batchIterator, bulkSize, () -> new ShardedRequests<>(requestFactory), grouper,
+                bulkShardCreationLimiter);
 
         BatchIteratorBackpressureExecutor<ShardedRequests<TReq, TItem>, Long> executor = new BatchIteratorBackpressureExecutor<>(
             scheduler,

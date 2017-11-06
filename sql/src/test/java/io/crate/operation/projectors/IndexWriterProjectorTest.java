@@ -38,13 +38,13 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.NodeJobsCounter;
+import io.crate.operation.TableSettingsResolver;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -75,14 +75,16 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         TableIdent bulkImportIdent = new TableIdent("doc", "bulk_import");
+        Settings tableSettings = TableSettingsResolver.get(clusterService().state().getMetaData(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
-            internalCluster().getInstance(ClusterService.class),
+            clusterService(),
             new NodeJobsCounter(),
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             internalCluster().getInstance(Functions.class),
             Settings.EMPTY,
+            tableSettings,
             internalCluster().getInstance(TransportBulkCreateIndicesAction.class),
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),

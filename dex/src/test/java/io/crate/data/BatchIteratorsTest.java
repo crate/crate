@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -51,7 +52,7 @@ public class BatchIteratorsTest {
     @Test
     public void testBatchBySize() throws Exception {
         BatchIterator<Integer> batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null);
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
         assertThat(batchedIt.moveNext(), is(true));
         assertThat(batchedIt.currentElement(), is(Arrays.asList(0, 1)));
@@ -69,7 +70,7 @@ public class BatchIteratorsTest {
             2,
             null
         );
-        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add);
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add, r -> false);
 
         CompletableFuture<List<List<Integer>>> future = BatchIterators.collect(batchedIt, Collectors.toList());
         assertThat(future.get(10, TimeUnit.SECONDS), is(Arrays.asList(
@@ -77,5 +78,20 @@ public class BatchIteratorsTest {
             Arrays.asList(2, 3),
             Collections.singletonList(4)
         )));
+    }
+
+    @Test
+    public void testBatchBySizeWithDynamicLimiter() throws Exception {
+        BatchIterator<Integer> batchIterator = InMemoryBatchIterator.of(() -> IntStream.range(0, 5).iterator(), null);
+        final AtomicInteger rowCount = new AtomicInteger();
+        BatchIterator<List<Integer>> batchedIt = BatchIterators.partition(batchIterator, 2, ArrayList::new, List::add,
+            r -> rowCount.incrementAndGet() == 3);
+
+        assertThat(batchedIt.moveNext(), is(true));
+        assertThat(batchedIt.currentElement(), is(Arrays.asList(0, 1)));
+        assertThat(batchedIt.moveNext(), is(true));
+        assertThat(batchedIt.currentElement(), is(Collections.singletonList(2)));
+        assertThat(batchedIt.moveNext(), is(true));
+        assertThat(batchedIt.currentElement(), is(Arrays.asList(3, 4)));
     }
 }

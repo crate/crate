@@ -66,6 +66,7 @@ public class IndexWriterProjector implements Projector {
                                 Executor executor,
                                 Functions functions,
                                 Settings settings,
+                                Settings tableSettings,
                                 TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                 BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
@@ -117,7 +118,8 @@ public class IndexWriterProjector implements Projector {
             indexNameResolver,
             autoCreateIndices,
             shardUpsertAction,
-            transportBulkCreateIndicesAction
+            transportBulkCreateIndicesAction,
+            tableSettings
         );
     }
 
