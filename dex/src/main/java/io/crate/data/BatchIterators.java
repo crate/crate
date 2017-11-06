@@ -24,6 +24,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
@@ -94,13 +95,15 @@ public class BatchIterators {
      * </pre>
      * @param supplier Used to create the state per partition
      * @param accumulator Used to add items to the partitions state
+     * @param stateLimiter Used to dynamically adjust the partition size.
      * @param <T> input item type
      * @param <A> output item type
      */
     public static <T, A> BatchIterator<A> partition(BatchIterator<T> bi,
                                                     int size,
                                                     Supplier<A> supplier,
-                                                    BiConsumer<A, T> accumulator) {
+                                                    BiConsumer<A, T> accumulator,
+                                                    Predicate<A> stateLimiter) {
         return new MappedForwardingBatchIterator<T, A>() {
 
             private A element = null;
@@ -114,11 +117,13 @@ public class BatchIterators {
 
             @Override
             public boolean moveNext() {
-                while (idx < size && bi.moveNext()) {
+                boolean stateLimitReached = false;
+                while (idx < size && stateLimitReached == false && bi.moveNext()) {
                     accumulator.accept(state, bi.currentElement());
+                    stateLimitReached = stateLimiter.test(state);
                     idx++;
                 }
-                if (idx == size || (idx > 0 && bi.allLoaded())) {
+                if (idx == size || stateLimitReached || (idx > 0 && bi.allLoaded())) {
                     element = state;
                     state = supplier.get();
                     idx = 0;

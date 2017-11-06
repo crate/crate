@@ -36,19 +36,16 @@ import io.crate.metadata.TableIdent;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -62,15 +59,12 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.mockito.Mockito.mock;
 
-public class IndexWriterProjectorUnitTest extends CrateUnitTest {
+public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final TableIdent bulkImportIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "bulk_import");
     private static Reference rawSourceReference = new Reference(
         new ReferenceIdent(bulkImportIdent, "_raw"), RowGranularity.DOC, DataTypes.STRING);
-
-    @Mock(answer = Answers.RETURNS_MOCKS)
-    ClusterService clusterService;
 
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
@@ -101,6 +95,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             scheduler,
             executor,
             TestingHelpers.getFunctions(),
+            Settings.EMPTY,
             Settings.EMPTY,
             transportBulkCreateIndicesAction,
             (request, listener) -> {},

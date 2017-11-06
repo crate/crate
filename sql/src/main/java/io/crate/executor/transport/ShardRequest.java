@@ -128,6 +128,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return getClass().getSimpleName() + "{" +
                "items=" + items +
                ", shardId=" + shardId +
+               ", timeout=" + timeout +
                '}';
     }
 
