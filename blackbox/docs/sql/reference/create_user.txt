@@ -16,7 +16,8 @@ Synopsis
 
 .. code-block:: psql
 
-  CREATE USER username;
+  CREATE USER username
+  [ WITH ( user_parameter = value [, ...]) ]
 
 Description
 ===========
@@ -25,6 +26,9 @@ Description
 CrateDB cluster. The newly created user does not have any special privileges.
 The created user can be used to authenticate against CrateDB, see
 :doc:`/administration/hba`.
+
+The statement allows to specify a password for this account. This is not
+necessary if password authentication is disabled.
 
 For usage of the ``CREATE USER`` statement see
 :doc:`/sql/administration/user_management`.
@@ -35,3 +39,13 @@ Parameters
 :username: The unique name of the database user. The name follows the
            principles of a SQL identifier (see
            :ref:`sql_lexical_keywords_identifiers`).
+
+Clauses
+=======
+
+``WITH``
+--------
+
+The following ``user_parameter`` are supported to define a new user account:
+
+:password: The password as cleartext entered as string literal.
