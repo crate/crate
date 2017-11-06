@@ -1130,6 +1130,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterUser() throws Exception {
+        printStatement("alter user crate set password = 'password'");
+        printStatement("alter user crate set password = null");
+    }
+
+    @Test
     public void testSubSelects() throws Exception {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");

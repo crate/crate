@@ -27,6 +27,7 @@ import io.crate.analyze.AlterBlobTableAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateBlobTableAnalyzedStatement;
@@ -266,6 +267,17 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                 return failedFuture(e);
             }
             return userManager.createUser(analysis.userName(), secureHash);
+        }
+
+        @Override
+        public CompletableFuture<Long> visitAlterUserStatement(AlterUserAnalyzedStatement analysis, Row parameters) {
+            SecureHash secureHash;
+            try {
+                secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
+            } catch (GeneralSecurityException | IllegalArgumentException e) {
+                return failedFuture(e);
+            }
+            return userManager.alterUser(analysis.userName(), secureHash);
         }
 
         @Override

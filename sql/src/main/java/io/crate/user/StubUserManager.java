@@ -51,6 +51,13 @@ public class StubUserManager implements UserManager {
     }
 
     @Override
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+        return CompletableFutures.failedFuture(
+            new UnsupportedFeatureException("ALTER USER is only supported in enterprise version")
+        );
+    }
+
+    @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version")

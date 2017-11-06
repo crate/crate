@@ -61,7 +61,7 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return users.containsKey(name);
     }
 
-    public void add(String name, @Nullable SecureHash secureHash) {
+    public void put(String name, @Nullable SecureHash secureHash) {
         users.put(name, secureHash);
     }
 

@@ -21,11 +21,16 @@ Introduction
 A CrateDB cluster contains a set of database users. A database user is a
 principle at cluster level.
 
-Users can be created using the `CREATE USER`_ statement and removed using the
-analoguous `DROP USER`_ statement. These statements are database management
-statements that can only be invoked by superusers that already exist in the
-CrateDB cluster. Also the users table `sys.users` is only readable by
-superusers.
+User account information is stored in the cluster metatdata of CrateDB and
+supports the following statements to create, alter and drop users:
+
+    * `CREATE USER`_
+    * `ALTER USER`_
+    * `DROP USER`_
+
+These statements are database management statements that can only be invoked by
+superusers that already exist in the CrateDB cluster. Also the users table
+`sys.users` is only readable by superusers.
 
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers
@@ -62,6 +67,22 @@ statement returns an error::
 
     cr> CREATE USER "Custom User";
     SQLActionException[UserAlreadyExistsException: User 'Custom User' already exists]
+
+
+``ALTER USER``
+==============
+
+To alter the password for an existing user from the CrateDB database cluster use
+the :ref:`ref-alter-user` SQL statement::
+
+    cr> ALTER USER user_a SET password = 'pass';
+    ALTER OK, 1 row affected (... sec)
+
+The password can be reset (cleared) if specified as ``NULL``::
+
+    cr> ALTER USER user_a SET password = NULL;
+    ALTER OK, 1 row affected (... sec)
+
 
 ``DROP USER``
 =============

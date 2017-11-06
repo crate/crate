@@ -52,6 +52,11 @@ public class DummyUserManager implements UserManager {
     }
 
     @Override
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+        return null;
+    }
+
+    @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
         return null;
     }

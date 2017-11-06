@@ -104,7 +104,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
-        newMetaData.add(name, secureHash);
+        newMetaData.put(name, secureHash);
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
 

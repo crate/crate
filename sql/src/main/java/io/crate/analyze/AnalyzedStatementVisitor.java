@@ -123,6 +123,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitAlterUserStatement(AlterUserAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     public R visitSetStatement(SetAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }

@@ -23,7 +23,7 @@
 package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.DDLUserAnalyzedStatement;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
@@ -41,7 +41,7 @@ public final class UserActions {
     private UserActions() {
     }
 
-    public static SecureHash generateSecureHash(CreateUserAnalyzedStatement statement,
+    public static SecureHash generateSecureHash(DDLUserAnalyzedStatement statement,
                                                 Row parameters,
                                                 Functions functions) throws GeneralSecurityException, IllegalArgumentException {
         try (SecureString pw = getUserPasswordProperty(statement.properties(), parameters, functions)) {
@@ -66,10 +66,14 @@ public final class UserActions {
                 if (PASSWORD_PROPERTY.equals(key)) {
                     String value = BytesRefs.toString(
                         SymbolEvaluator.evaluate(functions, properties.get(key), parameters, Collections.emptyMap()));
-                    return new SecureString(value.toCharArray());
+                    if (value != null) {
+                        return new SecureString(value.toCharArray());
+                    }
+                    // Password will be reset
+                    return null;
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "\"%s\" is not a valid setting for CREATE USER", key));
+                        "\"%s\" is not a valid user property", key));
                 }
             }
         }

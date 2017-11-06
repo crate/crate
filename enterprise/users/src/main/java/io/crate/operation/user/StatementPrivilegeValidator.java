@@ -24,6 +24,7 @@ import io.crate.analyze.AlterBlobTableAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
@@ -114,6 +115,15 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         @Override
         protected Void visitCreateUserStatement(CreateUserAnalyzedStatement analysis, User user) {
             throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        public Void visitAlterUserStatement(AlterUserAnalyzedStatement analysis, User user) {
+            // user is allowed to change it's own properties
+            if (!analysis.userName().equals(user.name())) {
+                throwUnauthorized(user);
+            }
             return null;
         }
 

@@ -83,7 +83,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             }
         };
         userManager = new UserManagerService(null, null,
-            null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
+            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
 
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
         e = SQLExecutor.builder(clusterService)
@@ -151,6 +151,19 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         expectedException.expect(UnauthorizedException.class);
         expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
         analyze("drop user ford");
+    }
+
+    @Test
+    public void testAlterOtherUsersNotAllowedAsNormalUser() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        analyze("alter user ford set password = 'pass'");
+    }
+
+    @Test
+    public void testAlterOwnUserIsAllowed() {
+        analyze("alter user normal set password = 'pass'");
+        assertThat(validationCallArguments.size(), is(0));
     }
 
     @Test

@@ -38,6 +38,7 @@ import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
+import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AnalyzerElement;
 import io.crate.sql.tree.ArithmeticExpression;
 import io.crate.sql.tree.ArrayComparisonExpression;
@@ -774,6 +775,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitAlterClusterRerouteRetryFailed(SqlBaseParser.AlterClusterRerouteRetryFailedContext context) {
         return new AlterClusterRerouteRetryFailed();
+    }
+
+    @Override
+    public Node visitAlterUser(SqlBaseParser.AlterUserContext context) {
+        return new AlterUser(
+            getIdentText(context.name),
+            visit(context.assignment(), Assignment.class)
+        );
     }
 
     @Override

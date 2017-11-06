@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.symbol.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,5 +75,19 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot resolve field references");
         CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROO WITH (PASSWORD = NO_STRING)");
+    }
+
+    @Test
+    public void testAlterUserWithPassword() throws Exception {
+        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET PASSWORD = 'ROOT'");
+        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
+    }
+
+    @Test
+    public void testAlterUserResetPassword() throws Exception {
+        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET PASSWORD = NULL");
+        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.properties().get("password"), is(Literal.of(DataTypes.UNDEFINED, null)));
     }
 }

@@ -9,6 +9,7 @@ SQL Statements
 
     alter_table
     alter_cluster
+    alter_user
     copy_from
     copy_to
     create_analyzer

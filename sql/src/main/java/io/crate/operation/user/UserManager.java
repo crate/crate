@@ -51,6 +51,15 @@ public interface UserManager extends UserLookup {
     CompletableFuture<Long> dropUser(String userName, boolean ifExists);
 
     /**
+     * Modifies a user
+     *
+     * @param userName name of the existing user to modify
+     * @param secureHash the password-hash consisting of a SHA-512 hash, salt and num. iterations
+     * @return a future which returns the number of rows when the User is modified
+     */
+    CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash);
+
+    /**
      * Apply given list of {@link Privilege}s for each given user
 
      * @param userNames     List of user names all privileges should be applied for

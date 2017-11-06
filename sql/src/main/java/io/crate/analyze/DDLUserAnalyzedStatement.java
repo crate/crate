@@ -26,15 +26,29 @@ import io.crate.analyze.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
-public class CreateUserAnalyzedStatement extends DDLUserAnalyzedStatement {
+public abstract class DDLUserAnalyzedStatement implements DDLStatement {
 
-    public CreateUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
-        super(userName, properties);
+    private final String userName;
+    private final Map<String, Symbol> properties;
+
+    public DDLUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
+        this.userName = userName;
+        this.properties = properties;
+    }
+
+    @Nullable
+    public Map<String, Symbol> properties() {
+        return properties;
+    }
+
+    public String userName() {
+        return userName;
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreateUserStatement(this, context);
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        properties.values().forEach(consumer);
     }
 }

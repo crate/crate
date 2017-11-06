@@ -87,18 +87,21 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
+    private final TransportAlterUserAction transportAlterUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
+                              TransportAlterUserAction transportAlterUserAction,
                               TransportPrivilegesAction transportPrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               ClusterService clusterService,
                               DDLClusterStateService ddlClusterStateService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
+        this.transportAlterUserAction = transportAlterUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.addListener(this);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(),
@@ -155,6 +158,18 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return 1L;
         });
         transportDropUserAction.execute(new DropUserRequest(userName, ifExists), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+            if (r.doesUserExist() == false) {
+                throw new UserUnknownException(userName);
+            }
+            return 1L;
+        });
+        transportAlterUserAction.execute(new AlterUserRequest(userName, secureHash), listener);
         return listener;
     }
 

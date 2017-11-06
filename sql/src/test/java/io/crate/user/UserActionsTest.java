@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
@@ -72,9 +73,15 @@ public class UserActionsTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNoPasswordIfPropertyIsNull() throws Exception {
+        SecureString password = UserActions.getUserPasswordProperty(ImmutableMap.of("password", Literal.of(DataTypes.UNDEFINED, null)), Row.EMPTY, functions);
+        assertNull(password);
+    }
+
+    @Test
     public void testInvalidPasswordProperty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\"invalid\" is not a valid setting for CREATE USER");
+        expectedException.expectMessage("\"invalid\" is not a valid user property");
         UserActions.getUserPasswordProperty(ImmutableMap.of("invalid", Literal.of("password")), Row.EMPTY, functions);
     }
 }

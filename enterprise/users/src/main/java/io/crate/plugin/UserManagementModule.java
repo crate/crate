@@ -22,6 +22,7 @@
 
 package io.crate.plugin;
 
+import io.crate.operation.user.TransportAlterUserAction;
 import io.crate.operation.user.TransportCreateUserAction;
 import io.crate.operation.user.TransportDropUserAction;
 import io.crate.operation.user.TransportPrivilegesAction;
@@ -36,6 +37,7 @@ public class UserManagementModule extends AbstractModule {
     protected void configure() {
         bind(TransportCreateUserAction.class).asEagerSingleton();
         bind(TransportDropUserAction.class).asEagerSingleton();
+        bind(TransportAlterUserAction.class).asEagerSingleton();
         bind(TransportPrivilegesAction.class).asEagerSingleton();
         bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
         bind(UserLookup.class).to(UserManagerService.class).asEagerSingleton();

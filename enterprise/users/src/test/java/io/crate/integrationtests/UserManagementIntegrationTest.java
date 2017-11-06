@@ -94,6 +94,35 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
+    public void testAlterUserPassword() throws Exception {
+        executeAsSuperuser("CREATE USER arthur");
+        assertUserIsCreated("arthur");
+        executeAsSuperuser("CREATE USER ford WITH (password = ?)", new Object[]{"foo"});
+        assertUserIsCreated("ford");
+        executeAsSuperuser("ALTER USER arthur SET password = ?", new Object[]{"pass"});
+        executeAsSuperuser("ALTER USER ford SET password = ?", new Object[]{"pass"});
+        executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| ********| false\n" +
+                                                                    "ford| ********| false\n"));
+    }
+
+    @Test
+    public void testAlterUserResetPassword() throws Exception {
+        executeAsSuperuser("CREATE USER arthur WITH (password = 'foo')");
+        assertUserIsCreated("arthur");
+        executeAsSuperuser("ALTER USER arthur SET password = null");
+        executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| NULL| false\n"));
+    }
+
+    @Test
+    public void testAlterNonExistingUserThrowsException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UserUnknownException: User 'unknown_user' does not exist");
+        executeAsSuperuser("alter user unknown_user set password = 'unknown'");
+    }
+
+    @Test
     public void testDropUser() throws Exception {
         executeAsSuperuser("create user ford");
         assertUserIsCreated("ford");

@@ -46,7 +46,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpUserManager() throws Exception {
         userManagerService = new UserManagerService(null, null,
-            null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
+            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
     }
 
     @Test

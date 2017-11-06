@@ -37,6 +37,7 @@ import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.AlterTableReroute;
+import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.CopyFrom;
@@ -122,6 +123,7 @@ public class Analyzer {
     private final CreateIngestionRuleAnalyzer createIngestionRuleAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
+    private final AlterUserAnalyzer alterUserAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -178,6 +180,7 @@ public class Analyzer {
         this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
+        this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, TransactionContext transactionContext, ParameterContext parameterContext) {
@@ -379,6 +382,11 @@ public class Analyzer {
                 node.name(),
                 node.ifExists()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitAlterUser(AlterUser node, Analysis context) {
+            return alterUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

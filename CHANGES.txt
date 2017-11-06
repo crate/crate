@@ -39,6 +39,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support to change the password of existing users using ``ALTER USER``.
+
 - Added support for disabling the column store per ``STRING`` column on table
   creation and on adding columns. In conjunction with disabling indexing on that
   column, this will support storing strings greater than 32kb. Be aware that the
