@@ -77,6 +77,7 @@ import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
+import io.crate.sql.tree.Union;
 import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
 
@@ -589,6 +590,18 @@ public final class SqlFormatter {
         public Void visitPartitionedBy(PartitionedBy node, Integer indent) {
             append(indent, "PARTITIONED BY ");
             appendFlatNodeList(node.columns(), indent);
+            return null;
+        }
+
+        @Override
+        protected Void visitUnion(Union node, Integer context) {
+            process(node.getLeft(), context);
+            builder.append("UNION ");
+            if (!node.isDistinct()) {
+                builder.append(" ALL");
+            }
+            builder.append(" ");
+            process(node.getRight(), context);
             return null;
         }
 
