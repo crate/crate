@@ -18,7 +18,7 @@
 
 package io.crate.operation.user;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -31,9 +31,9 @@ import java.util.Set;
 
 import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_EXCEPTION_VALIDATOR;
 import static io.crate.operation.user.UserManagerService.ALWAYS_FAIL_STATEMENT_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
 import static io.crate.operation.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
-import static io.crate.operation.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -61,8 +61,8 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNewUser() {
-        Set<User> users = UserManagerService.getUsers(new UsersMetaData(ImmutableList.of("arthur")), new UsersPrivilegesMetaData());
-        assertThat(users, containsInAnyOrder(User.of("arthur"), CRATE_USER));
+        Set<User> users = UserManagerService.getUsers(new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetaData());
+        assertThat(users, containsInAnyOrder(User.of("Arthur"), CRATE_USER));
     }
 
     @Test

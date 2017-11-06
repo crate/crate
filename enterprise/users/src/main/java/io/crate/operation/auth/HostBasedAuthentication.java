@@ -30,19 +30,17 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 
 public class HostBasedAuthentication implements Authentication {
 
-    public static final String DEFAULT_AUTH_METHOD = "trust";
-    public static final String KEY_USER = "user";
-    public static final String KEY_ADDRESS = "address";
-    public static final String KEY_METHOD = "method";
-    public static final String KEY_PROTOCOL = "protocol";
+    private static final String DEFAULT_AUTH_METHOD = "trust";
+    private static final String KEY_USER = "user";
+    private static final String KEY_ADDRESS = "address";
+    private static final String KEY_METHOD = "method";
+    static final String KEY_PROTOCOL = "protocol";
 
     enum SSL {
         REQUIRED("on"),
@@ -70,14 +68,12 @@ public class HostBasedAuthentication implements Authentication {
      }
      */
     private Map<String, Map<String, String>> hbaConf;
-
-    private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
+    private final UserLookup userLookup;
 
     @Inject
     public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
         hbaConf = convertHbaSettingsToHbaConf(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
-        authMethodRegistry.put(TrustAuthenticationMethod.NAME, () -> new TrustAuthenticationMethod(userLookup));
-        authMethodRegistry.put(ClientCertAuth.NAME, () -> new ClientCertAuth(userLookup));
+        this.userLookup = userLookup;
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
@@ -96,6 +92,23 @@ public class HostBasedAuthentication implements Authentication {
         return hostBasedConf.build();
     }
 
+    @Nullable
+    private AuthenticationMethod methodForNameAndProtocol(String method, Protocol protocol) {
+        switch (method) {
+            case (TrustAuthenticationMethod.NAME):
+                return new TrustAuthenticationMethod(userLookup);
+            case (ClientCertAuth.NAME):
+                return new ClientCertAuth(userLookup);
+            case (PasswordAuthenticationMethod.NAME):
+                if (Protocol.POSTGRES.equals(protocol)) {
+                    return new PasswordAuthenticationMethod(userLookup);
+                }
+                return null;
+            default:
+                return null;
+        }
+    }
+
     @Override
     @Nullable
     public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connProperties) {
@@ -105,10 +118,7 @@ public class HostBasedAuthentication implements Authentication {
             String methodName = entry.get()
                 .getValue()
                 .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD);
-            Supplier<AuthenticationMethod> supplier = authMethodRegistry.get(methodName);
-            if (supplier != null) {
-                return supplier.get();
-            }
+            return methodForNameAndProtocol(methodName, connProperties.protocol());
         }
         return null;
     }

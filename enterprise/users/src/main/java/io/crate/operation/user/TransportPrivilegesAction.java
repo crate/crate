@@ -110,7 +110,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         List<String> unknownUserNames = null;
         for (String userName : userNames) {
             //noinspection PointlessBooleanExpression
-            if (usersMetaData.users().contains(userName) == false) {
+            if (usersMetaData.userNames().contains(userName) == false) {
                 if (unknownUserNames == null) {
                     unknownUserNames = new ArrayList<>();
                 }

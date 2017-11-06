@@ -399,6 +399,10 @@ public final class SqlFormatter {
         @Override
         public Void visitCreateUser(CreateUser node, Integer indent) {
             builder.append("CREATE USER ").append(quoteIdentifierIfNeeded(node.name()));
+            if (node.properties() != null && !node.properties().properties().isEmpty()) {
+                builder.append("\n");
+                node.properties().accept(this, indent);
+            }
             return null;
         }
 

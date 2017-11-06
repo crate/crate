@@ -20,22 +20,37 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.metadata;
 
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import com.google.common.collect.ImmutableMap;
+import io.crate.user.SecureHash;
+import org.elasticsearch.common.settings.SecureString;
 
-import static org.hamcrest.core.Is.is;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+import java.util.Map;
 
-public class AuthenticationMethodTest extends CrateUnitTest {
+import static org.junit.Assert.assertNotNull;
 
-    @Test
-    public void testAlwaysOKNullAuthentication() throws Exception {
-        AlwaysOKNullAuthentication alwaysOkNullAuth = new AlwaysOKNullAuthentication();
+public final class UserDefinitions {
 
-        AuthenticationMethod alwaysOkNullAuthMethod = alwaysOkNullAuth.resolveAuthenticationType("crate", null);
+    public static final Map<String, SecureHash> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", null);
 
-        assertThat(alwaysOkNullAuthMethod.name(), is("alwaysOkNull"));
-        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null, null));
+    public static final Map<String, SecureHash> DUMMY_USERS = ImmutableMap.of(
+        "Ford",
+        getSecureHash("fords-password"),
+        "Arthur",
+        getSecureHash("arthurs-password")
+    );
+
+    private static SecureHash getSecureHash(String password) {
+        SecureHash hash = null;
+        try {
+            hash = SecureHash.of(new SecureString(password.toCharArray()));
+        } catch (GeneralSecurityException e) {
+            // do nothing;
+        }
+        assertNotNull(hash);
+        return hash;
     }
 }

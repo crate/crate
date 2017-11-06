@@ -22,6 +22,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -41,6 +42,16 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rows()[0][0], is(0L));
     }
 
+    @After
+    public void dropAllUsers() throws Exception {
+        // clean all created users
+        executeAsSuperuser("SELECT name FROM sys.users WHERE superuser = FALSE");
+        for (Object[] objects : response.rows()) {
+            String user = (String) objects[0];
+            executeAsSuperuser("DROP user " + user);
+        }
+    }
+
     @Test
     public void testCreateUser() throws Exception {
         executeAsSuperuser("create user trillian");
@@ -53,23 +64,33 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         // The sys users table contains two columns, name and superuser
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
+                                                                    "password| string\n" +
                                                                     "superuser| boolean\n"));
     }
 
     @Test
     public void testSysUsersTableDefaultUser() throws Exception {
         // The sys.users table always contains the superuser crate
-        executeAsSuperuser("select name, superuser from sys.users where name = 'crate'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
+        executeAsSuperuser("select name, password, superuser from sys.users where name = 'crate'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("crate| NULL| true\n"));
     }
 
     @Test
     public void testSysUsersTable() throws Exception {
-        executeAsSuperuser("create user arthur");
+        executeAsSuperuser("CREATE USER arthur");
         assertUserIsCreated("arthur");
-        executeAsSuperuser("select name, superuser from sys.users order by name limit 1");
+        executeAsSuperuser("CREATE USER ford WITH (password = 'foo')");
+        assertUserIsCreated("ford");
+        executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
-        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| false\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| NULL| false\n" +
+                                                                    "ford| ********| false\n"));
+    }
+
+    @Test
+    public void testCreateUserWithPasswordExpression() throws Exception {
+        executeAsSuperuser("CREATE USER arthur WITH (password = substr(?, 3))", new Object[]{"**password"});
+        assertUserIsCreated("arthur");
     }
 
     @Test

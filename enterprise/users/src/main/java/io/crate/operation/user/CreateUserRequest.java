@@ -18,9 +18,11 @@
 
 package io.crate.operation.user;
 
+import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -29,16 +31,24 @@ import java.io.IOException;
 public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
 
     private String userName;
+    @Nullable
+    private SecureHash secureHash;
 
     public CreateUserRequest() {
     }
 
-    public CreateUserRequest(String userName) {
+    public CreateUserRequest(String userName, @Nullable SecureHash attributes) {
         this.userName = userName;
+        this.secureHash = attributes;
     }
 
     public String userName() {
         return userName;
+    }
+
+    @Nullable
+    public SecureHash secureHash() {
+        return secureHash;
     }
 
     @Override
@@ -53,11 +63,13 @@ public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         userName = in.readString();
+        secureHash = in.readOptionalWriteable(SecureHash::readFrom);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(userName);
+        out.writeOptionalWriteable(secureHash);
     }
 }

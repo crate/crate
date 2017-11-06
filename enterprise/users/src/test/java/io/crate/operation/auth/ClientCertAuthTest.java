@@ -57,7 +57,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
     public void testLookupValidUserWithCert() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
 
-        User user = clientCertAuth.authenticate("example.com", sslConnWithCert);
+        User user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
         assertThat(user, is(exampleUser));
     }
 
@@ -66,7 +66,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> User.of("arthur"));
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
-        clientCertAuth.authenticate("arthur", sslConnWithCert);
+        clientCertAuth.authenticate("arthur", null, sslConnWithCert);
     }
 
     @Test
@@ -74,7 +74,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> null);
 
         expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
-        clientCertAuth.authenticate("example.com", sslConnWithCert);
+        clientCertAuth.authenticate("example.com", null, sslConnWithCert);
     }
 
     @Test
@@ -86,7 +86,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
 
         expectedException.expectMessage("Client certificate authentication failed for user \"example.com\"");
-        clientCertAuth.authenticate("example.com", connectionProperties);
+        clientCertAuth.authenticate("example.com", null, connectionProperties);
     }
 
     @Test
@@ -95,6 +95,6 @@ public class ClientCertAuthTest extends CrateUnitTest {
         ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
-        clientCertAuth.authenticate("arthur_is_wrong", conn);
+        clientCertAuth.authenticate("arthur_is_wrong", null, conn);
     }
 }

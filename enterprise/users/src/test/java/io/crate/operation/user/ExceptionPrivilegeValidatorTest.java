@@ -47,7 +47,7 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new User("normal", ImmutableSet.of(), ImmutableSet.of()) {
+        user = new User("normal", ImmutableSet.of(), ImmutableSet.of(), null) {
 
             @Override
             public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {

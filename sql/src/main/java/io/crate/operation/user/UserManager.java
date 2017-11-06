@@ -23,6 +23,7 @@
 package io.crate.operation.user;
 
 import io.crate.analyze.user.Privilege;
+import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -37,9 +38,10 @@ public interface UserManager extends UserLookup {
      * creates a user
      *
      * @param userName name of the user to create
+     * @param secureHash the password-hash consisting of a SHA-512 hash, salt and num. iterations
      * @return a future which returns the number of rows when the User is created
      */
-    CompletableFuture<Long> createUser(String userName);
+    CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash);
 
     /**
      * deletes a user

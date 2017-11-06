@@ -91,7 +91,7 @@ For example, a host based configuration can look like this:
             address: 127.0.0.1
             ssl: off
           z:
-            method: trust
+            method: password
 
 .. NOTE::
 
@@ -134,9 +134,10 @@ the user ``trinity`` can authenticate to CrateDB over HTTP from the
 authentication method is specified, the ``trust`` method will be used by
 default.
 
-And finally the entry ``{method: trust}`` means that any existing user (or
-superuser) can authenticate to CrateDB from any IP address using the ``trust``
-method.
+And finally the entry ``{method: password}`` means that any existing user (or
+superuser) can authenticate to CrateDB from any IP address using the
+``password`` method. Note that ``password`` authentication is only available
+via Postgres Protocol, even though no protocol is specified.
 
 .. NOTE::
 

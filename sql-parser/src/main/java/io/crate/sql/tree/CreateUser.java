@@ -23,22 +23,32 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+
+import javax.annotation.Nullable;
 
 public class CreateUser extends Statement {
 
     private final String name;
+    private final GenericProperties properties;
 
-    public CreateUser(String name) {
+    public CreateUser(String name, @Nullable GenericProperties properties) {
         this.name = name;
+        this.properties = properties;
     }
 
     public String name() {
         return name;
     }
 
+    @Nullable
+    public GenericProperties properties() {
+        return properties;
+    }
+
     @Override
     public int hashCode() {
-        return name.hashCode();
+        return Objects.hashCode(name, properties);
     }
 
     @Override
@@ -48,6 +58,7 @@ public class CreateUser extends Statement {
 
         CreateUser that = (CreateUser)obj;
         if (!name.equals(that.name)) return false;
+        if (!properties.equals(that.properties)) return false;
         return true;
     }
 
@@ -55,6 +66,7 @@ public class CreateUser extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
+            .add("properties", properties)
             .toString();
     }
 

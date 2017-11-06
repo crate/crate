@@ -373,6 +373,7 @@ public class TestStatementBuilder {
     public void testCreateUserStmtBuilder() {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
+        printStatement("create user foo with (password = 'foo')");
     }
 
     @Test

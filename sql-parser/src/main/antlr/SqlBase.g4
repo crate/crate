@@ -417,7 +417,7 @@ createStmt
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
-    | CREATE USER name=ident                                                         #createUser
+    | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE INGEST RULE rule_name=ident
         ON source_ident=ident
         (where)?
