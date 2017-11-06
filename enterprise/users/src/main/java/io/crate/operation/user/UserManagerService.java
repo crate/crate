@@ -32,6 +32,7 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -43,6 +44,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -50,7 +52,7 @@ import java.util.function.Consumer;
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    public static final User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
+    public static final User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of(), null);
 
     @VisibleForTesting
     static final StatementAuthorizedValidator BYPASS_AUTHORIZATION_CHECKS = s -> {
@@ -114,26 +116,28 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                               @Nullable UsersPrivilegesMetaData privilegesMetaData) {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
         if (metaData != null) {
-            for (String userName : metaData.users()) {
+            for (Map.Entry<String, SecureHash> user: metaData.users().entrySet()) {
+                String userName = user.getKey();
+                SecureHash password = user.getValue();
                 Set<Privilege> privileges = null;
                 if (privilegesMetaData != null) {
                     privileges = privilegesMetaData.getUserPrivileges(userName);
                 }
-                usersBuilder.add(User.of(userName, privileges));
+                usersBuilder.add(User.of(userName, privileges, password));
             }
         }
         return usersBuilder.build();
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist()) {
                 throw new UserAlreadyExistsException(userName);
             }
             return 1L;
         });
-        transportCreateUserAction.execute(new CreateUserRequest(userName), listener);
+        transportCreateUserAction.execute(new CreateUserRequest(userName, secureHash), listener);
         return listener;
     }
 

@@ -20,49 +20,40 @@
  * agreement.
  */
 
-package io.crate.testing;
+package io.crate.operation.auth;
 
-import io.crate.analyze.user.Privilege;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
-import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserLookup;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.user.SecureHash;
+import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
 
-public class DummyUserManager implements UserManager {
+public class PasswordAuthenticationMethod implements AuthenticationMethod {
+
+    public static final String NAME = "password";
+    private UserLookup userLookup;
+
+    PasswordAuthenticationMethod(UserLookup userLookup) {
+        this.userLookup = userLookup;
+    }
 
     @Nullable
     @Override
-    public User findUser(String userName) {
-        return User.of(userName);
+    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+        User user = userLookup.findUser(userName);
+        if (user != null && passwd != null && passwd.length() > 0) {
+            SecureHash secureHash = user.password();
+            if (secureHash != null && secureHash.verifyHash(passwd)) {
+                return user;
+            }
+        }
+        throw new RuntimeException("password authentication failed for user \"" + userName + "\"");
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        return null;
-    }
-
-    @Override
-    public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
-        return s -> {};
-    }
-
-    @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
-        return t -> {};
+    public String name() {
+        return NAME;
     }
 }

@@ -15,6 +15,17 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - The default value of the setting ``auth.host_based.enabled`` (``false``) is
+   overwritten with ``true`` in the ``crate.yml`` that is shipped with the
+   tarball and Linux distributions of CrateDB and also contains a sane default
+   configuration for ``auth.host_based.config``.
+   This is done in order to provide a better default installation for new users
+   without breaking exising HBA configurations.
+   An implication of these settings is that whenever Enterprise is enabled
+   (default behaviour) connections from remote hosts *always* require
+   password authentication. Note, that when running CrateDB in Docker, the host
+   of the Docker container is also considered a remote host.
+
  - Columns aren't implicitly cast to a type anymore. Whenever columns are
    compared to Literals (e.g. 'string', 1, 1.2), these literals will be
    converted to the column type but not vice-versa. The column can still be
@@ -27,6 +38,15 @@ Breaking Changes
 
 Changes
 =======
+
+- Added new "password" authentication method which is available for connections
+  via the Postgres Protocol. This method allowes clients to authenticate using
+  a valid database user and its password.
+
+- Added ``WITH`` clause to ``CREATE USER`` statement to specify user properties
+  upon creation. The single property available right now is the ``password``
+  property which can be used for "password" authentication. User passwords are
+  never stored in clear-text inside CrateDB.
 
 - The "address" field of the ``auth.host_based.config`` setting allows the
   special ``_local_`` identifier additionally to IP and CIDR notation.

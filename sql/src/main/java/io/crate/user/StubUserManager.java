@@ -37,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 public class StubUserManager implements UserManager {
 
     @Override
-    public CompletableFuture<Long> createUser(String userName) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("CREATE USER is only supported in enterprise version")
         );

@@ -138,4 +138,13 @@ class ClientMessages {
         buffer.writeBytes(portalOrStatementBytes);
         buffer.writeByte(0);
     }
+
+    static void sendPasswordMessage(ByteBuf buffer, String password) {
+        byte[] passwordBytes = password.getBytes(StandardCharsets.UTF_8);
+        int length = 4 + passwordBytes.length + 1;
+        buffer.writeByte('p');
+        buffer.writeInt(length);
+        buffer.writeBytes(passwordBytes);
+        buffer.writeByte(0);
+    }
 }

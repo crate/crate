@@ -88,7 +88,6 @@ public class EvaluatingNormalizer {
         this.visitor = new BaseVisitor();
     }
 
-
     private class BaseVisitor extends FunctionCopyVisitor<TransactionContext> {
         @Override
         public Symbol visitField(Field field, TransactionContext context) {

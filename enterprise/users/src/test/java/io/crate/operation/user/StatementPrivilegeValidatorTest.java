@@ -74,7 +74,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new User("normal", ImmutableSet.of(), ImmutableSet.of()) {
+        user = new User("normal", ImmutableSet.of(), ImmutableSet.of(), null) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));

@@ -48,7 +48,7 @@ public class PrivilegesMetaDataUpgrader implements CustomMetaDataUpgrader {
 
         UsersMetaData usersMetaData = (UsersMetaData) customMetaData.get(UsersMetaData.TYPE);
         if (usersMetaData != null) {
-            List<String> users = usersMetaData.users();
+            List<String> users = usersMetaData.userNames();
             if (users.size() == 0) {
                 return customMetaData;
             }
@@ -59,7 +59,7 @@ public class PrivilegesMetaDataUpgrader implements CustomMetaDataUpgrader {
                 privilegesMetaData = new UsersPrivilegesMetaData();
                 customMetaData.put(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
             }
-            for (String userName : usersMetaData.users()) {
+            for (String userName : usersMetaData.userNames()) {
                 Set<Privilege> userPrivileges = privilegesMetaData.getUserPrivileges(userName);
                 if (userPrivileges == null) {
                     userPrivileges = new HashSet<>();

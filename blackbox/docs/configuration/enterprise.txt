@@ -117,10 +117,10 @@ The meaning of the fields of the are as follows:
   | *Runtime:* ``no``
 
   | The authentication method to use when a connection matches this entry.
-  | Valid values are ``trust`` and ``cert``. If no method is
+  | Valid values are ``trust``, ``cert``, and ``password``. If no method is
   | specified, the ``trust`` method is used by default.
-  | See :ref:`auth_trust` and :ref:`auth_cert` for more information about the
-  | methods.
+  | See :ref:`auth_trust`, :ref:`auth_cert` and :ref:`auth_password` for more
+  | information about these methods.
 
 **auth.host_based.config.${order}.protocol**
   | *Runtime:* ``no``
@@ -128,6 +128,10 @@ The meaning of the fields of the are as follows:
   | Specifies the protocol for which the authentication entry should be used.
   | If no protocol is specified, then this entry will be valid for all
   | protocols that rely on host based authentication see :ref:`auth_trust`).
+  | Certain authentication methods (e.g. ``password``) are only available over
+  | the Postgres Protocol, which means that even if no specific protocol is
+  | specified the HBA entry will only apply users connecting via the Postgres
+  | Protocol.
 
 **auth.host_based.config.${order}.ssl**
   | *Runtime:* ``no``

@@ -20,22 +20,29 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.analyze.symbol;
 
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import io.crate.data.Row;
 
-import static org.hamcrest.core.Is.is;
+public final class ParamSymbols extends FunctionCopyVisitor<Row> {
 
-public class AuthenticationMethodTest extends CrateUnitTest {
+    private ParamSymbols() {
 
-    @Test
-    public void testAlwaysOKNullAuthentication() throws Exception {
-        AlwaysOKNullAuthentication alwaysOkNullAuth = new AlwaysOKNullAuthentication();
+    }
 
-        AuthenticationMethod alwaysOkNullAuthMethod = alwaysOkNullAuth.resolveAuthenticationType("crate", null);
+    private static final ParamSymbols INSTANCE = new ParamSymbols();
 
-        assertThat(alwaysOkNullAuthMethod.name(), is("alwaysOkNull"));
-        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null, null));
+    public static Symbol toLiterals(Symbol st, Row params) {
+        return INSTANCE.process(st, params);
+    }
+
+    @Override
+    protected Symbol visitSymbol(Symbol symbol, Row params) {
+        return symbol;
+    }
+
+    @Override
+    public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
+        return Literal.of(parameterSymbol.valueType(), params.get(parameterSymbol.index()));
     }
 }

@@ -55,8 +55,11 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.executor.transport.RerouteActions;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
+import io.crate.metadata.Functions;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
+import io.crate.user.SecureHash;
+import io.crate.user.UserActions;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -72,9 +75,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -98,6 +104,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
+    private final Functions functions;
 
 
     @Inject
@@ -111,7 +118,8 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                                   Provider<UserManager> userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
-                                  Provider<TransportRefreshAction> transportRefreshActionProvider) {
+                                  Provider<TransportRefreshAction> transportRefreshActionProvider,
+                                  Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
@@ -123,6 +131,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.userManager = userManagerProvider.get();
         this.rerouteAction = rerouteAction;
+        this.functions = functions;
     }
 
     @Override
@@ -192,7 +201,6 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
             return listener;
         }
 
-
         @Override
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
                                                                      Row parameters) {
@@ -251,7 +259,13 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
-            return userManager.createUser(analysis.userName());
+            SecureHash secureHash;
+            try {
+                secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
+            } catch (GeneralSecurityException | IllegalArgumentException e) {
+                return failedFuture(e);
+            }
+            return userManager.createUser(analysis.userName(), secureHash);
         }
 
         @Override

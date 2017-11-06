@@ -120,6 +120,7 @@ public class Analyzer {
     private final PrivilegesAnalyzer privilegesAnalyzer;
     private final CreateIngestionRuleAnalyzer createIngestionRuleAnalyzer;
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
+    private final CreateUserAnalyzer createUserAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -174,6 +175,7 @@ public class Analyzer {
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
+        this.createUserAnalyzer = new CreateUserAnalyzer(functions);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -366,7 +368,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
-            return new CreateUserAnalyzedStatement(node.name());
+            return createUserAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

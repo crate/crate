@@ -22,12 +22,20 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Symbol;
+import org.elasticsearch.common.Nullable;
+
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class CreateUserAnalyzedStatement implements DDLStatement {
 
     private final String userName;
+    private final Map<String, Symbol> properties;
 
-    public CreateUserAnalyzedStatement(String userName) {
+    public CreateUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
         this.userName = userName;
+        this.properties = properties;
     }
 
     @Override
@@ -37,5 +45,15 @@ public class CreateUserAnalyzedStatement implements DDLStatement {
 
     public String userName() {
         return userName;
+    }
+
+    @Nullable
+    public Map<String, Symbol> properties() {
+        return properties;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        properties.values().forEach(consumer);
     }
 }

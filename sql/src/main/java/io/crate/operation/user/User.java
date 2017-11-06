@@ -22,8 +22,10 @@
 
 package io.crate.operation.user;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.user.Privilege;
+import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
@@ -36,32 +38,38 @@ public class User {
         SUPERUSER
     }
 
-    private final Set<Role> roles;
-
     private final String name;
-
+    private final Set<Role> roles;
     private final UserPrivileges privileges;
+    private final SecureHash password;
 
-    User(String name, Set<Role> roles, Set<Privilege> privileges) {
+    User(String name, Set<Role> roles, Set<Privilege> privileges, SecureHash password) {
         this.roles = roles;
         this.name = name;
         this.privileges = new UserPrivileges(privileges);
+        this.password = password;
     }
 
     public static User of(String name) {
-        return new User(name, ImmutableSet.of(), ImmutableSet.of());
+        return new User(name, ImmutableSet.of(), ImmutableSet.of(), null);
     }
 
-    public static User of(String name, @Nullable Set<Privilege> privileges) {
-        return new User(name, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges);
+    public static User of(String name, @Nullable Set<Privilege> privileges, SecureHash password) {
+        return new User(name, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges, password);
     }
 
+    @VisibleForTesting
     public static User of(String name, EnumSet<Role> roles) {
-        return new User(name, roles, ImmutableSet.of());
+        return new User(name, roles, ImmutableSet.of(), null);
     }
 
     public String name() {
         return name;
+    }
+
+    @Nullable
+    public SecureHash password() {
+        return password;
     }
 
     @SuppressWarnings("WeakerAccess")
