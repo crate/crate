@@ -22,11 +22,15 @@
 
 package io.crate.action.sql;
 
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
@@ -121,5 +125,19 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Requested parameter index exceeds the number of parameters");
         assertThat(session.getParamType("S_1", 3), is(DataTypes.UNDEFINED));
+    }
+
+    @Test
+    public void testExtractTypesFromDelete() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("delete from users where name = ?"),
+            SessionContext.create(),
+            ParamTypeHints.EMPTY
+        );
+        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+
+        assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING }));
     }
 }
