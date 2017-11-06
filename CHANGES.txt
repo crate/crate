@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fix a NPE exception which could occur when joining four tables with a join
+  condition which referred to fields from the leftmost relation.
+
 - Fix a problem that caused ``WITHIN`` queries to return no or incorrect
   results.
 
