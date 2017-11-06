@@ -1163,6 +1163,21 @@ public class TestStatementBuilder {
         printStatement("SELECT a WHERE CASE WHEN x <> 0 THEN y/x > 1.5 ELSE false END");
     }
 
+    @Test
+    public void testUnions() throws Exception {
+        printStatement("select * from foo union select * from bar");
+        printStatement("select * from foo union all select * from bar");
+        printStatement("select 1 " +
+                       "union select 2 " +
+                       "union all select 3");
+        printStatement("select 1 union " +
+                       "select 2 union all " +
+                       "select 3 union " +
+                       "select 4 union all " +
+                       "select 5 " +
+                       "order by 1");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
