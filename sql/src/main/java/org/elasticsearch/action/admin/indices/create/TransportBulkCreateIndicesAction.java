@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import io.crate.metadata.PartitionName;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -88,6 +89,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS;
 
 
 /**
@@ -170,13 +174,22 @@ public class TransportBulkCreateIndicesAction
             if (response.isAcknowledged()) {
                 activeShardsObserver.waitForActiveShards(request.indices(), ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
-                        if (!shardsAcked) {
-                            logger.debug("[{}] indices created, but the operation timed out while waiting for " +
-                                         "enough shards to be started.", request.indices());
+                        if (!shardsAcked && logger.isInfoEnabled()) {
+                            String partitionTemplateName = PartitionName.templateName(request.indices().iterator().next());
+                            IndexTemplateMetaData templateMetaData = state.metaData().getTemplates().get(partitionTemplateName);
+
+                            logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
+                                         "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
+                                         "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
+                                request.indices(), request.timeout(),
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetaData.getSettings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetaData.getSettings()));
                         }
                         listener.onResponse(new BulkCreateIndicesResponse(response.isAcknowledged()));
                     }, listener::onFailure);
             } else {
+                logger.warn("[{}] Table partitions created, but publishing new cluster state timed out. Timeout={}",
+                    request.indices(), request.timeout());
                 listener.onResponse(new BulkCreateIndicesResponse(false));
             }
         }, listener::onFailure));
