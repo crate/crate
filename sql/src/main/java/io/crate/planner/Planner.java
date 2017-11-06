@@ -44,7 +44,6 @@ import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.ResetAnalyzedStatement;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
@@ -199,7 +198,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 fetchSize = this.fetchSize;
             }
             return planner.process(
-                new SelectAnalyzedStatement(selectSymbol.relation()),
+                selectSymbol.relation(),
                 new Planner.Context(
                     planner,
                     logicalPlanner,
@@ -312,8 +311,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitSelectStatement(SelectAnalyzedStatement statement, Context context) {
-        return selectStatementPlanner.plan(statement, context);
+    public Plan visitSelectStatement(QueriedRelation relation, Context context) {
+        return selectStatementPlanner.plan(relation, context);
     }
 
     @Override

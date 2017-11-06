@@ -25,7 +25,6 @@ package io.crate.planner;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -46,8 +45,8 @@ class SelectStatementPlanner {
         visitor = new Visitor(logicalPlanner);
     }
 
-    public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
-        return visitor.process(statement.relation(), context);
+    public Plan plan(QueriedRelation relation, Planner.Context context) {
+        return visitor.process(relation, context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {

@@ -21,6 +21,8 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -31,7 +33,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
-public interface QueriedRelation extends AnalyzedRelation {
+public interface QueriedRelation extends AnalyzedRelation, AnalyzedStatement {
 
     /**
      * The long-/midterm goal is to deprecate the QuerySpec;
@@ -96,7 +98,19 @@ public interface QueriedRelation extends AnalyzedRelation {
      * Calls the consumer for each top-level symbol in the relation
      * (Arguments/children of function symbols are not visited)
      */
+    @Override
     default void visitSymbols(Consumer<? super Symbol> consumer) {
         querySpec().visitSymbols(consumer);
+    }
+
+
+    @Override
+    default <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitSelectStatement(this, context);
+    }
+
+    @Override
+    default boolean isWriteOperation() {
+        return false;
     }
 }

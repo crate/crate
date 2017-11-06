@@ -25,7 +25,6 @@ package io.crate.planner.consumer;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -91,22 +90,20 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMakeJoinConditionWith() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a in (select 'foo')");
-        QueriedTableRelation rel = ((QueriedTableRelation) stmt.relation());
-        Function query = (Function) rel.querySpec().where().query();
+        QueriedTableRelation relation = executor.analyze("select * from t1 where a in (select 'foo')");
+        Function query = (Function) relation.querySpec().where().query();
 
         SelectSymbol subquery = SemiJoins.getSubqueryOrNull(query.arguments().get(1));
         Symbol joinCondition = SemiJoins.makeJoinCondition(
             new SemiJoins.SemiJoinCandidate(query, subquery),
-            rel.tableRelation());
+            relation.tableRelation());
 
         assertThat(joinCondition, isSQL("(doc.t1.a = .empty_row.'foo')"));
     }
 
     @Test
     public void testSemiJoinRewriteOfWhereClause() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
-        QueriedRelation rel = stmt.relation();
+        QueriedRelation rel = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
         MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new TransactionContext(SessionContext.create()));
 
@@ -124,8 +121,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAntiJoinRewriteOfWhereClause() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
-        QueriedRelation rel = stmt.relation();
+        QueriedRelation rel = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
         MultiSourceSelect antiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new TransactionContext(SessionContext.create()));
 
@@ -143,9 +139,8 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQueryWithOrIsNotRewritten() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 where a in (select 'foo') or a = '10'");
-        QueriedRelation rel = stmt.relation();
-        QueriedRelation semiJoin = semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
+        QueriedRelation relation = executor.analyze("select * from t1 where a in (select 'foo') or a = '10'");
+        QueriedRelation semiJoin = semiJoins.tryRewrite(relation, new TransactionContext(SessionContext.create()));
 
         assertThat(semiJoin, nullValue());
     }
@@ -158,12 +153,11 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWriteWithMultipleInClauses() throws Exception {
-        SelectAnalyzedStatement stmt = executor.analyze("select * from t1 " +
+        QueriedRelation relation = executor.analyze("select * from t1 " +
                                                         "where " +
                                                         "   x in (select * from unnest([1, 2])) " +
                                                         "   and x not in (select 1)");
-        QueriedRelation rel = stmt.relation();
-        QueriedRelation semiJoins = this.semiJoins.tryRewrite(rel, new TransactionContext(SessionContext.create()));
+        QueriedRelation semiJoins = this.semiJoins.tryRewrite(relation, new TransactionContext(SessionContext.create()));
 
         assertThat(semiJoins, instanceOf(MultiSourceSelect.class));
         MultiSourceSelect mss = (MultiSourceSelect) semiJoins;

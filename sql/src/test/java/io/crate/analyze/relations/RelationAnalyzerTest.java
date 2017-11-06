@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.exceptions.ValidationException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -49,8 +48,8 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testColumnNameFromArrayComparisonExpression() throws Exception {
-        SelectAnalyzedStatement statement = executor.analyze("select 'foo' = any(partitioned_by) " +
-                                                             "from information_schema.tables");
-        assertThat(statement.relation().fields().get(0).path().outputName(), is("'foo' = ANY(partitioned_by)"));
+        QueriedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
+                                                    "from information_schema.tables");
+        assertThat(relation.fields().get(0).path().outputName(), is("'foo' = ANY(partitioned_by)"));
     }
 }

@@ -22,10 +22,6 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
@@ -41,21 +37,17 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParameterTypeExtractorNotApplicable() {
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
-
-        assertThat(typeExtractor.getParameterTypes(null), is(nullValue()));
-
-        AnalyzedRelation analyzedRelation = Mockito.mock(DocTableRelation.class);
-        assertThat(typeExtractor.getParameterTypes(analyzedRelation), is(nullValue()));
+        assertThat(typeExtractor.getParameterTypes(s -> {}).length, is(0));
     }
 
     @Test
@@ -73,10 +65,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         symbolsToVisit.add(new ParameterSymbol(0, DataTypes.INTEGER));
         symbolsToVisit.add(Literal.of(1.2));
 
-        QueriedRelation analyzedRelation = Mockito.mock(QueriedRelation.class);
-        Mockito.when(analyzedRelation.querySpec()).thenReturn(new QuerySpec().outputs(symbolsToVisit));
-
-        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedRelation);
+        Consumer<Consumer<? super Symbol>> symbolVisitor = c -> {
+            for (Symbol symbol : symbolsToVisit) {
+                c.accept(symbol);
+            }
+        };
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
         assertThat(parameterTypes, equalTo(new DataType[] {
             DataTypes.INTEGER,
             DataTypes.LONG,
@@ -85,7 +79,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         }));
 
         symbolsToVisit.add(new ParameterSymbol(4, DataTypes.BOOLEAN));
-        parameterTypes = typeExtractor.getParameterTypes(analyzedRelation);
+        parameterTypes = typeExtractor.getParameterTypes(symbolVisitor);
         assertThat(parameterTypes, equalTo(new DataType[] {
             DataTypes.INTEGER,
             DataTypes.LONG,
@@ -98,7 +92,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("The assembled list of ParameterSymbols is invalid.");
         // remove the double parameter => make the input invalid
         symbolsToVisit.remove(6);
-        typeExtractor.getParameterTypes(analyzedRelation);
+        typeExtractor.getParameterTypes(symbolVisitor);
     }
 
     @Test

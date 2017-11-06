@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Literal;
@@ -48,9 +47,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .build();
-        SelectAnalyzedStatement stmt = e.analyze("select name from users");
+        QueriedDocTable queriedDocTable = e.analyze("select name from users");
 
-        QueriedDocTable queriedDocTable = (QueriedDocTable) stmt.relation();
         LogicalPlan plan = Limit.create(
             Limit.create(
                 Collect.create(queriedDocTable, queriedDocTable.outputs(), queriedDocTable.where()),

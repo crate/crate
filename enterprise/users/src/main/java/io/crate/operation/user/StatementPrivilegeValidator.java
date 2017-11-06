@@ -58,7 +58,6 @@ import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
@@ -66,6 +65,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.user.Privilege;
@@ -221,8 +221,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         }
 
         @Override
-        protected Void visitSelectStatement(SelectAnalyzedStatement analysis, User user) {
-            visitRelation(analysis.relation(), user, Privilege.Type.DQL);
+        public Void visitSelectStatement(QueriedRelation relation, User user) {
+            visitRelation(relation, user, Privilege.Type.DQL);
             return null;
         }
 

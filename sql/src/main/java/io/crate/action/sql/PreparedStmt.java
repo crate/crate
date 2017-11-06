@@ -23,8 +23,8 @@
 package io.crate.action.sql;
 
 import com.google.common.base.Preconditions;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
@@ -39,7 +39,8 @@ class PreparedStmt {
     @Nullable
     private DataType[] describedParameterTypes;
 
-    private AnalyzedRelation relation;
+    @Nullable
+    private AnalyzedStatement analyzedStatement = null;
     private boolean relationInitialized = false;
 
     PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
@@ -87,12 +88,12 @@ class PreparedStmt {
     }
 
     @Nullable
-    public AnalyzedRelation relation() {
-        return relation;
+    public AnalyzedStatement analyzedStatement() {
+        return analyzedStatement;
     }
 
-    public void relation(@Nullable AnalyzedRelation relation) {
+    public void analyzedStatement(@Nullable AnalyzedStatement analyzedStatement) {
         relationInitialized = true;
-        this.relation = relation;
+        this.analyzedStatement = analyzedStatement;
     }
 }

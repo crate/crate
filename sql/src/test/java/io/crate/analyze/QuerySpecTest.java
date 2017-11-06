@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVisitSymbolVisitsAllSymbols() throws Exception {
-        SelectAnalyzedStatement stmt = e.analyze(
+        QueriedRelation relation = e.analyze(
             "select " +
             "       x," +           // 1
             "       count(*) " +    // 2
@@ -54,7 +55,7 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
             "limit 1 " +            // 7
             "offset 1");            // 8
         final AtomicInteger numSymbols = new AtomicInteger(0);
-        stmt.relation().querySpec().visitSymbols(s -> numSymbols.incrementAndGet());
+        relation.visitSymbols(s -> numSymbols.incrementAndGet());
         assertThat(numSymbols.get(), is(8));
     }
 }

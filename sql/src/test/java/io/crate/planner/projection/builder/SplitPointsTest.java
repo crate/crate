@@ -22,8 +22,6 @@
 
 package io.crate.planner.projection.builder;
 
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -41,8 +39,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
 
-        AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
-        QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
+        QueriedRelation relation = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
 
         SplitPoints splitPoints = SplitPoints.create(relation);
 
@@ -55,8 +52,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
     public void testSplitPointsCreationSelectItemAggregationsAreAlwaysAdded() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
 
-        AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
-        QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
+        QueriedRelation relation = e.analyze("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
 
         SplitPoints splitPoints = SplitPoints.create(relation);
 
@@ -70,8 +66,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testScalarIsNotCollectedEarly() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
-        AnalyzedStatement analyze = e.analyze("select x + 1 from t1 group by x");
-        QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
+        QueriedRelation relation = e.analyze("select x + 1 from t1 group by x");
 
         SplitPoints splitPoints = SplitPoints.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));

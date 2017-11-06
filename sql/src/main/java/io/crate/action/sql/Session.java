@@ -23,16 +23,13 @@
 package io.crate.action.sql;
 
 import com.google.common.base.Preconditions;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -46,6 +43,7 @@ import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Comparator;
@@ -218,24 +216,30 @@ public class Session {
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
                 Statement statement = preparedStmt.statement();
 
-                AnalyzedRelation analyzedRelation;
+                AnalyzedStatement analyzedStatement;
                 if (preparedStmt.isRelationInitialized()) {
-                    analyzedRelation = preparedStmt.relation();
+                    analyzedStatement = preparedStmt.analyzedStatement();
                 } else {
                     try {
-                        analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                        preparedStmt.relation(analyzedRelation);
+                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                        preparedStmt.analyzedStatement(analyzedStatement);
                     } catch (Throwable t) {
                         throw SQLExceptions.createSQLActionException(t, sessionContext);
                     }
                 }
-                if (analyzedRelation == null) {
+                if (analyzedStatement == null) {
                     // statement without result set -> return null for NoData msg
                     return new DescribeResult(null);
                 }
-                DataType[] parameterSymbols = parameterTypeExtractor.getParameterTypes(analyzedRelation);
-                preparedStmt.setDescribedParameters(parameterSymbols);
-                return new DescribeResult(analyzedRelation.fields(), parameterSymbols);
+                DataType[] parameterSymbols = parameterTypeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+                if (parameterSymbols.length > 0) {
+                    preparedStmt.setDescribedParameters(parameterSymbols);
+                }
+                if (analyzedStatement instanceof AnalyzedRelation) {
+                    AnalyzedRelation relation = (AnalyzedRelation) analyzedStatement;
+                    return new DescribeResult(relation.fields(), parameterSymbols);
+                }
+                return new DescribeResult(null, parameterSymbols);
             default:
                 throw new AssertionError("Unsupported type: " + type);
         }
@@ -344,7 +348,7 @@ public class Session {
         }
     }
 
-    static class ParameterTypeExtractor extends SymbolVisitor<Void, Void> implements Consumer<Symbol> {
+    static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {
 
         private final SortedSet<ParameterSymbol> parameterSymbols;
 
@@ -358,37 +362,20 @@ public class Session {
         }
 
         @Override
-        public Void visitFunction(Function function, Void context) {
-            for (Symbol arg : function.arguments()) {
-                process(arg, context);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
-            return process(matchPredicate.queryTerm(), context);
-        }
-
-        @Override
         public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
             parameterSymbols.add(parameterSymbol);
             return null;
         }
 
         /**
-         * Gets the parameters from the AnalyzedRelation, if possible.
-         * @param analyzedRelation The {@link AnalyzedRelation} to retrieve the parameters from.
+         * Gets the parameters from the AnalyzedStatement, if possible.
+         * @param consumer A consumer which takes a symbolVisitor;
+         *                 This symbolVisitor should visit all {@link ParameterSymbol}s in a {@link AnalyzedStatement}
          * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if
          *         parameters can't be obtained.
          */
-        @Nullable
-        DataType[] getParameterTypes(AnalyzedRelation analyzedRelation) {
-            if (!(analyzedRelation instanceof QueriedRelation)) {
-                return null;
-            }
-            QuerySpec querySpec = ((QueriedRelation) analyzedRelation).querySpec();
-            querySpec.visitSymbols(this);
+        DataType[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
+            consumer.accept(this);
             Preconditions.checkState(parameterSymbols.isEmpty() ||
                                      parameterSymbols.last().index() == parameterSymbols.size() - 1,
                 "The assembled list of ParameterSymbols is invalid. Missing parameters.");

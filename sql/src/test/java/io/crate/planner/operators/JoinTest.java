@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.TableDefinitions;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
@@ -60,8 +59,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTablesAreSwitchedIfLeftIsSmallerThanRight() throws Exception {
-        SelectAnalyzedStatement stmt = e.analyze("select * from users, locations where users.id = locations.id");
-        MultiSourceSelect mss = (MultiSourceSelect )stmt.relation();
+        MultiSourceSelect mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
         ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();

@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.QueriedRelation;
+
 import javax.annotation.Nullable;
 
 public class AnalyzedStatementVisitor<C, R> {
@@ -61,8 +63,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitSelectStatement(SelectAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
+    public R visitSelectStatement(QueriedRelation relation, C context) {
+        return visitAnalyzedStatement(relation, context);
     }
 
     protected R visitUpdateStatement(UpdateAnalyzedStatement analysis, C context) {

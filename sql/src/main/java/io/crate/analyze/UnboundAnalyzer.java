@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.SqlFormatter;
@@ -54,11 +54,11 @@ class UnboundAnalyzer {
         this.dispatcher = new UnboundDispatcher(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
     }
 
-    public AnalyzedRelation analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
+    public AnalyzedStatement analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         return dispatcher.process(statement, new Analysis(sessionContext, ParameterContext.EMPTY, paramTypeHints));
     }
 
-    private static class UnboundDispatcher extends AstVisitor<AnalyzedRelation, Analysis> {
+    private static class UnboundDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         private final RelationAnalyzer relationAnalyzer;
         private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
@@ -73,46 +73,50 @@ class UnboundAnalyzer {
         }
 
         @Override
-        protected AnalyzedRelation visitQuery(Query node, Analysis context) {
-            return relationAnalyzer.analyzeUnbound(node, context.transactionContext(), context.paramTypeHints());
+        protected AnalyzedStatement visitQuery(Query node, Analysis context) {
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+                node, context.transactionContext(), context.paramTypeHints());
         }
 
         @Override
-        public AnalyzedRelation visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
+        public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowTransaction();
-            return relationAnalyzer.analyzeUnbound(query, context.transactionContext(), ParamTypeHints.EMPTY);
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+                query, context.transactionContext(), ParamTypeHints.EMPTY);
         }
 
         @Override
-        protected AnalyzedRelation visitShowTables(ShowTables node, Analysis context) {
+        protected AnalyzedStatement visitShowTables(ShowTables node, Analysis context) {
             ParameterContext parameterContext = context.parameterContext();
             Query query = showStatementAnalyzer.rewriteShowTables(node);
-            return relationAnalyzer.analyzeUnbound(query, context.transactionContext(), parameterContext.typeHints());
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+                query, context.transactionContext(), parameterContext.typeHints());
         }
 
         @Override
-        protected AnalyzedRelation visitShowSchemas(ShowSchemas node, Analysis context) {
+        protected AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowSchemas(node);
-            return relationAnalyzer.analyzeUnbound(query,
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
         }
 
         @Override
-        protected AnalyzedRelation visitShowColumns(ShowColumns node, Analysis context) {
+        protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
             TransactionContext transactionContext = context.transactionContext();
             Query query = showStatementAnalyzer.rewriteShowColumns(node,
                 transactionContext.sessionContext().defaultSchema());
-            return relationAnalyzer.analyzeUnbound(query, transactionContext, context.parameterContext().typeHints());
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+                query, transactionContext, context.parameterContext().typeHints());
         }
 
         @Override
-        public AnalyzedRelation visitShowCreateTable(ShowCreateTable node, Analysis context) {
+        public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis context) {
             return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
         }
 
         @Override
-        protected AnalyzedRelation visitExplain(Explain node, Analysis context) {
+        protected AnalyzedStatement visitExplain(Explain node, Analysis context) {
             // Sub-relation is ignored for now.
             // This is because the sub-relation might be anything and this unbound analyzer only supports select/show queries
 

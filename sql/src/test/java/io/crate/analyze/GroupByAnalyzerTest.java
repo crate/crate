@@ -81,7 +81,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
     }
 
-    private SelectAnalyzedStatement analyze(String statement) {
+    private <T extends AnalyzedStatement> T analyze(String statement) {
         return sqlExecutor.analyze(statement);
     }
 
@@ -93,14 +93,14 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     public void testGroupKeyNotInResultColumnList() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select count(*) from sys.nodes group by name");
-        assertThat(analysis.relation().querySpec().groupBy().size(), is(1));
-        assertThat(analysis.relation().fields().get(0).path().outputName(), is("count(*)"));
+        QueriedRelation relation = analyze("select count(*) from sys.nodes group by name");
+        assertThat(relation.querySpec().groupBy().size(), is(1));
+        assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
     }
 
     @Test
     public void testGroupByOnAlias() throws Exception {
-        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by n").relation();
+        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by n");
         assertThat(relation.querySpec().groupBy().size(), is(1));
         assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
         assertThat(relation.fields().get(1).path().outputName(), is("n"));
@@ -111,7 +111,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByOnOrdinal() throws Exception {
         // just like in postgres access by ordinal starts with 1
-        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by 2").relation();
+        QueriedRelation relation = analyze("select count(*), name as n from sys.nodes group by 2");
         assertThat(relation.querySpec().groupBy().size(), is(1));
         assertEquals(relation.querySpec().groupBy().get(0), relation.querySpec().outputs().get(1));
     }
@@ -140,19 +140,19 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByScalarAliasAndValueInScalar() {
-        SelectAnalyzedStatement analyzedStatement =
+        QueriedRelation relation =
             analyze("select 1/age as age from foo.users group by age order by age");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         assertThat(((Reference) groupBySymbols.get(0)).ident().columnIdent().fqn(), is("age"));
     }
 
     @Test
     public void testGroupByScalarAlias() {
         // grouping by what's under the alias, the 1/age values
-        SelectAnalyzedStatement analyzedStatement = analyze("select 1/age as theAlias from foo.users group by theAlias");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select 1/age as theAlias from foo.users group by theAlias");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         Symbol groupBy = groupBySymbols.get(0);
         assertThat(groupBy, instanceOf(Function.class));
         Function groupByFunction = (Function) groupBy;
@@ -162,34 +162,34 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByColumnInScalar() {
         // grouping by height values
-        SelectAnalyzedStatement analyzedStatement = analyze("select 1/age as height from foo.users group by age");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select 1/age as height from foo.users group by age");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         assertThat(((Reference) groupBySymbols.get(0)).ident().columnIdent().fqn(), is("age"));
     }
 
     @Test
     public void testGroupByScalar() {
-        SelectAnalyzedStatement analyzedStatement = analyze("select 1/age from foo.users group by 1/age;");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select 1/age from foo.users group by 1/age;");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         Symbol groupBy = groupBySymbols.get(0);
         assertThat(groupBy, instanceOf(Function.class));
     }
 
     @Test
     public void testGroupByAliasedLiteral() {
-        SelectAnalyzedStatement analyzedStatement = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         assertThat(groupBySymbols.get(0).symbolType().isValueSymbol(), is(true));
     }
 
     @Test
     public void testGroupByLiteralAliasedWithRealColumnNameGroupsByColumnValue() {
-        SelectAnalyzedStatement analyzedStatement = analyze("select 58 as age from foo.users group by age;");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select 58 as age from foo.users group by age;");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
         assertThat(groupByIdent.columnIdent().fqn(), is("age"));
         assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
@@ -197,9 +197,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNegateAliasRealColumnGroupByAlias() {
-        SelectAnalyzedStatement analyzedStatement = analyze("select age age, - age age from foo.users group by age;");
-        assertThat(analyzedStatement.relation().querySpec().groupBy().isEmpty(), is(false));
-        List<Symbol> groupBySymbols = analyzedStatement.relation().querySpec().groupBy();
+        QueriedRelation relation = analyze("select age age, - age age from foo.users group by age;");
+        assertThat(relation.querySpec().groupBy().isEmpty(), is(false));
+        List<Symbol> groupBySymbols = relation.querySpec().groupBy();
         ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
         assertThat(groupByIdent.columnIdent().fqn(), is("age"));
         assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
@@ -207,7 +207,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupBySubscript() throws Exception {
-        QueriedRelation relation = analyze("select load['1'], count(*) from sys.nodes group by load['1']").relation();
+        QueriedRelation relation = analyze("select load['1'], count(*) from sys.nodes group by load['1']");
         assertThat(relation.querySpec().limit(), nullValue());
 
         assertThat(relation.querySpec().groupBy(), notNullValue());
@@ -251,11 +251,11 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectDistinctWithGroupBy() {
-        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from users group by name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
+        QueriedRelation relation = analyze("select distinct max(id) from users group by name order by 1");
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation.querySpec(),
             isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) ORDER BY doc.users.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
@@ -263,13 +263,13 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectDistinctWithGroupByLimitAndOffset() {
-        SelectAnalyzedStatement analysis =
+        QueriedRelation relation =
             analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation.querySpec(),
             isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) " +
                   "ORDER BY doc.users.max(id) LIMIT 5 OFFSET 10"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
@@ -277,16 +277,16 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectDistinctWithGroupByOnJoin() {
-        SelectAnalyzedStatement analysis =
+        QueriedRelation relation =
             analyze("select DISTINCT max(users.id) from users " +
                     "  inner join users_multi_pk on users.id = users_multi_pk.id " +
                     "group by users.name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation.querySpec(),
             isSQL("SELECT io.crate.analyze.MultiSourceSelect.max(id) " +
                   "GROUP BY io.crate.analyze.MultiSourceSelect.max(id) " +
                   "ORDER BY io.crate.analyze.MultiSourceSelect.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(MultiSourceSelect.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
@@ -294,15 +294,15 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectDistinctWithGroupByOnSubSelectOuter() {
-        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from (" +
+        QueriedRelation relation = analyze("select distinct max(id) from (" +
                                                    "  select * from users order by name limit 10" +
                                                    ") t group by name order by 1");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation.querySpec(),
             isSQL("SELECT io.crate.analyze.QueriedSelectRelation.max(id) " +
                   "GROUP BY io.crate.analyze.QueriedSelectRelation.max(id) " +
                   "ORDER BY io.crate.analyze.QueriedSelectRelation.max(id)"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
@@ -310,14 +310,14 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectDistinctWithGroupByOnSubSelectInner() {
-        SelectAnalyzedStatement analysis =
+        QueriedRelation relation =
             analyze("select * from (" +
                     "  select distinct id from users group by id, name order by 1" +
                     ") t order by 1 desc");
-        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
-        assertThat(analysis.relation().querySpec(),
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation.querySpec(),
             isSQL("SELECT doc.users.id GROUP BY doc.users.id ORDER BY doc.users.id DESC"));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name"));
@@ -332,18 +332,18 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOnLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
+        QueriedRelation relation = analyze(
             "select [1,2,3], count(*) from users u group by 1");
-        assertThat(analysis.relation().querySpec().outputs(), isSQL("[1, 2, 3], count()"));
-        assertThat(analysis.relation().querySpec().groupBy(), isSQL("[1, 2, 3]"));
+        assertThat(relation.querySpec().outputs(), isSQL("[1, 2, 3], count()"));
+        assertThat(relation.querySpec().groupBy(), isSQL("[1, 2, 3]"));
     }
 
     @Test
     public void testGroupByOnNullLiteral() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
+        QueriedRelation relation = analyze(
             "select null, count(*) from users u group by 1");
-        assertThat(analysis.relation().querySpec().outputs(), isSQL("NULL, count()"));
-        assertThat(analysis.relation().querySpec().groupBy(), isSQL("NULL"));
+        assertThat(relation.querySpec().outputs(), isSQL("NULL, count()"));
+        assertThat(relation.querySpec().groupBy(), isSQL("NULL"));
     }
 
     @Test
@@ -383,9 +383,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHaving() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        QueriedRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
+        assertThat(relation.querySpec().having().query(), isFunction("op_like"));
+        Function havingFunction = (Function) relation.querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
@@ -393,27 +393,26 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingAliasForRealColumn() {
-        SelectAnalyzedStatement analysis = analyze(
+        QueriedRelation relation = analyze(
             "select id as name from users group by id, name having name != null;");
 
-        HavingClause havingClause = analysis.relation().querySpec().having();
+        HavingClause havingClause = relation.querySpec().having();
         assertThat(havingClause.query(), nullValue());
     }
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
-        QuerySpec querySpec = analyze("select sum(floats) from users group by name having 1 > 4")
-            .relation().querySpec();
-        HavingClause having = querySpec.having();
+        QueriedRelation rel = analyze("select sum(floats) from users group by name having 1 > 4");
+        HavingClause having = rel.having();
         assertThat(having.noMatch(), is(true));
         assertNull(having.query());
     }
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_="));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        QueriedRelation relation = analyze("select sum(floats), name from users group by name having max(bytes) = 4");
+        assertThat(relation.querySpec().having().query(), isFunction("op_="));
+        Function havingFunction = (Function) relation.querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isFunction("max"));
         Function maxFunction = (Function) havingFunction.arguments().get(0);
@@ -438,10 +437,10 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingByGroupKey() throws Exception {
-        SelectAnalyzedStatement analysis = analyze(
+        QueriedRelation relation = analyze(
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().query(), isFunction("op_like"));
-        Function havingFunction = (Function) analysis.relation().querySpec().having().query();
+        assertThat(relation.querySpec().having().query(), isFunction("op_like"));
+        Function havingFunction = (Function) relation.querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
@@ -449,10 +448,10 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingComplex() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
+        QueriedRelation relation = analyze("select sum(floats), name from users " +
                                                    "group by name having 1=0 or sum(bytes) in (42, 43, 44) and  name not like 'Slartibart%'");
-        assertThat(analysis.relation().querySpec().having().hasQuery(), is(true));
-        Function andFunction = (Function) analysis.relation().querySpec().having().query();
+        assertThat(relation.querySpec().having().hasQuery(), is(true));
+        Function andFunction = (Function) relation.querySpec().having().query();
         assertThat(andFunction, is(notNullValue()));
         assertThat(andFunction.info().ident().name(), is("op_and"));
         assertThat(andFunction.arguments().size(), is(2));
@@ -463,9 +462,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByHavingRecursiveFunction() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
+        QueriedRelation relation = analyze("select sum(floats), name from users " +
                                                    "group by name having sum(power(power(id::double, id::double), id::double)) > 0");
-        assertThat(analysis.relation().querySpec().having().query(),
+        assertThat(relation.querySpec().having().query(),
             isSQL("(sum(power(power(to_double(doc.users.id), to_double(doc.users.id)), to_double(doc.users.id))) > 0.0)"));
     }
 

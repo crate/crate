@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DeleteAnalyzedStatement;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
@@ -191,8 +191,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        SelectAnalyzedStatement statement = e.analyze(stmt, args);
-        return statement.relation().querySpec().where();
+        QueriedRelation rel = e.analyze(stmt, args);
+        return rel.where();
     }
 
     private WhereClause analyzeSelectWhere(String stmt) {

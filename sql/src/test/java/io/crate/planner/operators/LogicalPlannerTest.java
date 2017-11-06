@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
@@ -55,8 +54,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        SelectAnalyzedStatement analyzedStatement = sqlExecutor.analyze(statement);
-        QueriedRelation relation = analyzedStatement.relation();
+        QueriedRelation relation = sqlExecutor.analyze(statement);
         return LogicalPlanner.plan(relation, FetchMode.MAYBE_CLEAR, true)
             .build(tableStats, LogicalPlanner.extractColumns(relation.querySpec().outputs()))
             .tryCollapse();

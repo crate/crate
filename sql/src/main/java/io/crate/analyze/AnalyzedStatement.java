@@ -21,6 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Symbol;
+
+import java.util.function.Consumer;
+
 public interface AnalyzedStatement {
 
     <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context);
@@ -34,4 +38,7 @@ public interface AnalyzedStatement {
      * </p>
      */
     boolean isWriteOperation();
+
+    default void visitSymbols(Consumer<? super Symbol> consumer) {
+    }
 }
