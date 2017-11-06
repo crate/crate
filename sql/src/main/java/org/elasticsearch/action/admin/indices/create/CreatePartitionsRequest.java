@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndicesRequest> {
+public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartitionsRequest> {
 
     private Collection<String> indices = ImmutableList.of();
     private UUID jobId;
@@ -41,12 +41,12 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     /**
      * Constructs a new request to create indices with the specified names.
      */
-    public BulkCreateIndicesRequest(Collection<String> indices, UUID jobId) {
+    public CreatePartitionsRequest(Collection<String> indices, UUID jobId) {
         this.indices = indices;
         this.jobId = jobId;
     }
 
-    public BulkCreateIndicesRequest() {
+    public CreatePartitionsRequest() {
     }
 
     public Collection<String> indices() {

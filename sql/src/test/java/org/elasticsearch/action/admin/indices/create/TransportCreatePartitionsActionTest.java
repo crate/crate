@@ -38,20 +38,20 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
-public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegrationTest {
+public class TransportCreatePartitionsActionTest extends SQLTransportIntegrationTest {
 
-    TransportBulkCreateIndicesAction action;
+    TransportCreatePartitionsAction action;
 
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        action = internalCluster().getInstance(TransportBulkCreateIndicesAction.class, internalCluster().getMasterName());
+        action = internalCluster().getInstance(TransportCreatePartitionsAction.class, internalCluster().getMasterName());
     }
 
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
-        BulkCreateIndicesResponse response = action.execute(
-            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"), UUID.randomUUID())
+        CreatePartitionsResponse response = action.execute(
+            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index4"), UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
         ensureYellow();
@@ -72,7 +72,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
 
         ClusterState currentState = internalCluster().clusterService().state();
 
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(
+        CreatePartitionsRequest request = new CreatePartitionsRequest(
             Arrays.asList("index_0", "index_1"),
             UUID.randomUUID());
         currentState = action.executeCreateIndices(currentState, request);
@@ -83,8 +83,8 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
 
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
-        BulkCreateIndicesResponse response = action.execute(
-            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+        CreatePartitionsResponse response = action.execute(
+            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
 
@@ -93,16 +93,16 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
             .execute().actionGet();
         assertThat(indicesExistsResponse.isExists(), is(true));
 
-        BulkCreateIndicesResponse response2 = action.execute(
-            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+        CreatePartitionsResponse response2 = action.execute(
+            new CreatePartitionsRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
         ).actionGet();
         assertThat(response2.isAcknowledged(), is(true));
     }
 
     @Test
     public void testEmpty() throws Exception {
-        BulkCreateIndicesResponse response = action.execute(
-            new BulkCreateIndicesRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
+        CreatePartitionsResponse response = action.execute(
+            new CreatePartitionsRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
         assertThat(response.isAcknowledged(), is(true));
     }
 
@@ -111,9 +111,9 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         expectedException.expect(InvalidIndexNameException.class);
         expectedException.expectMessage("Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
 
-        BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
+        CreatePartitionsRequest createPartitionsRequest = new CreatePartitionsRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
         try {
-            action.execute(bulkCreateIndicesRequest).actionGet();
+            action.execute(createPartitionsRequest).actionGet();
             fail("no exception thrown");
         } catch (Throwable t) {
             ensureYellow();

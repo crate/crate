@@ -95,18 +95,19 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_
 
 
 /**
- * creates one or more indices within one cluster-state-update-task
+ * Creates one or more partitions within one cluster-state-update-task
  * <p>
  * This is more or less a more optimized version of {@link MetaDataCreateIndexService}
  * <p>
  * It also has some limitations:
  * <p>
- * - all indices must actually have the same name pattern (only the first index is used to figure out which templates to use)
+ * - all indices must actually have the same name pattern (only the first index is used to figure out which templates to use),
+ *   which must be the case for partitions anyway.
  * - and alias / mappings / etc. are not taken from the request
  */
 @Singleton
-public class TransportBulkCreateIndicesAction
-    extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
+public class TransportCreatePartitionsAction
+    extends TransportMasterNodeAction<CreatePartitionsRequest, CreatePartitionsResponse> {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -116,9 +117,9 @@ public class TransportBulkCreateIndicesAction
     private final NamedXContentRegistry xContentRegistry;
     private final Environment environment;
     private final BulkActiveShardsObserver activeShardsObserver;
-    private final ClusterStateTaskExecutor<BulkCreateIndicesRequest> executor = (currentState, tasks) -> {
-        ClusterStateTaskExecutor.ClusterTasksResult.Builder<BulkCreateIndicesRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
-        for (BulkCreateIndicesRequest request : tasks) {
+    private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
+        ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
+        for (CreatePartitionsRequest request : tasks) {
             try {
                 currentState = executeCreateIndices(currentState, request);
                 builder.success(request);
@@ -130,18 +131,18 @@ public class TransportBulkCreateIndicesAction
     };
 
     @Inject
-    public TransportBulkCreateIndicesAction(Settings settings,
-                                            TransportService transportService,
-                                            Environment environment,
-                                            ClusterService clusterService,
-                                            ThreadPool threadPool,
-                                            AliasValidator aliasValidator,
-                                            IndicesService indicesService,
-                                            AllocationService allocationService,
-                                            NamedXContentRegistry xContentRegistry,
-                                            IndexNameExpressionResolver indexNameExpressionResolver,
-                                            ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest::new);
+    public TransportCreatePartitionsAction(Settings settings,
+                                           TransportService transportService,
+                                           Environment environment,
+                                           ClusterService clusterService,
+                                           ThreadPool threadPool,
+                                           AliasValidator aliasValidator,
+                                           IndicesService indicesService,
+                                           AllocationService allocationService,
+                                           NamedXContentRegistry xContentRegistry,
+                                           IndexNameExpressionResolver indexNameExpressionResolver,
+                                           ActionFilters actionFilters) {
+        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreatePartitionsRequest::new);
         this.environment = environment;
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
@@ -156,17 +157,17 @@ public class TransportBulkCreateIndicesAction
     }
 
     @Override
-    protected BulkCreateIndicesResponse newResponse() {
-        return new BulkCreateIndicesResponse();
+    protected CreatePartitionsResponse newResponse() {
+        return new CreatePartitionsResponse();
     }
 
     @Override
-    protected void masterOperation(final BulkCreateIndicesRequest request,
+    protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
-                                   final ActionListener<BulkCreateIndicesResponse> listener) throws ElasticsearchException {
+                                   final ActionListener<CreatePartitionsResponse> listener) throws ElasticsearchException {
 
         if (request.indices().isEmpty()) {
-            listener.onResponse(new BulkCreateIndicesResponse(true));
+            listener.onResponse(new CreatePartitionsResponse(true));
             return;
         }
 
@@ -185,12 +186,12 @@ public class TransportBulkCreateIndicesAction
                                 SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetaData.getSettings()),
                                 INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetaData.getSettings()));
                         }
-                        listener.onResponse(new BulkCreateIndicesResponse(response.isAcknowledged()));
+                        listener.onResponse(new CreatePartitionsResponse(response.isAcknowledged()));
                     }, listener::onFailure);
             } else {
                 logger.warn("[{}] Table partitions created, but publishing new cluster state timed out. Timeout={}",
                     request.indices(), request.timeout());
-                listener.onResponse(new BulkCreateIndicesResponse(false));
+                listener.onResponse(new CreatePartitionsResponse(false));
             }
         }, listener::onFailure));
     }
@@ -199,7 +200,7 @@ public class TransportBulkCreateIndicesAction
      * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
-    ClusterState executeCreateIndices(ClusterState currentState, BulkCreateIndicesRequest request) throws Exception {
+    ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
         List<String> indicesToCreate = new ArrayList<>(request.indices().size());
         List<String> removalReasons = new ArrayList<>(request.indices().size());
         List<Index> createdIndices = new ArrayList<>(request.indices().size());
@@ -320,7 +321,7 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private void createIndices(final BulkCreateIndicesRequest request,
+    private void createIndices(final CreatePartitionsRequest request,
                                final ActionListener<ClusterStateUpdateResponse> listener) {
         clusterService.submitStateUpdateTask(
             "bulk-create-indices",
@@ -341,7 +342,7 @@ public class TransportBulkCreateIndicesAction
         );
     }
 
-    private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, BulkCreateIndicesRequest request) {
+    private void addMappingFromMappingsFile(Map<String, Map<String, Object>> mappings, File mappingsDir, CreatePartitionsRequest request) {
         for (String index : request.indices()) {
             // first index level
             File indexMappingsDir = new File(mappingsDir, index);
@@ -359,7 +360,7 @@ public class TransportBulkCreateIndicesAction
 
     private void validateAndFilterExistingIndices(ClusterState currentState,
                                                   List<String> indicesToCreate,
-                                                  BulkCreateIndicesRequest request) {
+                                                  CreatePartitionsRequest request) {
         for (String index : request.indices()) {
             try {
                 MetaDataCreateIndexService.validateIndexName(index, currentState);
@@ -464,7 +465,7 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private List<IndexTemplateMetaData> findTemplates(BulkCreateIndicesRequest request, ClusterState state) {
+    private List<IndexTemplateMetaData> findTemplates(CreatePartitionsRequest request, ClusterState state) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
         String firstIndex = request.indices().iterator().next();
 
@@ -490,7 +491,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     @Override
-    protected ClusterBlockException checkBlock(BulkCreateIndicesRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, Iterables.toArray(request.indices(), String.class));
     }
 }

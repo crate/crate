@@ -21,36 +21,30 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+public class CreatePartitionsResponse extends AcknowledgedResponse {
 
-public class BulkCreateIndicesResponseTest {
-
-    @Test
-    public void testSerializationNotAcknowledged() throws Exception {
-        serializeAndAssertAcknowledged(false);
+    public CreatePartitionsResponse(boolean acknowledged) {
+        super(acknowledged);
     }
 
-    @Test
-    public void testSerializationAcknowledged() throws Exception {
-        serializeAndAssertAcknowledged(true);
+    CreatePartitionsResponse() {
     }
 
-    private void serializeAndAssertAcknowledged(boolean acknowledged) throws IOException {
-        BulkCreateIndicesResponse response = new BulkCreateIndicesResponse(acknowledged);
-        BytesStreamOutput out = new BytesStreamOutput();
-        response.writeTo(out);
-        StreamInput in = out.bytes().streamInput();
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        readAcknowledged(in);
+    }
 
-        BulkCreateIndicesResponse responseDeserialized = new BulkCreateIndicesResponse();
-        responseDeserialized.readFrom(in);
-
-        assertThat(responseDeserialized.isAcknowledged(), is(acknowledged));
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        writeAcknowledged(out);
     }
 }
