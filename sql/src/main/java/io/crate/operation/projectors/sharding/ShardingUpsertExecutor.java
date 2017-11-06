@@ -39,9 +39,9 @@ import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
-import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.CreatePartitionsResponse;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -88,7 +88,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final UUID jobId;
     private final BiFunction<ShardId, String, TReq> requestFactory;
     private final BulkRequestExecutor<TReq> requestExecutor;
-    private final TransportBulkCreateIndicesAction createIndicesAction;
+    private final TransportCreatePartitionsAction createPartitionsAction;
     private final BulkShardCreationLimiter<TReq, TItem> bulkShardCreationLimiter;
     private volatile boolean createPartitionsRequestOngoing = false;
 
@@ -105,7 +105,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                                   Supplier<String> indexNameResolver,
                                   boolean autoCreateIndices,
                                   BulkRequestExecutor<TReq> requestExecutor,
-                                  TransportBulkCreateIndicesAction createIndicesAction,
+                                  TransportCreatePartitionsAction createPartitionsAction,
                                   Settings tableSettings) {
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
@@ -114,7 +114,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.jobId = jobId;
         this.requestFactory = requestFactory;
         this.requestExecutor = requestExecutor;
-        this.createIndicesAction = createIndicesAction;
+        this.createPartitionsAction = createPartitionsAction;
         this.grouper = new GroupRowsByShard<>(
             clusterService,
             rowShardResolver,
@@ -171,10 +171,10 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
 
-    private CompletableFuture<BulkCreateIndicesResponse> createPartitions(Map<String, List<ShardedRequests.ItemAndRouting<TItem>>> itemsByMissingIndex) {
-        FutureActionListener<BulkCreateIndicesResponse, BulkCreateIndicesResponse> listener = FutureActionListener.newInstance();
-        createIndicesAction.execute(
-            new BulkCreateIndicesRequest(itemsByMissingIndex.keySet(), jobId), listener);
+    private CompletableFuture<CreatePartitionsResponse> createPartitions(Map<String, List<ShardedRequests.ItemAndRouting<TItem>>> itemsByMissingIndex) {
+        FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = FutureActionListener.newInstance();
+        createPartitionsAction.execute(
+            new CreatePartitionsRequest(itemsByMissingIndex.keySet(), jobId), listener);
         return listener;
     }
 

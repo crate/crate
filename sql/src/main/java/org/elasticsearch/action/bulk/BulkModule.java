@@ -21,12 +21,12 @@
 
 package org.elasticsearch.action.bulk;
 
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class BulkModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(TransportBulkCreateIndicesAction.class).asEagerSingleton();
+        bind(TransportCreatePartitionsAction.class).asEagerSingleton();
     }
 }

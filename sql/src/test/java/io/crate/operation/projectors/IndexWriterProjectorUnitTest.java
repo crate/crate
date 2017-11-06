@@ -40,7 +40,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -87,7 +87,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        TransportBulkCreateIndicesAction transportBulkCreateIndicesAction = mock(TransportBulkCreateIndicesAction.class);
+        TransportCreatePartitionsAction transportCreatePartitionsAction = mock(TransportCreatePartitionsAction.class);
         IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
             new NodeJobsCounter(),
@@ -96,7 +96,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             TestingHelpers.getFunctions(),
             Settings.EMPTY,
             Settings.EMPTY,
-            transportBulkCreateIndicesAction,
+            transportCreatePartitionsAction,
             (request, listener) -> {},
             IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
             rawSourceReference,

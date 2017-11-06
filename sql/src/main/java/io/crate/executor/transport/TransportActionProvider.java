@@ -29,7 +29,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSn
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
@@ -51,7 +51,7 @@ public class TransportActionProvider {
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
     private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
-    private final Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider;
+    private final Provider<TransportCreatePartitionsAction> transportBulkCreateIndicesActionProvider;
 
     private final Provider<TransportJobAction> transportJobInitActionProvider;
     private final Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider;
@@ -74,7 +74,7 @@ public class TransportActionProvider {
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
-                                   Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider,
+                                   Provider<TransportCreatePartitionsAction> transportBulkCreateIndicesActionProvider,
                                    Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
@@ -99,7 +99,7 @@ public class TransportActionProvider {
         this.transportGetSnapshotsActionProvider = transportGetSnapshotsActionPovider;
     }
 
-    public TransportBulkCreateIndicesAction transportBulkCreateIndicesAction() {
+    public TransportCreatePartitionsAction transportBulkCreateIndicesAction() {
         return transportBulkCreateIndicesActionProvider.get();
     }
 

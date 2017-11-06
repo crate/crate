@@ -33,27 +33,27 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 
-public class BulkCreateIndicesRequestTest {
+public class CreatePartitionsRequestTest {
 
     @Test
     public void testSerialization() throws Exception {
         UUID jobId = UUID.randomUUID();
-        BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
+        CreatePartitionsRequest request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         StreamInput in = out.bytes().streamInput();
-        BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
+        CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest();
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
         assertThat(requestDeserialized.jobId(), is(jobId));
 
         jobId = UUID.randomUUID();
-        request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
+        request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
         out = new BytesStreamOutput();
         request.writeTo(out);
         in = out.bytes().streamInput();
-        requestDeserialized = new BulkCreateIndicesRequest();
+        requestDeserialized = new CreatePartitionsRequest();
         requestDeserialized.readFrom(in);
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));

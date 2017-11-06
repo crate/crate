@@ -44,7 +44,7 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -85,7 +85,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             internalCluster().getInstance(Functions.class),
             Settings.EMPTY,
             tableSettings,
-            internalCluster().getInstance(TransportBulkCreateIndicesAction.class),
+            internalCluster().getInstance(TransportCreatePartitionsAction.class),
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING),
