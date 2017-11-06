@@ -134,14 +134,14 @@ public class TestSqlParser {
     @Test
     public void testTokenizeErrorMiddleOfLine() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:25: no viable alternative at input '@'");
+        expectedException.expectMessage("line 1:25: no viable alternative at input 'select * from foo where @'");
         SqlParser.createStatement("select * from foo where @what");
     }
 
     @Test
     public void testTokenizeErrorIncompleteToken() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:15: extraneous input ''' expecting");
+        expectedException.expectMessage("line 1:15: no viable alternative at input 'select * from ''");
         SqlParser.createStatement("select * from 'oops");
     }
 
@@ -155,21 +155,21 @@ public class TestSqlParser {
     @Test
     public void testParseErrorMiddleOfLine() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 3:7: no viable alternative at input 'from'");
+        expectedException.expectMessage("line 3:7: no viable alternative at input 'select *\\nfrom x\\nwhere from'");
         SqlParser.createStatement("select *\nfrom x\nwhere from");
     }
 
     @Test
     public void testParseErrorEndOfInput() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:14: no viable alternative at input '<EOF>'");
+        expectedException.expectMessage("line 1:14: no viable alternative at input 'select * from'");
         SqlParser.createStatement("select * from");
     }
 
     @Test
     public void testParseErrorEndOfInputWhitespace() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:16: no viable alternative at input '<EOF>'");
+        expectedException.expectMessage("line 1:16: no viable alternative at input 'select * from  '");
         SqlParser.createStatement("select * from  ");
     }
 
@@ -242,8 +242,8 @@ public class TestSqlParser {
             SqlParser.createStatement("select *\nfrom x\nwhere from");
             fail("expected exception");
         } catch (ParsingException e) {
-            assertEquals(e.getMessage(), "line 3:7: no viable alternative at input 'from'");
-            assertEquals(e.getErrorMessage(), "no viable alternative at input 'from'");
+            assertEquals(e.getMessage(), "line 3:7: no viable alternative at input 'select *\\nfrom x\\nwhere from'");
+            assertEquals(e.getErrorMessage(), "no viable alternative at input 'select *\\nfrom x\\nwhere from'");
             assertEquals(e.getLineNumber(), 3);
             assertEquals(e.getColumnNumber(), 7);
         }

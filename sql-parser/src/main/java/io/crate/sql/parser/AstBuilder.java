@@ -846,7 +846,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitQuerySpecification(SqlBaseParser.QuerySpecificationContext context) {
+    public Node visitQuerySpec(SqlBaseParser.QuerySpecContext context) {
         List<SelectItem> selectItems = visit(context.selectItem(), SelectItem.class);
 
         List<Relation> relations = null;
@@ -884,18 +884,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetOperation(SqlBaseParser.SetOperationContext context) {
-        QueryBody left = (QueryBody) visit(context.left);
-        QueryBody right = (QueryBody) visit(context.right);
-
-        boolean distinct = context.setQuant() == null || context.setQuant().DISTINCT() != null;
-
         switch (context.operator.getType()) {
             case SqlBaseLexer.UNION:
-                return new Union(ImmutableList.of(left, right), distinct);
+                QueryBody left = (QueryBody) visit(context.left);
+                QueryBody right = (QueryBody) visit(context.right);
+                boolean isDistinct = context.setQuant() == null || context.setQuant().ALL() == null;
+                return new Union(left, right, isDistinct);
             case SqlBaseLexer.INTERSECT:
-                return new Intersect(ImmutableList.of(left, right), distinct);
+                QuerySpecification first = (QuerySpecification) visit(context.first);
+                QuerySpecification second = (QuerySpecification) visit(context.second);
+                return new Intersect(first, second);
             case SqlBaseLexer.EXCEPT:
-                return new Except(left, right, distinct);
+                first = (QuerySpecification) visit(context.first);
+                second = (QuerySpecification) visit(context.second);
+                return new Except(first, second);
             default:
                 throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
         }

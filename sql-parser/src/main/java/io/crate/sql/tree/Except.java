@@ -25,19 +25,14 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class Except
-    extends SetOperation {
+public class Except extends SetOperation {
+
     private final Relation left;
     private final Relation right;
-    private final boolean distinct;
 
-    public Except(Relation left, Relation right, boolean distinct) {
-        Preconditions.checkNotNull(left, "left is null");
-        Preconditions.checkNotNull(right, "right is null");
-
-        this.left = left;
-        this.right = right;
-        this.distinct = distinct;
+    public Except(Relation left, Relation right) {
+        this.left  = Preconditions.checkNotNull(left, "relation must not be null");
+        this.right = Preconditions.checkNotNull(right, "relation must not be null");
     }
 
     public Relation getLeft() {
@@ -46,10 +41,6 @@ public class Except
 
     public Relation getRight() {
         return right;
-    }
-
-    public boolean isDistinct() {
-        return distinct;
     }
 
     @Override
@@ -62,7 +53,6 @@ public class Except
         return MoreObjects.toStringHelper(this)
             .add("left", left)
             .add("right", right)
-            .add("distinct", distinct)
             .toString();
     }
 
@@ -75,13 +65,11 @@ public class Except
             return false;
         }
         Except o = (Except) obj;
-        return Objects.equal(left, o.left) &&
-               Objects.equal(right, o.right) &&
-               Objects.equal(distinct, o.distinct);
+        return Objects.equal(left, o.left) && Objects.equal(right, o.right);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(left, right, distinct);
+        return Objects.hashCode(left, right);
     }
 }

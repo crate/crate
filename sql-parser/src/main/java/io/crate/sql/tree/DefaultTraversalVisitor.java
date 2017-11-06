@@ -253,17 +253,15 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitUnion(Union node, C context) {
-        for (Relation relation : node.getRelations()) {
-            process(relation, context);
-        }
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
         return null;
     }
 
     @Override
     protected R visitIntersect(Intersect node, C context) {
-        for (Relation relation : node.getRelations()) {
-            process(relation, context);
-        }
+        process(node.getLeft(), context);
+        process(node.getRight(), context);
         return null;
     }
 
