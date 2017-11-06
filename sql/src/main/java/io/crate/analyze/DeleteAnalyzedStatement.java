@@ -26,6 +26,13 @@ import io.crate.analyze.relations.DocTableRelation;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @deprecated This statement type is bulk-operation aware;
+ *             we're moving parameter/bulk-awareness out of the analyzer because params are not
+ *             always available for analysis (in the postgres protocol)
+ *             Use {@link AnalyzedDeleteStatement} instead
+ */
+@Deprecated
 public class DeleteAnalyzedStatement implements AnalyzedStatement {
 
     final List<WhereClause> whereClauses = new ArrayList<>();

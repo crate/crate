@@ -28,6 +28,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
@@ -50,8 +51,14 @@ class UnboundAnalyzer {
 
     UnboundAnalyzer(RelationAnalyzer relationAnalyzer,
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
-                    ShowStatementAnalyzer showStatementAnalyzer) {
-        this.dispatcher = new UnboundDispatcher(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
+                    ShowStatementAnalyzer showStatementAnalyzer,
+                    DeleteAnalyzer deleteAnalyzer) {
+        this.dispatcher = new UnboundDispatcher(
+            relationAnalyzer,
+            showCreateTableAnalyzer,
+            showStatementAnalyzer,
+            deleteAnalyzer
+        );
     }
 
     public AnalyzedStatement analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
@@ -63,13 +70,16 @@ class UnboundAnalyzer {
         private final RelationAnalyzer relationAnalyzer;
         private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
         private final ShowStatementAnalyzer showStatementAnalyzer;
+        private final DeleteAnalyzer deleteAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowCreateTableAnalyzer showCreateTableAnalyzer,
-                          ShowStatementAnalyzer showStatementAnalyzer) {
+                          ShowStatementAnalyzer showStatementAnalyzer,
+                          DeleteAnalyzer deleteAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showCreateTableAnalyzer = showCreateTableAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
+            this.deleteAnalyzer = deleteAnalyzer;
         }
 
         @Override
@@ -113,6 +123,11 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis context) {
             return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
+            return deleteAnalyzer.analyze(node, analysis.paramTypeHints(), analysis.transactionContext());
         }
 
         @Override
