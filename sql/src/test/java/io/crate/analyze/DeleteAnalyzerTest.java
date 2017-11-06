@@ -119,4 +119,11 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
         e.analyze("delete from users where _version is null", new Object[]{1});
     }
+
+    @Test
+    public void testSensibleErrorOnDeleteComplexRelation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("DELETE only works on base-table relations");
+        e.analyze("delete from (select * from users) u");
+    }
 }

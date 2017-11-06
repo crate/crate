@@ -68,16 +68,13 @@ class DeleteAnalyzer {
             Operation.DELETE,
             transactionContext);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
-
-        assert analyzedRelation instanceof DocTableRelation : "analyzedRelation must be DocTableRelation";
-        DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
-            RowGranularity.CLUSTER,
-            null,
-            docTableRelation);
-        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
+        AnalyzedRelation relation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
+        if (!(relation instanceof DocTableRelation)) {
+            throw new UnsupportedOperationException("DELETE only works on base-table relations");
+        }
+        DocTableRelation table = (DocTableRelation) relation;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
+        DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(table);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             transactionContext,
@@ -88,8 +85,7 @@ class DeleteAnalyzer {
                 transactionContext.sessionContext().defaultSchema()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-            functions, deleteAnalyzedStatement.analyzedRelation());
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, table);
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();
