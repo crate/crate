@@ -54,12 +54,12 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final ClusterService clusterService;
     private final boolean autoCreateIndices;
 
-    public GroupRowsByShard(ClusterService clusterService,
-                            RowShardResolver rowShardResolver,
-                            Supplier<String> indexNameResolver,
-                            List<? extends CollectExpression<Row, ?>> expressions,
-                            Function<String, TItem> itemFactory,
-                            boolean autoCreateIndices) {
+    GroupRowsByShard(ClusterService clusterService,
+                     RowShardResolver rowShardResolver,
+                     Supplier<String> indexNameResolver,
+                     List<? extends CollectExpression<Row, ?>> expressions,
+                     Function<String, TItem> itemFactory,
+                     boolean autoCreateIndices) {
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
@@ -90,7 +90,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     @Nullable
-    ShardLocation getShardLocation(String indexName, String id, @Nullable String routing) {
+    private ShardLocation getShardLocation(String indexName, String id, @Nullable String routing) {
         try {
             ShardIterator shardIterator = clusterService.operationRouting().indexShards(
                 clusterService.state(),
@@ -121,9 +121,9 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     /**
-     * @return false if a shardLocation still can't be resolved
+     * @throws IllegalStateException if a shardLocation still can't be resolved
      */
-    boolean reResolveShardLocations(ShardedRequests<TReq, TItem> requests) {
+    void reResolveShardLocations(ShardedRequests<TReq, TItem> requests) {
         Iterator<Map.Entry<String, List<ShardedRequests.ItemAndRouting<TItem>>>> entryIt =
             requests.itemsByMissingIndex.entrySet().iterator();
         while (entryIt.hasNext()) {
@@ -135,8 +135,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 ShardLocation shardLocation =
                     getShardLocation(e.getKey(), itemAndRouting.item.id(), itemAndRouting.routing);
                 if (shardLocation == null) {
-                    // TODO: retry here instead?
-                    throw new IllegalStateException("shardLocation not resolveable after createIndices");
+                    throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
                 requests.add(itemAndRouting.item, shardLocation, itemAndRouting.routing);
                 it.remove();
@@ -145,6 +144,5 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 entryIt.remove();
             }
         }
-        return true;
     }
 }
