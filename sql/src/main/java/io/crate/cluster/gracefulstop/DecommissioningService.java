@@ -48,13 +48,14 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -78,7 +79,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
-    private final ThreadPool threadPool;
+    private final ScheduledExecutorService executorService;
     private final SQLOperations sqlOperations;
     private final TransportClusterHealthAction healthAction;
     private final TransportClusterUpdateSettingsAction updateSettingsAction;
@@ -91,14 +92,31 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
                                   JobsLogs jobsLogs,
-                                  ThreadPool threadPool,
                                   SQLOperations sqlOperations,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
+
+        this(
+            settings,
+            clusterService,
+            jobsLogs,
+            Executors.newSingleThreadScheduledExecutor(),
+            sqlOperations,
+            healthAction,
+            updateSettingsAction);
+    }
+
+    @VisibleForTesting
+    protected DecommissioningService(Settings settings,
+                                     final ClusterService clusterService,
+                                     JobsLogs jobsLogs,
+                                     ScheduledExecutorService executorService,
+                                     SQLOperations sqlOperations,
+                                     final TransportClusterHealthAction healthAction,
+                                     final TransportClusterUpdateSettingsAction updateSettingsAction) {
         super(settings);
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
-        this.threadPool = threadPool;
         this.sqlOperations = sqlOperations;
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
@@ -118,6 +136,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         } catch (IllegalArgumentException e) {
             logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
         }
+        this.executorService = executorService;
     }
 
     private void removeRemovedNodes(ClusterChangedEvent event) {
@@ -191,12 +210,12 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                 healthAction.execute(request, new ActionListener<ClusterHealthResponse>() {
                     @Override
                     public void onResponse(ClusterHealthResponse clusterHealthResponse) {
-                        exitIfNoActiveRequests(startTime);
+                        executorService.submit(() -> exitIfNoActiveRequests(startTime));
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        forceStopOrAbort(e);
+                        executorService.submit(() -> forceStopOrAbort(e));
                     }
                 });
             }
@@ -231,12 +250,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
         logger.info("There are still active requests on this node, delaying graceful shutdown");
         // use scheduler instead of busy loop to avoid blocking a listener thread
-        threadPool.scheduler().schedule(new Runnable() {
-            @Override
-            public void run() {
-                exitIfNoActiveRequests(startTime);
-            }
-        }, 5, TimeUnit.SECONDS);
+        executorService.schedule(() -> exitIfNoActiveRequests(startTime), 5, TimeUnit.SECONDS);
     }
 
     void exit() {
@@ -258,6 +272,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     protected void doClose() {
+        executorService.shutdownNow();
     }
 
     @Override

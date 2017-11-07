@@ -24,6 +24,8 @@ Fixes
 - Fixed an issue that caused extra spaces to be added to the formatted console
   results in the Admin UI.
 
+- Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
+
 - Fixed an issue that causes a NPE for queries that use the ``IN`` or ``ANY``
   operator on timestamp fields.
 
