@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -59,5 +60,19 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         DropUserAnalyzedStatement analysis = e.analyze("DROP USER IF EXISTS ROOT");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.ifExists(), is(true));
+    }
+
+    @Test
+    public void testCreateUserWithPassword() throws Exception {
+        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
+        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
+    }
+
+    @Test
+    public void testCreateUserWithPasswordIsStringLiteral() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Can only resolve string literals");
+        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROO WITH (PASSWORD = NO_STRING)");
     }
 }

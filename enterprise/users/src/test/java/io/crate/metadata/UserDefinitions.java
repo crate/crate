@@ -20,40 +20,37 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.metadata;
 
-import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
+import com.google.common.collect.ImmutableMap;
+import io.crate.user.SecureHash;
+import org.elasticsearch.common.settings.SecureString;
 
+import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.Map;
-import java.util.function.Consumer;
 
-public class CreateUserAnalyzedStatement implements DDLStatement {
+import static org.junit.Assert.assertNotNull;
 
-    private final String userName;
-    private final Map<String, Symbol> properties;
+public final class UserDefinitions {
 
-    public CreateUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
-        this.userName = userName;
-        this.properties = properties;
-    }
+    public static final Map<String, SecureHash> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", null);
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreateUserStatement(this, context);
-    }
+    public static final Map<String, SecureHash> DUMMY_USERS = ImmutableMap.of(
+        "Ford",
+        getSecureHash("fords-password"),
+        "Arthur",
+        getSecureHash("arthurs-password")
+    );
 
-    public String userName() {
-        return userName;
-    }
-
-    @Nullable
-    public Map<String, Symbol> properties() {
-        return properties;
-    }
-
-    @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.values().forEach(consumer);
+    private static SecureHash getSecureHash(String password) {
+        SecureHash hash = null;
+        try {
+            hash = SecureHash.of(new SecureString(password.toCharArray()));
+        } catch (GeneralSecurityException e) {
+            // do nothing;
+        }
+        assertNotNull(hash);
+        return hash;
     }
 }

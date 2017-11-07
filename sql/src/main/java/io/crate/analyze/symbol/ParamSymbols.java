@@ -20,40 +20,29 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.symbol;
 
-import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
+import io.crate.data.Row;
 
-import java.util.Map;
-import java.util.function.Consumer;
+public final class ParamSymbols extends DefaultTraversalSymbolVisitor<Row, Symbol> {
 
-public class CreateUserAnalyzedStatement implements DDLStatement {
+    private ParamSymbols() {
 
-    private final String userName;
-    private final Map<String, Symbol> properties;
+    }
 
-    public CreateUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
-        this.userName = userName;
-        this.properties = properties;
+    private static final ParamSymbols INSTANCE = new ParamSymbols();
+
+    public static Symbol toLiterals(Symbol st, Row params) {
+        return INSTANCE.process(st, params);
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitCreateUserStatement(this, context);
-    }
-
-    public String userName() {
-        return userName;
-    }
-
-    @Nullable
-    public Map<String, Symbol> properties() {
-        return properties;
+    protected Symbol visitSymbol(Symbol symbol, Row params) {
+        return symbol;
     }
 
     @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        properties.values().forEach(consumer);
+    public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
+        return Literal.of(parameterSymbol.valueType(), params.get(parameterSymbol.index()));
     }
 }

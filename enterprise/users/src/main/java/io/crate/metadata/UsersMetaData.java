@@ -18,6 +18,7 @@
 
 package io.crate.metadata;
 
+import io.crate.user.SecureHash;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -30,20 +31,22 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "users";
 
-    private final List<String> users;
+    private final Map<String, SecureHash> users;
 
     public UsersMetaData() {
-        this.users = new ArrayList<>();
+        this.users = new HashMap<>();
     }
 
-    public UsersMetaData(List<String> users) {
+    public UsersMetaData(Map<String, SecureHash> users) {
         this.users = users;
     }
 
@@ -51,15 +54,15 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         if (instance == null) {
             return new UsersMetaData();
         }
-        return new UsersMetaData(new ArrayList<>(instance.users));
+        return new UsersMetaData(new HashMap<>(instance.users));
     }
 
     public boolean contains(String name) {
-        return users.contains(name);
+        return users.containsKey(name);
     }
 
-    public void add(String name) {
-        users.add(name);
+    public void add(String name, @Nullable SecureHash attributes) {
+        users.put(name, attributes);
     }
 
     public void remove(String name) {
@@ -67,48 +70,118 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     public List<String> users() {
+        return new ArrayList<>(users.keySet());
+    }
+
+    public Map<String, SecureHash> userHashes() {
         return users;
     }
 
     public UsersMetaData(StreamInput in) throws IOException {
         int numUsers = in.readVInt();
-        users = new ArrayList<>(numUsers);
+        users = new HashMap<>(numUsers);
         for (int i = 0; i < numUsers; i++) {
-            users.add(in.readString());
+            String userName = in.readString();
+            SecureHash secureHash = in.readOptionalWriteable(SecureHash::readFrom);
+            users.put(userName, secureHash);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeStringList(users);
+        out.writeVInt(users.size());
+        for (Map.Entry<String, SecureHash> user : users.entrySet()) {
+            out.writeString(user.getKey());
+            out.writeOptionalWriteable(user.getValue());
+        }
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray("users");
-        for (String user : users) {
-            builder.value(user);
+        for (Map.Entry<String, SecureHash> entry : users.entrySet()) {
+            builder.startObject(entry.getKey());
+            if (entry.getValue() != null) {
+                entry.getValue().toXContent(builder, params);
+            }
+            builder.endObject();
         }
-        builder.endArray();
         return builder;
     }
 
+    /**
+     * UsersMetaData has the form of:
+     *
+     * {
+     *     "user1": {
+     *         "secure_hash": {
+     *             "iterations": INT,
+     *             "hash": BYTE[],
+     *             "salt": BYTE[]
+     *         }
+     *     },
+     *     ...
+     * }
+     */
     public static UsersMetaData fromXContent(XContentParser parser) throws IOException {
-        List<String> users = new ArrayList<>();
-        if (parser.nextToken() == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
-            if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-                XContentParser.Token token;
-                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
-                    users.add(parser.text());
-                }
-            }
-            if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-                // each custom metadata is packed inside an object.
-                // each custom must move the parser to the end otherwise possible following customs won't be read
-                throw new ElasticsearchParseException("failed to parse users, expected an object token at the end");
+        Map<String, SecureHash> users = new HashMap<>();
+
+        while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+            String userName = parser.currentName();
+            if (parser.nextToken() == XContentParser.Token.START_OBJECT) {  // user
+                users.put(userName, secureHashFromXContent(parser));
             }
         }
         return new UsersMetaData(users);
+    }
+
+    private static SecureHash secureHashFromXContent(XContentParser parser) throws IOException {
+        XContentParser.Token currentToken;
+        int iterations = 0;
+        byte[] hash = new byte[0];
+        byte[] salt = new byte[0];
+        boolean hasPassword = false;
+
+        while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (currentToken == XContentParser.Token.FIELD_NAME) {
+                while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) { // secure_hash
+                    hasPassword = true;
+                    if (currentToken == XContentParser.Token.FIELD_NAME) {
+                        String currentFieldName = parser.currentName();
+                        currentToken = parser.nextToken();
+                        switch (currentFieldName) {
+                            case "iterations":
+                                if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'iterations' value is not a number [{}]", currentToken);
+                                }
+                                iterations = parser.intValue();
+                                break;
+                            case "hash":
+                                if (currentToken.isValue()) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'hash' does not contain any value [{}]", currentToken);
+                                }
+                                hash = parser.binaryValue();
+                                break;
+                            case "salt":
+                                if (currentToken.isValue()) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'salt' does not contain any value [{}]", currentToken);
+                                }
+                                salt = parser.binaryValue();
+                                break;
+                            default:
+                                throw new ElasticsearchParseException("failed to parse secure_hash");
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasPassword) {
+            return SecureHash.of(iterations, salt, hash);
+        }
+        return null;
     }
 
     @Override
@@ -122,7 +195,7 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         if (o == null || getClass() != o.getClass()) return false;
 
         UsersMetaData that = (UsersMetaData) o;
-        return Objects.equals(users, that.users);
+        return users.equals(that.users);
     }
 
     @Override

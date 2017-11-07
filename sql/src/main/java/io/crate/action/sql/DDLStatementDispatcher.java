@@ -57,6 +57,8 @@ import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
+import io.crate.user.SecureHash;
+import io.crate.user.UserActions;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -72,9 +74,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.security.GeneralSecurityException;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -192,7 +197,6 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
             return listener;
         }
 
-
         @Override
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
                                                                      Row parameters) {
@@ -251,7 +255,13 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
-            return userManager.createUser(analysis.userName());
+            SecureHash secureHash;
+            try {
+                secureHash = UserActions.generateSecureHash(analysis, parameters);
+            } catch (GeneralSecurityException e) {
+                return failedFuture(e);
+            }
+            return userManager.createUser(analysis.userName(), secureHash);
         }
 
         @Override

@@ -18,7 +18,7 @@
 
 package io.crate.operation.user;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
@@ -37,7 +37,7 @@ public class TransportUserActionTest extends CrateUnitTest {
     @Test
     public void testCreateFirstUser() throws Exception {
         MetaData.Builder mdBuilder = new MetaData.Builder();
-        TransportCreateUserAction.putUser(mdBuilder, "root");
+        TransportCreateUserAction.putUser(mdBuilder, "root", null);
         UsersMetaData metaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
         assertThat(metaData.users().size(), is(1));
         assertThat(metaData.users().get(0), is("root"));
@@ -46,7 +46,7 @@ public class TransportUserActionTest extends CrateUnitTest {
     @Test
     public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
         MetaData.Builder mdBuilder = new MetaData.Builder();
-        TransportCreateUserAction.putUser(mdBuilder, "root");
+        TransportCreateUserAction.putUser(mdBuilder, "root", null);
         UsersPrivilegesMetaData metaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
         assertThat(metaData.getUserPrivileges("root"), is(Collections.emptySet()));
     }
@@ -54,15 +54,15 @@ public class TransportUserActionTest extends CrateUnitTest {
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
         MetaData.Builder mdBuilder = new MetaData.Builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(ImmutableList.of("root")));
-        assertThat(TransportCreateUserAction.putUser(mdBuilder, "root"), is(true));
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
+        assertThat(TransportCreateUserAction.putUser(mdBuilder, "Arthur", null), is(true));
     }
 
     @Test
     public void testCreateUser() throws Exception {
         MetaData.Builder mdBuilder = new MetaData.Builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData(ImmutableList.of("Trillian")));
-        TransportCreateUserAction.putUser(mdBuilder, "Arthur");
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
+        TransportCreateUserAction.putUser(mdBuilder, "Trillian", null);
         UsersMetaData newMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
         assertThat(newMetaData.users(), containsInAnyOrder("Trillian", "Arthur"));
     }
@@ -76,7 +76,7 @@ public class TransportUserActionTest extends CrateUnitTest {
     public void testDropNonExistingUser() throws Exception {
         boolean res = TransportDropUserAction.dropUser(
             MetaData.builder(),
-            new UsersMetaData(ImmutableList.of("arthur")),
+            new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY),
             "trillian"
         );
         assertThat(res, is(false));
@@ -84,10 +84,10 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testDropUser() throws Exception {
-        UsersMetaData oldMetaData = new UsersMetaData(ImmutableList.of("ford", "arthur"));
+        UsersMetaData oldMetaData = new UsersMetaData(UserDefinitions.DUMMY_USERS);
         MetaData.Builder mdBuilder = MetaData.builder();
-        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetaData, "arthur");
-        assertThat(users(mdBuilder), contains("ford"));
+        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetaData, "Arthur");
+        assertThat(users(mdBuilder), contains("Ford"));
         assertThat(res, is(true));
     }
 
