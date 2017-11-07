@@ -186,11 +186,11 @@ public class LuceneQueryBuilder {
         return ctx;
     }
 
-    private static Query termsQuery(@Nullable MappedFieldType fieldType, List values) {
+    private static Query termsQuery(@Nullable MappedFieldType fieldType, List values, QueryShardContext context) {
         if (fieldType == null) {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        return fieldType.termsQuery(values, null);
+        return fieldType.termsQuery(values, context);
     }
 
 
@@ -405,7 +405,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-                return termsQuery(context.getFieldTypeOrNull(columnName), asList(arrayLiteral));
+                return termsQuery(context.getFieldTypeOrNull(columnName), asList(arrayLiteral), context.queryShardContext);
             }
         }
 
@@ -669,7 +669,7 @@ public class LuceneQueryBuilder {
                     if (values.isEmpty()) {
                         return genericFunctionFilter(input, context);
                     }
-                    Query termsQuery = termsQuery(fieldType, values);
+                    Query termsQuery = termsQuery(fieldType, values, context.queryShardContext);
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
                     // termsFilter is applied first
