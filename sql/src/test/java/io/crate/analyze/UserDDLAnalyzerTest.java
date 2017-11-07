@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -59,5 +60,12 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         DropUserAnalyzedStatement analysis = e.analyze("DROP USER IF EXISTS ROOT");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.ifExists(), is(true));
+    }
+
+    @Test
+    public void testCreateUserWithPassword() throws Exception {
+        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT WITH (PASSWORD = 'ROOT')");
+        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.properties().get("password"), is(SqlParser.createExpression("'ROOT'")));
     }
 }

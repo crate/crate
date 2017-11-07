@@ -55,6 +55,7 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.executor.transport.RerouteActions;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
+import io.crate.executor.transport.UserActions;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
@@ -192,7 +193,6 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
             return listener;
         }
 
-
         @Override
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
                                                                      Row parameters) {
@@ -251,7 +251,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
-            return userManager.createUser(analysis.userName());
+            return UserActions.execute(userManager::createUser, analysis, parameters);
         }
 
         @Override

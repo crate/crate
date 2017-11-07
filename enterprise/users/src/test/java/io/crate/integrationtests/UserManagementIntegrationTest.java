@@ -130,4 +130,10 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expectMessage("UnsupportedFeatureException: Cannot drop a superuser 'crate'");
         executeAsSuperuser("drop user crate");
     }
+
+    @Test
+    public void testCreateUserWithPassword() throws Exception {
+        executeAsSuperuser("create user foo with (password = 'password')");
+        assertUserIsCreated("foo");
+    }
 }

@@ -19,6 +19,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.user.Privilege;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
@@ -46,7 +47,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
     @Test
     public void testEnterpriseDisabledNothingChanged() throws Exception {
         Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(Collections.singletonList("Arthur")));
+        customMap.put(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
         Map<String, MetaData.Custom> oldCustomMap = new HashMap<>(customMap);
         Settings settings = Settings.builder()
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
@@ -58,7 +59,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
     @Test
     public void testNoUsersNothingChanged() throws Exception {
         Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(Collections.emptyList()));
+        customMap.put(UsersMetaData.TYPE, new UsersMetaData(ImmutableMap.of()));
         Map<String, MetaData.Custom> oldCustomMap = new HashMap<>(customMap);
         Map<String, MetaData.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
         assertThat(newCustomMap, is(oldCustomMap));
@@ -67,7 +68,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
     @Test
     public void testExistingUserWithoutAnyPrivilegeGetsAllPrivileges() throws Exception {
         Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(Collections.singletonList("Arthur")));
+        customMap.put(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
         Map<String, MetaData.Custom> oldCustomMap = new HashMap<>(customMap);
 
         Map<String, MetaData.Custom> newCustomMap = UPGRADER.apply(Settings.EMPTY, customMap);
@@ -84,7 +85,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
     @Test
     public void testExistingUserWithPrivilegesDoesntGetMore() throws Exception {
         Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(Collections.singletonList("Arthur")));
+        customMap.put(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
         customMap.put(UsersPrivilegesMetaData.TYPE, new UsersPrivilegesMetaData(
             MapBuilder.<String, Set<Privilege>>newMapBuilder()
                 .put("Arthur", Sets.newHashSet(
@@ -99,7 +100,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
     @Test
     public void testExistingUserWithEmptyPrivilegesDoesntGetMore() throws Exception {
         Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(Collections.singletonList("Arthur")));
+        customMap.put(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
         customMap.put(UsersPrivilegesMetaData.TYPE, new UsersPrivilegesMetaData(
             MapBuilder.<String, Set<Privilege>>newMapBuilder()
                 .put("Arthur", Collections.emptySet())

@@ -373,6 +373,7 @@ public class TestStatementBuilder {
     public void testCreateUserStmtBuilder() {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
+        printStatement("create user foo with (password = 'foo')");
     }
 
     @Test
@@ -1194,7 +1195,6 @@ public class TestStatementBuilder {
             statement instanceof CreateTable ||
             statement instanceof CopyFrom ||
             statement instanceof CreateFunction ||
-            statement instanceof CreateUser ||
             statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||

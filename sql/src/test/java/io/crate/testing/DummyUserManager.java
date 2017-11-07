@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import io.crate.analyze.user.Privilege;
+import io.crate.analyze.user.UserAttributes;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
@@ -42,7 +43,7 @@ public class DummyUserManager implements UserManager {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable UserAttributes attributes) {
         return null;
     }
 

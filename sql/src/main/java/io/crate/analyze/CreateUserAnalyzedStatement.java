@@ -22,12 +22,18 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.common.Nullable;
+
 public class CreateUserAnalyzedStatement implements DDLStatement {
 
     private final String userName;
+    @Nullable
+    private final GenericProperties properties;
 
-    public CreateUserAnalyzedStatement(String userName) {
+    public CreateUserAnalyzedStatement(String userName, @Nullable GenericProperties properties) {
         this.userName = userName;
+        this.properties = properties;
     }
 
     @Override
@@ -37,5 +43,10 @@ public class CreateUserAnalyzedStatement implements DDLStatement {
 
     public String userName() {
         return userName;
+    }
+
+    @Nullable
+    public GenericProperties properties() {
+        return properties;
     }
 }

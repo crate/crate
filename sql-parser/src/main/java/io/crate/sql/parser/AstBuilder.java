@@ -262,7 +262,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitCreateUser(SqlBaseParser.CreateUserContext context) {
-        return new CreateUser(getIdentText(context.name));
+        return new CreateUser(
+            getIdentText(context.name),
+            visitIfPresent(context.withProperties(), GenericProperties.class)
+                .orElse(GenericProperties.EMPTY));
     }
 
     @Override

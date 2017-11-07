@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.user.Privilege;
+import io.crate.analyze.user.UserAttributes;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
@@ -127,14 +128,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable UserAttributes attributes) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist()) {
                 throw new UserAlreadyExistsException(userName);
             }
             return 1L;
         });
-        transportCreateUserAction.execute(new CreateUserRequest(userName), listener);
+        transportCreateUserAction.execute(new CreateUserRequest(userName, attributes), listener);
         return listener;
     }
 

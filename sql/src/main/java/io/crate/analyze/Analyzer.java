@@ -366,7 +366,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
-            return new CreateUserAnalyzedStatement(node.name());
+            return new CreateUserAnalyzedStatement(node.name(), node.properties());
         }
 
         @Override
