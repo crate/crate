@@ -35,7 +35,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.threadpool.TestThreadPool;
-import org.junit.Test;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -128,7 +127,7 @@ public class PreExecutionBenchmark {
         return e.planner.plan(selectAnalysis, jobId, 0, 0);
     }
 
-    @Test
+    @Benchmark
     public Plan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() throws Exception {
         return e.plan("select * from users where id = 1 or id = 2 or id = 3 or id = 4 order by id asc");
     }
