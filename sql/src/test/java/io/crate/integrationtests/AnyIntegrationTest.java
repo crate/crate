@@ -142,4 +142,17 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0], is(3));
         assertThat(response.rows()[1][0], is(4));
     }
+
+    @Test
+    public void testAnyOperatorWithFieldThatRequiresConversion() throws Exception {
+        execute("create table t (ts timestamp) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t values ('2017-12-31'), ('2016-12-31'), ('2015-12-31')");
+        execute("refresh table t");
+
+        execute("select ts from t where ts = ANY (['2017-12-31', '2016-12-31']) order by ts");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rows()[0][0], is(1483142400000L));
+        assertThat(response.rows()[1][0], is(1514678400000L));
+    }
 }
