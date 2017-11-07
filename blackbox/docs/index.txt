@@ -9,9 +9,10 @@ massive amounts of machine data in real-time.
 
    This is a low-level reference manual.
 
+   Check out `Getting Started with CrateDB`_ for beginner documentation.
+
    Check out the `CrateDB Guide`_ for high-level documentation, including
-   overviews, best practices, tutorials, and a handy `Getting Started`_
-   section.
+   overviews, best practices, and tutorials.
 
 .. rubric:: Table of Contents
 
@@ -33,5 +34,5 @@ massive amounts of machine data in real-time.
    administration/index
    monitoring/index
 
-.. _CrateDB Guide: https://crate.io/docs/crate/guide/index.html
-.. _Getting Started: https://crate.io/docs/crate/guide/getting_started/index.html
+.. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/
+.. _Getting Started with CrateDB: https://crate.io/docs/crate/getting-started/en/latest/
