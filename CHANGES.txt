@@ -81,6 +81,22 @@ Changes
 Fixes
 =====
 
+- Removed horizontal scroll from the console editor in the Admin UI.
+
+- Fixed Admin UI shard view to show all nodes, even those which have no shards.
+
+- Fixed an issue that cause the status-bar of the Admin UI to show an error if
+  the user has an adblocker enabled.
+
+- Fixed an issue that caused extra spaces to be added to the formatted console
+  results in the Admin UI.
+
+- Fixed an issue that caused ``NULL`` generated column values not to be
+  displayed in the tables view in the Admin UI.
+
+- Fixed Tables view of the Admin UI to show messages when the table list is
+  empty.
+
 - Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
 
 - Fixed an issue that causes a NPE for queries that use the ``IN`` or ``ANY``
