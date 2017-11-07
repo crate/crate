@@ -30,6 +30,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * @deprecated This statement is bulk-operation aware;
+ *             We're moving parameter/bulk awareness out of the analyzer because it breaks ParameterDescription support
+ *             (Parameters are not available during analysis in the postgres protocol)
+ *             Use {@link AnalyzedUpdateStatement} instead
+ */
+@Deprecated
 public class UpdateAnalyzedStatement implements AnalyzedStatement {
 
     private final List<NestedAnalyzedStatement> nestedStatements;

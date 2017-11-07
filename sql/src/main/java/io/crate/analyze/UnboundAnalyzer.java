@@ -37,6 +37,7 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Update;
 
 /**
  * Analyzer that can analyze statements without having access to the Parameters/ParameterContext.
@@ -52,12 +53,14 @@ class UnboundAnalyzer {
     UnboundAnalyzer(RelationAnalyzer relationAnalyzer,
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     ShowStatementAnalyzer showStatementAnalyzer,
-                    DeleteAnalyzer deleteAnalyzer) {
+                    DeleteAnalyzer deleteAnalyzer,
+                    UpdateAnalyzer updateAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showCreateTableAnalyzer,
             showStatementAnalyzer,
-            deleteAnalyzer
+            deleteAnalyzer,
+            updateAnalyzer
         );
     }
 
@@ -71,15 +74,18 @@ class UnboundAnalyzer {
         private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
         private final ShowStatementAnalyzer showStatementAnalyzer;
         private final DeleteAnalyzer deleteAnalyzer;
+        private final UpdateAnalyzer updateAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowCreateTableAnalyzer showCreateTableAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
-                          DeleteAnalyzer deleteAnalyzer) {
+                          DeleteAnalyzer deleteAnalyzer,
+                          UpdateAnalyzer updateAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showCreateTableAnalyzer = showCreateTableAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
+            this.updateAnalyzer = updateAnalyzer;
         }
 
         @Override
@@ -128,6 +134,11 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
             return deleteAnalyzer.analyze(node, analysis.paramTypeHints(), analysis.transactionContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitUpdate(Update update, Analysis analysis) {
+            return updateAnalyzer.analyze(update, analysis.paramTypeHints(), analysis.transactionContext());
         }
 
         @Override

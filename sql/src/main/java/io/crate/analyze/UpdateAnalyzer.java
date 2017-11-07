@@ -50,6 +50,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
@@ -57,9 +58,14 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.RandomAccess;
 import java.util.function.Predicate;
 
+/**
+ * Used to analyze statements like: `UPDATE t1 SET col1 = ? WHERE id = ?`
+ */
 public class UpdateAnalyzer {
 
     public static final String VERSION_SEARCH_EX_MSG =
@@ -71,7 +77,6 @@ public class UpdateAnalyzer {
         input -> input != null
         && input.valueType().id() == ArrayType.ID
         && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
-    private static final UpdateSubscriptValidator UPDATE_SUBSCRIPT_VALIDATOR = new UpdateSubscriptValidator();
 
     private final Functions functions;
     private final RelationAnalyzer relationAnalyzer;
@@ -84,6 +89,92 @@ public class UpdateAnalyzer {
         this.valueNormalizer = new ValueNormalizer();
     }
 
+    public AnalyzedUpdateStatement analyze(Update update, ParamTypeHints typeHints, TransactionContext txnCtx) {
+        /* UPDATE t1 SET col1 = ?, col2 = ? WHERE id = ?`
+         *               ^^^^^^^^^^^^^^^^^^       ^^^^^^
+         *               assignments               whereClause
+         *
+         *               col1 = ?
+         *               |      |
+         *               |     source
+         *             columnName/target
+         */
+        StatementAnalysisContext stmtCtx = new StatementAnalysisContext(typeHints, Operation.UPDATE, txnCtx);
+        final RelationAnalysisContext relCtx = stmtCtx.startRelation();
+        AnalyzedRelation relation = relationAnalyzer.analyze(update.relation(), stmtCtx);
+        stmtCtx.endRelation();
+        if (!(relation instanceof AbstractTableRelation)) {
+            throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
+        }
+        AbstractTableRelation table = (AbstractTableRelation) relation;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
+        ExpressionAnalyzer sourceExprAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            new FullQualifiedNameFieldProvider(
+                relCtx.sources(),
+                relCtx.parentSources(),
+                txnCtx.sessionContext().defaultSchema()
+            ),
+            null
+        );
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+
+        HashMap<Reference, Symbol> assignmentByTargetCol = getAssignments(
+            update.assignements(), typeHints, txnCtx, table, normalizer, sourceExprAnalyzer, exprCtx);
+        return new AnalyzedUpdateStatement(
+            table,
+            assignmentByTargetCol,
+            normalizer.normalize(sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx), txnCtx)
+        );
+    }
+
+    private HashMap<Reference, Symbol> getAssignments(List<Assignment> assignments,
+                                                      ParamTypeHints typeHints,
+                                                      TransactionContext txnCtx,
+                                                      AbstractTableRelation table,
+                                                      EvaluatingNormalizer normalizer,
+                                                      ExpressionAnalyzer sourceExprAnalyzer,
+                                                      ExpressionAnalysisContext exprCtx) {
+        HashMap<Reference, Symbol> assignmentByTargetCol = new HashMap<>();
+        ExpressionAnalyzer targetExprAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            new NameFieldProvider(table),
+            null
+        );
+        targetExprAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
+        assert assignments instanceof RandomAccess
+            : "assignments should implement RandomAccess for indexed loop to avoid iterator allocations";
+        for (int i = 0; i < assignments.size(); i++) {
+            Assignment assignment = assignments.get(i);
+            AssignmentNameValidator.ensureNoArrayElementUpdate(assignment.columnName());
+
+            Symbol target = normalizer.normalize(targetExprAnalyzer.convert(assignment.columnName(), exprCtx), txnCtx);
+            assert target instanceof Reference : "AstBuilder restricts left side of assignments to Columns/Subscripts";
+            Reference targetCol = (Reference) target;
+
+            Symbol source = normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx);
+            try {
+                source = valueNormalizer.normalizeInputForReference(source, targetCol, table.tableInfo());
+            } catch (IllegalArgumentException | UnsupportedOperationException e) {
+                throw new ColumnValidationException(targetCol.ident().columnIdent().sqlFqn(), table.tableInfo().ident(), e);
+            }
+
+            if (assignmentByTargetCol.put(targetCol, source) != null) {
+                throw new IllegalArgumentException("Target expression repeated: " + targetCol.ident().columnIdent().sqlFqn());
+            }
+        }
+        return assignmentByTargetCol;
+    }
+
+    /**
+     * @deprecated This analyze variant uses the parameters and is bulk aware.
+     *             Use {@link #analyze(Update, ParamTypeHints, TransactionContext)} instead
+     */
+    @Deprecated
     public AnalyzedStatement analyze(Update node, Analysis analysis) {
         final TransactionContext transactionContext = analysis.transactionContext();
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
@@ -178,7 +269,7 @@ public class UpdateAnalyzer {
                                    ExpressionAnalyzer columnExpressionAnalyzer,
                                    ExpressionAnalysisContext expressionAnalysisContext,
                                    TransactionContext transactionContext) {
-        UPDATE_SUBSCRIPT_VALIDATOR.process(node.columnName(), false);
+        AssignmentNameValidator.ensureNoArrayElementUpdate(node.columnName());
 
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) normalizer.normalize(
@@ -214,17 +305,23 @@ public class UpdateAnalyzer {
         return false;
     }
 
-    private static class UpdateSubscriptValidator extends AstVisitor<Void, Boolean> {
+    private static class AssignmentNameValidator extends AstVisitor<Void, Boolean> {
 
-        @Override
-        protected Void visitSubscriptExpression(SubscriptExpression node, Boolean context) {
-            process(node.index(), true);
-            return super.visitSubscriptExpression(node, context);
+        private static final AssignmentNameValidator INSTANCE = new AssignmentNameValidator();
+
+        static void ensureNoArrayElementUpdate(Expression expression) {
+            INSTANCE.process(expression, false);
         }
 
         @Override
-        protected Void visitLongLiteral(LongLiteral node, Boolean context) {
-            if (context) {
+        protected Void visitSubscriptExpression(SubscriptExpression node, Boolean childOfSubscript) {
+            process(node.index(), true);
+            return super.visitSubscriptExpression(node, childOfSubscript);
+        }
+
+        @Override
+        protected Void visitLongLiteral(LongLiteral node, Boolean childOfSubscript) {
+            if (childOfSubscript) {
                 throw new IllegalArgumentException("Updating a single element of an array is not supported");
             }
             return null;

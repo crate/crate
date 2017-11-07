@@ -140,4 +140,18 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING }));
     }
+
+    @Test
+    public void testExtractTypesFromUpdate() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
+            SessionContext.create(),
+            ParamTypeHints.EMPTY
+        );
+        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+
+        assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING, DataTypes.LONG }));
+    }
 }

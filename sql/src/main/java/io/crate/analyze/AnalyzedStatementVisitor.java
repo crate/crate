@@ -210,4 +210,8 @@ public class AnalyzedStatementVisitor<C, R> {
     protected R visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, C context) {
         return visitAnalyzedStatement(statement, context);
     }
+
+    public R visitAnalyzedUpdateStatement(AnalyzedUpdateStatement statement, C context) {
+        return visitAnalyzedStatement(statement, context);
+    }
 }

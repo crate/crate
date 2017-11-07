@@ -143,12 +143,14 @@ public class Analyzer {
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
+        this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
         this.unboundAnalyzer = new UnboundAnalyzer(
             relationAnalyzer,
             showCreateTableAnalyzer,
             showStatementAnalyzer,
-            deleteAnalyzer
+            deleteAnalyzer,
+            updateAnalyzer
         );
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
@@ -162,7 +164,6 @@ public class Analyzer {
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
-        this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, repositoryParamValidator);
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
