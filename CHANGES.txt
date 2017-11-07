@@ -81,6 +81,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
+
 - Fixed an issue that causes a NPE for queries that use the ``IN`` or ``ANY``
   operator on timestamp fields.
 
