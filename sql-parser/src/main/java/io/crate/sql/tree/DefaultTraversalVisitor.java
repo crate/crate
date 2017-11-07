@@ -269,8 +269,9 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitExcept(Except node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        for (Relation relation : node.getRelations()) {
+            process(relation, context);
+        }
         return null;
     }
 

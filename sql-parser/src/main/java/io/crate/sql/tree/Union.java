@@ -31,21 +31,38 @@ import java.util.List;
 public class Union
     extends SetOperation {
     private final List<Relation> relations;
-    private final boolean distinct;
+    private final List<Type> unionTypes;
 
-    public Union(List<Relation> relations, boolean distinct) {
+    public enum Type {
+        UNION("UNION"),
+        UNION_ALL("UNION ALL");
+
+        String representation;
+
+        Type(String representation) {
+            this.representation = representation;
+        }
+
+        public String getRepresentation() {
+            return representation;
+        }
+    }
+
+    public Union(List<Relation> relations, List<Type> unionTypes) {
         Preconditions.checkNotNull(relations, "relations is null");
+        Preconditions.checkArgument(relations.size() - 1 == unionTypes.size(),
+            "Union operator types must match the queries provided.");
 
         this.relations = ImmutableList.copyOf(relations);
-        this.distinct = distinct;
+        this.unionTypes = unionTypes;
     }
 
     public List<Relation> getRelations() {
         return relations;
     }
 
-    public boolean isDistinct() {
-        return distinct;
+    public List<Type> getUnionTypes() {
+        return unionTypes;
     }
 
     @Override
@@ -57,7 +74,7 @@ public class Union
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("relations", relations)
-            .add("distinct", distinct)
+            .add("unionTypes", unionTypes)
             .toString();
     }
 
@@ -71,11 +88,11 @@ public class Union
         }
         Union o = (Union) obj;
         return Objects.equal(relations, o.relations) &&
-               Objects.equal(distinct, o.distinct);
+               Objects.equal(unionTypes, o.unionTypes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(relations, distinct);
+        return Objects.hashCode(relations, unionTypes);
     }
 }

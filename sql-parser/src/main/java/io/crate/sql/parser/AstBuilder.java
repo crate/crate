@@ -172,6 +172,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -846,7 +847,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitQuerySpecification(SqlBaseParser.QuerySpecificationContext context) {
+    public Node visitQuerySpec(SqlBaseParser.QuerySpecContext context) {
         List<SelectItem> selectItems = visit(context.selectItem(), SelectItem.class);
 
         List<Relation> relations = null;
@@ -884,20 +885,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetOperation(SqlBaseParser.SetOperationContext context) {
-        QueryBody left = (QueryBody) visit(context.left);
-        QueryBody right = (QueryBody) visit(context.right);
+        List<Relation> queries = new ArrayList<>(context.queries.size());
+        for (SqlBaseParser.QuerySpecContext query : context.queries) {
+            queries.add((QueryBody) visit(query));
+        }
 
-        boolean distinct = context.setQuant() == null || context.setQuant().DISTINCT() != null;
-
-        switch (context.operator.getType()) {
-            case SqlBaseLexer.UNION:
-                return new Union(ImmutableList.of(left, right), distinct);
-            case SqlBaseLexer.INTERSECT:
-                return new Intersect(ImmutableList.of(left, right), distinct);
-            case SqlBaseLexer.EXCEPT:
-                return new Except(left, right, distinct);
-            default:
-                throw new IllegalArgumentException("Unsupported set operation: " + context.operator.getText());
+        if (context.EXCEPT() != null) {
+            return new Except(queries);
+        } else if (context.INTERSECT() != null) {
+            return new Intersect(queries);
+        } else {
+            List<Union.Type> unionTypes = context.unions.stream()
+                .map(u -> u.ALL() != null ? Union.Type.UNION_ALL : Union.Type.UNION)
+                .collect(toList());
+            return new Union(queries, unionTypes);
         }
     }
 

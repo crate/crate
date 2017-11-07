@@ -103,9 +103,14 @@ queryNoWith:
     ;
 
 queryTerm
-    : queryPrimary                                                                   #queryTermDefault
-    | left=queryTerm operator=INTERSECT setQuant? right=queryTerm                    #setOperation
-    | left=queryTerm operator=(UNION | EXCEPT) setQuant? right=queryTerm             #setOperation
+    : querySpec                                                                      #queryTermDefault
+    | queries+=querySpec operator=(INTERSECT | EXCEPT) queries+=querySpec            #setOperation
+    | queries+=querySpec (unions+=union queries+=querySpec)+                         #setOperation
+    ;
+
+union
+    : UNION
+    | UNION ALL
     ;
 
 setQuant
@@ -113,17 +118,11 @@ setQuant
     | ALL
     ;
 
-queryPrimary
-    : querySpecification                                                             #queryPrimaryDefault
-    | TABLE qname                                                                    #explicitTable
-    | VALUES expr (',' expr)*                                                        #inlineTable
-    ;
-
 sortItem
     : expr ordering=(ASC | DESC)? (NULLS nullOrdering=(FIRST | LAST))?
     ;
 
-querySpecification
+querySpec
     : SELECT setQuant? selectItem (',' selectItem)*
       (FROM relation (',' relation)*)?
       where?

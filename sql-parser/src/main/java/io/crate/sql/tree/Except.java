@@ -24,32 +24,22 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 public class Except
     extends SetOperation {
-    private final Relation left;
-    private final Relation right;
-    private final boolean distinct;
+    private final List<Relation> relations;
 
-    public Except(Relation left, Relation right, boolean distinct) {
-        Preconditions.checkNotNull(left, "left is null");
-        Preconditions.checkNotNull(right, "right is null");
+    public Except(List<Relation> relations) {
+        Preconditions.checkNotNull(relations, "relations is null");
 
-        this.left = left;
-        this.right = right;
-        this.distinct = distinct;
+        this.relations = ImmutableList.copyOf(relations);
     }
 
-    public Relation getLeft() {
-        return left;
-    }
-
-    public Relation getRight() {
-        return right;
-    }
-
-    public boolean isDistinct() {
-        return distinct;
+    public List<Relation> getRelations() {
+        return relations;
     }
 
     @Override
@@ -60,9 +50,7 @@ public class Except
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("left", left)
-            .add("right", right)
-            .add("distinct", distinct)
+            .add("relations", relations)
             .toString();
     }
 
@@ -75,13 +63,11 @@ public class Except
             return false;
         }
         Except o = (Except) obj;
-        return Objects.equal(left, o.left) &&
-               Objects.equal(right, o.right) &&
-               Objects.equal(distinct, o.distinct);
+        return Objects.equal(relations, o.relations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(left, right, distinct);
+        return Objects.hashCode(relations);
     }
 }

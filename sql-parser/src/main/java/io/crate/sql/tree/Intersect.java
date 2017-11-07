@@ -31,21 +31,15 @@ import java.util.List;
 public class Intersect
     extends SetOperation {
     private final List<Relation> relations;
-    private final boolean distinct;
 
-    public Intersect(List<Relation> relations, boolean distinct) {
+    public Intersect(List<Relation> relations) {
         Preconditions.checkNotNull(relations, "relations is null");
 
         this.relations = ImmutableList.copyOf(relations);
-        this.distinct = distinct;
     }
 
     public List<Relation> getRelations() {
         return relations;
-    }
-
-    public boolean isDistinct() {
-        return distinct;
     }
 
     @Override
@@ -57,7 +51,6 @@ public class Intersect
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("relations", relations)
-            .add("distinct", distinct)
             .toString();
     }
 
@@ -70,12 +63,11 @@ public class Intersect
             return false;
         }
         Intersect o = (Intersect) obj;
-        return Objects.equal(relations, o.relations) &&
-               Objects.equal(distinct, o.distinct);
+        return Objects.equal(relations, o.relations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(relations, distinct);
+        return Objects.hashCode(relations);
     }
 }
