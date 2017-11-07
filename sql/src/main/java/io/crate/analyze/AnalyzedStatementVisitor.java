@@ -206,4 +206,8 @@ public class AnalyzedStatementVisitor<C, R> {
     protected R visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
+
+    protected R visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, C context) {
+        return visitAnalyzedStatement(statement, context);
+    }
 }

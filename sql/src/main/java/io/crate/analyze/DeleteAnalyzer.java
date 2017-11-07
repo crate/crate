@@ -58,6 +58,40 @@ class DeleteAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
+    public AnalyzedDeleteStatement analyze(Delete delete, ParamTypeHints typeHints, TransactionContext txnContext) {
+        StatementAnalysisContext stmtCtx = new StatementAnalysisContext(typeHints, Operation.DELETE, txnContext);
+        RelationAnalysisContext relationCtx = stmtCtx.startRelation();
+        AnalyzedRelation relation = relationAnalyzer.analyze(delete.getRelation(), stmtCtx);
+        stmtCtx.endRelation();
+
+        if (!(relation instanceof DocTableRelation)) {
+            throw new UnsupportedOperationException("Cannot delete from relations other than base tables");
+        }
+        DocTableRelation table = (DocTableRelation) relation;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnContext,
+            typeHints,
+            new FullQualifiedNameFieldProvider(
+                relationCtx.sources(),
+                relationCtx.parentSources(),
+                txnContext.sessionContext().defaultSchema()
+            ),
+            null
+        );
+        Symbol query = normalizer.normalize(
+            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext()),
+            txnContext
+        );
+        return new AnalyzedDeleteStatement(table, query);
+    }
+
+    /**
+     * @deprecated This analyze variant uses the parameters and is bulk aware.
+     *             Use {@link #analyze(Delete, ParamTypeHints, TransactionContext)} instead
+     */
+    @Deprecated
     public AnalyzedStatement analyze(Delete node, Analysis analysis) {
         int numNested = 1;
 
