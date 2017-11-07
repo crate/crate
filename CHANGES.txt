@@ -81,6 +81,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that causes a NPE for queries that use the ``IN`` or ``ANY``
+  operator on timestamp fields.
+
 - Improves resiliency of ``COPY FROM`` and ``INSERT FROM SUBQUERY`` statements
   when lot of new partitions will be created on demand.
 
