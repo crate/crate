@@ -33,14 +33,16 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.Mockito;
 
 import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -51,7 +53,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     private JobsLogs jobsLogs;
     private TestableDecommissioningService decommissioningService;
-    private ThreadPool threadPool;
+    private ScheduledExecutorService executorService;
     private SQLOperations sqlOperations;
 
     @Override
@@ -62,14 +64,14 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void init() throws Exception {
-        threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
+        executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS.get());
         jobsLogs = new JobsLogs(() -> true);
         sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             clusterService,
             jobsLogs,
-            threadPool,
+            executorService,
             sqlOperations,
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)
@@ -89,7 +91,8 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
         assertThat(decommissioningService.exited, is(false));
         assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
-        verify(threadPool, times(1)).scheduler();
+        verify(executorService, times(1)).schedule(
+            Mockito.any(Runnable.class), Mockito.anyLong(), Mockito.any(TimeUnit.class));
     }
 
     @Test
@@ -108,13 +111,18 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
         TestableDecommissioningService(Settings settings,
                                        ClusterService clusterService,
                                        JobsLogs jobsLogs,
-                                       ThreadPool threadPool,
+                                       ScheduledExecutorService executorService,
                                        SQLOperations sqlOperations,
                                        TransportClusterHealthAction healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
-            super(settings, clusterService, jobsLogs, threadPool,
-                sqlOperations, healthAction, updateSettingsAction);
-
+            super(
+                settings,
+                clusterService,
+                jobsLogs,
+                executorService,
+                sqlOperations,
+                healthAction,
+                updateSettingsAction);
         }
 
         @Override

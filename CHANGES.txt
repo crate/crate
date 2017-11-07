@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
+
 - Removed horizontal scroll from the console editor in the Admin UI.
 
 - Fixed Admin UI shard view to show all nodes, even those which have no shards.
@@ -36,8 +38,6 @@ Fixes
 
 - Fixed Tables view of the Admin UI to show messages when the table list is
   empty.
-
-- Fixed an issue that prevented the complete graceful shutdown of CrateDB node.
 
 - Fixed an issue that causes a NPE for queries that use the ``IN`` or ``ANY``
   operator on timestamp fields.
