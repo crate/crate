@@ -290,11 +290,9 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.ident().columnIdent();
             Expression expression = node.values().get(i);
-            expressionAnalysisContext.setDesiredType(column.valueType());
             Symbol valuesSymbol = normalizer.normalize(
                 expressionAnalyzer.convert(expression, expressionAnalysisContext),
                 transactionContext);
-            expressionAnalysisContext.setDesiredType(null);
 
             // implicit type conversion
             Object value;

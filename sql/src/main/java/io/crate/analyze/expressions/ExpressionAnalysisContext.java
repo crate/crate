@@ -23,7 +23,6 @@ package io.crate.analyze.expressions;
 
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
-import io.crate.types.DataType;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -37,22 +36,12 @@ public class ExpressionAnalysisContext {
 
     private boolean hasAggregates;
 
-    private DataType desiredType;
-
     void indicateAggregates() {
         hasAggregates = true;
     }
 
     public boolean hasAggregates() {
         return hasAggregates;
-    }
-
-    public DataType getDesiredType() {
-        return desiredType;
-    }
-
-    public void setDesiredType(DataType desiredType) {
-        this.desiredType = desiredType;
     }
 
     /**
