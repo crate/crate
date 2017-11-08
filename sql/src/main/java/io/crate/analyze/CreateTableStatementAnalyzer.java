@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
@@ -56,7 +56,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private final Functions functions;
     private final NumberOfShards numberOfShards;
 
-    static final Collection<String> READ_ONLY_SCHEMAS = ImmutableList.of(
+    public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME

@@ -31,6 +31,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportExecutor;
@@ -104,6 +105,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -684,7 +686,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 return Schemas.DOC_SCHEMA_NAME;
             }
 
-            return RandomStrings.randomAsciiOfLengthBetween(RandomizedContext.current().getRandom(), 1, 20).toLowerCase();
+            Random random = RandomizedContext.current().getRandom();
+            while (true) {
+                String schemaName = RandomStrings.randomAsciiOfLengthBetween(random, 1, 20).toLowerCase();
+                if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName)) {
+                    return schemaName;
+                }
+            }
         } catch (NoSuchMethodException ignored) {
             return Schemas.DOC_SCHEMA_NAME;
         }
