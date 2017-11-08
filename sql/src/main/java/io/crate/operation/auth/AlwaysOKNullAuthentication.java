@@ -24,12 +24,13 @@ package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
+import org.elasticsearch.common.settings.SecureString;
 
 public class AlwaysOKNullAuthentication implements Authentication {
 
     private final AuthenticationMethod alwaysOkNull = new AuthenticationMethod() {
         @Override
-        public User authenticate(String userName, ConnectionProperties connectionProperties) {
+        public User authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
             return null;
         }
 

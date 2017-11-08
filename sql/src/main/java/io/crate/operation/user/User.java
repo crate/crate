@@ -23,6 +23,7 @@
 package io.crate.operation.user;
 
 import io.crate.analyze.user.Privilege;
+import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
@@ -48,6 +49,11 @@ public class User {
 
     public String name() {
         return name;
+    }
+
+    @Nullable
+    public SecureHash password() {
+        return null;
     }
 
     @SuppressWarnings("WeakerAccess")
