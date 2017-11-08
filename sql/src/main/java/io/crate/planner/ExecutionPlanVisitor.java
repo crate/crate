@@ -139,4 +139,8 @@ public class ExecutionPlanVisitor<C, R> {
     public R visitUpdateById(UpdateById updateById, C context) {
         return visitPlan(updateById, context);
     }
+
+    public R visitUnionPlan(UnionExecutionPlan unionExecutionPlan, C context) {
+        return visitPlan(unionExecutionPlan, context);
+    }
 }

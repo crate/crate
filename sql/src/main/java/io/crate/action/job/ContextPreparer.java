@@ -553,7 +553,7 @@ public class ContextPreparer extends AbstractComponent {
                 projectorFactory
             );
 
-            if (upstreamOnSameNode) {
+            if (upstreamOnSameNode && phase.numInputs() == 1) {
                 context.registerBatchConsumer(phase.phaseId(), consumer);
                 context.registerRamAccountingContext(phase.phaseId(), ramAccountingContext);
                 return true;

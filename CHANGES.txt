@@ -54,6 +54,13 @@ Changes
 
 - Added support for scalar subqueries in DELETE statements.
 
+- Introduced support for UNION ALL to produce the combined result of two or
+  more queries, e.g.:
+
+    SELECT id FROM t1
+    UNION ALL
+    SELECT id FROM t2
+
 - Added new "password" authentication method which is available for connections
   via the Postgres Protocol. This method allowes clients to authenticate using
   a valid database user and its password.

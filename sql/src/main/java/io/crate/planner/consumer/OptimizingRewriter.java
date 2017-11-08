@@ -25,6 +25,7 @@ package io.crate.planner.consumer;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.Functions;
@@ -62,6 +63,11 @@ public final class OptimizingRewriter {
 
         @Override
         public QueriedRelation visitQueriedRelation(QueriedRelation relation, Void context) {
+            return relation;
+        }
+
+        @Override
+        public QueriedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, Void context) {
             return relation;
         }
 

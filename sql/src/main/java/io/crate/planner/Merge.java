@@ -81,6 +81,7 @@ public class Merge implements ExecutionPlan, ResultDescription {
             plannerContext.nextExecutionPhaseId(),
             "mergeOnHandler",
             resultDescription.nodeIds().size(),
+            1,
             handlerNodeIds,
             resultDescription.streamOutputs(),
             addProjection(projections, topN),

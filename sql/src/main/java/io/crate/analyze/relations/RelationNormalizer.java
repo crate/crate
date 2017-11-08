@@ -105,6 +105,12 @@ public final class RelationNormalizer {
         }
 
         @Override
+        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, TransactionContext context) {
+            process(relation.childRelation(), context);
+            return relation;
+        }
+
+        @Override
         public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, TransactionContext context) {
             unionSelect.left((QueriedRelation) process(unionSelect.left(), context));
             unionSelect.right((QueriedRelation) process(unionSelect.right(), context));

@@ -27,6 +27,7 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.planner.consumer.FetchMode;
@@ -81,6 +82,11 @@ public class SelectStatementPlanner {
 
         @Override
         public LogicalPlan visitQueriedRelation(QueriedRelation relation, Context context) {
+            return invokeLogicalPlanner(relation, context);
+        }
+
+        @Override
+        public LogicalPlan visitOrderedLimitedRelation(OrderedLimitedRelation relation, Context context) {
             return invokeLogicalPlanner(relation, context);
         }
 

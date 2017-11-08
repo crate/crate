@@ -36,17 +36,15 @@ import java.util.List;
 
 public class UnionSelect implements QueriedRelation {
 
-    private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
     private final Fields fields;
     private QueriedRelation left;
     private QueriedRelation right;
     private QualifiedName name;
 
-    public UnionSelect(QueriedRelation left, QueriedRelation right, boolean distinct) {
+    public UnionSelect(QueriedRelation left, QueriedRelation right) {
         this.left = left;
         this.right = right;
-        this.distinct = distinct;
         this.name = left.getQualifiedName();
 
         List<Field> fieldsFromLeft = left.fields();
@@ -55,10 +53,6 @@ public class UnionSelect implements QueriedRelation {
             fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
         querySpec.outputs(new ArrayList<>(fields.asList()));
-    }
-
-    public boolean isDistinct() {
-        return distinct;
     }
 
     public QueriedRelation left() {

@@ -38,23 +38,43 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
+
+/**
+ * Models the relation that wraps a SET operation (Union/Except/Intercept) or a VALUES definition
+ * in the AST built by the Parser when an ORDER BY and/or LIMIT and/or OFFSET clause that applies to
+ * the whole operation is defined. E.g.:
+ *
+ * <code>
+ *     SELECT * FROM ([Query t1])
+ *     UNION
+ *     SELECT * FROM ([Query t2])
+ *     ORDER BY 1
+ * </code>
+ *
+ * It's represented like this:
+ *
+ *        OrderedLimitedRelation -> (ORDER BY 1)
+ *                 |
+ *                 |
+ *            UnionSelect        -> (Never contains an OrderBy or Limit/Offset)
+ *                /     \
+ *               /       \
+ * QueriedRelation_t1  QueriedRelation_t2
+ */
 public class OrderedLimitedRelation implements QueriedRelation {
 
     private final QueriedRelation childRelation;
-    private final OrderBy orderBy;
-    @Nullable
-    private final Symbol limit;
-    @Nullable
-    private final Symbol offset;
+    private final QuerySpec querySpec;
 
     public OrderedLimitedRelation(QueriedRelation childRelation,
                                   OrderBy orderBy,
                                   @Nullable Symbol limit,
                                   @Nullable Symbol offset) {
         this.childRelation = childRelation;
-        this.orderBy = orderBy;
-        this.limit = limit;
-        this.offset = offset;
+        this.querySpec = new QuerySpec();
+        querySpec.limit(limit);
+        querySpec.orderBy(orderBy);
+        querySpec.offset(offset);
     }
 
     @Override
@@ -88,8 +108,7 @@ public class OrderedLimitedRelation implements QueriedRelation {
 
     @Override
     public QuerySpec querySpec() {
-        throw new UnsupportedOperationException("querySpec() not supported for: " +
-                                                OrderedLimitedRelation.class.getSimpleName());
+        return this.querySpec;
     }
 
     @Override
@@ -114,17 +133,17 @@ public class OrderedLimitedRelation implements QueriedRelation {
     }
 
     public OrderBy orderBy() {
-        return orderBy;
+        return querySpec.orderBy();
     }
 
     @Nullable
     public Symbol limit() {
-        return limit;
+        return querySpec.limit();
     }
 
     @Nullable
     public Symbol offset() {
-        return offset;
+        return querySpec.offset();
     }
 
     @Override

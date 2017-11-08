@@ -30,8 +30,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.PlannerContext;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
@@ -89,6 +89,7 @@ public class Count implements LogicalPlan {
             plannerContext.nextExecutionPhaseId(),
             COUNT_PHASE_NAME,
             countPhase.nodeIds().size(),
+            1,
             Collections.singletonList(plannerContext.handlerNode()),
             Collections.singletonList(DataTypes.LONG),
             Collections.singletonList(MergeCountProjection.INSTANCE),
