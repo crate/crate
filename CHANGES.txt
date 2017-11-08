@@ -80,16 +80,3 @@ Changes
 
 Fixes
 =====
-
-- Removed horizontal scroll from the console editor in the Admin UI.
-
-- Fixed Admin UI shard view to show all nodes, even those which have no shards.
-
-- Fixed an issue that cause the status-bar of the Admin UI to show an error if
-  the user has an adblocker enabled.
-
-- Fixed Tables view of the Admin UI to show messages when the table list is
-  empty.
-
-- Fixed an issue where internal cluster state updates could reset the active
-  ingestion rules, causing all ingest operations to stop.
