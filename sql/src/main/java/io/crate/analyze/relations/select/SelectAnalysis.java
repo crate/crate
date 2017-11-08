@@ -45,10 +45,10 @@ public class SelectAnalysis {
     private final List<Symbol> outputSymbols;
     private final Multimap<String, Symbol> outputMultiMap;
 
-    SelectAnalysis(int expectedItems,
-                   Map<QualifiedName, AnalyzedRelation> sources,
-                   ExpressionAnalyzer expressionAnalyzer,
-                   ExpressionAnalysisContext expressionAnalysisContext) {
+    public SelectAnalysis(int expectedItems,
+                          Map<QualifiedName, AnalyzedRelation> sources,
+                          ExpressionAnalyzer expressionAnalyzer,
+                          ExpressionAnalysisContext expressionAnalysisContext) {
         this.sources = sources;
         this.expressionAnalyzer = expressionAnalyzer;
         this.expressionAnalysisContext = expressionAnalysisContext;
@@ -82,7 +82,7 @@ public class SelectAnalysis {
         return outputMultiMap;
     }
 
-    void add(Path path, Symbol symbol) {
+    public void add(Path path, Symbol symbol) {
         outputNames.add(path);
         outputSymbols.add(symbol);
         outputMultiMap.put(path.outputName(), symbol);
