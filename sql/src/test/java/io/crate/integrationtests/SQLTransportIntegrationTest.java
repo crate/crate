@@ -28,10 +28,11 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportExecutor;
@@ -42,10 +43,10 @@ import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.operation.user.User;
@@ -106,6 +107,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -681,7 +683,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 return Schemas.DOC_SCHEMA_NAME;
             }
 
-            return RandomStrings.randomAsciiOfLengthBetween(RandomizedContext.current().getRandom(), 1, 20).toLowerCase();
+            Random random = RandomizedContext.current().getRandom();
+            while (true) {
+                String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
+                if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName)) {
+                    return schemaName;
+                }
+            }
         } catch (NoSuchMethodException ignored) {
             return Schemas.DOC_SCHEMA_NAME;
         }
