@@ -823,9 +823,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testUnion() {
+    public void testUnionDistinct() {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("UNION is not supported");
+        expectedException.expectMessage("UNION [DISTINCT] is not supported");
         analyze("select * from users union select * from users_multi_pk");
     }
 
