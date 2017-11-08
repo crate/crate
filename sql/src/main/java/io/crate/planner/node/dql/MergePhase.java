@@ -51,6 +51,8 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     private final Collection<? extends DataType> inputTypes;
     private final int numUpstreams;
+    /** The number of different inputs, e.g. Union has inputs from two Collect phases */
+    private final int numInputs;
     private final Collection<String> executionNodes;
 
     private DistributionInfo distributionInfo;
@@ -60,16 +62,33 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
      */
     @Nullable private PositionalOrderBy positionalOrderBy;
 
+    /**
+     * Creates a MergePhase to combine the results from multiple node operations.
+     * @param jobId The JobID of the entire execution.
+     * @param executionNodeId A unique execution id for this phase.
+     * @param name The name of the MergePhase.
+     * @param numUpstreams The number of nodes to expect data from.
+     * @param numInputs The number of different inputs to read data from which is equal to
+     *                  the number of upstream phases.
+     * @param executionNodes The nodes where this MergePhase executes.
+     * @param inputTypes The types of the input rows.
+     * @param projections The projections to apply when merging.
+     * @param distributionInfo The default strategy to use when distributing the results of the MergePhase.
+     * @param positionalOrderBy The order by positions on wich the input is pre-sorted on; setting this
+     *                          will result in a sorted merge.
+     */
     public MergePhase(UUID jobId,
                       int executionNodeId,
                       String name,
                       int numUpstreams,
+                      int numInputs,
                       Collection<String> executionNodes,
                       Collection<? extends DataType> inputTypes,
                       List<Projection> projections,
                       DistributionInfo distributionInfo,
                       @Nullable PositionalOrderBy positionalOrderBy) {
         super(jobId, executionNodeId, name, projections);
+        this.numInputs = numInputs;
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
         this.distributionInfo = distributionInfo;
@@ -106,6 +125,14 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return numUpstreams;
     }
 
+    /**
+     * The number of inputs of the MergePhase. A typical MergePhase has only
+     * one input. {@link io.crate.planner.operators.Union} has two.
+     */
+    public int numInputs() {
+        return numInputs;
+    }
+
     public Collection<? extends DataType> inputTypes() {
         return inputTypes;
     }
@@ -124,6 +151,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         super(in);
         distributionInfo = DistributionInfo.fromStream(in);
         numUpstreams = in.readVInt();
+        numInputs = in.readVInt();
 
         int numCols = in.readVInt();
         if (numCols > 0) {
@@ -153,6 +181,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         super.writeTo(out);
         distributionInfo.writeTo(out);
         out.writeVInt(numUpstreams);
+        out.writeVInt(numInputs);
 
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
@@ -177,6 +206,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             .add("outputTypes", outputTypes)
             .add("jobId", jobId())
             .add("numUpstreams", numUpstreams)
+            .add("numInputs", numInputs)
             .add("nodeOperations", executionNodes)
             .add("inputTypes", inputTypes)
             .add("orderBy", positionalOrderBy);

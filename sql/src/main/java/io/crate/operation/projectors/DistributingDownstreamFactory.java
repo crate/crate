@@ -77,7 +77,8 @@ public class DistributingDownstreamFactory extends AbstractComponent {
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
-        int bucketIdx = getBucketIdx(nodeOperation.executionPhase().nodeIds());
+        byte phaseInputId = nodeOperation.downstreamExecutionPhaseInputId();
+        int bucketIdx = getBucketIdx(nodeOperation.executionPhase().nodeIds(), phaseInputId);
 
         MultiBucketBuilder multiBucketBuilder;
         switch (distributionInfo.distributionType()) {
@@ -102,7 +103,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
             jobId,
             multiBucketBuilder,
             nodeOperation.downstreamExecutionPhaseId(),
-            nodeOperation.downstreamExecutionPhaseInputId(),
+            phaseInputId,
             bucketIdx,
             nodeOperation.downstreamNodes(),
             transportDistributedResultAction,
@@ -112,7 +113,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
     }
 
     /**
-     * @return bucketIdx (= idx of localNode in nodeIds)
+     * @return bucketIdx (= phaseInputID (8bit) | idx of localNode in nodeIds (24bit) )
      *
      * <p>
      * This needs to be deterministic across all nodes involved in a query execution.
@@ -123,9 +124,10 @@ public class DistributingDownstreamFactory extends AbstractComponent {
      *
      * See {@link io.crate.jobs.PageBucketReceiver}
      */
-    private int getBucketIdx(Collection<String> nodeIds) {
+    private int getBucketIdx(Collection<String> nodeIds, byte phaseInputId) {
         ArrayList<String> server = new ArrayList<>(nodeIds);
         server.sort(null);
-        return Math.max(server.indexOf(clusterService.localNode().getId()), 0);
+        int nodeId = Math.max(server.indexOf(clusterService.localNode().getId()), 0);
+        return nodeId | (phaseInputId << 24);
     }
 }

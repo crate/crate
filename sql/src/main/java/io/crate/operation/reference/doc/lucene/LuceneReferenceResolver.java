@@ -33,6 +33,7 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
@@ -66,6 +67,14 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     @Override
     public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
         assert refInfo.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
+
+        final DataType dataType = refInfo.valueType();
+        if (dataType.id() == ObjectType.ID || dataType.id() == GeoShapeType.ID) {
+            // FetchOrEval takes care of rewriting the reference to do a source lookup.
+            // However, when fetching is disabled, this does not happen and we need to ensure
+            // (at least) for objects that we do a source lookup.
+            refInfo = DocReferences.toSourceLookup(refInfo);
+        }
 
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         String name = columnIdent.name();
@@ -106,7 +115,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (fieldType == null) {
             return new NullValueCollectorExpression(fqn);
         }
-        switch (refInfo.valueType().id()) {
+        switch (dataType.id()) {
             case ByteType.ID:
                 return new ByteColumnReference(fqn);
             case ShortType.ID:
@@ -123,8 +132,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new DoubleColumnReference(fqn, fieldType);
             case BooleanType.ID:
                 return new BooleanColumnReference(fqn);
-            case ObjectType.ID:
-                return new ObjectColumnReference(fqn);
             case FloatType.ID:
                 return new FloatColumnReference(fqn, fieldType);
             case LongType.ID:
@@ -134,13 +141,11 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new IntegerColumnReference(fqn);
             case GeoPointType.ID:
                 return new GeoPointColumnReference(fqn, fieldType);
-            case GeoShapeType.ID:
-                return new GeoShapeColumnReference(fqn);
             case ArrayType.ID:
             case SetType.ID:
                 return DocCollectorExpression.create(DocReferences.toSourceLookup(refInfo));
             default:
-                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.valueType().getName()));
+                throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", dataType.getName()));
         }
     }
 

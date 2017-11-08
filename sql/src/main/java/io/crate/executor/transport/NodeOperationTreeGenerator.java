@@ -29,6 +29,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
+import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
@@ -226,6 +227,30 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
         } else {
             process(subExecutionPlan, context);
         }
+        return null;
+    }
+
+    /**
+     * Generates the {@link NodeOperation}s for executing Union.
+     *
+     * We branch off for both sides of the Union with different input ids. In contrast
+     * to the {@code visitNestedLoop}, we don't have a special iterator which merges the
+     * result from both sides. The {@link io.crate.operation.projectors.DistributingDownstreamFactory}
+     * generates buckets ids based on the input id and the node id which creates all
+     * buckets required to merge the results of both branches.
+     */
+    @Override
+    public Void visitUnionPlan(UnionExecutionPlan unionExecutionPlan, NodeOperationTreeContext context) {
+        context.addPhase(unionExecutionPlan.mergePhase());
+
+        context.branch((byte) 0);
+        process(unionExecutionPlan.left(), context);
+        context.leaveBranch();
+
+        context.branch((byte) 1);
+        process(unionExecutionPlan.right(), context);
+        context.leaveBranch();
+
         return null;
     }
 

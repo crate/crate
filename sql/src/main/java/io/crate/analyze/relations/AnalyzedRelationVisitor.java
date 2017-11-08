@@ -52,7 +52,7 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitUnionSelect(UnionSelect unionSelect, C context) {
-        return visitAnalyzedRelation(unionSelect, context);
+        return visitQueriedRelation(unionSelect, context);
     }
 
     public R visitTableRelation(TableRelation tableRelation, C context) {

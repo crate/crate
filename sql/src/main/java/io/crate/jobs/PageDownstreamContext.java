@@ -21,14 +21,11 @@
 
 package io.crate.jobs;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.RowConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.merge.BatchPagingIterator;
 import io.crate.operation.merge.KeyIterable;
@@ -38,10 +35,18 @@ import org.apache.logging.log4j.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
+/**
+ * A {@link DownstreamExecutionSubContext} which receives paged buckets from upstreams
+ * and forwards the merged bucket results to the consumers for further processing.
+ */
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
     private final String name;
@@ -51,10 +56,10 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
-    private final BitSet exhausted;
+    private final Set<Integer> exhausted;
     private final PagingIterator<Integer, Row> pagingIterator;
-    private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
-    private final IntObjectHashMap<Bucket> bucketsByIdx;
+    private final Map<Integer, PageResultListener> listenersByBucketIdx;
+    private final Map<Integer, Bucket> bucketsByIdx;
     private final RowConsumer consumer;
     private final BatchPagingIterator<Integer> batchPagingIterator;
 
@@ -77,10 +82,10 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
         traceEnabled = logger.isTraceEnabled();
-        this.exhausted = new BitSet(numBuckets);
+        this.exhausted = new HashSet<>(numBuckets);
         this.pagingIterator = pagingIterator;
-        this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
-        this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
+        this.bucketsByIdx = new HashMap<>(numBuckets);
+        this.listenersByBucketIdx = new HashMap<>(numBuckets);
         batchPagingIterator = new BatchPagingIterator<>(
             pagingIterator,
             this::fetchMore,
@@ -91,15 +96,17 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
-        for (ObjectCursor<PageResultListener> cursor : listenersByBucketIdx.values()) {
-            cursor.value.needMore(false);
+        synchronized (listenersByBucketIdx) {
+            for (PageResultListener resultListener : listenersByBucketIdx.values()) {
+                resultListener.needMore(false);
+            }
+            listenersByBucketIdx.clear();
         }
-        listenersByBucketIdx.clear();
         close(throwable);
     }
 
     private boolean allUpstreamsExhausted() {
-        return exhausted.cardinality() == numBuckets;
+        return exhausted.size() == numBuckets;
     }
 
     @Override
@@ -115,14 +122,14 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         synchronized (lock) {
             traceLog("method=setBucket", bucketIdx);
 
-            if (bucketsByIdx.putIfAbsent(bucketIdx, rows) == false) {
+            if (bucketsByIdx.put(bucketIdx, rows) != null) {
                 kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
                     nodeName, id, bucketIdx)));
             }
             setExhaustedUpstreams();
             if (isLast) {
-                exhausted.set(bucketIdx);
+                exhausted.add(bucketIdx);
             }
             if (bucketsByIdx.size() == numBuckets) {
                 shouldTriggerConsumer = true;
@@ -168,18 +175,18 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     private void mergeBuckets() {
         List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
-        for (IntObjectCursor<Bucket> cursor : bucketsByIdx) {
-            buckets.add(new KeyIterable<>(cursor.key, cursor.value));
+        for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
+            buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
         }
         bucketsByIdx.clear();
         pagingIterator.merge(buckets);
     }
 
     private boolean fetchMore(Integer exhaustedBucket) {
-        if (exhausted.cardinality() == numBuckets) {
+        if (allUpstreamsExhausted()) {
             return false;
         }
-        if (exhaustedBucket == null || exhausted.get(exhaustedBucket)) {
+        if (exhaustedBucket == null || exhausted.contains(exhaustedBucket)) {
             fetchFromUnExhausted();
         } else {
             fetchExhausted(exhaustedBucket);
@@ -188,22 +195,31 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void fetchExhausted(Integer exhaustedBucket) {
-        for (int i = 0; i < numBuckets; i++) {
-            if (exhaustedBucket.equals(i) == false) {
-                setToEmptyBucket(i);
+        for (Integer bucketIdx : bucketsByIdx.keySet()) {
+            if (!bucketIdx.equals(exhaustedBucket)) {
+                setToEmptyBucket(bucketIdx);
             }
         }
-        PageResultListener pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
+        PageResultListener pageResultListener;
+        synchronized (listenersByBucketIdx) {
+            pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
+        }
         pageResultListener.needMore(true);
     }
 
     private void fetchFromUnExhausted() {
-        for (int idx = 0; idx < numBuckets; idx++) {
-            if (exhausted.get(idx)) {
-                setToEmptyBucket(idx);
-            } else {
-                PageResultListener resultListener = listenersByBucketIdx.remove(idx);
-                resultListener.needMore(true);
+        synchronized (listenersByBucketIdx) {
+            Iterator<Map.Entry<Integer, PageResultListener>> iterator = listenersByBucketIdx.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, PageResultListener> element = iterator.next();
+                Integer key = element.getKey();
+                PageResultListener resultListener = element.getValue();
+                if (exhausted.contains(key)) {
+                    setToEmptyBucket(key);
+                } else {
+                    iterator.remove();
+                    resultListener.needMore(true);
+                }
             }
         }
     }
@@ -226,7 +242,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
         boolean shouldTriggerConsumer;
         synchronized (lock) {
-            if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
+            if (bucketsByIdx.put(bucketIdx, Bucket.EMPTY) != null) {
                 kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
                     nodeName, id(), bucketIdx)));
@@ -245,7 +261,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
         boolean shouldTriggerConsumer;
         synchronized (lock) {
-            if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
+            if (bucketsByIdx.put(bucketIdx, Bucket.EMPTY) != null) {
                 traceLog("method=killed future already set", bucketIdx);
                 return;
             }
@@ -261,7 +277,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // upstreams still require
 
         lastThrowable = throwable;
-        exhausted.set(bucketIdx);
+        exhausted.add(bucketIdx);
         return bucketsByIdx.size() == numBuckets;
     }
 
@@ -269,7 +285,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
      * need to set the futures of all upstreams that are exhausted as there won't come any more buckets from those upstreams
      */
     private void setExhaustedUpstreams() {
-        exhausted.stream().forEach(this::setToEmptyBucket);
+        exhausted.forEach(this::setToEmptyBucket);
     }
 
     private void setToEmptyBucket(int idx) {
@@ -334,10 +350,14 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                '}';
     }
 
+    /**
+     * The default behavior is to receive all upstream buckets,
+     * regardless of the input id. For a {@link DownstreamExecutionSubContext}
+     * which uses the inputId, see {@link NestedLoopContext}.
+     */
     @Nullable
     @Override
     public PageBucketReceiver getBucketReceiver(byte inputId) {
-        assert inputId == 0 : "This downstream context only supports 1 input";
         return this;
     }
 }

@@ -109,6 +109,7 @@ public class HashAggregate implements LogicalPlan {
                 plannerContext.nextExecutionPhaseId(),
                 MERGE_PHASE_NAME,
                 executionPlan.resultDescription().nodeIds().size(),
+                1,
                 Collections.singletonList(plannerContext.handlerNode()),
                 executionPlan.resultDescription().streamOutputs(),
                 Collections.singletonList(toFinal),

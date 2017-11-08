@@ -435,6 +435,7 @@ public class Join implements LogicalPlan {
             plannerContext.nextExecutionPhaseId(),
             "nl-merge",
             resultDescription.nodeIds().size(),
+            1,
             nlExecutionNodes,
             resultDescription.streamOutputs(),
             projections,

@@ -87,6 +87,7 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
             2,
             "merge",
             1,
+            1,
             downstreamExecutionNodes,
             ImmutableList.<DataType>of(LongType.INSTANCE),
             ImmutableList.of(),

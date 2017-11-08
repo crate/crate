@@ -74,6 +74,7 @@ public class MergeNodeTest extends CrateUnitTest {
             0,
             "merge",
             2,
+            1,
             Sets.newHashSet("node1", "node2"),
             Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
             projections,

@@ -229,5 +229,13 @@ public class PlanPrinter {
                 .put("subPlan", toMap(merge.subPlan()))
                 .put("mergePhase", phaseMap(merge.mergePhase()));
         }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitUnionPlan(UnionExecutionPlan unionExecutionPlan, Void context) {
+            return visitPlan(unionExecutionPlan, context)
+                .put("left", toMap(unionExecutionPlan.left()))
+                .put("right", toMap(unionExecutionPlan.right()))
+                .put("mergePhase", phaseMap(unionExecutionPlan.mergePhase()));
+        }
     }
 }
