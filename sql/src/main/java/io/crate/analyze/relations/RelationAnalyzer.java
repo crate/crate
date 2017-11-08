@@ -39,6 +39,7 @@ import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -137,13 +138,85 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext context) {
-        return process(node.getQueryBody(), context);
+    protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
+        // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
+        // the `node` contains the ORDER BY and/or LIMIT and/or OFFSET and wraps the
+        // actual operation (eg: UNION) which is parsed into the `queryBody` of the `node`.
+        if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
+            QueriedRelation childRelation = (QueriedRelation) process(node.getQueryBody(), statementContext);
+
+            // Use child relation to process expressions of the "root" Query node
+            statementContext.startRelation();
+            RelationAnalysisContext relationAnalysisContext = statementContext.currentRelationContext();
+            relationAnalysisContext.addSourceRelation(childRelation.getQualifiedName().toString(), childRelation);
+            statementContext.endRelation();
+
+            List<Field> childRelationFields = childRelation.fields();
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                functions,
+                statementContext.transactionContext(),
+                statementContext.convertParamFunction(),
+                new FullQualifiedNameFieldProvider(
+                    relationAnalysisContext.sources(),
+                    relationAnalysisContext.parentSources(),
+                    statementContext.transactionContext().sessionContext().defaultSchema()),
+                new SubqueryAnalyzer(this, statementContext));
+            ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
+            SelectAnalysis selectAnalysis = new SelectAnalysis(
+                childRelationFields.size(),
+                relationAnalysisContext.sources(),
+                expressionAnalyzer,
+                expressionAnalysisContext);
+            for (Field field : childRelationFields) {
+                selectAnalysis.add(field.path(), field);
+            }
+
+            return new OrderedLimitedRelation(
+                    childRelation,
+                    analyzeOrderBy(
+                        selectAnalysis,
+                        node.getOrderBy(),
+                        expressionAnalyzer,
+                        expressionAnalysisContext,
+                        false,
+                        false),
+                    longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
+                    longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext));
+        }
+        return process(node.getQueryBody(), statementContext);
     }
 
     @Override
     protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
-        throw new UnsupportedFeatureException("UNION is not supported");
+        if (node.isDistinct()) {
+            throw new UnsupportedFeatureException("UNION [DISTINCT] is not supported");
+        }
+        QueriedRelation left = (QueriedRelation) process(node.getLeft(), context);
+        QueriedRelation right = (QueriedRelation) process(node.getRight(), context);
+
+        ensureUnionOutputsHaveTheSameSize(left, right);
+        ensureUnionOutputsHaveCompatibleTypes(left, right);
+
+        UnionSelect unionSelect = new UnionSelect(left, right, node.isDistinct());
+        unionSelect.querySpec().outputs(new ArrayList<>(left.fields()));
+        return unionSelect;
+    }
+
+    private static void ensureUnionOutputsHaveTheSameSize(QueriedRelation left, QueriedRelation right) {
+        if (left.outputs().size() != right.outputs().size()) {
+            throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
+        }
+    }
+
+    private static void ensureUnionOutputsHaveCompatibleTypes(QueriedRelation left, QueriedRelation right) {
+        List<Symbol> leftOutputs = left.outputs();
+        List<Symbol> rightOutputs = right.outputs();
+        for (int i = 0; i < leftOutputs.size(); i++) {
+            if (!leftOutputs.get(i).valueType().equals(rightOutputs.get(i).valueType())) {
+                throw new UnsupportedOperationException("Corresponding output columns at position: " + (i + 1) +
+                                                        " must be compatible for all parts of a UNION");
+            }
+        }
     }
 
     @Override
