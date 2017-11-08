@@ -30,6 +30,7 @@ import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
@@ -54,13 +55,15 @@ class UnboundAnalyzer {
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     ShowStatementAnalyzer showStatementAnalyzer,
                     DeleteAnalyzer deleteAnalyzer,
-                    UpdateAnalyzer updateAnalyzer) {
+                    UpdateAnalyzer updateAnalyzer,
+                    InsertFromValuesAnalyzer insertFromValuesAnalyzer) {
         this.dispatcher = new UnboundDispatcher(
             relationAnalyzer,
             showCreateTableAnalyzer,
             showStatementAnalyzer,
             deleteAnalyzer,
-            updateAnalyzer
+            updateAnalyzer,
+            insertFromValuesAnalyzer
         );
     }
 
@@ -75,17 +78,25 @@ class UnboundAnalyzer {
         private final ShowStatementAnalyzer showStatementAnalyzer;
         private final DeleteAnalyzer deleteAnalyzer;
         private final UpdateAnalyzer updateAnalyzer;
+        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
 
         UnboundDispatcher(RelationAnalyzer relationAnalyzer,
                           ShowCreateTableAnalyzer showCreateTableAnalyzer,
                           ShowStatementAnalyzer showStatementAnalyzer,
                           DeleteAnalyzer deleteAnalyzer,
-                          UpdateAnalyzer updateAnalyzer) {
+                          UpdateAnalyzer updateAnalyzer,
+                          InsertFromValuesAnalyzer insertFromValuesAnalyzer) {
             this.relationAnalyzer = relationAnalyzer;
             this.showCreateTableAnalyzer = showCreateTableAnalyzer;
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
             this.updateAnalyzer = updateAnalyzer;
+            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
+        }
+
+        @Override
+        public AnalyzedStatement visitInsertFromValues(InsertFromValues insert, Analysis analysis) {
+            return insertFromValuesAnalyzer.analyze(insert, analysis.paramTypeHints(), analysis.transactionContext());
         }
 
         @Override

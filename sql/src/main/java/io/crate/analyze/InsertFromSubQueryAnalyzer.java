@@ -50,14 +50,19 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
+import io.crate.sql.tree.ParameterExpression;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 class InsertFromSubQueryAnalyzer {
 
@@ -128,9 +133,9 @@ class InsertFromSubQueryAnalyzer {
             onDuplicateKeyAssignments);
     }
 
-    private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
-                                                              DocTableInfo targetTable,
-                                                              int numSourceColumns) {
+    static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
+                                                      DocTableInfo targetTable,
+                                                      int numSourceColumns) {
         if (targetColumnNames.isEmpty()) {
             return targetColumnsFromTargetTable(targetTable, numSourceColumns);
         }
@@ -197,6 +202,39 @@ class InsertFromSubQueryAnalyzer {
         }
     }
 
+    static Map<Reference, Symbol> getUpdateAssignments(Functions functions,
+                                                       DocTableRelation targetTable,
+                                                       List<Reference> targetCols,
+                                                       ExpressionAnalyzer exprAnalyzer,
+                                                       TransactionContext txnCtx,
+                                                       Function<ParameterExpression, Symbol> paramConverter,
+                                                       List<Assignment> assignments) {
+        if (assignments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+        ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
+        ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
+            functions, txnCtx, paramConverter, new NameFieldProvider(targetTable), valuesResolver);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
+
+        HashMap<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
+        for (Assignment assignment : assignments) {
+            Reference targetCol = requireNonNull(
+                targetTable.resolveField((Field) exprAnalyzer.convert(assignment.columnName(), exprCtx)),
+                "resolveField must work on a field that was just resolved"
+            );
+
+            Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
+                normalizer.normalize(valuesAwareExpressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
+                targetCol,
+                targetTable.tableInfo()
+            );
+            updateAssignments.put(targetCol, valueSymbol);
+        }
+        return updateAssignments;
+    }
+
     private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
                                                             List<Reference> targetColumns,
                                                             ParameterContext parameterContext,
@@ -205,33 +243,8 @@ class InsertFromSubQueryAnalyzer {
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, parameterContext, fieldProvider, null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
-            RowGranularity.CLUSTER,
-            null,
-            tableRelation);
-
-        ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
-        ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            functions, transactionContext, parameterContext, fieldProvider, valuesResolver);
-
-        Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
-        for (Assignment assignment : assignments) {
-            Reference columnName = tableRelation.resolveField(
-                (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
-            assert columnName != null : "columnName must not be null";
-
-            Symbol valueSymbol = normalizer.normalize(
-                valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                transactionContext);
-            Symbol assignmentExpression = ValueNormalizer.normalizeInputForReference(valueSymbol, columnName,
-                tableRelation.tableInfo());
-
-            updateAssignments.put(columnName, assignmentExpression);
-        }
-
-        return updateAssignments;
+        return getUpdateAssignments(
+            functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext, assignments);
     }
 }

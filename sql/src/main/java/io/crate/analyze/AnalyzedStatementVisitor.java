@@ -214,4 +214,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAnalyzedUpdateStatement(AnalyzedUpdateStatement statement, C context) {
         return visitAnalyzedStatement(statement, context);
     }
+
+    public R visitInsert(AnalyzedInsertStatement insert, C context) {
+        return visitAnalyzedStatement(insert, context);
+    }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -70,6 +71,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import static io.crate.analyze.InsertFromSubQueryAnalyzer.getUpdateAssignments;
+import static io.crate.analyze.InsertFromSubQueryAnalyzer.resolveTargetColumns;
+
 class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private static class ValuesResolver implements io.crate.analyze.ValuesAwareExpressionAnalyzer.ValuesResolver {
@@ -101,6 +105,65 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     InsertFromValuesAnalyzer(Functions functions, Schemas schemas) {
         super(functions, schemas);
+    }
+
+
+    public AnalyzedInsertStatement analyze(InsertFromValues insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
+        if (insert.valuesLists().isEmpty()) {
+            throw new IllegalArgumentException("VALUES clause must not be empty");
+        }
+
+        TableIdent tableIdent = TableIdent.of(insert.table(), txnCtx.sessionContext().defaultSchema());
+        DocTableInfo targetTable = schemas.getTableInfo(tableIdent, Operation.INSERT);
+        DocTableRelation tableRelation = new DocTableRelation(targetTable);
+
+        ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            new NameFieldProvider(tableRelation),
+            null
+        );
+        exprAnalyzer.setResolveFieldsOperation(Operation.INSERT);
+        ValuesList firstRow = insert.valuesLists().get(0);
+
+        List<Reference> targetCols = ImmutableList.copyOf(
+            resolveTargetColumns(insert.columns(), targetTable, firstRow.values().size()));
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+
+        ArrayList<List<Symbol>> rows = new ArrayList<>();
+
+        // VALUES (1, 2), (3, 4)
+        //        ^^^^^^   |
+        //        row     valueExpr
+        for (ValuesList row : insert.valuesLists()) {
+            List<Expression> values = row.values();
+            List<Symbol> rowSymbols = new ArrayList<>(targetCols.size());
+            for (int i = 0; i < targetCols.size(); i++) {
+                Expression valueExpr = values.get(i);
+                Symbol valueSymbol = exprAnalyzer.convert(valueExpr, exprCtx);
+                Reference targetCol = targetCols.get(i);
+
+                valueSymbol = ExpressionAnalyzer.cast(valueSymbol, targetCol.valueType());
+                rowSymbols.add(valueSymbol);
+            }
+            rows.add(rowSymbols);
+        }
+
+        Map<Reference, Symbol> onDuplicateKeyAssignments = getUpdateAssignments(
+            functions,
+            tableRelation,
+            targetCols,
+            exprAnalyzer,
+            txnCtx,
+            typeHints,
+            insert.onDuplicateKeyAssignments());
+        return new AnalyzedInsertStatement(
+            targetTable,
+            targetCols,
+            rows,
+            onDuplicateKeyAssignments
+        );
     }
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
