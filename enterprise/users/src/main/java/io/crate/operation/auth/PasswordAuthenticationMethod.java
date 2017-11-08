@@ -23,24 +23,37 @@
 package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
+import io.crate.operation.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 
-public interface AuthenticationMethod {
+public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
-    /**
-     * @param userName the userName sent with the startup message
-     * @param passwd the password in clear-text or null
-     * @return the user or null; null should be handled as if it's a "guest" user
-     * @throws RuntimeException if the authentication failed
-     */
+    public static final String NAME = "password";
+    private UserLookup userLookup;
+
+    PasswordAuthenticationMethod(UserLookup userLookup) {
+        this.userLookup = userLookup;
+    }
+
     @Nullable
-    User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
+    @Override
+    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+        User user = userLookup.findUser(userName);
+        if (user != null && passwd != null && passwd.length() > 0) {
+            SecureHash secureHash = user.password();
+            if (secureHash != null && secureHash.verifyHash(passwd)) {
+                return user;
+            }
+        }
+        throw new RuntimeException("password authentication failed for user \"" + userName + "\"");
+    }
 
-    /**
-     * @return unique name of the authentication method
-     */
-    String name();
+    @Override
+    public String name() {
+        return NAME;
+    }
 }

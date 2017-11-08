@@ -176,6 +176,7 @@ import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEA
 class PostgresWireProtocol {
 
     private static final Logger LOGGER = Loggers.getLogger(PostgresWireProtocol.class);
+    private static final String PASSWORD_AUTH_NAME = "password";
 
     final MessageDecoder decoder;
     final MessageHandler handler;
@@ -187,6 +188,8 @@ class PostgresWireProtocol {
     private byte msgType;
     private Session session;
     private boolean ignoreTillSync = false;
+    private AuthenticationContext authContext;
+    private Properties properties;
 
     enum State {
         PRE_STARTUP,
@@ -214,6 +217,7 @@ class PostgresWireProtocol {
         }
     }
 
+    @Nullable
     static String readCString(ByteBuf buffer) {
         byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
         if (bytes.length == 0) {
@@ -308,6 +312,9 @@ class PostgresWireProtocol {
                 case 'P':
                     handleParseMessage(buffer, channel);
                     return;
+                case 'p':
+                    handlePassword(buffer, channel);
+                    return;
                 case 'B':
                     handleBindMessage(buffer, channel);
                     return;
@@ -357,11 +364,11 @@ class PostgresWireProtocol {
     }
 
     private void handleStartupBody(ByteBuf buffer, Channel channel) {
-        Properties properties = readStartupMessage(buffer);
-        authenticate(channel, properties);
+        properties = readStartupMessage(buffer);
+        initAuthentication(channel);
     }
 
-    private void authenticate(Channel channel, Properties properties) {
+    private void initAuthentication(Channel channel) {
         String userName = properties.getProperty("user");
         InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
 
@@ -377,18 +384,28 @@ class PostgresWireProtocol {
             );
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
-            try {
-                User user = authMethod.authenticate(userName, connProperties);
-                if (user != null && LOGGER.isTraceEnabled()) {
-                    LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
-                        user.name(), authMethod.name());
-                }
-                session = sqlOperations.createSession(properties.getProperty("database"), user);
-                Messages.sendAuthenticationOK(channel)
-                    .addListener(f -> sendParamsAndRdyForQuery(channel));
-            } catch (Exception e) {
-                Messages.sendAuthenticationError(channel, e.getMessage());
+            authContext = new AuthenticationContext(authMethod, connProperties, userName, LOGGER);
+            if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {
+                Messages.sendAuthenticationCleartextPassword(channel);
+                return;
             }
+            finishAuthentication(channel);
+        }
+    }
+
+    private void finishAuthentication(Channel channel) {
+        assert authContext != null : "finishAuthentication() requires an authContext instance";
+        try {
+            User user = authContext.authenticate();
+            String database = properties.getProperty("database");
+            session = sqlOperations.createSession(database, user);
+            Messages.sendAuthenticationOK(channel)
+                .addListener(f -> sendParamsAndRdyForQuery(channel));
+        } catch (Exception e) {
+            Messages.sendAuthenticationError(channel, e.getMessage());
+        } finally {
+            authContext.close();
+            authContext = null;
         }
     }
 
@@ -450,6 +467,14 @@ class PostgresWireProtocol {
         }
         session.parse(statementName, query, paramTypes);
         Messages.sendParseComplete(channel);
+    }
+
+    private void handlePassword(ByteBuf buffer, final Channel channel) {
+        String passwd = readCString(buffer);
+        if (passwd != null) {
+            authContext.setSecurePassword(passwd.toCharArray());
+        }
+        finishAuthentication(channel);
     }
 
     /**
@@ -709,4 +734,5 @@ class PostgresWireProtocol {
             return buffer.readBytes(msgLength);
         }
     }
+
 }

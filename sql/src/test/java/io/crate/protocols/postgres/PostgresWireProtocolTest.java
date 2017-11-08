@@ -27,6 +27,8 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.executor.Executor;
 import io.crate.operation.auth.AlwaysOKNullAuthentication;
+import io.crate.operation.auth.Authentication;
+import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
@@ -40,6 +42,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -318,5 +321,47 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(key, is("crate_version"));
         assertThat(value, is(Version.CURRENT.toString()));
+    }
+
+    @Test
+    public void testPasswordMessageAuthenticationProcess() throws Exception {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                mock(SQLOperations.class),
+                new Authentication() {
+                    @Nullable
+                    @Override
+                    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
+                        return new AuthenticationMethod() {
+                            @Nullable
+                            @Override
+                            public User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties) {
+                                return null;
+                            }
+
+                            @Override
+                            public String name() {
+                                return "password";
+                            }
+                        };
+                    }
+                },
+                null);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf respBuf;
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buffer, "doc");
+        channel.writeInbound(buffer);
+
+        respBuf = channel.readOutbound();
+        assertThat((char) respBuf.readByte(), is('R')); // AuthenticationCleartextPassword
+
+        buffer = Unpooled.buffer();
+        ClientMessages.sendPasswordMessage(buffer, "pw");
+        channel.writeInbound(buffer);
+
+        respBuf = channel.readOutbound();
+        assertThat((char) respBuf.readByte(), is('R')); // Auth OK
     }
 }

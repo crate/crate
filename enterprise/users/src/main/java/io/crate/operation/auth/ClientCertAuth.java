@@ -26,6 +26,7 @@ import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
+import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 import java.security.cert.Certificate;
@@ -42,7 +43,7 @@ public class ClientCertAuth implements AuthenticationMethod {
 
     @Nullable
     @Override
-    public User authenticate(String userName, ConnectionProperties connProperties) {
+    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
         Certificate clientCert = connProperties.clientCert();
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);

@@ -36,6 +36,6 @@ public class AuthenticationMethodTest extends CrateUnitTest {
         AuthenticationMethod alwaysOkNullAuthMethod = alwaysOkNullAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkNullAuthMethod.name(), is("alwaysOkNull"));
-        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null));
+        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null, null));
     }
 }

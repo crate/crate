@@ -24,45 +24,82 @@ package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.user.SecureHash;
+import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class UserAuthenticationMethodTest extends CrateUnitTest {
 
+    private User userLookup(String userName) {
+        if (userName.equals("crate")) {
+            User user = null;
+            try {
+                // TODO: this mocking must only be used until the User has an implementation for password()
+                SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
+                user = new User("crate", Collections.emptySet(), Collections.emptySet());
+                user = spy(user);
+                when(user.password()).thenReturn(pwHash);
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                // do nothing
+            }
+            assertNotNull(user);
+            return user;
+        }
+        return null;
+    }
+
     @Test
     public void testTrustAuthentication() throws Exception {
-        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(userName -> {
-            if (userName.equals("crate")) {
-                return new User("crate", Collections.emptySet(), Collections.emptySet());
-            }
-            return null;
-        });
+        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(this::userLookup);
         assertThat(trustAuth.name(), is("trust"));
 
-        assertThat(trustAuth.authenticate("crate", null).name(), is("crate"));
+        assertThat(trustAuth.authenticate("crate", null, null).name(), is("crate"));
 
         expectedException.expectMessage("trust authentication failed for user \"cr8\"");
-        trustAuth.authenticate("cr8", null);
+        trustAuth.authenticate("cr8", null, null);
+    }
+
+    @Test
+    public void testPasswordAuthentication() throws Exception {
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        assertThat(pwAuth.name(), is("password"));
+
+        assertThat(pwAuth.authenticate("crate", new SecureString("pw".toCharArray()), null).name(), is("crate"));
+    }
+
+    @Test
+    public void testPasswordAuthenticationWrongPassword() throws Exception {
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        assertThat(pwAuth.name(), is("password"));
+
+        expectedException.expectMessage("password authentication failed for user \"crate\"");
+        pwAuth.authenticate("crate", new SecureString("wrong".toCharArray()), null);
+    }
+
+    @Test
+    public void testPasswordAuthenticationForNonExistingUser() throws Exception {
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        expectedException.expectMessage("password authentication failed for user \"cr8\"");
+        pwAuth.authenticate("cr8", new SecureString("pw".toCharArray()), null);
     }
 
     @Test
     public void testAlwaysOKAuthentication() throws Exception {
-        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(userName -> {
-            if (userName.equals("crate")) {
-                return new User("crate", Collections.emptySet(), Collections.emptySet());
-            }
-            return null;
-        });
-
+        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(this::userLookup);
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkAuthMethod.name(), is("trust"));
-        assertThat(alwaysOkAuthMethod.authenticate("crate", null).name(), is("crate"));
+        assertThat(alwaysOkAuthMethod.authenticate("crate", null, null).name(), is("crate"));
 
         expectedException.expectMessage("authentication failed for user \"cr8\"");
-        alwaysOkAuthMethod.authenticate("cr8", null);
+        alwaysOkAuthMethod.authenticate("cr8", null, null);
     }
 }
