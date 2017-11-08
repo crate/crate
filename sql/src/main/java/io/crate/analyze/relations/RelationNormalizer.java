@@ -103,5 +103,12 @@ public final class RelationNormalizer {
             Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);
             return mss;
         }
+
+        @Override
+        public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, TransactionContext context) {
+            unionSelect.left((QueriedRelation) process(unionSelect.left(), context));
+            unionSelect.right((QueriedRelation) process(unionSelect.right(), context));
+            return unionSelect;
+        }
     }
 }
