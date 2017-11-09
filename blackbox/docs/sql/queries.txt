@@ -320,10 +320,10 @@ used::
 
 The following wildcard operators are available:
 
-    == ========================================
-    %  A substitute for zero or more characters
-    _  A substitute for a single character
-    == ========================================
+== ========================================
+%  A substitute for zero or more characters
+_  A substitute for a single character
+== ========================================
 
 The wildcard operators may be used at any point in the string literal. For
 example a more complicated like clause could look like this::
@@ -366,13 +366,13 @@ escape them using a backslash::
 
 The result type is boolean.
 
-    ==========  ======
-    expression  result
-    ==========  ======
-    true        false
-    false       true
-    null        null
-    ==========  ======
+==========  ======
+expression  result
+==========  ======
+true        false
+false       true
+null        null
+==========  ======
 
 .. WARNING::
 
