@@ -24,11 +24,11 @@ package io.crate.operation.scalar;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -152,11 +152,13 @@ public class SubstrFunction extends Scalar<BytesRef, Object> {
 
     private static class Resolver extends BaseFunctionResolver {
 
+        private static final Param INTEGER_COMPATIBLE_TYPES = Param.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER);
+
         protected Resolver() {
             super(FuncParams.builder(
                 Param.STRING,
-                Param.NUMERIC)
-                .withVarArgs(Param.NUMERIC).limitVarArgOccurrences(1)
+                INTEGER_COMPATIBLE_TYPES)
+                .withVarArgs(INTEGER_COMPATIBLE_TYPES).limitVarArgOccurrences(1)
                 .build());
         }
 
