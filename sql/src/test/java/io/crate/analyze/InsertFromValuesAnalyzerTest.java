@@ -1120,6 +1120,22 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
+    public void testInsertGeneratedPrimaryKeyColumnWithMultiValues() throws Exception {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "INSERT INTO generated_pk_column (serial_no, product_no) values (1, 1), (2, 2)"
+        );
+        assertThat(analysis.routingValues(), contains("AgEyATI=", "AgEzATM="));
+        assertThat(analysis.ids(), contains(
+            is(generateId(
+                Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")),
+                Arrays.asList(new BytesRef("2"), new BytesRef("2")), new ColumnIdent("id"))),
+            is(generateId(
+                Arrays.asList(new ColumnIdent("id"), new ColumnIdent("id2")),
+                Arrays.asList(new BytesRef("3"), new BytesRef("3")), new ColumnIdent("id")))
+        ));
+    }
+
+    @Test
     public void testInsertGeneratedPrimaryKeyAndPartedColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze(
             "INSERT INTO generated_pk_parted_column (ts, value) VALUES (1508848674000, 1)");

@@ -21,3 +21,6 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``INSERT INTO .. VALUES`` statements to fail if
+  the ``VALUES`` clause contains multiple rows and the table has a generated
+  column as primary key.
