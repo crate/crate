@@ -30,24 +30,24 @@ Technical Information
 
 To gather good statistics about CrateDB usage, UDC collects this information:
 
-    ================  =========================================================
-    Name              Description
-    ================  =========================================================
-    Kernel Version    The build number, and if there are any modifications to
-                      the kernel.
-    Cluster Id        A randomized globally unique ID created every time the
-                      whole cluster is restarted.
-    Master            Boolean whether the current node is master.
-    Ping Count        UDC holds an internal counter per node which is
-                      incremented for every ping, and reset on every restart of
-                      the a node.
-    CrateDB Version   The CrateDB version.
-    Java Version      The Java version CrateDB is currently running with.
-    Hardware Address  MAC address to uniquely identify instances behind
-                      firewalls.
-    Enterprise        Identifies whether the Enterprise Edition is used.
-    License Ident     License Ident of the CrateDB Enterprise Edition.
-    ================  =========================================================
+================  =========================================================
+Name              Description
+================  =========================================================
+Kernel Version    The build number, and if there are any modifications to
+                  the kernel.
+Cluster Id        A randomized globally unique ID created every time the
+                  whole cluster is restarted.
+Master            Boolean whether the current node is master.
+Ping Count        UDC holds an internal counter per node which is
+                  incremented for every ping, and reset on every restart of
+                  the a node.
+CrateDB Version   The CrateDB version.
+Java Version      The Java version CrateDB is currently running with.
+Hardware Address  MAC address to uniquely identify instances behind
+                  firewalls.
+Enterprise        Identifies whether the Enterprise Edition is used.
+License Ident     License Ident of the CrateDB Enterprise Edition.
+================  =========================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does
 this for two reasons; first, we don't want the startup to be slower because of

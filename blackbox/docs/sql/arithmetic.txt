@@ -21,15 +21,15 @@ numeric data types or timestamps.
 Supported operators
 -------------------
 
-    ========   =========================================================
-    operator   description
-    ========   =========================================================
-    \+         add one number to another
-    \-         subtract the second number from the first
-    \*         multiply the first number with the second
-    /          divide the first number by the second
-    %          finds the remainder of division of one number by another
-    ========   =========================================================
+========   =========================================================
+operator   description
+========   =========================================================
+\+         add one number to another
+\-         subtract the second number from the first
+\*         multiply the first number with the second
+/          divide the first number by the second
+%          finds the remainder of division of one number by another
+========   =========================================================
 
 Below is an example using all available arithmetic operators::
 
