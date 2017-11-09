@@ -263,7 +263,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         ensureGreen();
         execute("COPY names PARTITION (group_id = 1) FROM ? WITH (bulk_size = 10, compression = 'gzip')",
             new Object[]{copyFilePath + "test_copy_partition_from.json.gz"},
-            TimeValue.timeValueMinutes(5L));
+            TimeValue.timeValueMinutes(15L));
         assertEquals(10_000L, response.rowCount());
         assertEquals(0, response.rows().length);
 
