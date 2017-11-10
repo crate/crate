@@ -21,6 +21,7 @@ Synopsis
       [ FROM relation ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
+      [ UNION ALL query_specification ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
@@ -241,6 +242,44 @@ resulting row of a group by clause.
 
    Grouping can only be applied on indexed fields. For more information, please
    refer to :ref:`sql_ddl_index_off`.
+
+.. _sql_reference_union:
+
+UNION ALL
+.........
+
+The UNION ALL operator combines the result sets of two or more SELECT
+statements. The two SELECT statements that represent the direct operands of the
+UNION ALL must produce the same number of columns, and corresponding columns
+must be of compatible data types. The result of UNION ALL may contain duplicate
+rows. You can find :ref:`here <sql_union>` sample usage of UNION ALL.
+
+::
+
+    UNION ALL query_specification
+
+:query_specification: can be any SELECT statement.
+
+
+.. note::
+
+    ORDER BY, LIMIT and OFFSET can only be applied after the last SELECT
+    statement of the UNION ALL, as they are applied to the complete result of
+    the UNION operation. In order to apply an ORDER BY and/or LIMIT and/or
+    OFFSET to any of the partial SELECT statements, those statements need to
+    become subqueries.
+
+.. note::
+
+    Column names used in ORDER BY must be position numbers or refer to the
+    outputs of the first SELECT statement, and no functions can be applied on
+    top of the ORDER BY symbols. To achieve more complex ordering UNION ALL
+    must become a subselect and the more complex ORDER BY should be applied on
+    the outer SELECT wrapping the UNION ALL subselect.
+
+.. note::
+
+    Ordering of the outcome is not guaranteed unless ORDER BY is used.
 
 .. _sql_reference_order_by:
 
