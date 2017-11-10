@@ -12,6 +12,7 @@ General Use
    dql
    administration/index
    joins
+   union
    functions_operators
    occ
    partitioned_tables

@@ -508,6 +508,17 @@ def test_suite():
                      tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
+    for fn in ('general/union.txt',):
+        path = os.path.join('..', '..', fn)
+        s = doctest.DocFileSuite(path,
+                                 parser=crash_parser,
+                                 setUp=setUpPhotosAndCountries,
+                                 tearDown=tearDownPhotosAndCountries,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                             doctest.ELLIPSIS,
+                                 encoding='utf-8')
+        s.layer = crate_layer
+        docs_suite.addTest(s)
 
     suite.addTests(docs_suite)
     return suite
