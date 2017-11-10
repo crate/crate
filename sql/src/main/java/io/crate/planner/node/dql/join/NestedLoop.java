@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql.join;
 
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
@@ -57,10 +57,10 @@ import java.util.UUID;
  * can assume the same order of symbols, first symbols from left, then from right.
  * If sth. else is selected a projection has to reorder those.
  */
-public class NestedLoop implements Plan, ResultDescription {
+public class NestedLoop implements ExecutionPlan, ResultDescription {
 
-    private final Plan left;
-    private final Plan right;
+    private final ExecutionPlan left;
+    private final ExecutionPlan right;
     private final NestedLoopPhase nestedLoopPhase;
 
     private int limit;
@@ -99,8 +99,8 @@ public class NestedLoop implements Plan, ResultDescription {
      * b | 3
      */
     public NestedLoop(NestedLoopPhase nestedLoopPhase,
-                      Plan left,
-                      Plan right,
+                      ExecutionPlan left,
+                      ExecutionPlan right,
                       int limit,
                       int offset,
                       int maxRowsPerNode,
@@ -117,11 +117,11 @@ public class NestedLoop implements Plan, ResultDescription {
         this.numOutputs = numOutputs;
     }
 
-    public Plan left() {
+    public ExecutionPlan left() {
         return left;
     }
 
-    public Plan right() {
+    public ExecutionPlan right() {
         return right;
     }
 

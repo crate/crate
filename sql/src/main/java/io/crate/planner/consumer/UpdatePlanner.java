@@ -40,10 +40,12 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
@@ -53,6 +55,7 @@ import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -68,26 +71,27 @@ public final class UpdatePlanner {
     private UpdatePlanner() {
     }
 
-    public static Plan plan(UpdateAnalyzedStatement updateStatement, Planner.Context plannerContext) {
-        return RELATION_VISITOR.process(updateStatement.sourceRelation(), new Context(updateStatement, plannerContext));
+    public static Plan plan(UpdateAnalyzedStatement updateStatement) {
+        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
+            -> RELATION_VISITOR.process(updateStatement.sourceRelation(), new Context(updateStatement, plannerContext));
     }
 
     static class Context {
         final UpdateAnalyzedStatement statement;
-        private final Planner.Context plannerContext;
+        private final PlannerContext plannerContext;
 
-        public Context(UpdateAnalyzedStatement statement, Planner.Context plannerContext) {
+        public Context(UpdateAnalyzedStatement statement, PlannerContext plannerContext) {
             this.statement = statement;
             this.plannerContext = plannerContext;
         }
     }
 
-    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, Plan> {
+    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, ExecutionPlan> {
 
         @Override
-        public Plan visitDocTableRelation(DocTableRelation relation, Context context) {
+        public ExecutionPlan visitDocTableRelation(DocTableRelation relation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.plannerContext;
+            PlannerContext plannerContext = context.plannerContext;
 
             DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
             DocTableInfo tableInfo = tableRelation.tableInfo();
@@ -95,7 +99,7 @@ public final class UpdatePlanner {
                 return new NoopPlan(plannerContext.jobId());
             }
 
-            List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
+            List<ExecutionPlan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             UpsertById upsertById = null;
             int bulkIdx = 0;
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
@@ -116,7 +120,7 @@ public final class UpdatePlanner {
                     }
                     upsertById(nestedAnalysis, tableInfo, whereClause, upsertById, bulkIdx++);
                 } else {
-                    Plan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
+                    ExecutionPlan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
                     if (plan != null) {
                         childNodes.add(plan);
                     }
@@ -130,11 +134,11 @@ public final class UpdatePlanner {
         }
 
         @Override
-        public Plan visitTableRelation(TableRelation tableRelation, Context context) {
+        public ExecutionPlan visitTableRelation(TableRelation tableRelation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.plannerContext;
+            PlannerContext plannerContext = context.plannerContext;
 
-            List<Plan> childPlans = new ArrayList<>(statement.nestedStatements().size());
+            List<ExecutionPlan> childPlans = new ArrayList<>(statement.nestedStatements().size());
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement : statement.nestedStatements()) {
                 if (nestedStatement.whereClause().noMatch()) {
                     continue;
@@ -145,19 +149,19 @@ public final class UpdatePlanner {
         }
     }
 
-    private static Plan createUpsertPlan(List<Plan> childPlans, UUID jobId) {
+    private static ExecutionPlan createUpsertPlan(List<ExecutionPlan> childPlans, UUID jobId) {
         if (childPlans.isEmpty()) {
             return new NoopPlan(jobId);
         }
         return new Upsert(childPlans, jobId);
     }
 
-    private static Plan createPlan(Planner.Context plannerContext,
-                                   Routing routing,
-                                   TableInfo tableInfo,
-                                   Reference idReference,
-                                   Projection updateProjection,
-                                   WhereClause whereClause) {
+    private static ExecutionPlan createPlan(PlannerContext plannerContext,
+                                            Routing routing,
+                                            TableInfo tableInfo,
+                                            Reference idReference,
+                                            Projection updateProjection,
+                                            WhereClause whereClause) {
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -174,9 +178,9 @@ public final class UpdatePlanner {
         return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
-    private static Plan createSysTableUpdatePlan(TableInfo tableInfo,
-                                                 Planner.Context plannerContext,
-                                                 UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
+    private static ExecutionPlan createSysTableUpdatePlan(TableInfo tableInfo,
+                                                          PlannerContext plannerContext,
+                                                          UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
         Routing routing = plannerContext.allocateRouting(
             tableInfo,
             nestedStatement.whereClause(),
@@ -193,10 +197,10 @@ public final class UpdatePlanner {
         return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, nestedStatement.whereClause());
     }
 
-    private static Plan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
-                                      Planner.Context plannerContext,
-                                      DocTableInfo tableInfo,
-                                      WhereClause whereClause) {
+    private static ExecutionPlan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
+                                               PlannerContext plannerContext,
+                                               DocTableInfo tableInfo,
+                                               WhereClause whereClause) {
 
         Symbol versionSymbol = null;
         if (whereClause.hasVersions()) {

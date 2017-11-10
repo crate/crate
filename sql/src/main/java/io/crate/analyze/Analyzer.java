@@ -29,6 +29,7 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterTable;
@@ -178,10 +179,10 @@ public class Analyzer {
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
     }
 
-    public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
-        Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
+    public Analysis boundAnalyze(Statement statement, TransactionContext transactionContext, ParameterContext parameterContext) {
+        Analysis analysis = new Analysis(transactionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
-        sessionContext.ensureStatementAuthorized(analyzedStatement);
+        transactionContext.sessionContext().ensureStatementAuthorized(analyzedStatement);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }

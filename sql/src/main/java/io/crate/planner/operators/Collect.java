@@ -45,9 +45,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.ExplainLeaf;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
@@ -152,12 +152,12 @@ class Collect implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
         RoutedCollectPhase collectPhase = createPhase(plannerContext);
         relation.tableRelation().validateOrderBy(order);
         collectPhase.orderBy(order);
@@ -183,7 +183,7 @@ class Collect implements LogicalPlan {
         }
     }
 
-    private RoutedCollectPhase createPhase(Planner.Context plannerContext) {
+    private RoutedCollectPhase createPhase(PlannerContext plannerContext) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();

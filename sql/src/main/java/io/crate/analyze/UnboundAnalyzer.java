@@ -68,7 +68,8 @@ class UnboundAnalyzer {
     }
 
     public AnalyzedStatement analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        return dispatcher.process(statement, new Analysis(sessionContext, ParameterContext.EMPTY, paramTypeHints));
+        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        return dispatcher.process(statement, new Analysis(transactionContext, ParameterContext.EMPTY, paramTypeHints));
     }
 
     private static class UnboundDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {

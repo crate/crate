@@ -21,6 +21,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
@@ -963,7 +964,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             new NumberOfShards(clusterService)
         );
 
-        Analysis analysis = new Analysis(SessionContext.create(), ParameterContext.EMPTY, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(new TransactionContext(SessionContext.create()), ParameterContext.EMPTY, ParamTypeHints.EMPTY);
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(
             (CreateTable) statement, analysis.parameterContext(), analysis.transactionContext());
 

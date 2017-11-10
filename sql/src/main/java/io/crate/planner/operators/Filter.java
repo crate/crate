@@ -29,8 +29,8 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
@@ -87,19 +87,19 @@ class Filter implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), queryClause);
-        if (plan.resultDescription().executesOnShard()) {
+        if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);
         }
-        plan.addProjection(filterProjection);
-        return plan;
+        executionPlan.addProjection(filterProjection);
+        return executionPlan;
     }
 
     @Override

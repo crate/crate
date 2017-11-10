@@ -23,11 +23,15 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -49,7 +53,6 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -61,7 +64,7 @@ public class PreExecutionBenchmark {
     private SQLExecutor e;
     private Statement selectStatement;
     private Analysis selectAnalysis;
-    private UUID jobId;
+    private PlannerContext plannerContext;
 
     @Setup
     public void setup() {
@@ -93,8 +96,8 @@ public class PreExecutionBenchmark {
             build();
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
-            e.analyzer.boundAnalyze(selectStatement, SessionContext.create(), ParameterContext.EMPTY);
-        jobId = UUID.randomUUID();
+            e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
+        plannerContext = e.getPlannerContext(clusterService.state());
     }
 
     @TearDown
@@ -120,11 +123,13 @@ public class PreExecutionBenchmark {
 
     @Benchmark
     public Analysis measureAnalyzeSimpleSelect() {
-        return e.analyzer.boundAnalyze(selectStatement, SessionContext.create(), ParameterContext.EMPTY);
+        return e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
     }
+
     @Benchmark
-    public Plan measurePlanSimpleSelect() {
-        return e.planner.plan(selectAnalysis, jobId, 0, 0);
+    public ExecutionPlan measurePlanSimpleSelect() {
+        return e.planner.plan(selectAnalysis.analyzedStatement(), e.getPlannerContext(ClusterState.EMPTY_STATE))
+            .build(plannerContext, null);
     }
 
     @Benchmark

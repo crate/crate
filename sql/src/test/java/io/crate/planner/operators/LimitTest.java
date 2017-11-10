@@ -27,7 +27,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Literal;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -63,7 +63,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                                                "Limit[10;5]\n" +
                                                "Collect[doc.users | [_fetchid] | All]\n"));
 
-        Planner.Context ctx = e.getPlannerContext(clusterService.state(), new TableStats());
+        PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
             ctx,
             new ProjectionBuilder(e.functions()),

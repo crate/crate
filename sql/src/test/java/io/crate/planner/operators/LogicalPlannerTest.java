@@ -24,9 +24,12 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.Functions;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -36,8 +39,10 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.StringJoiner;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.equalTo;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -55,9 +60,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private LogicalPlan plan(String statement) {
         QueriedRelation relation = sqlExecutor.analyze(statement);
-        return LogicalPlanner.plan(relation, FetchMode.MAYBE_CLEAR, true)
-            .build(tableStats, LogicalPlanner.extractColumns(relation.querySpec().outputs()))
-            .tryCollapse();
+        PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+
+        return logicalPlanner.plan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
     }
 
     @Test
@@ -129,6 +136,28 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSelectCountStarIsOptimizedOnNestedSubqueries() throws Exception {
+        LogicalPlan plan = plan("select * from t1 where x > (select 1 from t1 where x > (select count(*) from t2 limit 1)::integer)");
+        // instead of a Collect plan, this must result in a CountPlan through optimization
+        assertThat(plan, isPlan("MultiPhase[\n" +
+                                "    subQueries[\n" +
+                                "        RootBoundary[1]\n" +
+                                "        MultiPhase[\n" +
+                                "            subQueries[\n" +
+                                "                RootBoundary[count()]\n" +
+                                "                Limit[1;0]\n" +
+                                "                Count[doc.t2 | All]\n" +
+                                "            ]\n" +
+                                "            Limit[2;0]\n" +
+                                "            Collect[doc.t1 | [1] | (x > cast(SelectSymbol{long_table} AS integer))]\n" +
+                                "        ]\n" +
+                                "    ]\n" +
+                                "    FetchOrEval[a, x, i]\n" +
+                                "    Collect[doc.t1 | [_fetchid] | (x > cast(SelectSymbol{long_table} AS integer))]\n" +
+                                "]\n"));
+    }
+
+    @Test
     public void testJoinTwoTables() throws Exception {
         LogicalPlan plan = plan("select " +
                                 "   t1.x, t1.a, t2.y " +
@@ -194,12 +223,35 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
 
         private String printPlan(LogicalPlan plan) {
+            if (plan instanceof RootRelationBoundary) {
+                RootRelationBoundary boundary = (RootRelationBoundary) plan;
+                startLine("RootBoundary[");
+                addSymbolsList(boundary.outputs());
+                sb.append("]\n");
+                plan = boundary.source;
+            }
             if (plan instanceof RelationBoundary) {
                 RelationBoundary boundary = (RelationBoundary) plan;
                 startLine("Boundary[");
                 addSymbolsList(boundary.outputs());
                 sb.append("]\n");
                 plan = boundary.source;
+            }
+            if (plan instanceof MultiPhase) {
+                MultiPhase multiPhase = (MultiPhase) plan;
+                startLine("MultiPhase[\n");
+                indentation += 4;
+                startLine("subQueries[\n");
+                indentation += 4;
+                for (Map.Entry<LogicalPlan, SelectSymbol> entry : multiPhase.subQueries.entrySet()) {
+                    printPlan(entry.getKey());
+                }
+                indentation -= 4;
+                startLine("]\n");
+                printPlan(multiPhase.source);
+                indentation -= 4;
+                startLine("]\n");
+                return sb.toString();
             }
             if (plan instanceof FetchOrEval) {
                 FetchOrEval fetchOrEval = (FetchOrEval) plan;

@@ -43,11 +43,11 @@ import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
 
-    public R process(Plan plan, @Nullable C context) {
-        return plan.accept(this, context);
+    public R process(ExecutionPlan executionPlan, @Nullable C context) {
+        return executionPlan.accept(this, context);
     }
 
-    protected R visitPlan(Plan plan, C context) {
+    protected R visitPlan(ExecutionPlan executionPlan, C context) {
         return null;
     }
 

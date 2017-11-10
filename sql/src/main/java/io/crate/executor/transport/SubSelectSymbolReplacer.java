@@ -31,7 +31,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -49,20 +49,20 @@ import java.util.function.Function;
  */
 class SubSelectSymbolReplacer implements FutureCallback<Object> {
 
-    private final Plan plan;
+    private final ExecutionPlan executionPlan;
     private final SelectSymbol selectSymbolToReplace;
     private static final PlanSymbolVisitor PLAN_SYMBOL_VISITOR = new PlanSymbolVisitor();
 
-    SubSelectSymbolReplacer(Plan plan, SelectSymbol selectSymbolToReplace) {
-        this.plan = plan;
+    SubSelectSymbolReplacer(ExecutionPlan executionPlan, SelectSymbol selectSymbolToReplace) {
+        this.executionPlan = executionPlan;
         this.selectSymbolToReplace = selectSymbolToReplace;
     }
 
     @Override
     public void onSuccess(@Nullable Object result) {
         // sub-selects on the same level may run concurrently, but symbol mutation is not thread-safe
-        synchronized (plan) {
-            PLAN_SYMBOL_VISITOR.process(plan, new SymbolReplacer(selectSymbolToReplace, result));
+        synchronized (executionPlan) {
+            PLAN_SYMBOL_VISITOR.process(executionPlan, new SymbolReplacer(selectSymbolToReplace, result));
         }
     }
 
@@ -73,8 +73,8 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
     private static class PlanSymbolVisitor extends PlanVisitor<SymbolReplacer, Void> {
 
         @Override
-        protected Void visitPlan(Plan plan, SymbolReplacer context) {
-            throw new UnsupportedOperationException("Subselect not supported in " + plan);
+        protected Void visitPlan(ExecutionPlan executionPlan, SymbolReplacer context) {
+            throw new UnsupportedOperationException("Subselect not supported in " + executionPlan);
         }
 
         @Override

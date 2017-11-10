@@ -34,9 +34,9 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.MergePhase;
@@ -62,31 +62,31 @@ public class HashAggregate implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
         AggregationOutputValidator.validateOutputs(aggregates);
-        Plan plan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null);
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null);
 
         List<Symbol> sourceOutputs = source.outputs();
-        if (plan.resultDescription().hasRemainingLimitOrOffset()) {
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+        if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
+            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
-        if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
+        if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), executionPlan.resultDescription().nodeIds())) {
             if (source.preferShardProjections()) {
-                plan.addProjection(projectionBuilder.aggregationProjection(
+                executionPlan.addProjection(projectionBuilder.aggregationProjection(
                     sourceOutputs, aggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
-                plan.addProjection(projectionBuilder.aggregationProjection(
+                executionPlan.addProjection(projectionBuilder.aggregationProjection(
                     aggregates, aggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER));
-                return plan;
+                return executionPlan;
             }
             AggregationProjection fullAggregation = projectionBuilder.aggregationProjection(
                 sourceOutputs, aggregates, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
-            plan.addProjection(fullAggregation);
-            return plan;
+            executionPlan.addProjection(fullAggregation);
+            return executionPlan;
         }
         AggregationProjection toPartial = projectionBuilder.aggregationProjection(
             sourceOutputs,
@@ -94,7 +94,7 @@ public class HashAggregate implements LogicalPlan {
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
-        plan.addProjection(toPartial);
+        executionPlan.addProjection(toPartial);
 
         AggregationProjection toFinal = projectionBuilder.aggregationProjection(
             aggregates,
@@ -103,14 +103,14 @@ public class HashAggregate implements LogicalPlan {
             RowGranularity.CLUSTER
         );
         return new Merge(
-            plan,
+            executionPlan,
             new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 MERGE_PHASE_NAME,
-                plan.resultDescription().nodeIds().size(),
+                executionPlan.resultDescription().nodeIds().size(),
                 Collections.singletonList(plannerContext.handlerNode()),
-                plan.resultDescription().streamOutputs(),
+                executionPlan.resultDescription().streamOutputs(),
                 Collections.singletonList(toFinal),
                 DistributionInfo.DEFAULT_SAME_NODE,
                 null

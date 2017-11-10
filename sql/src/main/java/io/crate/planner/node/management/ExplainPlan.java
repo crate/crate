@@ -22,18 +22,23 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.UnnestablePlan;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import java.util.UUID;
 
-public class ExplainPlan extends UnnestablePlan {
+public class ExplainPlan extends UnnestablePlan implements Plan {
 
     private final Plan subPlan;
+    private final UUID jobId;
 
-    public ExplainPlan(Plan subPlan) {
-        this.subPlan = subPlan;
+    public ExplainPlan(Plan subExecutionPlan, UUID jobId) {
+        this.subPlan = subExecutionPlan;
+        this.jobId = jobId;
     }
 
     @Override
@@ -43,10 +48,15 @@ public class ExplainPlan extends UnnestablePlan {
 
     @Override
     public UUID jobId() {
-        return subPlan.jobId();
+        return jobId;
     }
 
     public Plan subPlan() {
         return subPlan;
+    }
+
+    @Override
+    public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+        return this;
     }
 }

@@ -34,6 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
@@ -735,7 +736,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table foo.bar (x string)"),
-            new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {}),
+            new TransactionContext(new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {})),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
 
         // schema from statement must take precedence
@@ -746,7 +747,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table bar (x string)"),
-            new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {}),
+            new TransactionContext(new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {})),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));

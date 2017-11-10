@@ -19,22 +19,39 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor;
+package io.crate.planner;
 
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.planner.Plan;
-import io.crate.planner.PlannerContext;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.projection.Projection;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import javax.annotation.Nullable;
+import java.util.UUID;
 
-public interface Executor {
+public interface ExecutionPlan {
 
-    long ROWCOUNT_ERROR = -2L;
-    long ROWCOUNT_UNKNOWN = -1L;
+    <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 
-    void execute(Plan plan, PlannerContext plannerContext, RowConsumer consumer, Row parameters);
+    UUID jobId();
 
-    List<CompletableFuture<Long>> executeBulk(Plan plan, PlannerContext plannerContext, List<Row> bulkParams);
+    /**
+     * Add a projection to the plan.
+     */
+    void addProjection(Projection projection);
+
+    /**
+     * Add a projection to the plan which changes the "unfinished" information on the ResultDescription.
+     * For example, a projection which handles the limit, can change the `unfinishedLimit` of 10 to NO_LIMIT.
+     */
+    void addProjection(Projection projection,
+                       int unfinishedLimit,
+                       int unfinishedOffset,
+                       @Nullable PositionalOrderBy unfinishedOrderBy);
+
+
+    ResultDescription resultDescription();
+
+    /**
+     * Changes how the result will be distributed.
+     */
+    void setDistributionInfo(DistributionInfo distributionInfo);
 }

@@ -27,9 +27,9 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.data.RowConsumer;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.task.ExplainTask;
@@ -55,11 +55,13 @@ import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
@@ -75,6 +77,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.statement.SetSessionPlan;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -114,6 +117,7 @@ public class TransportExecutor implements Executor {
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
     private final MultiPhaseExecutor multiPhaseExecutor = new MultiPhaseExecutor();
+    private final ProjectionBuilder projectionBuilder;
 
     @Inject
     public TransportExecutor(Settings settings,
@@ -140,6 +144,7 @@ public class TransportExecutor implements Executor {
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         this.plan2TaskVisitor = new TaskCollectingVisitor();
+        this.projectionBuilder = new ProjectionBuilder(functions);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,
@@ -156,10 +161,11 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, RowConsumer consumer, Row parameters) {
-        CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
+    public void execute(Plan plan, PlannerContext plannerContext, RowConsumer consumer, Row parameters) {
+        ExecutionPlan executionPlan = plan.build(plannerContext, projectionBuilder);
+        CompletableFuture<ExecutionPlan> planFuture = multiPhaseExecutor.process(executionPlan, plannerContext);
         planFuture
-            .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(consumer, parameters))
+            .thenAccept(p -> plan2TaskVisitor.process(p, plannerContext).execute(consumer, parameters))
             .exceptionally(t -> {
                 consumer.accept(null, t);
                 return null;
@@ -167,39 +173,41 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(Plan plan) {
-        Task task = plan2TaskVisitor.process(plan, null);
+    public List<CompletableFuture<Long>> executeBulk(Plan plan, PlannerContext plannerContext, List<Row> bulkParams) {
+        ExecutionPlan executionPlan = plan.build(plannerContext, projectionBuilder);
+        Task task = plan2TaskVisitor.process(executionPlan, plannerContext);
         return task.executeBulk();
     }
 
-    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
+    private class TaskCollectingVisitor extends PlanVisitor<PlannerContext, Task> {
 
         @Override
-        public Task visitNoopPlan(NoopPlan plan, Void context) {
+        public Task visitNoopPlan(NoopPlan plan, PlannerContext context) {
             return NoopTask.INSTANCE;
         }
 
         @Override
-        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
+        public Task visitSetSessionPlan(SetSessionPlan plan, PlannerContext context) {
             return new SetSessionTask(plan.jobId(), plan.settings(), plan.sessionContext());
         }
 
         @Override
-        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
-            return new ExplainTask(explainPlan);
+        public Task visitExplainPlan(ExplainPlan explainPlan, PlannerContext context) {
+            ExecutionPlan subExecutionPlan = explainPlan.subPlan().build(context, projectionBuilder);
+            return new ExplainTask(subExecutionPlan);
         }
 
         @Override
-        protected Task visitPlan(Plan plan, Void context) {
-            return executionPhasesTask(plan);
+        protected Task visitPlan(ExecutionPlan executionPlan, PlannerContext context) {
+            return executionPhasesTask(executionPlan);
         }
 
-        private ExecutionPhasesTask executionPhasesTask(Plan plan) {
+        private ExecutionPhasesTask executionPhasesTask(ExecutionPlan executionPlan) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
-                plan, clusterService.localNode().getId());
+                executionPlan, clusterService.localNode().getId());
             LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
-                plan.jobId(),
+                executionPlan.jobId(),
                 clusterService,
                 contextPreparer,
                 jobContextService,
@@ -211,7 +219,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitGetPlan(ESGet plan, Void context) {
+        public Task visitGetPlan(ESGet plan, PlannerContext context) {
             return new ESGetTask(
                 functions,
                 globalProjectionToProjectionVisitor,
@@ -221,12 +229,12 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
+        public Task visitDropTablePlan(DropTablePlan plan, PlannerContext context) {
             return new DropTableTask(plan, transportDropTableAction);
         }
 
         @Override
-        public Task visitKillPlan(KillPlan killPlan, Void context) {
+        public Task visitKillPlan(KillPlan killPlan, PlannerContext context) {
             return killPlan.jobToKill().isPresent() ?
                 new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
                     killPlan.jobId(),
@@ -235,37 +243,37 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, Void context) {
+        public Task visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, PlannerContext context) {
             return new ShowCreateTableTask(showCreateTablePlan.statement().tableInfo());
         }
 
         @Override
-        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
+        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, PlannerContext context) {
             return new FunctionDispatchTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
-        public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, Void context) {
+        public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, PlannerContext context) {
             return new FunctionDispatchTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
         }
 
         @Override
-        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
+        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, PlannerContext context) {
             return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, Void context) {
+        public Task visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, PlannerContext context) {
             return new CreateAnalyzerTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, Void context) {
+        public Task visitESDelete(ESDelete plan, PlannerContext context) {
             return new ESDeleteTask(clusterService, transportActionProvider.transportShardDeleteAction(), plan);
         }
 
         @Override
-        public Task visitUpsertById(UpsertById plan, Void context) {
+        public Task visitUpsertById(UpsertById plan, PlannerContext context) {
             return new UpsertByIdTask(
                 plan,
                 clusterService,
@@ -276,12 +284,12 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
+        public Task visitESDeletePartition(ESDeletePartition plan, PlannerContext context) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
 
         @Override
-        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final Void context) {
+        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final PlannerContext context) {
             throw new UnsupportedOperationException("MultiPhasePlan should have been processed by MultiPhaseExecutor");
         }
     }
@@ -302,37 +310,37 @@ public class TransportExecutor implements Executor {
      * Executions will be triggered for collect1 and collect2, and if those are completed, Collect3 will be returned
      * as future which encapsulated the execution
      */
-    private class MultiPhaseExecutor extends PlanVisitor<Void, CompletableFuture<Plan>> {
+    private class MultiPhaseExecutor extends PlanVisitor<PlannerContext, CompletableFuture<ExecutionPlan>> {
 
         @Override
-        protected CompletableFuture<Plan> visitPlan(Plan plan, Void context) {
-            return CompletableFuture.completedFuture(plan);
+        protected CompletableFuture<ExecutionPlan> visitPlan(ExecutionPlan executionPlan, PlannerContext context) {
+            return CompletableFuture.completedFuture(executionPlan);
         }
 
         @Override
-        public CompletableFuture<Plan> visitMerge(Merge merge, Void context) {
+        public CompletableFuture<ExecutionPlan> visitMerge(Merge merge, PlannerContext context) {
             return process(merge.subPlan(), context).thenApply(p -> merge);
         }
 
         @Override
-        public CompletableFuture<Plan> visitNestedLoop(NestedLoop plan, Void context) {
-            CompletableFuture<Plan> fLeft = process(plan.left(), context);
-            CompletableFuture<Plan> fRight = process(plan.right(), context);
+        public CompletableFuture<ExecutionPlan> visitNestedLoop(NestedLoop plan, PlannerContext context) {
+            CompletableFuture<ExecutionPlan> fLeft = process(plan.left(), context);
+            CompletableFuture<ExecutionPlan> fRight = process(plan.right(), context);
             return CompletableFuture.allOf(fLeft, fRight).thenApply(x -> plan);
         }
 
         @Override
-        public CompletableFuture<Plan> visitQueryThenFetch(QueryThenFetch qtf, Void context) {
+        public CompletableFuture<ExecutionPlan> visitQueryThenFetch(QueryThenFetch qtf, PlannerContext context) {
             return process(qtf.subPlan(), context).thenApply(x -> qtf);
         }
 
         @Override
-        public CompletableFuture<Plan> visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
-            Map<Plan, SelectSymbol> dependencies = multiPhasePlan.dependencies();
+        public CompletableFuture<ExecutionPlan> visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, PlannerContext context) {
+            Map<ExecutionPlan, SelectSymbol> dependencies = multiPhasePlan.dependencies();
             List<CompletableFuture<?>> dependencyFutures = new ArrayList<>();
-            Plan rootPlan = multiPhasePlan.rootPlan();
-            for (Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
-                Plan plan = entry.getKey();
+            ExecutionPlan rootExecutionPlan = multiPhasePlan.rootPlan();
+            for (Map.Entry<ExecutionPlan, SelectSymbol> entry : dependencies.entrySet()) {
+                ExecutionPlan executionPlan = entry.getKey();
                 SelectSymbol selectSymbol = entry.getValue();
                 SelectSymbol.ResultType resultType = selectSymbol.getResultType();
 
@@ -345,10 +353,10 @@ public class TransportExecutor implements Executor {
                     throw new IllegalStateException("Can't create consumer: Unknown ResultType");
                 }
 
-                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootPlan, entry.getValue());
+                SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(rootExecutionPlan, entry.getValue());
                 dependencyFutures.add(consumer.resultFuture().thenAccept(replacer::onSuccess));
 
-                CompletableFuture<Plan> planFuture = process(plan, context);
+                CompletableFuture<ExecutionPlan> planFuture = process(executionPlan, context);
                 planFuture.whenComplete((p, e) -> {
                     if (e == null) {
                         // must use plan2TaskVisitor instead of calling execute
@@ -361,29 +369,29 @@ public class TransportExecutor implements Executor {
                 });
             }
             CompletableFuture[] cfs = dependencyFutures.toArray(new CompletableFuture[0]);
-            return CompletableFuture.allOf(cfs).thenCompose(x -> process(rootPlan, context));
+            return CompletableFuture.allOf(cfs).thenCompose(x -> process(rootExecutionPlan, context));
         }
     }
 
     static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
 
-        List<NodeOperationTree> createNodeOperationTrees(Plan plan, String localNodeId) {
+        List<NodeOperationTree> createNodeOperationTrees(ExecutionPlan executionPlan, String localNodeId) {
             Context context = new Context(localNodeId);
-            process(plan, context);
+            process(executionPlan, context);
             return context.nodeOperationTrees;
         }
 
         @Override
         public Void visitUpsert(Upsert node, Context context) {
-            for (Plan plan : node.nodes()) {
-                context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
+            for (ExecutionPlan executionPlan : node.nodes()) {
+                context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(executionPlan, context.localNodeId));
             }
             return null;
         }
 
         @Override
-        protected Void visitPlan(Plan plan, Context context) {
-            context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
+        protected Void visitPlan(ExecutionPlan executionPlan, Context context) {
+            context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(executionPlan, context.localNodeId));
             return null;
         }
 

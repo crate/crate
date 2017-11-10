@@ -27,7 +27,8 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.TableDefinitions;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
@@ -67,8 +68,10 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10_000);
         tableStats.updateTableStats(rowCountByTable);
 
-        LogicalPlan operator = Join.createNodes(mss, mss.where()).build(tableStats, Collections.emptySet());
-        Planner.Context context = e.getPlannerContext(clusterService.state(), tableStats);
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+        LogicalPlan operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
         NestedLoop nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null );
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
@@ -79,7 +82,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
         tableStats.updateTableStats(rowCountByTable);
 
-        operator = Join.createNodes(mss, mss.where()).build(tableStats, Collections.emptySet());
+        operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
         nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null );
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),

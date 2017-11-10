@@ -61,10 +61,11 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
-import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
@@ -115,11 +116,10 @@ public class SQLExecutor {
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
+    private final TransactionContext transactionContext;
 
-    public Planner.Context getPlannerContext(ClusterState clusterState, TableStats tableStats) {
-        return new Planner.Context(
-            planner,
-            new LogicalPlanner(functions, tableStats),
+    public PlannerContext getPlannerContext(ClusterState clusterState) {
+        return new PlannerContext(
             clusterState,
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
@@ -284,6 +284,7 @@ public class SQLExecutor {
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
+        this.transactionContext = new TransactionContext(sessionContext);
     }
 
     public Functions functions() {
@@ -292,7 +293,7 @@ public class SQLExecutor {
 
     private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt), sessionContext, parameterContext);
+            SqlParser.createStatement(stmt), transactionContext, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }
@@ -337,23 +338,45 @@ public class SQLExecutor {
     }
 
 
-    public <T extends Plan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
+    public <T extends ExecutionPlan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), sessionContext, ParameterContext.EMPTY);
+            SqlParser.createStatement(statement), transactionContext, ParameterContext.EMPTY);
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.normalizer(),
+            transactionContext,
+            softLimit,
+            fetchSize
+        );
         //noinspection unchecked
-        return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
+        return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
+            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions));
     }
 
-    public <T extends Plan> T plan(String stmt, Object[][] bulkArgs) {
+    public <T extends ExecutionPlan> T plan(String stmt, Object[][] bulkArgs) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(stmt),
-            sessionContext,
+            transactionContext,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            UUID.randomUUID(),
+            planner.normalizer(),
+            transactionContext,
+            0,
+            0
+        );
         //noinspection unchecked
-        return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
+        return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
+            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions));
     }
 
-    public <T extends Plan> T plan(String statement) {
+    public <T extends ExecutionPlan> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
     }
 }

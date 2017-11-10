@@ -32,14 +32,19 @@ import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -113,25 +118,39 @@ class BulkPortal extends AbstractPortal {
     @Override
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         List<Row> bulkParams = Rows.of(bulkArgs);
+        TransactionContext transactionContext = new TransactionContext(sessionContext);
         Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
-            sessionContext,
+            transactionContext,
             new ParameterContext(Row.EMPTY, bulkParams));
         UUID jobId = UUID.randomUUID();
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.normalizer(),
+            transactionContext,
+            0,
+            maxRows
+        );
         Plan plan;
         try {
-            plan = planner.plan(analysis, jobId, 0, maxRows);
+            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         synced = true;
-        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs);
+        return executeBulk(portalContext.getExecutor(), plan, plannerContext, jobId, jobsLogs);
     }
 
-    private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
+    private CompletableFuture<Void> executeBulk(Executor executor,
+                                                Plan plan,
+                                                PlannerContext plannerContext,
+                                                final UUID jobId,
                                                 final JobsLogs jobsLogs) {
-        List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
+        List<CompletableFuture<Long>> futures = executor.executeBulk(plan, plannerContext, Collections.emptyList());
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults

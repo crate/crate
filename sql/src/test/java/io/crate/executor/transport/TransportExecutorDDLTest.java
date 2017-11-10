@@ -154,7 +154,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, consumer, Row.EMPTY);
+        executor.execute(plan, null, consumer, Row.EMPTY);
         Bucket objects = consumer.getBucket();
         assertThat(objects, contains(isRow(-1L)));
 
@@ -183,7 +183,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, consumer, Row.EMPTY);
+        executor.execute(plan, null, consumer, Row.EMPTY);
         Bucket bucket = consumer.getBucket();
         assertThat(bucket, contains(isRow(-1L)));
 
@@ -242,7 +242,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     private Bucket executePlan(Plan plan) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, consumer, Row.EMPTY);
+        executor.execute(plan, null, consumer, Row.EMPTY);
         return consumer.getBucket();
     }
 }

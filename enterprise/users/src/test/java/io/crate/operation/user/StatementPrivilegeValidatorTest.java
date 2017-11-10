@@ -27,6 +27,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.operation.collect.sources.SysTableRegistry;
@@ -101,9 +102,9 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new SessionContext(0, Option.NONE, null, user,
+            new TransactionContext(new SessionContext(0, Option.NONE, null, user,
                 userManager.getStatementValidator(user),
-                userManager.getExceptionValidator(user)), ParameterContext.EMPTY);
+                userManager.getExceptionValidator(user))), ParameterContext.EMPTY);
     }
 
     @SuppressWarnings("unchecked")

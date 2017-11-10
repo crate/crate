@@ -27,7 +27,7 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.operation.Paging;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -192,9 +192,9 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
         }
     }
 
-    public static NodeOperationTree fromPlan(Plan plan, String localNodeId) {
+    public static NodeOperationTree fromPlan(ExecutionPlan executionPlan, String localNodeId) {
         NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
-        INSTANCE.process(plan, nodeOperationTreeContext);
+        INSTANCE.process(executionPlan, nodeOperationTreeContext);
         return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
             nodeOperationTreeContext.root.phases.getFirst());
     }
@@ -215,16 +215,16 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
 
     @Override
     public Void visitMerge(Merge merge, NodeOperationTreeContext context) {
-        Plan subPlan = merge.subPlan();
+        ExecutionPlan subExecutionPlan = merge.subPlan();
 
         boolean useDirectResponse = context.noPreviousPhases() &&
-                                    subPlan instanceof Collect &&
-                                    !Paging.shouldPage(subPlan.resultDescription().maxRowsPerNode());
+                                    subExecutionPlan instanceof Collect &&
+                                    !Paging.shouldPage(subExecutionPlan.resultDescription().maxRowsPerNode());
         context.addPhase(merge.mergePhase());
         if (useDirectResponse) {
-            context.addPhase(((Collect) subPlan).collectPhase(), true);
+            context.addPhase(((Collect) subExecutionPlan).collectPhase(), true);
         } else {
-            process(subPlan, context);
+            process(subExecutionPlan, context);
         }
         return null;
     }
@@ -260,7 +260,7 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
     }
 
     @Override
-    protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
-        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
+    protected Void visitPlan(ExecutionPlan executionPlan, NodeOperationTreeContext context) {
+        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", executionPlan));
     }
 }

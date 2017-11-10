@@ -22,7 +22,7 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
@@ -33,13 +33,13 @@ import io.crate.planner.projection.Projection;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class QueryThenFetch implements Plan {
+public class QueryThenFetch implements ExecutionPlan {
 
     private final FetchPhase fetchPhase;
-    private final Plan subPlan;
+    private final ExecutionPlan subExecutionPlan;
 
-    public QueryThenFetch(Plan subPlan, FetchPhase fetchPhase) {
-        this.subPlan = subPlan;
+    public QueryThenFetch(ExecutionPlan subExecutionPlan, FetchPhase fetchPhase) {
+        this.subExecutionPlan = subExecutionPlan;
         this.fetchPhase = fetchPhase;
     }
 
@@ -47,8 +47,8 @@ public class QueryThenFetch implements Plan {
         return fetchPhase;
     }
 
-    public Plan subPlan() {
-        return subPlan;
+    public ExecutionPlan subPlan() {
+        return subExecutionPlan;
     }
 
     @Override
@@ -58,12 +58,12 @@ public class QueryThenFetch implements Plan {
 
     @Override
     public UUID jobId() {
-        return subPlan.jobId();
+        return subExecutionPlan.jobId();
     }
 
     @Override
     public void addProjection(Projection projection) {
-        subPlan.addProjection(projection);
+        subExecutionPlan.addProjection(projection);
     }
 
     @Override
@@ -71,16 +71,16 @@ public class QueryThenFetch implements Plan {
                               int unfinishedLimit,
                               int unfinishedOffset,
                               @Nullable PositionalOrderBy unfinishedOrderBy) {
-        subPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
+        subExecutionPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
     }
 
     @Override
     public ResultDescription resultDescription() {
-        return subPlan.resultDescription();
+        return subExecutionPlan.resultDescription();
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        subPlan.setDistributionInfo(distributionInfo);
+        subExecutionPlan.setDistributionInfo(distributionInfo);
     }
 }

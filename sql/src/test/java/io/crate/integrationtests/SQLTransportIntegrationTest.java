@@ -45,13 +45,16 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.operation.user.User;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -76,6 +79,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -388,10 +392,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public static class PlanForNode {
         final Plan plan;
         final String nodeName;
+        final PlannerContext plannerContext;
 
-        private PlanForNode(Plan plan, String nodeName) {
+        private PlanForNode(Plan plan, String nodeName, PlannerContext plannerContext) {
             this.plan = plan;
             this.nodeName = nodeName;
+            this.plannerContext = plannerContext;
         }
     }
 
@@ -404,16 +410,27 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
         SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), null, x -> {}, x -> {});
+        TransactionContext transactionContext = new TransactionContext(sessionContext);
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            UUID.randomUUID(),
+            planner.normalizer(),
+            transactionContext,
+            0,
+            0
+        );
         Plan plan = planner.plan(
-            analyzer.boundAnalyze(SqlParser.createStatement(stmt), sessionContext, parameterContext),
-            UUID.randomUUID(), 0, 0);
-        return new PlanForNode(plan, nodeName);
+            analyzer.boundAnalyze(SqlParser.createStatement(stmt), transactionContext, parameterContext).analyzedStatement(),
+            plannerContext);
+        return new PlanForNode(plan, nodeName, plannerContext);
     }
 
     public TestingRowConsumer execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
         TestingRowConsumer downstream = new TestingRowConsumer();
-        transportExecutor.execute(planForNode.plan, downstream, Row.EMPTY);
+        transportExecutor.execute(planForNode.plan, planForNode.plannerContext, downstream, Row.EMPTY);
         return downstream;
     }
 

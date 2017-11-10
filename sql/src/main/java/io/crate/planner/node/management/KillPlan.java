@@ -55,5 +55,4 @@ public class KillPlan extends UnnestablePlan {
     public Optional<UUID> jobToKill() {
         return jobToKill;
     }
-
 }

@@ -26,9 +26,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.builder.InputColumns;
@@ -65,21 +65,21 @@ class Order implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint);
-        if (plan.resultDescription().orderBy() != null) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint);
+        if (executionPlan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {
-                return plan;
+                return executionPlan;
             }
             // merge to finalize the sorting and apply the order of *this* operator.
             // This is likely a order by on a virtual table which is sorted as well
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
         InputColumns.Context ctx = new InputColumns.Context(source.outputs());
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(
@@ -91,14 +91,14 @@ class Order implements LogicalPlan {
             orderBy.nullsFirst()
         );
         PositionalOrderBy positionalOrderBy =
-            plan.resultDescription().nodeIds().size() == 1 ? null : PositionalOrderBy.of(orderBy, outputs);
-        plan.addProjection(
+            executionPlan.resultDescription().nodeIds().size() == 1 ? null : PositionalOrderBy.of(orderBy, outputs);
+        executionPlan.addProjection(
             topNProjection,
             limit,
             offset,
             positionalOrderBy
         );
-        return plan;
+        return executionPlan;
     }
 
     @Override

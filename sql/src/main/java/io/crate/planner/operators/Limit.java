@@ -28,9 +28,9 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.projection.TopNProjection;
@@ -68,32 +68,32 @@ class Limit implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limitHint,
-                      int offsetHint,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limitHint,
+                               int offsetHint,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
         int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
 
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
         List<DataType> sourceTypes = Symbols.typeView(source.outputs());
-        ResultDescription resultDescription = plan.resultDescription();
+        ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()
             && (resultDescription.limit() != limit || resultDescription.offset() != offset)) {
 
-            plan = Merge.ensureOnHandler(plan, plannerContext);
-            resultDescription = plan.resultDescription();
+            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
+            resultDescription = executionPlan.resultDescription();
         }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
-            plan.addProjection(
+            executionPlan.addProjection(
                 new TopNProjection(limit, offset, sourceTypes), TopN.NO_LIMIT, 0, resultDescription.orderBy());
         } else if (resultDescription.limit() != limit || resultDescription.offset() != 0) {
-            plan.addProjection(
+            executionPlan.addProjection(
                 new TopNProjection(limit + offset, 0, sourceTypes), limit, offset, resultDescription.orderBy());
         }
-        return plan;
+        return executionPlan;
     }
 
     @Override

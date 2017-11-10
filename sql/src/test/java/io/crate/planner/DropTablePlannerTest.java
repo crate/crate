@@ -54,7 +54,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
-        Plan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
+        ExecutionPlan plan = e.plan("drop table if exists unknown_schema.unknwon_table");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 
@@ -66,7 +66,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropTableIfExistsNonExistentTableCreatesNoop() throws Exception {
-        Plan plan = e.plan("drop table if exists groups");
+        ExecutionPlan plan = e.plan("drop table if exists groups");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 
@@ -79,13 +79,13 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableIfExistsCreatesIterablePlan() throws Exception {
-        Plan plan = e.plan("drop blob table if exists screenshots");
+        ExecutionPlan plan = e.plan("drop blob table if exists screenshots");
         assertThat(plan, instanceOf(GenericDDLPlan.class));
     }
 
     @Test
     public void testDropNonExistentBlobTableCreatesNoop() throws Exception {
-        Plan plan = e.plan("drop blob table if exists unknown");
+        ExecutionPlan plan = e.plan("drop blob table if exists unknown");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 }

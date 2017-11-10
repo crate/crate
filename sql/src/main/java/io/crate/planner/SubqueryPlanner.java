@@ -26,33 +26,35 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.planner.operators.LogicalPlan;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class SubqueryPlanner {
 
-    private final Planner.Context plannerContext;
-    private final Visitor visitor;
-    private final Map<Plan, SelectSymbol> subQueries = new HashMap<>();
+    private final Function<SelectSymbol, LogicalPlan> planSubSelects;
 
-    public SubqueryPlanner(Planner.Context plannerContext) {
-        this.plannerContext = plannerContext;
-        this.visitor = new Visitor();
+    public SubqueryPlanner(Function<SelectSymbol, LogicalPlan> planSubSelects) {
+        this.planSubSelects = planSubSelects;
     }
 
-    private void planSubquery(SelectSymbol selectSymbol) {
-        Plan subPlan = plannerContext.planSubselect(selectSymbol);
+    public Map<LogicalPlan, SelectSymbol> planSubQueries(QueriedRelation relation) {
+        Visitor visitor = new Visitor();
+        relation.visitSymbols(visitor);
+        return visitor.subQueries;
+    }
+
+    private void planSubquery(SelectSymbol selectSymbol, Map<LogicalPlan, SelectSymbol> subQueries) {
+        LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
         subQueries.put(subPlan, selectSymbol);
     }
 
-    public Map<Plan, SelectSymbol> planSubQueries(QueriedRelation relation) {
-        relation.visitSymbols(visitor);
-        return subQueries;
-    }
-
     private class Visitor extends SymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
+
+        private final Map<LogicalPlan, SelectSymbol> subQueries = new HashMap<>();
 
         @Override
         public Void visitFunction(io.crate.analyze.symbol.Function function, Symbol parent) {
@@ -64,7 +66,7 @@ public class SubqueryPlanner {
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {
-            planSubquery(selectSymbol);
+            planSubquery(selectSymbol, subQueries);
             return null;
         }
 

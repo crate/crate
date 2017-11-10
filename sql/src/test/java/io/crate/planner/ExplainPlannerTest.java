@@ -65,7 +65,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPrinter() throws Exception {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            Plan plan = e.plan(statement);
+            ExecutionPlan plan = e.plan(statement);
             Map<String, Object> map = null;
             try {
                 map = PlanPrinter.objectMap(plan);

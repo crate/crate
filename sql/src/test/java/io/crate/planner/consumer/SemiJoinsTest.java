@@ -30,7 +30,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.sql.tree.QualifiedName;
@@ -147,8 +147,8 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDisabledByDefault() throws Exception {
-        Plan plan = executor.plan("select * from t1 where a in (select 'foo')");
-        assertThat(plan, not(instanceOf(NestedLoop.class)));
+        ExecutionPlan executionPlan = executor.plan("select * from t1 where a in (select 'foo')");
+        assertThat(executionPlan, not(instanceOf(NestedLoop.class)));
     }
 
     @Test

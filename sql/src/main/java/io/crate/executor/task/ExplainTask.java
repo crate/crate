@@ -22,13 +22,13 @@
 
 package io.crate.executor.task;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.executor.Task;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanPrinter;
-import io.crate.planner.node.management.ExplainPlan;
 
 import java.util.List;
 import java.util.Map;
@@ -38,17 +38,17 @@ import static io.crate.data.SentinelRow.SENTINEL;
 
 public class ExplainTask implements Task {
 
-    private final ExplainPlan explainPlan;
+    private final ExecutionPlan subPlan;
 
-    public ExplainTask(ExplainPlan explainPlan) {
-        this.explainPlan = explainPlan;
+    public ExplainTask(ExecutionPlan subPlan) {
+        this.subPlan = subPlan;
     }
 
     @Override
     public void execute(RowConsumer consumer, Row parameters) {
         Map<String, Object> map;
         try {
-            map = PlanPrinter.objectMap(explainPlan.subPlan());
+            map = PlanPrinter.objectMap(subPlan);
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;

@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -36,12 +36,16 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -66,6 +70,7 @@ public class SimplePortal extends AbstractPortal {
     private int maxRows = 0;
     private int defaultLimit;
     private Row rowParams;
+    private TransactionContext transactionContext;
 
     public SimplePortal(String name,
                         Analyzer analyzer,
@@ -127,10 +132,13 @@ public class SimplePortal extends AbstractPortal {
         this.params = params;
         this.rowParams = new RowN(params.toArray());
         this.resultFormatCodes = resultFormatCodes;
+        if (transactionContext == null) {
+            transactionContext = new TransactionContext(sessionContext);
+        }
         if (analysis == null) {
             analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
-                sessionContext,
+                transactionContext,
                 new ParameterContext(this.rowParams, Collections.emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
@@ -155,9 +163,19 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         UUID jobId = UUID.randomUUID();
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.normalizer(),
+            transactionContext,
+            defaultLimit,
+            maxRows
+        );
         Plan plan;
         try {
-            plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
+            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
@@ -174,7 +192,7 @@ public class SimplePortal extends AbstractPortal {
 
         if (!resumeIfSuspended()) {
             consumer = new RowConsumerToResultReceiver(resultReceiver, maxRows);
-            portalContext.getExecutor().execute(plan, consumer, this.rowParams);
+            portalContext.getExecutor().execute(plan, plannerContext, consumer, rowParams);
         }
         synced = true;
         return completableFuture;
@@ -183,9 +201,20 @@ public class SimplePortal extends AbstractPortal {
     private void retryQuery(Planner planner, UUID jobId) {
         Analysis analysis = portalContext
             .getAnalyzer()
-            .boundAnalyze(statement, sessionContext, new ParameterContext(rowParams, Collections.emptyList()));
+            .boundAnalyze(statement, transactionContext, new ParameterContext(rowParams, Collections.emptyList()));
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.normalizer(),
+            transactionContext,
+            defaultLimit,
+            maxRows
+        );
         portalContext.getExecutor().execute(
-            planner.plan(analysis, jobId, 0, maxRows),
+            planner.plan(analysis.analyzedStatement(), plannerContext),
+            plannerContext,
             consumer,
             rowParams
         );

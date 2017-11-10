@@ -43,29 +43,29 @@ import java.util.UUID;
  *
  * The dependencies themselves may also be MultiPhasePlans.
  */
-public class MultiPhasePlan implements Plan {
+public class MultiPhasePlan implements ExecutionPlan {
 
-    private final Plan rootPlan;
-    private final Map<Plan, SelectSymbol> dependencies;
+    private final ExecutionPlan rootExecutionPlan;
+    private final Map<ExecutionPlan, SelectSymbol> dependencies;
 
-    public static Plan createIfNeeded(Plan subPlan, Map<Plan, SelectSymbol> dependencies) {
+    public static ExecutionPlan createIfNeeded(ExecutionPlan subExecutionPlan, Map<ExecutionPlan, SelectSymbol> dependencies) {
         if (dependencies.isEmpty()) {
-            return subPlan;
+            return subExecutionPlan;
         }
-        return new MultiPhasePlan(subPlan, dependencies);
+        return new MultiPhasePlan(subExecutionPlan, dependencies);
     }
 
-    private MultiPhasePlan(Plan rootPlan, Map<Plan, SelectSymbol> dependencies) {
-        this.rootPlan = rootPlan;
+    private MultiPhasePlan(ExecutionPlan rootExecutionPlan, Map<ExecutionPlan, SelectSymbol> dependencies) {
+        this.rootExecutionPlan = rootExecutionPlan;
         this.dependencies = dependencies;
     }
 
-    public Map<Plan, SelectSymbol> dependencies() {
+    public Map<ExecutionPlan, SelectSymbol> dependencies() {
         return dependencies;
     }
 
-    public Plan rootPlan() {
-        return rootPlan;
+    public ExecutionPlan rootPlan() {
+        return rootExecutionPlan;
     }
 
     @Override
@@ -75,12 +75,12 @@ public class MultiPhasePlan implements Plan {
 
     @Override
     public UUID jobId() {
-        return rootPlan.jobId();
+        return rootExecutionPlan.jobId();
     }
 
     @Override
     public void addProjection(Projection projection) {
-        rootPlan.addProjection(projection);
+        rootExecutionPlan.addProjection(projection);
     }
 
     @Override
@@ -88,16 +88,16 @@ public class MultiPhasePlan implements Plan {
                               int unfinishedLimit,
                               int unfinishedOffset,
                               @Nullable PositionalOrderBy unfinishedOrderBy) {
-        rootPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
+        rootExecutionPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
     }
 
     @Override
     public ResultDescription resultDescription() {
-        return rootPlan.resultDescription();
+        return rootExecutionPlan.resultDescription();
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        rootPlan.setDistributionInfo(distributionInfo);
+        rootExecutionPlan.setDistributionInfo(distributionInfo);
     }
 }

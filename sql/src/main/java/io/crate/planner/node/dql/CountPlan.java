@@ -22,7 +22,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
@@ -35,7 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public class CountPlan implements Plan, ResultDescription {
+public class CountPlan implements ExecutionPlan, ResultDescription {
 
     private final CountPhase countPhase;
     private final MergePhase mergePhase;

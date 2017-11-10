@@ -22,6 +22,9 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTableRelation;
@@ -33,63 +36,78 @@ import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.SelectStatementPlanner;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
+import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
-import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.Set;
 
+import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+
 /**
- * Planner which can create a {@link Plan} using intermediate {@link LogicalPlan} nodes.
+ * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
  */
 public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
+
     private final OptimizingRewriter optimizingRewriter;
-    private final ProjectionBuilder projectionBuilder;
     private final TableStats tableStats;
+    private final SelectStatementPlanner selectStatementPlanner;
+    private final Visitor statementVisitor = new Visitor();
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizingRewriter = new OptimizingRewriter(functions);
-        this.projectionBuilder = new ProjectionBuilder(functions);
         this.tableStats = tableStats;
+        selectStatementPlanner = new SelectStatementPlanner(this);
     }
 
-    public Plan plan(QueriedRelation queriedRelation, Planner.Context plannerContext, FetchMode fetchMode) {
+    public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
+        return statementVisitor.process(statement, plannerContext);
+    }
+
+    public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
+        final int softLimit, fetchSize;
+        if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
+            softLimit = fetchSize = 2;
+        } else {
+            softLimit = plannerContext.softLimit();
+            fetchSize = plannerContext.fetchSize();
+        }
+        return plan(
+            selectSymbol.relation(),
+            PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize)
+        ).tryCollapse();
+    }
+
+    public LogicalPlan plan(QueriedRelation queriedRelation,
+                            PlannerContext plannerContext,
+                            SubqueryPlanner subqueryPlanner,
+                            FetchMode fetchMode) {
         QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
 
-        LogicalPlan logicalPlan = plan(relation, fetchMode, true)
+        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true)
             .build(tableStats, new HashSet<>(relation.outputs()))
             .tryCollapse();
 
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
-        Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
-        Plan plan = logicalPlan.build(
-            plannerContext,
-            projectionBuilder,
-            LogicalPlanner.NO_LIMIT,
-            0,
-            null,
-            null
-        );
-        return MultiPhasePlan.createIfNeeded(
-            plan,
-            subQueries
-        );
+        return MultiPhase.createIfNeeded(logicalPlan, relation, subqueryPlanner);
     }
 
-    static LogicalPlan.Builder plan(QueriedRelation relation, FetchMode fetchMode, boolean isLastFetch) {
+    static LogicalPlan.Builder plan(QueriedRelation relation,
+                                    FetchMode fetchMode,
+                                    SubqueryPlanner subqueryPlanner,
+                                    boolean isLastFetch) {
         SplitPoints splitPoints = SplitPoints.create(relation);
         LogicalPlan.Builder sourceBuilder =
             FetchOrEval.create(
@@ -101,6 +119,7 @@ public class LogicalPlanner {
                                     relation,
                                     splitPoints.toCollect(),
                                     relation.where(),
+                                    subqueryPlanner,
                                     fetchMode
                                 ),
                                 relation.groupBy(),
@@ -120,7 +139,7 @@ public class LogicalPlanner {
         if (isLastFetch) {
             return sourceBuilder;
         }
-        return RelationBoundary.create(sourceBuilder, relation);
+        return RelationBoundary.create(sourceBuilder, relation, subqueryPlanner);
     }
 
     private static LogicalPlan.Builder groupByOrAggregate(LogicalPlan.Builder source,
@@ -139,17 +158,18 @@ public class LogicalPlanner {
     private static LogicalPlan.Builder collectAndFilter(QueriedRelation queriedRelation,
                                                         List<Symbol> toCollect,
                                                         WhereClause where,
+                                                        SubqueryPlanner subqueryPlanner,
                                                         FetchMode fetchMode) {
         if (queriedRelation instanceof QueriedTableRelation) {
             return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
-            return Join.createNodes(((MultiSourceSelect) queriedRelation), where);
+            return Join.createNodes(((MultiSourceSelect) queriedRelation), where, subqueryPlanner);
         }
         if (queriedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), fetchMode, false),
+                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner,false),
                 where
             );
         }
@@ -170,5 +190,29 @@ public class LogicalPlanner {
             FieldsVisitor.visitFields(symbol, columns::add);
         }
         return columns;
+    }
+
+    private class Visitor extends AnalyzedStatementVisitor<PlannerContext, LogicalPlan> {
+
+
+        @Override
+        protected LogicalPlan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "Cannot create LogicalPlan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
+        }
+
+        @Override
+        public LogicalPlan visitSelectStatement(QueriedRelation relation, PlannerContext context) {
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
+            return selectStatementPlanner.plan(relation, context, subqueryPlanner);
+        }
+
+        @Override
+        protected LogicalPlan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
+            return InsertFromSubQueryPlanner.plan(statement, context, LogicalPlanner.this, subqueryPlanner);
+        }
+
+
     }
 }

@@ -26,33 +26,12 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.projectors.TopN;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.operation.scalar.conditional.LeastFunction;
 
 import javax.annotation.Nullable;
 
-public class Limits {
-
-    private final int finalLimit;
-    private final int offset;
-
-    Limits(int finalLimit, int offset) {
-        this.offset = offset;
-        this.finalLimit = finalLimit;
-    }
-
-    public int finalLimit() {
-        return finalLimit;
-    }
-
-    public boolean hasLimit() {
-        return finalLimit != TopN.NO_LIMIT;
-    }
-
-    public int offset() {
-        return offset;
-    }
+public final class Limits {
 
     @Nullable
     public static Symbol mergeAdd(@Nullable Symbol s1, @Nullable Symbol s2) {

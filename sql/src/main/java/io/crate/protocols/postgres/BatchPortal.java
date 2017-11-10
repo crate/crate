@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -31,16 +31,20 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CountdownFutureCallback;
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -57,6 +61,8 @@ class BatchPortal extends AbstractPortal {
     private final List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
     private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
+
+    private TransactionContext transactionContext;
 
     BatchPortal(String name,
                 String query,
@@ -97,11 +103,12 @@ class BatchPortal extends AbstractPortal {
     @Override
     public Portal bind(String statementName, String query, Statement statement,
                        List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+        transactionContext = new TransactionContext(sessionContext);
         queries.add(query);
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
         analysis.add(portalContext.getAnalyzer().boundAnalyze(
-            statement, sessionContext, new ParameterContext(getArgs(), Collections.emptyList())));
+            statement, transactionContext, new ParameterContext(getArgs(), Collections.emptyList())));
         return this;
     }
 
@@ -127,10 +134,20 @@ class BatchPortal extends AbstractPortal {
         CountdownFutureCallback completionCallback = new CountdownFutureCallback(analysis.size());
         for (int i = 0; i < analysis.size(); i++) {
             UUID jobId = UUID.randomUUID();
+            RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+            PlannerContext plannerContext = new PlannerContext(
+                planner.currentClusterState(),
+                routingProvider,
+                jobId,
+                planner.normalizer(),
+                transactionContext,
+                0,
+                0
+            );
             Plan plan;
             String stmt = queries.get(i);
             try {
-                plan = planner.plan(analysis.get(i), jobId, 0, 0);
+                plan = planner.plan(analysis.get(i).analyzedStatement(), plannerContext);
             } catch (Throwable t) {
                 jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t), sessionContext.user());
                 throw t;
@@ -144,7 +161,7 @@ class BatchPortal extends AbstractPortal {
                 .whenComplete(completionCallback);
 
             RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
-            portalContext.getExecutor().execute(plan, consumer, new RowN(batchParams.toArray()));
+            portalContext.getExecutor().execute(plan, plannerContext, consumer, new RowN(batchParams.toArray()));
         }
         synced = true;
         return completionCallback;

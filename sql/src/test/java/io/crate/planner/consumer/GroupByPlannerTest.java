@@ -37,7 +37,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CollectPhase;
@@ -685,9 +685,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(optimizedPlan.mergePhase().projections().size(), is(0));
 
         // > 1 partition hit
-        Plan plan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
-        assertThat(plan, instanceOf(Merge.class));
-        assertThat(((Merge) plan).subPlan(), instanceOf(Merge.class));
+        ExecutionPlan executionPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
+        assertThat(executionPlan, instanceOf(Merge.class));
+        assertThat(((Merge) executionPlan).subPlan(), instanceOf(Merge.class));
     }
 
     @Test

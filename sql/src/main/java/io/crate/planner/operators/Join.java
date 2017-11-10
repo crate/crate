@@ -38,9 +38,10 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
@@ -88,7 +89,7 @@ public class Join implements LogicalPlan {
 
     private final ArrayList<AbstractTableRelation> baseTables;
 
-    static Builder createNodes(MultiSourceSelect mss, WhereClause where) {
+    static Builder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedColsByParent) -> {
 
             LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
@@ -151,15 +152,15 @@ public class Join implements LogicalPlan {
             // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
             // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
             // have more than 1 fetchProjection within a single execution
-            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromLeft);
-            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromRight);
+            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromLeft);
+            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromRight);
             Symbol query = removeParts(queryParts, lhsName, rhsName);
             LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition, query != null && !(query instanceof Literal));
 
             join = Filter.create(join, query);
             while (it.hasNext()) {
                 QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
-                join = joinWithNext(tableStats, join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts);
+                join = joinWithNext(tableStats, join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts, subqueryPlanner);
                 joinNames.add(nextRel.getQualifiedName());
             }
             assert queryParts.isEmpty() : "Must've applied all queryParts";
@@ -186,7 +187,8 @@ public class Join implements LogicalPlan {
                                             Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
-                                            Map<Set<QualifiedName>, Symbol> queryParts) {
+                                            Map<Set<QualifiedName>, Symbol> queryParts,
+                                            SubqueryPlanner subqueryPlanner) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new HashSet<>();
@@ -210,7 +212,7 @@ public class Join implements LogicalPlan {
         }
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, false).build(tableStats, usedFromNext);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromNext);
 
         Symbol query = AndOperator.join(
             Stream.of(
@@ -297,12 +299,12 @@ public class Join implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
         /*
          * isDistributed/filterNeeded doesn't consider the joinCondition.
          * This means joins with implicit syntax result in a different plan than joins using explicit syntax.
@@ -317,8 +319,8 @@ public class Join implements LogicalPlan {
             ? limitAndOffset(limit, offset)
             : null;
 
-        Plan left = lhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
-        Plan right = rhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
+        ExecutionPlan left = lhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
+        ExecutionPlan right = rhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
 
 
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
@@ -334,9 +336,9 @@ public class Join implements LogicalPlan {
             // temporarily switch plans and relations to apply broadcasting logic
             // to smaller side (which is always the right side).
             switchTables = true;
-            Plan tmpPlan = left;
+            ExecutionPlan tmpExecutionPlan = left;
             left = right;
-            right = tmpPlan;
+            right = tmpExecutionPlan;
 
             leftResultDesc = left.resultDescription();
             rightResultDesc = right.resultDescription();
@@ -369,9 +371,9 @@ public class Join implements LogicalPlan {
         }
 
         if (switchTables) {
-            Plan tmpPlan = left;
+            ExecutionPlan tmpExecutionPlan = left;
             left = right;
-            right = tmpPlan;
+            right = tmpExecutionPlan;
             MergePhase tmp = leftMerge;
             leftMerge = rightMerge;
             rightMerge = tmp;
@@ -415,7 +417,7 @@ public class Join implements LogicalPlan {
                !resultDescription.nodeIds().equals(executionNodes);
     }
 
-    private static MergePhase buildMergePhase(Planner.Context plannerContext,
+    private static MergePhase buildMergePhase(PlannerContext plannerContext,
                                               ResultDescription resultDescription,
                                               Collection<String> nlExecutionNodes) {
         List<Projection> projections = Collections.emptyList();

@@ -21,7 +21,7 @@
 
 package io.crate.operation;
 
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -82,11 +82,11 @@ public class Paging {
         return maxRowsPerNode == -1 || maxRowsPerNode > PAGE_SIZE;
     }
 
-    public static void updateNodePageSizeHint(Plan subPlan, int nodePageSize) {
-        if (!(subPlan instanceof Collect) || nodePageSize == -1) {
+    public static void updateNodePageSizeHint(ExecutionPlan subExecutionPlan, int nodePageSize) {
+        if (!(subExecutionPlan instanceof Collect) || nodePageSize == -1) {
             return;
         }
-        CollectPhase collectPhase = ((Collect) subPlan).collectPhase();
+        CollectPhase collectPhase = ((Collect) subExecutionPlan).collectPhase();
         if (collectPhase instanceof RoutedCollectPhase) {
             ((RoutedCollectPhase) collectPhase).pageSizeHint(nodePageSize);
         }

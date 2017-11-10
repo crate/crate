@@ -52,8 +52,8 @@ public class PlanPrinter {
     private PlanPrinter() {
     }
 
-    public static Map<String, Object> objectMap(Plan plan) {
-        return Plan2MapVisitor.toMap(plan);
+    public static Map<String, Object> objectMap(ExecutionPlan executionPlan) {
+        return Plan2MapVisitor.toMap(executionPlan);
     }
 
     private static List<Object> refs(Collection<? extends Symbol> symbols) {
@@ -171,9 +171,9 @@ public class PlanPrinter {
         }
 
         @Override
-        protected ImmutableMap.Builder<String, Object> visitPlan(Plan plan, Void context) {
+        protected ImmutableMap.Builder<String, Object> visitPlan(ExecutionPlan executionPlan, Void context) {
             return newBuilder()
-                .put("planType", plan.getClass().getSimpleName());
+                .put("planType", executionPlan.getClass().getSimpleName());
         }
 
         private static Map<String, Object> phaseMap(@Nullable ExecutionPhase node) {
@@ -184,9 +184,9 @@ public class PlanPrinter {
             }
         }
 
-        static Map<String, Object> toMap(Plan plan) {
-            assert plan != null : "plan must not be null";
-            return INSTANCE.process(plan, null).build();
+        static Map<String, Object> toMap(ExecutionPlan executionPlan) {
+            assert executionPlan != null : "plan must not be null";
+            return INSTANCE.process(executionPlan, null).build();
         }
 
         @Override
@@ -215,7 +215,7 @@ public class PlanPrinter {
         @Override
         public ImmutableMap.Builder<String, Object> visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
             List<Map<String, Object>> dependencies = new ArrayList<>(multiPhasePlan.dependencies().size());
-            for (Plan dependency : multiPhasePlan.dependencies().keySet()) {
+            for (ExecutionPlan dependency : multiPhasePlan.dependencies().keySet()) {
                 dependencies.add(toMap(dependency));
             }
             return visitPlan(multiPhasePlan, context)

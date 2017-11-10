@@ -72,7 +72,7 @@ class ShowStatementAnalyzer {
 
     AnalyzedStatement analyzeShowTransaction(Analysis analysis) {
         Query query = rewriteShowTransaction();
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), ParameterContext.EMPTY);
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), ParameterContext.EMPTY);
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -104,7 +104,7 @@ class ShowStatementAnalyzer {
 
     public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
         Query query = rewriteShowSchemas(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), analysis.parameterContext());
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -150,14 +150,14 @@ class ShowStatementAnalyzer {
     public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
         SessionContext sessionContext = analysis.sessionContext();
         Query query = rewriteShowColumns(node, sessionContext.defaultSchema());
-        Analysis newAnalysis = analyzer.boundAnalyze(query, sessionContext, analysis.parameterContext());
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
 
     public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
         Query query = rewriteShowTables(node);
-        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), analysis.parameterContext());
+        Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), analysis.parameterContext());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }

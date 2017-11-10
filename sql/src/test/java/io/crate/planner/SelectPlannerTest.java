@@ -23,9 +23,6 @@
 package io.crate.planner;
 
 import com.google.common.collect.Iterables;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.AggregateMode;
@@ -40,17 +37,14 @@ import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -60,7 +54,6 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FetchProjection;
@@ -75,7 +68,6 @@ import io.crate.testing.T3;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,7 +128,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWherePKAndMatchDoesNotResultInESGet() throws Exception {
-        Plan plan = e.plan("select * from users where id in (1, 2, 3) and match(text, 'Hello')");
+        ExecutionPlan plan = e.plan("select * from users where id in (1, 2, 3) and match(text, 'Hello')");
         assertThat(plan, instanceOf(QueryThenFetch.class));
     }
 
@@ -587,24 +579,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         // doesn't contain "name" because whereClause is pushed down,
         // but still contains "id" because it is in the joinCondition
         assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
-    }
-
-    @Test
-    public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
-        int softLimit = 10_000;
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
-        Planner.Context plannerContext = new Planner.Context(
-            e.planner,
-            new LogicalPlanner(e.functions(), new TableStats()),
-            clusterService.state(),
-            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
-            UUID.randomUUID(),
-            normalizer,
-            new TransactionContext(SessionContext.create()),
-            softLimit,
-            0);
-        Limits limits = plannerContext.getLimits(new QuerySpec());
-        assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
 
     @Test

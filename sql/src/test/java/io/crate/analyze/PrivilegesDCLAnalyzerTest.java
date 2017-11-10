@@ -30,6 +30,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -227,7 +228,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
-            new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {}, t -> {}), null
+            new TransactionContext(new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {}, t -> {})),
+            ParameterContext.EMPTY
         ).analyzedStatement();
     }
 

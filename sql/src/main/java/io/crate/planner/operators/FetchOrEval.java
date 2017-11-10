@@ -42,9 +42,9 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
@@ -228,27 +228,27 @@ class FetchOrEval implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
 
-        Plan plan = source.build(plannerContext, projectionBuilder, limit, offset, null, pageSizeHint);
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, null, pageSizeHint);
         List<Symbol> sourceOutputs = source.outputs();
         if (sourceOutputs.equals(outputs)) {
-            return plan;
+            return executionPlan;
         }
 
         if (doFetch && Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
-            return planWithFetch(plannerContext, plan, sourceOutputs);
+            return planWithFetch(plannerContext, executionPlan, sourceOutputs);
         }
-        return planWithEvalProjection(plannerContext, plan, sourceOutputs);
+        return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs);
     }
 
-    private Plan planWithFetch(Planner.Context plannerContext, Plan plan, List<Symbol> sourceOutputs) {
-        plan = Merge.ensureOnHandler(plan, plannerContext);
+    private ExecutionPlan planWithFetch(PlannerContext plannerContext, ExecutionPlan executionPlan, List<Symbol> sourceOutputs) {
+        executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         Map<TableIdent, FetchSource> fetchSourceByTableId = new HashMap<>();
         LinkedHashSet<Reference> allFetchRefs = new LinkedHashSet<>();
 
@@ -289,7 +289,7 @@ class FetchOrEval implements LogicalPlan {
             // that all required columns are already provided.
             // This should be improved so that this case no longer occurs
             // `testNestedSimpleSelectWithJoin` is an example case
-            return planWithEvalProjection(plannerContext, plan, sourceOutputs);
+            return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs);
         }
 
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -309,8 +309,8 @@ class FetchOrEval implements LogicalPlan {
             readerAllocations.indices(),
             readerAllocations.indicesToIdents()
         );
-        plan.addProjection(fetchProjection);
-        return new QueryThenFetch(plan, fetchPhase);
+        executionPlan.addProjection(fetchProjection);
+        return new QueryThenFetch(executionPlan, fetchPhase);
     }
 
     private static Symbol transformRefs(Symbol output,
@@ -410,23 +410,23 @@ class FetchOrEval implements LogicalPlan {
         });
     }
 
-    private Plan planWithEvalProjection(Planner.Context plannerContext, Plan plan, List<Symbol> sourceOutputs) {
-        PositionalOrderBy orderBy = plan.resultDescription().orderBy();
+    private ExecutionPlan planWithEvalProjection(PlannerContext plannerContext, ExecutionPlan executionPlan, List<Symbol> sourceOutputs) {
+        PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, outputs);
             if (newOrderBy == null) {
-                plan = Merge.ensureOnHandler(plan, plannerContext);
+                executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
         InputColumns.Context ctx = new InputColumns.Context(sourceOutputs);
-        plan.addProjection(
+        executionPlan.addProjection(
             new EvalProjection(InputColumns.create(this.outputs, ctx)),
-            plan.resultDescription().limit(),
-            plan.resultDescription().offset(),
+            executionPlan.resultDescription().limit(),
+            executionPlan.resultDescription().offset(),
             newOrderBy
         );
-        return plan;
+        return executionPlan;
     }
 
     @Override

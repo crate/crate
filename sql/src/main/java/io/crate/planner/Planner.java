@@ -23,8 +23,6 @@
 package io.crate.planner;
 
 import com.google.common.base.Preconditions;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -42,29 +40,18 @@ import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.operation.projectors.TopN;
-import io.crate.planner.consumer.FetchMode;
-import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
@@ -80,18 +67,15 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.Expression;
-import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -99,154 +83,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-
-import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 @Singleton
-public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
+public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ClusterService clusterService;
     private final CopyStatementPlanner copyStatementPlanner;
-    private final SelectStatementPlanner selectStatementPlanner;
     private final EvaluatingNormalizer normalizer;
     private final LogicalPlanner logicalPlanner;
 
     private String[] awarenessAttributes;
-
-
-    public static class Context {
-
-        private final Planner planner;
-        private final UUID jobId;
-        private final EvaluatingNormalizer normalizer;
-        private final TransactionContext transactionContext;
-        private final int softLimit;
-        private final int fetchSize;
-        private final RoutingBuilder routingBuilder;
-        private final ClusterState clusterState;
-        private final RoutingProvider routingProvider;
-        private final LogicalPlanner logicalPlanner;
-        private int executionPhaseId = 0;
-        private String handlerNode;
-
-        public Context(Planner planner,
-                       LogicalPlanner logicalPlanner,
-                       ClusterState clusterState,
-                       RoutingProvider routingProvider,
-                       UUID jobId,
-                       EvaluatingNormalizer normalizer,
-                       TransactionContext transactionContext,
-                       int softLimit,
-                       int fetchSize) {
-            this.logicalPlanner = logicalPlanner;
-            this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
-            this.routingProvider = routingProvider;
-            this.clusterState = clusterState;
-            this.planner = planner;
-            this.jobId = jobId;
-            this.normalizer = normalizer;
-            this.transactionContext = transactionContext;
-            this.softLimit = softLimit;
-            this.fetchSize = fetchSize;
-            this.handlerNode = clusterState.getNodes().getLocalNodeId();
-        }
-
-        public EvaluatingNormalizer normalizer() {
-            return normalizer;
-        }
-
-        @Nullable
-        public Integer toInteger(@Nullable Symbol symbol) {
-            if (symbol == null) {
-                return null;
-            }
-            Input input = (Input) (normalizer.normalize(symbol, transactionContext));
-            return DataTypes.INTEGER.value(input.value());
-        }
-
-        public Limits getLimits(QuerySpec querySpec) {
-            Integer limit = toInteger(querySpec.limit());
-            if (limit == null) {
-                limit = TopN.NO_LIMIT;
-            }
-
-            Integer offset = toInteger(querySpec.offset());
-            if (offset == null) {
-                offset = 0;
-            }
-            return new Limits(limit, offset);
-        }
-
-        public int fetchSize() {
-            return fetchSize;
-        }
-
-        public TransactionContext transactionContext() {
-            return transactionContext;
-        }
-
-        Plan planSubselect(SelectSymbol selectSymbol) {
-            UUID subJobId = UUID.randomUUID();
-            final int softLimit, fetchSize;
-            if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
-                softLimit = fetchSize = 2;
-            } else {
-                softLimit = this.softLimit;
-                fetchSize = this.fetchSize;
-            }
-            return planner.process(
-                selectSymbol.relation(),
-                new Planner.Context(
-                    planner,
-                    logicalPlanner,
-                    clusterState,
-                    routingProvider,
-                    subJobId,
-                    normalizer,
-                    transactionContext,
-                    softLimit,
-                    fetchSize)
-            );
-        }
-
-        void applySoftLimit(QuerySpec querySpec) {
-            if (softLimit != 0 && querySpec.limit() == null) {
-                querySpec.limit(Literal.of((long) softLimit));
-            }
-        }
-
-        public String handlerNode() {
-            return handlerNode;
-        }
-
-
-        public Plan planSubRelation(QueriedRelation relation, FetchMode fetchMode) {
-            assert logicalPlanner != null : "consumingPlanner needs to be present to plan sub relations";
-            return logicalPlanner.plan(relation, this, fetchMode);
-        }
-
-        public UUID jobId() {
-            return jobId;
-        }
-
-        public int nextExecutionPhaseId() {
-            return executionPhaseId++;
-        }
-
-        public Routing allocateRouting(TableInfo tableInfo,
-                                       WhereClause where,
-                                       RoutingProvider.ShardSelection shardSelection,
-                                       SessionContext sessionContext) {
-            return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionContext);
-        }
-
-        public ReaderAllocations buildReaderAllocations() {
-            return routingBuilder.buildReaderAllocations();
-        }
-    }
 
 
     @Inject
@@ -254,8 +102,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.clusterService = clusterService;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
-        this.selectStatementPlanner = new SelectStatementPlanner(logicalPlanner);
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
 
         this.awarenessAttributes =
             AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.get(settings);
@@ -268,105 +115,93 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.awarenessAttributes = awarenessAttributes;
     }
 
+    public String[] getAwarenessAttributes() {
+        return awarenessAttributes;
+    }
+
+    public EvaluatingNormalizer normalizer() {
+        return normalizer;
+    }
+
+    public ClusterState currentClusterState() {
+        return clusterService.state();
+    }
+
     /**
-     * dispatch plan creation based on analysis type
+     * dispatch plan creation based on analyzed statement
      *
-     * @param analysis  analysis to create plan from
-     * @param softLimit A soft limit will be applied if there is no explicit limit within the query.
-     *                  0 for unlimited (query limit or maxRows will still apply)
-     *                  If the type of query doesn't have a resultSet this has no effect.
-     * @param fetchSize Limit the number of rows that should be returned to a client.
-     *                  If > 0 this overrides the limit that might be part of a query.
-     *                  0 for unlimited (soft limit or query limit may still apply)
+     * @param analyzedStatement  analyzed statement to create plan from
      * @return plan
      */
-    public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
-        AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), awarenessAttributes);
-        return process(
-            analyzedStatement,
-            new Context(
-                this,
-                logicalPlanner,
-                clusterService.state(),
-                routingProvider,
-                jobId,
-                normalizer,
-                analysis.transactionContext(),
-                softLimit,
-                fetchSize
-            )
-        );
+    public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
+        return process(analyzedStatement, plannerContext);
     }
 
     @Override
-    protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
+    protected Plan visitAnalyzedStatement(AnalyzedStatement analyzedStatement, PlannerContext context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
             "Cannot create Plan from AnalyzedStatement \"%s\"  - not supported.", analyzedStatement));
     }
 
     @Override
-    public Plan visitBegin(AnalyzedBegin analyzedBegin, Context context) {
-        return new NoopPlan(context.jobId);
+    public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
+        return new NoopPlan(context.jobId());
     }
 
     @Override
-    public Plan visitSelectStatement(QueriedRelation relation, Context context) {
-        return selectStatementPlanner.plan(relation, context);
+    public Plan visitSelectStatement(QueriedRelation relation, PlannerContext context) {
+        return logicalPlanner.plan(relation, context);
     }
 
     @Override
-    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, Context context) {
+    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, PlannerContext context) {
         Preconditions.checkState(!statement.sourceMaps().isEmpty(), "no values given");
         return processInsertStatement(statement, context);
     }
 
     @Override
-    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, Context context) {
-        return InsertFromSubQueryPlanner.plan(statement, context);
+    protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
+        return logicalPlanner.plan(statement, context);
     }
 
     @Override
-    protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        Plan plan = UpdatePlanner.plan(statement, context);
-        if (plan == null) {
-            throw new IllegalArgumentException("Couldn't plan Update statement");
-        }
-        return plan;
+    protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, PlannerContext context) {
+        return UpdatePlanner.plan(statement);
     }
 
     @Override
-    protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
-        return DeleteStatementPlanner.planDelete(analyzedStatement, context);
+    protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, PlannerContext context) {
+        return DeleteStatementPlanner.planDelete(analyzedStatement);
     }
 
     @Override
-    protected Plan visitCopyFromStatement(CopyFromAnalyzedStatement analysis, Context context) {
+    protected Plan visitCopyFromStatement(CopyFromAnalyzedStatement analysis, PlannerContext context) {
         return copyStatementPlanner.planCopyFrom(analysis, context);
     }
 
     @Override
-    protected Plan visitCopyToStatement(CopyToAnalyzedStatement analysis, Context context) {
-        return copyStatementPlanner.planCopyTo(analysis, context);
+    protected Plan visitCopyToStatement(CopyToAnalyzedStatement analysis, PlannerContext context) {
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+        return copyStatementPlanner.planCopyTo(analysis, context, logicalPlanner, subqueryPlanner);
     }
 
     @Override
-    public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, Context context) {
+    public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, PlannerContext context) {
         return new ShowCreateTablePlan(context.jobId(), statement);
     }
 
     @Override
-    protected Plan visitDDLStatement(DDLStatement statement, Context context) {
+    protected Plan visitDDLStatement(DDLStatement statement, PlannerContext context) {
         return new GenericDDLPlan(context.jobId(), statement);
     }
 
     @Override
-    public Plan visitDCLStatement(DCLStatement statement, Context context) {
+    public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
         return new GenericDCLPlan(context.jobId(), statement);
     }
 
     @Override
-    public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Context context) {
+    public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
             return new NoopPlan(context.jobId());
         }
@@ -374,7 +209,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, Context context) {
+    protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
             return new NoopPlan(context.jobId());
         }
@@ -382,7 +217,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
+    protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noOp()) {
             return new NoopPlan(context.jobId());
         }
@@ -390,7 +225,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, Context context) {
+    protected Plan visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, PlannerContext context) {
         Settings analyzerSettings;
         try {
             analyzerSettings = analysis.buildSettings();
@@ -401,7 +236,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, Context context) {
+    public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, PlannerContext context) {
         Set<String> settingsToRemove = resetStatement.settingsToRemove();
         if (settingsToRemove.isEmpty()) {
             return new NoopPlan(context.jobId());
@@ -415,7 +250,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    public Plan visitSetStatement(SetAnalyzedStatement setStatement, Context context) {
+    public Plan visitSetStatement(SetAnalyzedStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
             case LOCAL:
                 LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
@@ -436,7 +271,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 } else {
                     return new ESClusterUpdateSettingsPlan(
                         context.jobId(),
-                        Collections.<String, List<Expression>>emptyMap(),
+                        Collections.emptyMap(),
                         setStatement.settings()
                     );
                 }
@@ -444,18 +279,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
+    public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, PlannerContext context) {
         return analysis.jobId().isPresent() ?
             new KillPlan(context.jobId(), analysis.jobId().get()) :
             new KillPlan(context.jobId());
     }
 
     @Override
-    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, Context context) {
-        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
+    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
+        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context), context.jobId());
     }
 
-    private UpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, Context context) {
+    private UpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {
         String[] onDuplicateKeyAssignmentsColumns = null;
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);

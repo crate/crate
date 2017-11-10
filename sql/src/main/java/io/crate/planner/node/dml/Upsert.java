@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
@@ -30,15 +30,15 @@ import java.util.UUID;
 
 public class Upsert extends UnnestablePlan {
 
-    private final List<Plan> nodes;
+    private final List<ExecutionPlan> nodes;
     private final UUID id;
 
-    public Upsert(List<Plan> nodes, UUID id) {
+    public Upsert(List<ExecutionPlan> nodes, UUID id) {
         this.nodes = nodes;
         this.id = id;
     }
 
-    public List<Plan> nodes() {
+    public List<ExecutionPlan> nodes() {
         return nodes;
     }
 

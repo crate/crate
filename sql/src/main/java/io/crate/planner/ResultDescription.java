@@ -91,7 +91,7 @@ public interface ResultDescription {
      * Indicates if the operations so far are executed beneath/at shard-level
      *
      * This is useful for parent-operators to know so they can add shard-level projections
-     * via {@link Plan#addProjection(Projection)}
+     * via {@link ExecutionPlan#addProjection(Projection)}
      */
     default boolean executesOnShard() {
         return false;

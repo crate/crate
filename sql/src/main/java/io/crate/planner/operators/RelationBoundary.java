@@ -27,10 +27,11 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RefVisitor;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
@@ -50,12 +51,9 @@ import java.util.function.Function;
  */
 public class RelationBoundary implements LogicalPlan {
 
-    final LogicalPlan source;
-    private final List<Symbol> outputs;
-    private final Map<Symbol, Symbol> expressionMapping;
-    private final QueriedRelation relation;
-
-    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, QueriedRelation relation) {
+    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
+                                             QueriedRelation relation,
+                                             SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
@@ -80,31 +78,50 @@ public class RelationBoundary implements LogicalPlan {
             }
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
             expressionMapping.putAll(source.expressionMapping());
-            return new RelationBoundary(source, relation, outputs, expressionMapping);
+            Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
+            return new RelationBoundary(source, relation, outputs, expressionMapping, subQueries);
         };
     }
+
+    final LogicalPlan source;
+    private final List<Symbol> outputs;
+    private final Map<Symbol, Symbol> expressionMapping;
+    private final QueriedRelation relation;
+    private final Map<LogicalPlan, SelectSymbol> subQueries;
 
     private RelationBoundary(LogicalPlan source,
                              QueriedRelation relation,
                              List<Symbol> outputs,
-                             Map<Symbol, Symbol> expressionMapping) {
+                             Map<Symbol, Symbol> expressionMapping,
+                             Map<LogicalPlan, SelectSymbol> subQueries) {
         this.expressionMapping = expressionMapping;
         this.source = source;
         this.relation = relation;
         this.outputs = outputs;
+        this.subQueries = subQueries;
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(plannerContext);
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
+        Map<ExecutionPlan, SelectSymbol> subQueryPlans = new HashMap<>();
+        for (Map.Entry<LogicalPlan, SelectSymbol> entry : subQueries.entrySet()) {
+            ExecutionPlan subExecutionPlan = entry.getKey().build(
+                PlannerContext.forSubPlan(plannerContext),
+                projectionBuilder,
+                limit,
+                offset,
+                order,
+                pageSizeHint);
+            subQueryPlans.put(subExecutionPlan, entry.getValue());
+        }
         return MultiPhasePlan.createIfNeeded(
             source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint),
-            subqueryPlanner.planSubQueries(relation)
+            subQueryPlans
         );
     }
 
@@ -114,7 +131,7 @@ public class RelationBoundary implements LogicalPlan {
         if (collapsed == source) {
             return this;
         }
-        return new RelationBoundary(source, relation, outputs, expressionMapping);
+        return new RelationBoundary(source, relation, outputs, expressionMapping, subQueries);
     }
 
     @Override

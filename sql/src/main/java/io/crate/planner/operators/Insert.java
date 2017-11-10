@@ -23,46 +23,31 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.symbol.Function;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.PlannerContext;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/**
- * An optimized version for "select count(*) from t where ..."
- */
-public class Count implements LogicalPlan {
+public class Insert implements LogicalPlan {
 
-    private static final String COUNT_PHASE_NAME = "count-merge";
+    private final LogicalPlan source;
+    private final QueriedRelation relation;
+    private final ColumnIndexWriterProjection projection;
 
-    final AbstractTableRelation<TableInfo> tableRelation;
-    final WhereClause where;
-
-    private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
-
-    Count(Function countFunction, AbstractTableRelation<TableInfo> tableRelation, WhereClause where) {
-        this.outputs = Collections.singletonList(countFunction);
-        this.tableRelation = tableRelation;
-        this.baseTables = Collections.singletonList(tableRelation);
-        this.where = where;
+    public Insert(LogicalPlan source, QueriedRelation relation, ColumnIndexWriterProjection projection) {
+        this.source = source;
+        this.relation = relation;
+        this.projection = projection;
     }
 
     @Override
@@ -72,30 +57,14 @@ public class Count implements LogicalPlan {
                                int offset,
                                @Nullable OrderBy order,
                                @Nullable Integer pageSizeHint) {
-
-        Routing routing = plannerContext.allocateRouting(
-            tableRelation.tableInfo(),
-            where,
-            RoutingProvider.ShardSelection.ANY,
-            plannerContext.transactionContext().sessionContext());
-        CountPhase countPhase = new CountPhase(
-            plannerContext.nextExecutionPhaseId(),
-            routing,
-            where,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
-        MergePhase mergePhase = new MergePhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            COUNT_PHASE_NAME,
-            countPhase.nodeIds().size(),
-            Collections.singletonList(plannerContext.handlerNode()),
-            Collections.singletonList(DataTypes.LONG),
-            Collections.singletonList(MergeCountProjection.INSTANCE),
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
-        );
-        return new CountPlan(countPhase, mergePhase);
+        ExecutionPlan executionSubPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+        executionSubPlan.addProjection(projection);
+        ExecutionPlan executionPlan = Merge.ensureOnHandler(executionSubPlan, plannerContext);
+        if (executionPlan == executionSubPlan) {
+            return executionPlan;
+        }
+        executionPlan.addProjection(MergeCountProjection.INSTANCE);
+        return executionPlan;
     }
 
     @Override
@@ -105,7 +74,7 @@ public class Count implements LogicalPlan {
 
     @Override
     public List<Symbol> outputs() {
-        return outputs;
+        return relation.outputs();
     }
 
     @Override
@@ -115,11 +84,11 @@ public class Count implements LogicalPlan {
 
     @Override
     public List<AbstractTableRelation> baseTables() {
-        return baseTables;
+        return Collections.emptyList();
     }
 
     @Override
     public long numExpectedRows() {
-        return 1L;
+        return 1;
     }
 }

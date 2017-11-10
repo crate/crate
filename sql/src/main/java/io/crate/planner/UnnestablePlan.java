@@ -24,13 +24,14 @@ package io.crate.planner;
 
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 
 /**
  * A Plan that can only be used as root plan and cannot be used as sub-plan of another plan.
  */
-public abstract class UnnestablePlan implements Plan {
+public abstract class UnnestablePlan implements ExecutionPlan, Plan {
 
     @Override
     public void addProjection(Projection projection) {
@@ -53,5 +54,10 @@ public abstract class UnnestablePlan implements Plan {
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
         throw new UnsupportedOperationException("Cannot change distributionInfo on: " + getClass().getSimpleName());
+    }
+
+    @Override
+    public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+        return this;
     }
 }

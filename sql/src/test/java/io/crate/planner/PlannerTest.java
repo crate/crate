@@ -11,7 +11,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
-import io.crate.planner.operators.LogicalPlanner;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -83,9 +82,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(
-            e.planner,
-            new LogicalPlanner(e.functions(), new TableStats()),
+        PlannerContext plannerContext = new PlannerContext(
             clusterService.state(),
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),

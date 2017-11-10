@@ -34,9 +34,9 @@ public class Analysis {
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
-    public Analysis(SessionContext sessionContext, ParameterContext parameterContext, ParamTypeHints paramTypeHints) {
+    public Analysis(TransactionContext transactionContext, ParameterContext parameterContext, ParamTypeHints paramTypeHints) {
         this.paramTypeHints = paramTypeHints;
-        this.transactionContext = new TransactionContext(sessionContext);
+        this.transactionContext = transactionContext;
         this.parameterContext = parameterContext;
     }
 

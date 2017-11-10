@@ -141,7 +141,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
-        Plan plan = e.plan("update empty_parted set name='Vogon lyric fan'");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        ExecutionPlan executionPlan = e.plan("update empty_parted set name='Vogon lyric fan'");
+        assertThat(executionPlan, instanceOf(NoopPlan.class));
     }
 }

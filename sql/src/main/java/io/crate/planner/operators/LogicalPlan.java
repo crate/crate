@@ -25,8 +25,9 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
@@ -39,7 +40,7 @@ import java.util.Set;
  * LogicalPlan is a tree of "Operators"
  * This is a representation of the logical order of operators that need to be executed to produce a correct result.
  *
- * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy, Integer)} is used to create the
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer)} is used to create the
  * actual "physical" execution plan.
  *
  * A Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
@@ -53,7 +54,7 @@ import java.util.Set;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(Planner.Context, ProjectionBuilder, int, int, OrderBy, Integer)} is called
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer)} is called
  * on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
@@ -72,7 +73,7 @@ import java.util.Set;
  *
  * </pre>
  */
-public interface LogicalPlan {
+public interface LogicalPlan extends Plan {
 
     interface Builder {
 
@@ -105,12 +106,17 @@ public interface LogicalPlan {
      * {@code limit}, {@code offset}, {@code order} can be passed from one operator to another. Depending on the
      * operators implementation. Operator may choose to make use of this information, but can also ignore it.
      */
-    Plan build(Planner.Context plannerContext,
-               ProjectionBuilder projectionBuilder,
-               int limit,
-               int offset,
-               @Nullable OrderBy order,
-               @Nullable Integer pageSizeHint);
+    ExecutionPlan build(PlannerContext plannerContext,
+                        ProjectionBuilder projectionBuilder,
+                        int limit,
+                        int offset,
+                        @Nullable OrderBy order,
+                        @Nullable Integer pageSizeHint);
+
+    @Override
+    default ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+        return build(plannerContext, projectionBuilder, -1, 0, null, null);
+    }
 
     /**
      * Used to generate optimized operators.

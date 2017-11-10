@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -67,9 +67,9 @@ public class NodeOperationCtxBenchmark {
                 threadPool,
                 () -> DiscoveryNodes.newNode("benchmarkNode")))
             .build();
-        Plan plan = e.plan("select name from sys.cluster group by name");
+        ExecutionPlan executionPlan = e.plan("select name from sys.cluster group by name");
 
-        NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(plan, "noop_id");
+        NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(executionPlan, "noop_id");
         nodeOperations = nodeOperationTree.nodeOperations();
     }
 

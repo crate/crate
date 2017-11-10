@@ -36,10 +36,12 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.dml.Delete;
@@ -48,6 +50,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.MergeCountProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
@@ -59,7 +62,12 @@ import java.util.Map;
 
 public final class DeleteStatementPlanner {
 
-    public static Plan planDelete(DeleteAnalyzedStatement analyzedStatement, Planner.Context context) {
+    public static Plan planDelete(DeleteAnalyzedStatement analyzedStatement) {
+        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
+            -> planDeleteExecution(analyzedStatement, plannerContext);
+    }
+
+    public static ExecutionPlan planDeleteExecution(DeleteAnalyzedStatement analyzedStatement, PlannerContext context) {
         DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
@@ -98,11 +106,11 @@ public final class DeleteStatementPlanner {
         return new NoopPlan(context.jobId());
     }
 
-    private static Plan deleteByQuery(DocTableInfo tableInfo,
-                               List<WhereClause> whereClauses,
-                               Planner.Context context) {
+    private static ExecutionPlan deleteByQuery(DocTableInfo tableInfo,
+                                               List<WhereClause> whereClauses,
+                                               PlannerContext context) {
 
-        List<Plan> planNodes = new ArrayList<>();
+        List<ExecutionPlan> planeNodes = new ArrayList<>();
         List<String> indicesToDelete = new ArrayList<>();
 
         for (WhereClause whereClause : whereClauses) {
@@ -111,23 +119,23 @@ public final class DeleteStatementPlanner {
                 if (!whereClause.hasQuery() && tableInfo.isPartitioned()) {
                     indicesToDelete.addAll(Arrays.asList(indices));
                 } else {
-                    planNodes.add(collectWithDeleteProjection(tableInfo, whereClause, context));
+                    planeNodes.add(collectWithDeleteProjection(tableInfo, whereClause, context));
                 }
             }
         }
         if (!indicesToDelete.isEmpty()) {
-            assert planNodes.isEmpty() : "If a partition can be deleted that must be true for all bulk operations";
+            assert planeNodes.isEmpty() : "If a partition can be deleted that must be true for all bulk operations";
             return new ESDeletePartition(context.jobId(), indicesToDelete.toArray(new String[0]));
         }
-        if (planNodes.isEmpty()) {
+        if (planeNodes.isEmpty()) {
             return new NoopPlan(context.jobId());
         }
-        return new Delete(planNodes, context.jobId());
+        return new Delete(planeNodes, context.jobId());
     }
 
-    private static Plan collectWithDeleteProjection(TableInfo tableInfo,
-                                             WhereClause whereClause,
-                                             Planner.Context plannerContext) {
+    private static ExecutionPlan collectWithDeleteProjection(TableInfo tableInfo,
+                                                             WhereClause whereClause,
+                                                             PlannerContext plannerContext) {
         // for delete, we always need to collect the `_uid`
         Reference idReference = tableInfo.getReference(DocSysColumns.ID);
 

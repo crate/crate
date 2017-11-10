@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
@@ -36,7 +36,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public class Collect implements Plan, ResultDescription {
+public class Collect implements ExecutionPlan, ResultDescription {
 
     private final CollectPhase collectPhase;
 

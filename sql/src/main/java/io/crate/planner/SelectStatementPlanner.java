@@ -29,27 +29,37 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.planner.consumer.ESGetStatementPlanner;
 import io.crate.planner.consumer.FetchMode;
+import io.crate.planner.operators.Get;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.MultiPhase;
+import io.crate.planner.operators.RootRelationBoundary;
 
-import java.util.Map;
-
-class SelectStatementPlanner {
+public class SelectStatementPlanner {
 
     private final Visitor visitor;
 
-    SelectStatementPlanner(LogicalPlanner logicalPlanner) {
+    public SelectStatementPlanner(LogicalPlanner logicalPlanner) {
         visitor = new Visitor(logicalPlanner);
     }
 
-    public Plan plan(QueriedRelation relation, Planner.Context context) {
-        return visitor.process(relation, context);
+    public LogicalPlan plan(QueriedRelation relation, PlannerContext context, SubqueryPlanner subqueryPlanner) {
+        return visitor.process(relation, new Context(context, subqueryPlanner));
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
+    private static class Context {
+        private final PlannerContext plannerContext;
+        private final SubqueryPlanner subqueryPlanner;
+
+        public Context(PlannerContext plannerContext, SubqueryPlanner subqueryPlanner) {
+            this.plannerContext = plannerContext;
+            this.subqueryPlanner = subqueryPlanner;
+        }
+    }
+
+    private static class Visitor extends AnalyzedRelationVisitor<Context, LogicalPlan> {
 
         private final LogicalPlanner logicalPlanner;
 
@@ -57,41 +67,40 @@ class SelectStatementPlanner {
             this.logicalPlanner = logicalPlanner;
         }
 
-        private Plan invokeLogicalPlanner(QueriedRelation relation, Planner.Context context) {
-            Plan plan = logicalPlanner.plan(relation, context, FetchMode.MAYBE_CLEAR);
-            if (plan == null) {
+        private LogicalPlan invokeLogicalPlanner(QueriedRelation relation, Context context) {
+            LogicalPlan logicalPlan = logicalPlanner.plan(relation, context.plannerContext, context.subqueryPlanner, FetchMode.MAYBE_CLEAR);
+            if (logicalPlan == null) {
                 throw new UnsupportedOperationException("Cannot create plan for: " + relation);
             }
-            return Merge.ensureOnHandler(plan, context);
+            return new RootRelationBoundary(logicalPlan);
         }
 
         @Override
-        protected Plan visitAnalyzedRelation(AnalyzedRelation relation, Planner.Context context) {
+        protected LogicalPlan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             throw new UnsupportedOperationException("Cannot create plan for: " + relation);
         }
 
         @Override
-        public Plan visitQueriedRelation(QueriedRelation relation, Planner.Context context) {
+        public LogicalPlan visitQueriedRelation(QueriedRelation relation, Context context) {
             return invokeLogicalPlanner(relation, context);
         }
 
         @Override
-        public Plan visitQueriedTable(QueriedTable table, Planner.Context context) {
-            context.applySoftLimit(table.querySpec());
+        public LogicalPlan visitQueriedTable(QueriedTable table, Context context) {
+            context.plannerContext.applySoftLimit(table.querySpec());
             return super.visitQueriedTable(table, context);
         }
 
         @Override
-        public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
+        public LogicalPlan visitQueriedDocTable(QueriedDocTable table, Context context) {
             QuerySpec querySpec = table.querySpec();
-            context.applySoftLimit(querySpec);
+            PlannerContext plannerContext = context.plannerContext;
+            plannerContext.applySoftLimit(querySpec);
             if (querySpec.hasAggregates() || (!querySpec.groupBy().isEmpty())) {
                 return invokeLogicalPlanner(table, context);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
-                SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
-                Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(table);
-                return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context), subQueries);
+                return MultiPhase.createIfNeeded(Get.create(table), table, context.subqueryPlanner);
             }
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
@@ -100,9 +109,9 @@ class SelectStatementPlanner {
         }
 
         @Override
-        public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
+        public LogicalPlan visitMultiSourceSelect(MultiSourceSelect mss, Context context) {
             QuerySpec querySpec = mss.querySpec();
-            context.applySoftLimit(querySpec);
+            context.plannerContext.applySoftLimit(querySpec);
             return invokeLogicalPlanner(mss, context);
         }
     }

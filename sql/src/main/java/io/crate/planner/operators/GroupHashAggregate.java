@@ -31,9 +31,9 @@ import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -78,16 +78,16 @@ public class GroupHashAggregate implements LogicalPlan {
     }
 
     @Override
-    public Plan build(Planner.Context plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint) {
 
-        Plan plan = source.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, null);
-        if (plan.resultDescription().hasRemainingLimitOrOffset()) {
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, null);
+        if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
+            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
@@ -98,21 +98,21 @@ public class GroupHashAggregate implements LogicalPlan {
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
             );
-            plan.addProjection(groupProjection);
-            return plan;
+            executionPlan.addProjection(groupProjection);
+            return executionPlan;
         }
 
-        if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), plan.resultDescription().nodeIds())) {
+        if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), executionPlan.resultDescription().nodeIds())) {
             if (source.preferShardProjections()) {
-                plan.addProjection(projectionBuilder.groupProjection(
+                executionPlan.addProjection(projectionBuilder.groupProjection(
                     sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_PARTIAL, RowGranularity.SHARD));
-                plan.addProjection(projectionBuilder.groupProjection(
+                executionPlan.addProjection(projectionBuilder.groupProjection(
                     outputs, groupKeys, aggregates, AggregateMode.PARTIAL_FINAL, RowGranularity.NODE));
-                return plan;
+                return executionPlan;
             } else {
-                plan.addProjection(projectionBuilder.groupProjection(
+                executionPlan.addProjection(projectionBuilder.groupProjection(
                     sourceOutputs, groupKeys, aggregates, AggregateMode.ITER_FINAL, RowGranularity.NODE));
-                return plan;
+                return executionPlan;
             }
         }
 
@@ -123,8 +123,8 @@ public class GroupHashAggregate implements LogicalPlan {
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
-        plan.addProjection(toPartial);
-        plan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
+        executionPlan.addProjection(toPartial);
+        executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
 
         GroupProjection toFinal = projectionBuilder.groupProjection(
             this.outputs,
@@ -135,25 +135,25 @@ public class GroupHashAggregate implements LogicalPlan {
         );
         return createMerge(
             plannerContext,
-            plan,
+            executionPlan,
             Collections.singletonList(toFinal),
-            plan.resultDescription().nodeIds()
+            executionPlan.resultDescription().nodeIds()
         );
     }
 
-    private Plan createMerge(Planner.Context plannerContext,
-                             Plan plan,
-                             List<Projection> projections,
-                             Collection<String> nodeIds) {
+    private ExecutionPlan createMerge(PlannerContext plannerContext,
+                                      ExecutionPlan executionPlan,
+                                      List<Projection> projections,
+                                      Collection<String> nodeIds) {
         return new Merge(
-            plan,
+            executionPlan,
             new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 DISTRIBUTED_MERGE_PHASE_NAME,
-                plan.resultDescription().nodeIds().size(),
+                executionPlan.resultDescription().nodeIds().size(),
                 nodeIds,
-                plan.resultDescription().streamOutputs(),
+                executionPlan.resultDescription().streamOutputs(),
                 projections,
                 DistributionInfo.DEFAULT_BROADCAST,
                 null

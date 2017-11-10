@@ -22,14 +22,14 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.planner.Plan;
+import io.crate.planner.ExecutionPlan;
 
 import java.util.List;
 import java.util.UUID;
 
 public class Delete extends Upsert {
 
-    public Delete(List<Plan> nodes, UUID id) {
+    public Delete(List<ExecutionPlan> nodes, UUID id) {
         super(nodes, id);
     }
 

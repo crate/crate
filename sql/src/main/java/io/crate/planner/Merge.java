@@ -37,9 +37,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Merge implements Plan, ResultDescription {
+public class Merge implements ExecutionPlan, ResultDescription {
 
-    private final Plan subPlan;
+    private final ExecutionPlan subExecutionPlan;
     private final MergePhase mergePhase;
 
     private int unfinishedLimit;
@@ -58,9 +58,10 @@ public class Merge implements Plan, ResultDescription {
      *                    If the subPlan contains a limit/offset or orderBy in its resultDescription this method will
      *                    add a TopNProjection AFTER the projections.
      */
-    public static Plan ensureOnHandler(Plan subPlan, Planner.Context plannerContext, List<Projection> projections) {
-        ResultDescription resultDescription = subPlan.resultDescription();
-        assert resultDescription != null : "all plans must have a result description. Plan without: " + subPlan;
+    public static ExecutionPlan ensureOnHandler(ExecutionPlan subExecutionPlan, PlannerContext plannerContext, List<Projection> projections) {
+        ResultDescription resultDescription = subExecutionPlan.resultDescription();
+        assert resultDescription != null : "all plans must have a result description. Plan without: " +
+                                           subExecutionPlan;
 
         // If a sub-Plan applies a limit it is usually limit+offset
         // So even if the execution is on the handler the limit may be too large and the final limit needs to be applied as well
@@ -70,9 +71,9 @@ public class Merge implements Plan, ResultDescription {
             resultDescription.numOutputs(),
             resultDescription.streamOutputs());
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
-            return addProjections(subPlan, projections, resultDescription, topN);
+            return addProjections(subExecutionPlan, projections, resultDescription, topN);
         }
-        maybeUpdatePageSizeHint(subPlan, resultDescription.maxRowsPerNode());
+        maybeUpdatePageSizeHint(subExecutionPlan, resultDescription.maxRowsPerNode());
         Collection<String> handlerNodeIds = Collections.singletonList(plannerContext.handlerNode());
 
         MergePhase mergePhase = new MergePhase(
@@ -87,7 +88,7 @@ public class Merge implements Plan, ResultDescription {
             resultDescription.orderBy()
         );
         return new Merge(
-            subPlan,
+            subExecutionPlan,
             mergePhase,
             TopN.NO_LIMIT,
             0,
@@ -97,28 +98,28 @@ public class Merge implements Plan, ResultDescription {
         );
     }
 
-    private static void maybeUpdatePageSizeHint(Plan subPlan, int maxRowsPerNode) {
+    private static void maybeUpdatePageSizeHint(ExecutionPlan subExecutionPlan, int maxRowsPerNode) {
         if (Paging.shouldPage(maxRowsPerNode)) {
-            Paging.updateNodePageSizeHint(subPlan, maxRowsPerNode);
+            Paging.updateNodePageSizeHint(subExecutionPlan, maxRowsPerNode);
         }
     }
 
-    private static Plan addProjections(Plan subPlan,
-                                       List<Projection> projections,
-                                       ResultDescription resultDescription,
-                                       Projection topN) {
+    private static ExecutionPlan addProjections(ExecutionPlan subExecutionPlan,
+                                                List<Projection> projections,
+                                                ResultDescription resultDescription,
+                                                Projection topN) {
         for (Projection projection : projections) {
             assert projection.outputs().size() == resultDescription.numOutputs()
                 : "projection must not affect numOutputs";
-            subPlan.addProjection(projection);
+            subExecutionPlan.addProjection(projection);
         }
         if (topN != null) {
-            subPlan.addProjection(topN, TopN.NO_LIMIT, 0, null);
+            subExecutionPlan.addProjection(topN, TopN.NO_LIMIT, 0, null);
         }
         // resultDescription.orderBy can be ignored here because it is only relevant to do a sorted merge
         // (of a pre-sorted result)
         // In this case there is only one node/bucket which is already correctly sorted
-        return subPlan;
+        return subExecutionPlan;
     }
 
     private static List<Projection> addProjection(List<Projection> projections, @Nullable Projection projection) {
@@ -133,8 +134,8 @@ public class Merge implements Plan, ResultDescription {
         }
     }
 
-    public static Plan ensureOnHandler(Plan subPlan, Planner.Context plannerContext) {
-        return ensureOnHandler(subPlan, plannerContext, Collections.emptyList());
+    public static ExecutionPlan ensureOnHandler(ExecutionPlan subExecutionPlan, PlannerContext plannerContext) {
+        return ensureOnHandler(subExecutionPlan, plannerContext, Collections.emptyList());
     }
 
     /**
@@ -148,14 +149,14 @@ public class Merge implements Plan, ResultDescription {
      *
      * See also: {@link ResultDescription}
      */
-    public Merge(Plan subPlan,
+    public Merge(ExecutionPlan subExecutionPlan,
                  MergePhase mergePhase,
                  int unfinishedLimit,
                  int unfinishedOffset,
                  int numOutputs,
                  int maxRowsPerNode,
                  @Nullable PositionalOrderBy orderBy) {
-        this.subPlan = subPlan;
+        this.subExecutionPlan = subExecutionPlan;
         this.mergePhase = mergePhase;
         this.unfinishedLimit = unfinishedLimit;
         this.unfinishedOffset = unfinishedOffset;
@@ -171,7 +172,7 @@ public class Merge implements Plan, ResultDescription {
 
     @Override
     public UUID jobId() {
-        return subPlan.jobId();
+        return subExecutionPlan.jobId();
     }
 
     @Override
@@ -205,8 +206,8 @@ public class Merge implements Plan, ResultDescription {
         return mergePhase;
     }
 
-    public Plan subPlan() {
-        return subPlan;
+    public ExecutionPlan subPlan() {
+        return subExecutionPlan;
     }
 
     @Override
@@ -244,5 +245,4 @@ public class Merge implements Plan, ResultDescription {
     public List<DataType> streamOutputs() {
         return mergePhase.outputTypes();
     }
-
 }

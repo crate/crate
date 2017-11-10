@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.CreateIngestRule;
 import io.crate.sql.tree.QualifiedName;
 import org.junit.Test;
@@ -49,7 +50,7 @@ public class MqttAnalyzerTest {
         sessionContext.setDefaultSchema("custom");
         ParameterContext parameterContext = Mockito.mock(ParameterContext.class);
         ParamTypeHints paramTypeHints = Mockito.mock(ParamTypeHints.class);
-        Analysis analysis = new Analysis(sessionContext, parameterContext, paramTypeHints);
+        Analysis analysis = new Analysis(new TransactionContext(sessionContext), parameterContext, paramTypeHints);
 
         CreateIngestionRuleAnalysedStatement analyzed = analyzer.analyze(createIngestRule, analysis);
 

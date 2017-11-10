@@ -30,11 +30,12 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferences;
-import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.operators.Insert;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
-import io.crate.planner.projection.MergeCountProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
@@ -47,7 +48,10 @@ public final class InsertFromSubQueryPlanner {
     private InsertFromSubQueryPlanner() {
     }
 
-    public static Plan plan(InsertFromSubQueryAnalyzedStatement statement, Planner.Context plannerContext) {
+    public static LogicalPlan plan(InsertFromSubQueryAnalyzedStatement statement,
+                                   PlannerContext plannerContext,
+                                   LogicalPlanner logicalPlanner,
+                                   SubqueryPlanner subqueryPlanner) {
         final ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
             null,
@@ -72,17 +76,8 @@ public final class InsertFromSubQueryPlanner {
                                                   "supported on insert using a sub-query");
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, FetchMode.NEVER_CLEAR);
-        if (plannedSubQuery == null) {
-            return null;
-        }
-        plannedSubQuery.addProjection(indexWriterProjection);
-        Plan plan = Merge.ensureOnHandler(plannedSubQuery, plannerContext);
-        if (plan == plannedSubQuery) {
-            return plan;
-        }
-        plan.addProjection(MergeCountProjection.INSTANCE);
-        return plan;
+        LogicalPlan plannedSubQuery = logicalPlanner.plan(subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
+        return new Insert(plannedSubQuery, subRelation, indexWriterProjection);
     }
 
     private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {

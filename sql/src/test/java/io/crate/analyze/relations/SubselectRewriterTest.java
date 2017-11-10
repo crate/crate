@@ -32,6 +32,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
@@ -80,7 +81,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 
     private QueriedRelation rewrite(String stmt) {
         return (QueriedRelation) analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
-            SessionContext.create(),
+            new TransactionContext(SessionContext.create()),
             ParameterContext.EMPTY,
             ParamTypeHints.EMPTY
         ));

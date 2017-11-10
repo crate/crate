@@ -56,7 +56,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     public void testFetchProjection() throws Exception {
         setUpCharacters();
         PlanForNode plan = plan("select id, name, substr(name, 2) from characters order by id");
-        QueryThenFetch qtf = ((QueryThenFetch) plan.plan);
+        QueryThenFetch qtf = (QueryThenFetch) plan.plan.build(plan.plannerContext, null);
         assertThat(qtf.subPlan(), instanceOf(Merge.class));
         Merge merge = (Merge) qtf.subPlan();
 

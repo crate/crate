@@ -36,12 +36,16 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
@@ -70,7 +74,17 @@ public class CopyStatementPlanner {
         this.clusterService = clusterService;
     }
 
-    public Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom, Planner.Context context) {
+    public Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
+        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
+            -> planCopyFromExecution(copyFrom, context);
+    }
+
+    public Plan planCopyTo(CopyToAnalyzedStatement statement, PlannerContext context, LogicalPlanner logicalPlanner, SubqueryPlanner subqueryPlanner) {
+        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
+            -> planCopyToExecution(statement, context, logicalPlanner, subqueryPlanner, projectionBuilder);
+    }
+
+    private ExecutionPlan planCopyFromExecution(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
         /*
          * Create a plan that reads json-objects-lines from a file and then executes upsert requests to index the data
          */
@@ -219,7 +233,11 @@ public class CopyStatementPlanner {
         return table.getReference(DocSysColumns.RAW);
     }
 
-    public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
+    private ExecutionPlan planCopyToExecution(CopyToAnalyzedStatement statement,
+                                              PlannerContext context,
+                                              LogicalPlanner logicalPlanner,
+                                              SubqueryPlanner subqueryPlanner,
+                                              ProjectionBuilder projectionBuilder) {
         WriterProjection.OutputFormat outputFormat = statement.outputFormat();
         if (outputFormat == null) {
             outputFormat = statement.columnsDefined() ?
@@ -234,12 +252,13 @@ public class CopyStatementPlanner {
             statement.outputNames(),
             outputFormat);
 
-        Plan plan = context.planSubRelation(statement.subQueryRelation(), FetchMode.NEVER_CLEAR);
-        if (plan == null) {
+        LogicalPlan logicalPlan = logicalPlanner.plan(statement.subQueryRelation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR);
+        if (logicalPlan == null) {
             return null;
         }
-        plan.addProjection(projection);
-        return Merge.ensureOnHandler(plan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        ExecutionPlan executionPlan = logicalPlan.build(context, projectionBuilder);
+        executionPlan.addProjection(projection);
+        return Merge.ensureOnHandler(executionPlan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
