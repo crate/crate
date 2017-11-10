@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed a performance regression for ``DELETE`` and ``UPDATE`` statements
+  introduced in ``2.2.2``
+
 - Fixed an issue that caused ``INSERT INTO .. VALUES`` statements to fail if
   the ``VALUES`` clause contains multiple rows and the table has a generated
   column as primary key.
