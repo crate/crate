@@ -22,8 +22,10 @@
 
 package io.crate.integrationtests;
 
+import io.crate.planner.projection.AbstractIndexWriterProjection;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -213,5 +215,20 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("select pk_col FROM test");
         assertThat(response.rowCount(), is(1L));
         assertEquals(response.rows()[0][0], "1");
+    }
+
+    @Test
+    public void testDeleteExceedingInternalDefaultBulkSize() throws Exception {
+        execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        Object[][] bulkArgs = new Object[AbstractIndexWriterProjection.BULK_SIZE_DEFAULT + 10][];
+        for (int i = 0; i < bulkArgs.length; i++) {
+            bulkArgs[i] = new Object[] { i };
+        }
+        execute("insert into t1 (x) values (?)", bulkArgs, TimeValue.timeValueMinutes(10));
+        execute("refresh table t1");
+
+        // there was an regression which caused this query to timeout
+        execute("delete from t1");
+        assertThat(response.rowCount(), is((long) bulkArgs.length));
     }
 }
