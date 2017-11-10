@@ -80,13 +80,11 @@ public class UpdateAnalyzer {
 
     private final Functions functions;
     private final RelationAnalyzer relationAnalyzer;
-    private final ValueNormalizer valueNormalizer;
 
 
     UpdateAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
         this.relationAnalyzer = relationAnalyzer;
-        this.valueNormalizer = new ValueNormalizer();
     }
 
     public AnalyzedUpdateStatement analyze(Update update, ParamTypeHints typeHints, TransactionContext txnCtx) {
@@ -158,7 +156,7 @@ public class UpdateAnalyzer {
 
             Symbol source = normalizer.normalize(sourceExprAnalyzer.convert(assignment.expression(), exprCtx), txnCtx);
             try {
-                source = valueNormalizer.normalizeInputForReference(source, targetCol, table.tableInfo());
+                source = ValueNormalizer.normalizeInputForReference(source, targetCol, table.tableInfo());
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(targetCol.ident().columnIdent().sqlFqn(), table.tableInfo().ident(), e);
             }
@@ -284,7 +282,7 @@ public class UpdateAnalyzer {
         Symbol value = normalizer.normalize(
             expressionAnalyzer.convert(node.expression(), expressionAnalysisContext), transactionContext);
         try {
-            value = valueNormalizer.normalizeInputForReference(value, reference, tableInfo);
+            value = ValueNormalizer.normalizeInputForReference(value, reference, tableInfo);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), tableInfo.ident(), e);
         }

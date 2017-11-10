@@ -77,17 +77,14 @@ public class ValueNormalizerTest extends CrateUnitTest {
         .clusteredBy("id")
         .build();
 
-    private ValueNormalizer valueNormalizer;
-
     private Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
-        return valueNormalizer.normalizeInputForReference(valueSymbol, reference, userTableInfo);
+        return ValueNormalizer.normalizeInputForReference(valueSymbol, reference, userTableInfo);
     }
 
     @Before
     public void prepare() {
         Schemas schemas = mock(Schemas.class);
         when(schemas.getTableInfo(TEST_TABLE_IDENT)).thenReturn(userTableInfo);
-        valueNormalizer = new ValueNormalizer();
     }
 
     @Test
