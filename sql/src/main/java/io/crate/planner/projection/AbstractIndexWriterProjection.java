@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
@@ -43,7 +44,9 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(new Value(DataTypes.LONG));  // number of rows imported
 
     private static final String BULK_SIZE = "bulk_size";
-    private static final int BULK_SIZE_DEFAULT = 10000;
+
+    @VisibleForTesting
+    public static final int BULK_SIZE_DEFAULT = 10000;
 
     private final int bulkActions;
     protected TableIdent tableIdent;

@@ -123,7 +123,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
         BatchIterator<TReq> reqBatchIterator =
-            BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest, r -> true);
+            BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest, r -> false);
         BinaryOperator<Long> combinePartialResult = (a, b) -> a + b;
         long initialResult = 0L;
         return new BatchIteratorBackpressureExecutor<>(
