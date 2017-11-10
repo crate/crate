@@ -54,6 +54,12 @@ Breaking Changes
 Changes
 -------
 
+ - Added ingestion framework to allow data ingestion via custom event based 
+   ingestion sources.
+
+ - Added MQTT ingestion source to allow CrateDB to act as an MQTT broker for 
+   data ingestion. 
+
  - Added the shards plugin for the Enterprise Edition in the Admin UI.
 
    The shards plugin is a visualization that displays information about shards
