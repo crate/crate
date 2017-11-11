@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class KillPlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitKillPlan(this, context);
     }
 

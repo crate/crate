@@ -23,52 +23,34 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-public class ESDelete extends UnnestablePlan {
+public class DeleteById extends UnnestablePlan {
 
     private final UUID jobId;
-    private final DocTableInfo tableInfo;
-    private final List<DocKeys.DocKey> docKeys;
-    private final Map<Integer, Integer> itemToBulkIdx;
-    private final int bulkSize;
+    private final DocTableInfo table;
+    private final DocKeys docKeys;
 
-    public ESDelete(UUID jobId,
-                    DocTableInfo tableInfo,
-                    List<DocKeys.DocKey> docKeys,
-                    Map<Integer, Integer> itemToBulkIdx,
-                    int bulkSize) {
+    public DeleteById(UUID jobId, DocTableInfo table, DocKeys docKeys) {
         this.jobId = jobId;
-        this.tableInfo = tableInfo;
+        this.table = table;
         this.docKeys = docKeys;
-        this.itemToBulkIdx = itemToBulkIdx;
-        this.bulkSize = bulkSize;
     }
 
-    public DocTableInfo tableInfo() {
-        return tableInfo;
+    public DocTableInfo table() {
+        return table;
     }
 
-    public List<DocKeys.DocKey> docKeys() {
+    public DocKeys docKeys() {
         return docKeys;
     }
 
-    public Map<Integer, Integer> getItemToBulkIdx() {
-        return itemToBulkIdx;
-    }
-
-    public int getBulkSize() {
-        return bulkSize;
-    }
-
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDelete(this, context);
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitDeleteById(this, context);
     }
 
     @Override

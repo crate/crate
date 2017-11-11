@@ -20,30 +20,35 @@
  * agreement.
  */
 
-package io.crate.analyze.symbol;
+package io.crate.planner.node.ddl;
 
-import io.crate.data.Row;
-import io.crate.types.DataType;
+import io.crate.planner.ExecutionPlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
-public final class ParamSymbols extends FunctionCopyVisitor<Row> {
+import java.util.List;
+import java.util.UUID;
 
-    private static final ParamSymbols INSTANCE = new ParamSymbols();
+public final class DeleteAllPartitions extends UnnestablePlan {
 
-    private ParamSymbols() {
-    }
+    private final UUID jobId;
+    private final List<String> partitions;
 
-    public static Symbol toLiterals(Symbol st, Row params) {
-        return INSTANCE.process(st, params);
-    }
-
-    @Override
-    protected Symbol visitSymbol(Symbol symbol, Row params) {
-        return symbol;
+    public DeleteAllPartitions(UUID jobId, List<String> partitions) {
+        this.jobId = jobId;
+        this.partitions = partitions;
     }
 
     @Override
-    public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
-        DataType type = parameterSymbol.valueType();
-        return Literal.of(type, type.value(params.get(parameterSymbol.index())));
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitDeleteAllPartitions(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
+    }
+
+    public List<String> partitions() {
+        return partitions;
     }
 }

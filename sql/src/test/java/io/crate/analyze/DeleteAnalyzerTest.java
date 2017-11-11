@@ -22,9 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.exceptions.RelationUnknownException;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
@@ -34,9 +33,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -50,19 +51,13 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhere() throws Exception {
-        DeleteAnalyzedStatement statement = e.analyze("delete from users where name='Trillian'");
-        DocTableRelation tableRelation = statement.analyzedRelation;
+        AnalyzedDeleteStatement delete = e.analyze("delete from users where name='Trillian'");
+        DocTableRelation tableRelation = delete.relation();
         TableInfo tableInfo = tableRelation.tableInfo();
         assertThat(USER_TABLE_IDENT, equalTo(tableInfo.ident()));
-
         assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
 
-        Function whereClause = (Function) statement.whereClauses.get(0).query();
-        assertEquals(EqOperator.NAME, whereClause.info().ident().name());
-        assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
-
-        assertThat(whereClause.arguments().get(0), isReference("name"));
-        assertThat(whereClause.arguments().get(1), isLiteral("Trillian"));
+        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian")));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -79,21 +74,17 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
-        DeleteAnalyzedStatement statement = e.analyze("delete from parted where date = 1395874800000");
-        assertThat(statement.whereClauses().get(0).hasQuery(), is(false));
-        assertThat(statement.whereClauses().get(0).noMatch(), is(false));
-        assertThat(statement.whereClauses().get(0).partitions().size(), is(1));
-        assertThat(statement.whereClauses().get(0).partitions().get(0),
-            is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        AnalyzedDeleteStatement delete = e.analyze("delete from parted where date = 1395874800000");
+        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
     }
 
     @Test
     public void testDeleteTableAlias() throws Exception {
-        DeleteAnalyzedStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
-        DeleteAnalyzedStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
+        AnalyzedDeleteStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
+        AnalyzedDeleteStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
 
-        assertThat(actualStatement.analyzedRelation.tableInfo(), equalTo(expectedStatement.analyzedRelation().tableInfo()));
-        assertThat(actualStatement.whereClauses().get(0), equalTo(expectedStatement.whereClauses().get(0)));
+        assertThat(actualStatement.relation().tableInfo(), equalTo(expectedStatement.relation().tableInfo()));
+        assertThat(actualStatement.query(), equalTo(expectedStatement.query()));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -103,27 +94,19 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBulkDelete() throws Exception {
-        DeleteAnalyzedStatement analysis = e.analyze("delete from users where id = ?", new Object[][]{
+        AnalyzedDeleteStatement delete = e.analyze("delete from users where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
             new Object[]{4},
         });
-        assertThat(analysis.whereClauses().size(), is(4));
-    }
-
-    @Test
-    public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
-        e.analyze("delete from users where _version is null", new Object[]{1});
+        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
     }
 
     @Test
     public void testSensibleErrorOnDeleteComplexRelation() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("DELETE only works on base-table relations");
+        expectedException.expectMessage("Cannot delete from relations other than base tables");
         e.analyze("delete from (select * from users) u");
     }
 }

@@ -89,8 +89,7 @@ Known Limitations
    in an error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
-    SQLActionException[UnsupportedFeatureException: _version is not allowed in
-    delete queries without specifying a primary key]
+    SQLActionException... "_version" column can only be used in the WHERE ...
 
 .. NOTE::
 

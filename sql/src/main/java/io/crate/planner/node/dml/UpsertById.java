@@ -23,7 +23,7 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -169,7 +169,7 @@ public class UpsertById extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUpsertById(this, context);
     }
 

@@ -21,33 +21,41 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.PlanVisitor;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
-import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.UUID;
 
-public class ESDeletePartition extends UnnestablePlan {
+public class DeletePartitions extends UnnestablePlan {
 
     private final UUID jobId;
-    private final String[] indices;
+    private final TableIdent tableIdent;
+    private final List<List<Symbol>> partitions;
 
-    public ESDeletePartition(UUID jobId, @Nonnull String... indices) {
+    public DeletePartitions(UUID jobId, TableIdent tableIdent, List<List<Symbol>> partitions) {
         this.jobId = jobId;
-        this.indices = indices;
+        this.tableIdent = tableIdent;
+        this.partitions = partitions;
     }
 
-    public String[] indices() {
-        return indices;
+    public List<List<Symbol>> partitions() {
+        return partitions;
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeletePartition(this, context);
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitDeletePartitions(this, context);
     }
 
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 }

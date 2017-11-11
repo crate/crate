@@ -22,7 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.DDLStatement;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
@@ -38,7 +38,7 @@ public class GenericDDLPlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitGenericDDLPLan(this, context);
     }
 

@@ -353,7 +353,7 @@ public class SQLExecutor {
         );
         //noinspection unchecked
         return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
-            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions));
+            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), Row.EMPTY);
     }
 
     public <T extends ExecutionPlan> T plan(String stmt, Object[][] bulkArgs) {
@@ -373,7 +373,7 @@ public class SQLExecutor {
         );
         //noinspection unchecked
         return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
-            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions));
+            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), Row.EMPTY);
     }
 
     public <T extends ExecutionPlan> T plan(String statement) {

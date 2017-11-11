@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 import io.crate.types.DataType;
 
@@ -132,7 +132,7 @@ public class ESGet extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitGetPlan(this, context);
     }
 

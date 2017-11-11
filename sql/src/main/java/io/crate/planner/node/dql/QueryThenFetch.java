@@ -23,7 +23,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
@@ -52,7 +52,7 @@ public class QueryThenFetch implements ExecutionPlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitQueryThenFetch(this, context);
     }
 

@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.data.Row;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
@@ -129,7 +130,7 @@ public class PreExecutionBenchmark {
     @Benchmark
     public ExecutionPlan measurePlanSimpleSelect() {
         return e.planner.plan(selectAnalysis.analyzedStatement(), e.getPlannerContext(ClusterState.EMPTY_STATE))
-            .build(plannerContext, null);
+            .build(plannerContext, null, Row.EMPTY);
     }
 
     @Benchmark

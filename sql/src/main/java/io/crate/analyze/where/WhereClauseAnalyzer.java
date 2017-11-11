@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
+import io.crate.planner.WhereClauseOptimizer;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -57,13 +58,13 @@ import java.util.Set;
 public class WhereClauseAnalyzer {
 
     private final Functions functions;
-    private final DocTableInfo tableInfo;
+    private final DocTableInfo table;
     private final EqualityExtractor eqExtractor;
     private final EvaluatingNormalizer normalizer;
 
     public WhereClauseAnalyzer(Functions functions, DocTableRelation tableRelation) {
         this.functions = functions;
-        this.tableInfo = tableRelation.tableInfo();
+        this.table = tableRelation.tableInfo();
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, tableRelation);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
@@ -74,7 +75,7 @@ public class WhereClauseAnalyzer {
         }
         WhereClauseValidator.validate(query);
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
-            query, tableInfo.generatedColumns(), tableInfo.partitionedByColumns());
+            query, table.generatedColumns(), table.partitionedByColumns());
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, transactionContext);
         }
@@ -82,47 +83,41 @@ public class WhereClauseAnalyzer {
         List<ColumnIdent> pkCols;
         boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
         if (versionInQuery) {
-            pkCols = new ArrayList<>(tableInfo.primaryKey().size() + 1);
-            pkCols.addAll(tableInfo.primaryKey());
+            pkCols = new ArrayList<>(table.primaryKey().size() + 1);
+            pkCols.addAll(table.primaryKey());
             pkCols.add(DocSysColumns.VERSION);
         } else {
-            pkCols = tableInfo.primaryKey();
+            pkCols = table.primaryKey();
         }
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, transactionContext);
         Set<Symbol> clusteredBy = null;
         DocKeys docKeys = null;
         if (!pkCols.isEmpty() && pkValues != null) {
             int clusterdIdx = -1;
-            if (tableInfo.clusteredBy() != null) {
-                clusterdIdx = tableInfo.primaryKey().indexOf(tableInfo.clusteredBy());
+            if (table.clusteredBy() != null) {
+                clusterdIdx = table.primaryKey().indexOf(table.clusteredBy());
                 clusteredBy = new HashSet<>(pkValues.size());
-            }
-            List<Integer> partitionsIdx = null;
-            if (tableInfo.isPartitioned()) {
-                partitionsIdx = new ArrayList<>(tableInfo.partitionedByColumns().size());
-                for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
-                    int posPartitionColumn = tableInfo.primaryKey().indexOf(columnIdent);
-                    if (posPartitionColumn >= 0) {
-                        partitionsIdx.add(posPartitionColumn);
+                if (clusterdIdx >= 0) {
+                    for (List<Symbol> row : pkValues) {
+                        clusteredBy.add(row.get(clusterdIdx));
                     }
                 }
             }
-            docKeys = new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx);
-            if (clusterdIdx >= 0) {
-                for (List<Symbol> row : pkValues) {
-                    clusteredBy.add(row.get(clusterdIdx));
-                }
+            List<Integer> partitionsIdx = null;
+            if (table.isPartitioned()) {
+                partitionsIdx = WhereClauseOptimizer.getPartitionIndices(table.primaryKey(), table.partitionedBy());
             }
+            docKeys = new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx);
         } else {
             clusteredBy = getClusteredByLiterals(query, eqExtractor, transactionContext);
         }
 
         List<String> partitions = null;
-        if (tableInfo.isPartitioned() && docKeys == null) {
-            if (tableInfo.partitions().isEmpty()) {
+        if (table.isPartitioned() && docKeys == null) {
+            if (table.partitions().isEmpty()) {
                 return WhereClause.NO_MATCH;
             }
-            PartitionResult partitionResult = resolvePartitions(query, tableInfo, functions, transactionContext);
+            PartitionResult partitionResult = resolvePartitions(query, table, functions, transactionContext);
             partitions = partitionResult.partitions;
             query = partitionResult.query;
         }
@@ -131,9 +126,9 @@ public class WhereClauseAnalyzer {
 
     @Nullable
     private Set<Symbol> getClusteredByLiterals(Symbol query, EqualityExtractor ee, TransactionContext transactionContext) {
-        if (tableInfo.clusteredBy() != null) {
+        if (table.clusteredBy() != null) {
             List<List<Symbol>> clusteredValues = ee.extractParentMatches(
-                ImmutableList.of(tableInfo.clusteredBy()), query, transactionContext);
+                ImmutableList.of(table.clusteredBy()), query, transactionContext);
             if (clusteredValues != null) {
                 Set<Symbol> clusteredBy = new HashSet<>(clusteredValues.size());
                 for (List<Symbol> row : clusteredValues) {

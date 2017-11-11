@@ -157,7 +157,8 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
+        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause " +
+                                        "if there are also equals comparisons on primary key columns");
         execute("select _version from test where col2 = 'hello' and _version = 1");
     }
 
@@ -166,7 +167,8 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause " +
+                                        "if there are also equals comparisons on primary key columns");
         execute("select _version from test where col1 = 1 and _version = 50");
     }
 
@@ -175,7 +177,8 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
+        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause " +
+                                        "if there are also equals comparisons on primary key columns");
         execute("select col2 from test where col1 = 1 and _version = 50 group by col2");
     }
 }

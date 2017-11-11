@@ -22,7 +22,7 @@
 package io.crate.planner.node.dml;
 
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.List;
@@ -43,7 +43,7 @@ public class Upsert extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUpsert(this, context);
     }
 

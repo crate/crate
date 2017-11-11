@@ -26,11 +26,11 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
@@ -138,29 +138,6 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
     }
 
-    @Test
-    public void testDeletePartitionTask() throws Exception {
-        execute("create table t (id integer primary key, name string) partitioned by (id)");
-        ensureYellow();
-
-        execute("insert into t (id, name) values (1, 'Ford')");
-        assertThat(response.rowCount(), is(1L));
-        ensureYellow();
-
-        execute("select * from information_schema.table_partitions where table_name = 't'");
-        assertThat(response.rowCount(), is(1L));
-
-        String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
-        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
-
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, null, consumer, Row.EMPTY);
-        Bucket objects = consumer.getBucket();
-        assertThat(objects, contains(isRow(-1L)));
-
-        execute("select * from information_schema.table_partitions where table_name = 't'");
-        assertThat(response.rowCount(), is(0L));
-    }
 
     /**
      * this case should not happen as closed indices aren't listed as TableInfo
@@ -177,14 +154,13 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
+        String schema= sqlExecutor.getDefaultSchema();
+        String partitionName = new PartitionName(schema, "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
+        PlanForNode plan = plan("delete from t where id = ?");
+
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
-        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
-
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, null, consumer, Row.EMPTY);
-        Bucket bucket = consumer.getBucket();
+        Bucket bucket = executePlan(plan.plan, new Row1(1));
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -240,9 +216,13 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertEquals("243s", md.transientSettings().get(transientSetting));
     }
 
-    private Bucket executePlan(Plan plan) throws Exception {
+    private Bucket executePlan(Plan plan, Row params) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, null, consumer, Row.EMPTY);
+        executor.execute(plan, null, consumer, params);
         return consumer.getBucket();
+    }
+
+    private Bucket executePlan(Plan plan) throws Exception {
+        return executePlan(plan, Row.EMPTY);
     }
 }

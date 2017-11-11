@@ -22,12 +22,9 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
-import io.crate.planner.PlannerContext;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
-import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import java.util.UUID;
 
@@ -42,7 +39,7 @@ public class ExplainPlan extends UnnestablePlan implements Plan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitExplainPlan(this, context);
     }
 
@@ -53,10 +50,5 @@ public class ExplainPlan extends UnnestablePlan implements Plan {
 
     public Plan subPlan() {
         return subPlan;
-    }
-
-    @Override
-    public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
-        return this;
     }
 }

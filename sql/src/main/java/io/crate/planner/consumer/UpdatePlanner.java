@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
+import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -72,8 +73,21 @@ public final class UpdatePlanner {
     }
 
     public static Plan plan(UpdateAnalyzedStatement updateStatement) {
-        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
-            -> RELATION_VISITOR.process(updateStatement.sourceRelation(), new Context(updateStatement, plannerContext));
+        return new UpdatePlan(updateStatement);
+    }
+
+    public static class UpdatePlan implements Plan {
+
+        private final UpdateAnalyzedStatement update;
+
+        public UpdatePlan(UpdateAnalyzedStatement update) {
+            this.update = update;
+        }
+
+        @Override
+        public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params) {
+            return RELATION_VISITOR.process(update.sourceRelation(), new Context(update, plannerContext));
+        }
     }
 
     static class Context {

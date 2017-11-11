@@ -59,7 +59,7 @@ public class ShowCreateTableTask implements Task {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         throw new UnsupportedOperationException("show task cannot be executed as bulk operation");
     }
 }

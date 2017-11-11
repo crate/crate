@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.data.Row;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
@@ -56,7 +57,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     public void testFetchProjection() throws Exception {
         setUpCharacters();
         PlanForNode plan = plan("select id, name, substr(name, 2) from characters order by id");
-        QueryThenFetch qtf = (QueryThenFetch) plan.plan.build(plan.plannerContext, null);
+        QueryThenFetch qtf = (QueryThenFetch) plan.plan.build(plan.plannerContext, null, Row.EMPTY);
         assertThat(qtf.subPlan(), instanceOf(Merge.class));
         Merge merge = (Merge) qtf.subPlan();
 

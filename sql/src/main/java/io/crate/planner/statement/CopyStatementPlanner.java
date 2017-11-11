@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
@@ -75,13 +76,13 @@ public class CopyStatementPlanner {
     }
 
     public Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
-        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
+        return (plannerContext, projectionBuilder, params)
             -> planCopyFromExecution(copyFrom, context);
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, PlannerContext context, LogicalPlanner logicalPlanner, SubqueryPlanner subqueryPlanner) {
-        return (PlannerContext plannerContext, ProjectionBuilder projectionBuilder)
-            -> planCopyToExecution(statement, context, logicalPlanner, subqueryPlanner, projectionBuilder);
+        return (plannerContext, projectionBuilder, params)
+            -> planCopyToExecution(statement, context, logicalPlanner, subqueryPlanner, projectionBuilder, params);
     }
 
     private ExecutionPlan planCopyFromExecution(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
@@ -237,7 +238,8 @@ public class CopyStatementPlanner {
                                               PlannerContext context,
                                               LogicalPlanner logicalPlanner,
                                               SubqueryPlanner subqueryPlanner,
-                                              ProjectionBuilder projectionBuilder) {
+                                              ProjectionBuilder projectionBuilder,
+                                              Row params) {
         WriterProjection.OutputFormat outputFormat = statement.outputFormat();
         if (outputFormat == null) {
             outputFormat = statement.columnsDefined() ?
@@ -256,7 +258,7 @@ public class CopyStatementPlanner {
         if (logicalPlan == null) {
             return null;
         }
-        ExecutionPlan executionPlan = logicalPlan.build(context, projectionBuilder);
+        ExecutionPlan executionPlan = logicalPlan.build(context, projectionBuilder, params);
         executionPlan.addProjection(projection);
         return Merge.ensureOnHandler(executionPlan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }

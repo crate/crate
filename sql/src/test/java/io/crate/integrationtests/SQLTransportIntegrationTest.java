@@ -390,7 +390,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public static class PlanForNode {
-        final Plan plan;
+        public final Plan plan;
         final String nodeName;
         final PlannerContext plannerContext;
 

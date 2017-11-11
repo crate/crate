@@ -23,11 +23,12 @@ package io.crate.planner;
 
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.DeleteAllPartitions;
+import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
@@ -41,7 +42,7 @@ import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.common.Nullable;
 
-public class PlanVisitor<C, R> {
+public class ExecutionPlanVisitor<C, R> {
 
     public R process(ExecutionPlan executionPlan, @Nullable C context) {
         return executionPlan.accept(this, context);
@@ -115,7 +116,7 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitESDelete(ESDelete plan, C context) {
+    public R visitDeleteById(DeleteById plan, C context) {
         return visitPlan(plan, context);
     }
 
@@ -123,7 +124,7 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitESDeletePartition(ESDeletePartition plan, C context) {
+    public R visitDeletePartitions(DeletePartitions plan, C context) {
         return visitPlan(plan, context);
     }
 
@@ -133,5 +134,9 @@ public class PlanVisitor<C, R> {
 
     public R visitMerge(Merge merge, C context) {
         return visitPlan(merge, context);
+    }
+
+    public R visitDeleteAllPartitions(DeleteAllPartitions deleteAllPartitions, C context) {
+        return visitPlan(deleteAllPartitions, context);
     }
 }

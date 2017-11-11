@@ -69,7 +69,7 @@ public class MultiPhasePlan implements ExecutionPlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMultiPhasePlan(this, context);
     }
 

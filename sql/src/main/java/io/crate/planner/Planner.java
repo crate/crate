@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CopyFromAnalyzedStatement;
@@ -32,7 +33,6 @@ import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
-import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -64,7 +64,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
-import io.crate.planner.statement.DeleteStatementPlanner;
+import io.crate.planner.statement.DeletePlanner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.Logger;
@@ -93,6 +93,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final CopyStatementPlanner copyStatementPlanner;
     private final EvaluatingNormalizer normalizer;
     private final LogicalPlanner logicalPlanner;
+    private final Functions functions;
 
     private String[] awarenessAttributes;
 
@@ -100,6 +101,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Inject
     public Planner(Settings settings, ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
+        this.functions = functions;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
@@ -170,8 +172,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, PlannerContext context) {
-        return DeleteStatementPlanner.planDelete(analyzedStatement);
+    protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, PlannerContext context) {
+        return DeletePlanner.planDelete(functions, statement, context);
     }
 
     @Override

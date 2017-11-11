@@ -38,15 +38,16 @@ import io.crate.executor.task.NoopTask;
 import io.crate.executor.task.SetSessionTask;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
+import io.crate.executor.transport.task.DeleteByIdTask;
 import io.crate.executor.transport.task.DropTableTask;
 import io.crate.executor.transport.task.KillJobTask;
 import io.crate.executor.transport.task.KillTask;
 import io.crate.executor.transport.task.ShowCreateTableTask;
 import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.CreateAnalyzerTask;
+import io.crate.executor.transport.task.elasticsearch.DeleteAllPartitionsTask;
+import io.crate.executor.transport.task.elasticsearch.DeletePartitionTask;
 import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
@@ -56,19 +57,21 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.DeleteAllPartitions;
+import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.ESGet;
@@ -104,7 +107,7 @@ public class TransportExecutor implements Executor {
 
     private final ThreadPool threadPool;
     private final Functions functions;
-    private final TaskCollectingVisitor plan2TaskVisitor;
+    private final TaskCollectingVisitorExecution plan2TaskVisitor;
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
 
@@ -143,7 +146,7 @@ public class TransportExecutor implements Executor {
         this.indicesService = indicesService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
-        this.plan2TaskVisitor = new TaskCollectingVisitor();
+        this.plan2TaskVisitor = new TaskCollectingVisitorExecution();
         this.projectionBuilder = new ProjectionBuilder(functions);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
@@ -162,7 +165,7 @@ public class TransportExecutor implements Executor {
 
     @Override
     public void execute(Plan plan, PlannerContext plannerContext, RowConsumer consumer, Row parameters) {
-        ExecutionPlan executionPlan = plan.build(plannerContext, projectionBuilder);
+        ExecutionPlan executionPlan = plan.build(plannerContext, projectionBuilder, parameters);
         CompletableFuture<ExecutionPlan> planFuture = multiPhaseExecutor.process(executionPlan, plannerContext);
         planFuture
             .thenAccept(p -> plan2TaskVisitor.process(p, plannerContext).execute(consumer, parameters))
@@ -174,12 +177,42 @@ public class TransportExecutor implements Executor {
 
     @Override
     public List<CompletableFuture<Long>> executeBulk(Plan plan, PlannerContext plannerContext, List<Row> bulkParams) {
-        ExecutionPlan executionPlan = plan.build(plannerContext, projectionBuilder);
-        Task task = plan2TaskVisitor.process(executionPlan, plannerContext);
-        return task.executeBulk();
+        Task task = createTask(plan, plannerContext, bulkParams);
+        return task.executeBulk(bulkParams);
     }
 
-    private class TaskCollectingVisitor extends PlanVisitor<PlannerContext, Task> {
+    private Task createTask(Plan plan, PlannerContext plannerCtx, List<Row> bulkParams) {
+        // this is a bit in-progress here; We should be able to clean this up once all statement analyzers are unbound
+
+        if (plan instanceof Upsert || plan instanceof UpsertById || plan instanceof UpdatePlanner.UpdatePlan) {
+            // These are legacy plans which can already bulk specialized.
+            // They should eventually be adopted, so that the Plan itself is params independent.
+            return plan2TaskVisitor.process(plan.build(plannerCtx, projectionBuilder, Row.EMPTY), plannerCtx);
+        } else if (plan instanceof DeleteById) {
+            return new DeleteByIdTask(
+                clusterService, functions, transportActionProvider.transportShardDeleteAction(), ((DeleteById) plan));
+        }
+        // Execution plans can be param specific, but we still want to execute all together in a single task/jobRequest
+        String localNodeId = clusterService.localNode().getId();
+        ArrayList<NodeOperationTree> nodeOpTreeList = new ArrayList<>();
+        for (Row params : bulkParams) {
+            ExecutionPlan executionPlan = plan.build(plannerCtx, projectionBuilder, params);
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, localNodeId);
+            nodeOpTreeList.add(nodeOpTree);
+        }
+        return new ExecutionPhasesTask(
+            plannerCtx.jobId(),
+            clusterService,
+            contextPreparer,
+            jobContextService,
+            indicesService,
+            transportActionProvider.transportJobInitAction(),
+            transportActionProvider.transportKillJobsNodeAction(),
+            nodeOpTreeList
+        );
+    }
+
+    private class TaskCollectingVisitorExecution extends ExecutionPlanVisitor<PlannerContext, Task> {
 
         @Override
         public Task visitNoopPlan(NoopPlan plan, PlannerContext context) {
@@ -193,7 +226,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitExplainPlan(ExplainPlan explainPlan, PlannerContext context) {
-            ExecutionPlan subExecutionPlan = explainPlan.subPlan().build(context, projectionBuilder);
+            ExecutionPlan subExecutionPlan = explainPlan.subPlan().build(context, projectionBuilder, Row.EMPTY);
             return new ExplainTask(subExecutionPlan);
         }
 
@@ -268,8 +301,9 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, PlannerContext context) {
-            return new ESDeleteTask(clusterService, transportActionProvider.transportShardDeleteAction(), plan);
+        public Task visitDeleteById(DeleteById plan, PlannerContext context) {
+            return new DeleteByIdTask(
+                clusterService, functions, transportActionProvider.transportShardDeleteAction(), plan);
         }
 
         @Override
@@ -284,8 +318,13 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, PlannerContext context) {
-            return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
+        public Task visitDeletePartitions(DeletePartitions plan, PlannerContext context) {
+            return new DeletePartitionTask(plan, functions, transportActionProvider.transportDeleteIndexAction());
+        }
+
+        @Override
+        public Task visitDeleteAllPartitions(DeleteAllPartitions plan, PlannerContext context) {
+            return new DeleteAllPartitionsTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
 
         @Override
@@ -310,7 +349,7 @@ public class TransportExecutor implements Executor {
      * Executions will be triggered for collect1 and collect2, and if those are completed, Collect3 will be returned
      * as future which encapsulated the execution
      */
-    private class MultiPhaseExecutor extends PlanVisitor<PlannerContext, CompletableFuture<ExecutionPlan>> {
+    private class MultiPhaseExecutor extends ExecutionPlanVisitor<PlannerContext, CompletableFuture<ExecutionPlan>> {
 
         @Override
         protected CompletableFuture<ExecutionPlan> visitPlan(ExecutionPlan executionPlan, PlannerContext context) {
@@ -373,7 +412,7 @@ public class TransportExecutor implements Executor {
         }
     }
 
-    static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
+    static class BulkNodeOperationTreeGenerator extends ExecutionPlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
 
         List<NodeOperationTree> createNodeOperationTrees(ExecutionPlan executionPlan, String localNodeId) {
             Context context = new Context(localNodeId);

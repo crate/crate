@@ -28,7 +28,7 @@ import io.crate.operation.Paging;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
@@ -85,7 +85,7 @@ import java.util.Locale;
  * every time addPhase is called a NodeOperation is added
  * that connects the previous phase (if there is one) to the current phase
  */
-public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
+public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
     private static final NodeOperationTreeGenerator INSTANCE = new NodeOperationTreeGenerator();
 

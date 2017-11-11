@@ -23,7 +23,7 @@
 package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 import io.crate.sql.tree.Expression;
 
@@ -44,7 +44,7 @@ public class SetSessionPlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitSetSessionPlan(this, context);
     }
 

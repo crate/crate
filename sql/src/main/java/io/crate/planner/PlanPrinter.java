@@ -53,7 +53,7 @@ public class PlanPrinter {
     }
 
     public static Map<String, Object> objectMap(ExecutionPlan executionPlan) {
-        return Plan2MapVisitor.toMap(executionPlan);
+        return ExecutionPlan2MapVisitor.toMap(executionPlan);
     }
 
     private static List<Object> refs(Collection<? extends Symbol> symbols) {
@@ -162,9 +162,9 @@ public class PlanPrinter {
         }
     }
 
-    private static class Plan2MapVisitor extends PlanVisitor<Void, ImmutableMap.Builder<String, Object>> {
+    private static class ExecutionPlan2MapVisitor extends ExecutionPlanVisitor<Void, ImmutableMap.Builder<String, Object>> {
 
-        private static final Plan2MapVisitor INSTANCE = new Plan2MapVisitor();
+        private static final ExecutionPlan2MapVisitor INSTANCE = new ExecutionPlan2MapVisitor();
 
         private static ImmutableMap.Builder<String, Object> newBuilder() {
             return ImmutableMap.builder();

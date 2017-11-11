@@ -24,12 +24,19 @@ package io.crate.analyze.where;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.data.Row;
+import io.crate.metadata.Functions;
+import io.crate.types.DataTypes;
+import io.crate.types.LongType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +60,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             key = docKeys.get(pos);
         }
 
+        @Deprecated
         public Optional<Long> version() {
             if (withVersions && key.get(width) != null) {
                 return Optional.of((Long) ((Literal) key.get(width)).value());
@@ -78,11 +86,31 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return Optional.of(values);
         }
 
+        /**
+         * @deprecated use {@link #getId(Functions, Row)} instead
+         */
+        @Deprecated
         public String id() {
             if (id == null) {
                 id = idFunction.apply(pkValues(key));
             }
             return id;
+        }
+
+        public String getId(Functions functions, Row params) {
+            return idFunction.apply(
+                Lists.transform(
+                    key.subList(0, width),
+                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, params))
+                ));
+        }
+
+        public Optional<Long> version(Functions functions, Row params) {
+            if (withVersions && key.get(width) != null) {
+                Object val = SymbolEvaluator.evaluate(functions, key.get(width), params);
+                return Optional.of(LongType.INSTANCE.value(val));
+            }
+            return Optional.empty();
         }
 
         private List<BytesRef> pkValues(List<Symbol> key) {
@@ -91,6 +119,23 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public List<Symbol> values() {
             return key;
+        }
+
+        public List<BytesRef> getPartitionValues(Functions functions, Row params) {
+            if (partitionIdx == null || partitionIdx.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return Lists.transform(
+                partitionIdx,
+                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, key.get(pIdx), params)));
+
+        }
+
+        public String getRouting(Functions functions, Row params) {
+            if (clusteredByIdx >= 0) {
+                return BytesRefs.toString(SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params));
+            }
+            return getId(functions, params);
         }
     }
 

@@ -25,6 +25,7 @@ import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CopyFromAnalyzedStatement;
@@ -37,7 +38,6 @@ import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropIngestionRuleAnalysedStatement;
@@ -194,8 +194,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         }
 
         @Override
-        protected Void visitDeleteStatement(DeleteAnalyzedStatement analysis, User user) {
-            visitRelation(analysis.analyzedRelation(), user, Privilege.Type.DML);
+        protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, User user) {
+            visitRelation(delete.relation(), user, Privilege.Type.DML);
             return null;
         }
 

@@ -51,4 +51,12 @@ public final class AnalyzedDeleteStatement implements AnalyzedStatement {
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         consumer.accept(query);
     }
+
+    public DocTableRelation relation() {
+        return relation;
+    }
+
+    public Symbol query() {
+        return query;
+    }
 }

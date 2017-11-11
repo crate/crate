@@ -32,7 +32,7 @@ import io.crate.collections.Lists2;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.ESGet;
@@ -51,7 +51,7 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
 
     private final ExecutionPlan executionPlan;
     private final SelectSymbol selectSymbolToReplace;
-    private static final PlanSymbolVisitor PLAN_SYMBOL_VISITOR = new PlanSymbolVisitor();
+    private static final ExecutionPlanSymbolVisitor PLAN_SYMBOL_VISITOR = new ExecutionPlanSymbolVisitor();
 
     SubSelectSymbolReplacer(ExecutionPlan executionPlan, SelectSymbol selectSymbolToReplace) {
         this.executionPlan = executionPlan;
@@ -70,7 +70,7 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
     public void onFailure(@Nonnull Throwable t) {
     }
 
-    private static class PlanSymbolVisitor extends PlanVisitor<SymbolReplacer, Void> {
+    private static class ExecutionPlanSymbolVisitor extends ExecutionPlanVisitor<SymbolReplacer, Void> {
 
         @Override
         protected Void visitPlan(ExecutionPlan executionPlan, SymbolReplacer context) {

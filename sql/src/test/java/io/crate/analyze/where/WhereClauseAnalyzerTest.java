@@ -24,12 +24,13 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.DeleteAnalyzedStatement;
+import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.data.RowN;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -201,16 +202,22 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereSinglePKColumnEq() throws Exception {
-        DeleteAnalyzedStatement statement = e.analyze("delete from users where id = ?", new Object[][]{
+        AnalyzedDeleteStatement statement = e.analyze("delete from users where id = ?");
+        DocTableRelation tableRelation = statement.relation();
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(e.functions(), tableRelation);
+        WhereClause whereClause = whereClauseAnalyzer.analyze(statement.query(), transactionContext);
+        DocKeys.DocKey docKey = whereClause.docKeys().get().getOnlyKey();
+
+        Object[][] args = new Object[][]{
             new Object[]{1},
             new Object[]{2},
-            new Object[]{3},
-        });
-        DocTableRelation tableRelation = statement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(e.functions(), tableRelation);
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0).query(), transactionContext).docKeys().get(), contains(isDocKey("1")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1).query(), transactionContext).docKeys().get(), contains(isDocKey("2")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2).query(), transactionContext).docKeys().get(), contains(isDocKey("3")));
+            new Object[]{3}
+        };
+        ArrayList<String> ids = new ArrayList<>();
+        for (Object[] arg : args) {
+            ids.add(docKey.getId(e.functions(), new RowN(arg)));
+        }
+        assertThat(ids, contains("1", "2", "3"));
     }
 
     @Test
@@ -251,12 +258,10 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWherePartitionedByColumn() throws Exception {
-        DeleteAnalyzedStatement statement = e.analyze("delete from parted where date = 1395874800000");
-        WhereClause whereClause = statement.whereClauses().get(0);
-
-        assertThat(whereClause.hasQuery(), is(false));
-        assertThat(whereClause.noMatch(), is(false));
-        assertThat(whereClause.partitions(),
+        AnalyzedDeleteStatement statement = e.analyze("delete from parted where date = 1395874800000");
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(e.functions(), statement.relation());
+        WhereClause where = whereClauseAnalyzer.analyze(statement.query(), transactionContext);
+        assertThat(where.partitions(),
             Matchers.contains(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()));
     }
 

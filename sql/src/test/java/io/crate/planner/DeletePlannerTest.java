@@ -22,18 +22,24 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.Lists;
 import io.crate.analyze.TableDefinitions;
-import io.crate.planner.node.ddl.ESDeletePartition;
-import io.crate.planner.node.dml.Delete;
-import io.crate.planner.node.dml.ESDelete;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.projection.DeleteProjection;
+import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
+import io.crate.planner.node.ddl.DeletePartitions;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static io.crate.testing.TestingHelpers.isDocKey;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -51,30 +57,36 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeletePlan() throws Exception {
-        ESDelete plan = e.plan("delete from users where id = 1");
-        assertThat(plan.tableInfo().ident().name(), is("users"));
+        DeleteById plan = e.plan("delete from users where id = 1");
+        assertThat(plan.table().ident().name(), is("users"));
         assertThat(plan.docKeys().size(), is(1));
-        assertThat(plan.docKeys().get(0), isDocKey(1L));
+        assertThat(plan.docKeys().getOnlyKey(), isDocKey(1L));
     }
 
     @Test
     public void testBulkDeletePartitionedTable() throws Exception {
-        ESDeletePartition plan = e.plan("delete from parted_pks where date = ?", new Object[][]{
-            new Object[]{"1395874800000"},
-            new Object[]{"1395961200000"},
-        });
-        assertThat(plan.indices(),
-            is(new String[]{".partitioned.parted.04732cpp6ks3ed1o60o30c1g", ".partitioned.parted.04732cpp6ksjcc9i60o30c1g"}));
+        DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
+        List<Symbol> partitionSymbols = plan.partitions().get(0);
+        assertThat(partitionSymbols, contains(instanceOf(ParameterSymbol.class)));
     }
 
     @Test
     public void testMultiDeletePlan() throws Exception {
-        Delete plan = e.plan("delete from users where id in (1, 2)");
-        assertThat(plan.nodes().size(), is(1));
+        DeleteById plan = e.plan("delete from users where id in (1, 2)");
+        assertThat(plan.docKeys().size(), is(2));
+        List<String> docKeys = Lists.newArrayList(plan.docKeys())
+            .stream()
+            .map(x -> x.getId(e.functions(), Row.EMPTY))
+            .collect(Collectors.toList());
 
-        Merge merge = (Merge) plan.nodes().get(0);
-        Collect collect = (Collect) merge.subPlan();
-        assertThat(collect.collectPhase().projections().size(), is(1));
-        assertThat(collect.collectPhase().projections().get(0), instanceOf(DeleteProjection.class));
+        assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));
+    }
+
+    @Test
+    public void testDeleteWhereVersionIsNullPredicate() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+            "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
+        e.plan("delete from users where _version is null");
     }
 }

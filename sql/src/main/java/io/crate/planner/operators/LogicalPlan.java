@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -114,7 +115,7 @@ public interface LogicalPlan extends Plan {
                         @Nullable Integer pageSizeHint);
 
     @Override
-    default ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+    default ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params) {
         return build(plannerContext, projectionBuilder, -1, 0, null, null);
     }
 

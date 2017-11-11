@@ -68,7 +68,7 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFailurePropagationNonLocalCollectPhase() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause");
+        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause if");
         execute("create table users (name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into users (name) (select name from users where _version = 1)");

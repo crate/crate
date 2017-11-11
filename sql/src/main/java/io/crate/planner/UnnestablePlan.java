@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import io.crate.data.Row;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -57,7 +58,7 @@ public abstract class UnnestablePlan implements ExecutionPlan, Plan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+    public ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params) {
         return this;
     }
 }

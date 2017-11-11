@@ -166,7 +166,7 @@ public class Merge implements ExecutionPlan, ResultDescription {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMerge(this, context);
     }
 

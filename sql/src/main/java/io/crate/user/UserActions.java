@@ -23,8 +23,8 @@
 package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.ParameterSymbolEvaluator;
 import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
@@ -63,7 +63,7 @@ public final class UserActions {
         if (properties != null) {
             for (String key : properties.keySet()) {
                 if (PASSWORD_PROPERTY.equals(key)) {
-                    String value = BytesRefs.toString(ParameterSymbolEvaluator.eval(functions, parameters, properties.get(key), null));
+                    String value = BytesRefs.toString(SymbolEvaluator.evaluate(functions, properties.get(key), parameters));
                     return new SecureString(value.toCharArray());
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,

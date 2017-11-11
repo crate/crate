@@ -22,7 +22,7 @@
 package io.crate.planner.node.management;
 
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
@@ -38,7 +38,7 @@ public class ShowCreateTablePlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitShowCreateTable(this, context);
     }
 

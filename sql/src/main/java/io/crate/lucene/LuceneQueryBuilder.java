@@ -41,6 +41,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
@@ -262,7 +263,7 @@ public class LuceneQueryBuilder {
          * the LuceneQueryBuilder is never used)
          */
         static final Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
-            .put("_version", "\"_version\" column is not valid in the WHERE clause")
+            .put("_version", VersionInvalidException.ERROR_MSG)
             .build();
 
         @Nullable

@@ -29,7 +29,7 @@ import java.util.UUID;
 
 public interface ExecutionPlan {
 
-    <C, R> R accept(PlanVisitor<C, R> visitor, C context);
+    <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context);
 
     UUID jobId();
 

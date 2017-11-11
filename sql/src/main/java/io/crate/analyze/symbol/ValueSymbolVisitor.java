@@ -53,6 +53,10 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
     }
 
 
+    /**
+     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
+     */
+    @Deprecated
     public static final ValueSymbolVisitor<Object> VALUE = new ValueSymbolVisitor<Object>() {
         @Override
         public Object visitLiteral(Literal symbol, Void context) {
@@ -60,6 +64,10 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         }
     };
 
+    /**
+     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
+     */
+    @Deprecated
     public static final ValueSymbolVisitor<BytesRef> BYTES_REF = new ValueSymbolVisitor<BytesRef>() {
         @Override
         public BytesRef visitLiteral(Literal symbol, Void context) {
@@ -67,6 +75,10 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         }
     };
 
+    /**
+     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
+     */
+    @Deprecated
     public static final ValueSymbolVisitor<String> STRING = new ValueSymbolVisitor<String>() {
         @Override
         public String visitLiteral(Literal symbol, Void context) {
@@ -74,6 +86,10 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         }
     };
 
+    /**
+     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
+     */
+    @Deprecated
     public static final ValueSymbolVisitor<List<String>> STRING_LIST = new ValueSymbolVisitor<List<String>>() {
         @Override
         public List<String> visitLiteral(Literal symbol, Void context) {
@@ -88,6 +104,10 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         }
     };
 
+    /**
+     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
+     */
+    @Deprecated
     public static final ValueSymbolVisitor<Long> LONG = new ValueSymbolVisitor<Long>() {
         @Override
         public Long visitLiteral(Literal symbol, Void context) {

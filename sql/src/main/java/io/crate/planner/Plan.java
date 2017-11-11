@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import io.crate.data.Row;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 /**
@@ -32,5 +33,5 @@ public interface Plan {
     /**
      * Uses current shard/routing allocation information to build a physical execution plan.
      */
-    ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder);
+    ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params);
 }
