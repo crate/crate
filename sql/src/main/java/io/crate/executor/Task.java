@@ -44,5 +44,5 @@ public interface Task {
      *
      * @throws UnsupportedOperationException if the task doesn't support bulk operations
      */
-    List<CompletableFuture<Long>> executeBulk();
+    List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams);
 }

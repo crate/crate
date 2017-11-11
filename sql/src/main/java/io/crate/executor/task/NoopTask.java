@@ -45,7 +45,7 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         return Collections.emptyList();
     }
 }

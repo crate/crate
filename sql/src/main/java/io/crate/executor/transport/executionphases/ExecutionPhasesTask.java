@@ -155,7 +155,7 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable

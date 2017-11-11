@@ -27,9 +27,9 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.data.RowConsumer;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.task.ExplainTask;
@@ -167,30 +167,30 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk(Plan plan) {
+    public List<CompletableFuture<Long>> executeBulk(Plan plan, List<Row> bulkParams) {
         Task task = plan2TaskVisitor.process(plan, null);
-        return task.executeBulk();
+        return task.executeBulk(bulkParams);
     }
 
-    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
+    private class TaskCollectingVisitor extends PlanVisitor<List<Row>, Task> {
 
         @Override
-        public Task visitNoopPlan(NoopPlan plan, Void context) {
+        public Task visitNoopPlan(NoopPlan plan, List<Row> bulkParams) {
             return NoopTask.INSTANCE;
         }
 
         @Override
-        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
+        public Task visitSetSessionPlan(SetSessionPlan plan, List<Row> bulkParams) {
             return new SetSessionTask(plan.jobId(), plan.settings(), plan.sessionContext());
         }
 
         @Override
-        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
+        public Task visitExplainPlan(ExplainPlan explainPlan, List<Row> bulkParams) {
             return new ExplainTask(explainPlan);
         }
 
         @Override
-        protected Task visitPlan(Plan plan, Void context) {
+        protected Task visitPlan(Plan plan, List<Row> bulkParams) {
             return executionPhasesTask(plan);
         }
 
@@ -211,7 +211,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitGetPlan(ESGet plan, Void context) {
+        public Task visitGetPlan(ESGet plan, List<Row> bulkParams) {
             return new ESGetTask(
                 functions,
                 globalProjectionToProjectionVisitor,
@@ -221,12 +221,12 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
+        public Task visitDropTablePlan(DropTablePlan plan, List<Row> bulkParams) {
             return new DropTableTask(plan, transportDropTableAction);
         }
 
         @Override
-        public Task visitKillPlan(KillPlan killPlan, Void context) {
+        public Task visitKillPlan(KillPlan killPlan, List<Row> bulkParams) {
             return killPlan.jobToKill().isPresent() ?
                 new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
                     killPlan.jobId(),
@@ -235,37 +235,37 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, Void context) {
+        public Task visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, List<Row> bulkParams) {
             return new ShowCreateTableTask(showCreateTablePlan.statement().tableInfo());
         }
 
         @Override
-        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
+        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, List<Row> bulkParams) {
             return new FunctionDispatchTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
-        public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, Void context) {
+        public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, List<Row> bulkParams) {
             return new FunctionDispatchTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
         }
 
         @Override
-        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
+        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, List<Row> bulkParams) {
             return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, Void context) {
+        public Task visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, List<Row> bulkParams) {
             return new CreateAnalyzerTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, Void context) {
+        public Task visitESDelete(ESDelete plan, List<Row> bulkParams) {
             return new ESDeleteTask(clusterService, transportActionProvider.transportShardDeleteAction(), plan);
         }
 
         @Override
-        public Task visitUpsertById(UpsertById plan, Void context) {
+        public Task visitUpsertById(UpsertById plan, List<Row> bulkParams) {
             return new UpsertByIdTask(
                 plan,
                 clusterService,
@@ -276,12 +276,12 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
+        public Task visitESDeletePartition(ESDeletePartition plan, List<Row> bulkParams) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
 
         @Override
-        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final Void context) {
+        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final List<Row> bulkParams) {
             throw new UnsupportedOperationException("MultiPhasePlan should have been processed by MultiPhaseExecutor");
         }
     }

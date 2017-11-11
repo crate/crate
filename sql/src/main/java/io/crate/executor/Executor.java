@@ -21,8 +21,8 @@
 
 package io.crate.executor;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.planner.Plan;
 
 import java.util.List;
@@ -35,5 +35,5 @@ public interface Executor {
 
     void execute(Plan plan, RowConsumer consumer, Row parameters);
 
-    List<CompletableFuture<Long>> executeBulk(Plan plan);
+    List<CompletableFuture<Long>> executeBulk(Plan plan, List<Row> bulkParams);
 }

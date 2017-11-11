@@ -128,7 +128,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         final List<CompletableFuture<Long>> results = prepareResultList(numBulkResponses);
         doExecute().whenComplete((responses, f) -> {
             if (f == null) {

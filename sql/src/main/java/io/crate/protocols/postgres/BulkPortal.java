@@ -126,12 +126,15 @@ class BulkPortal extends AbstractPortal {
         }
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         synced = true;
-        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs);
+        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs, bulkParams);
     }
 
-    private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
-                                                final JobsLogs jobsLogs) {
-        List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
+    private CompletableFuture<Void> executeBulk(Executor executor,
+                                                Plan plan,
+                                                final UUID jobId,
+                                                final JobsLogs jobsLogs,
+                                                List<Row> bulkParams) {
+        List<CompletableFuture<Long>> futures = executor.executeBulk(plan, bulkParams);
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults

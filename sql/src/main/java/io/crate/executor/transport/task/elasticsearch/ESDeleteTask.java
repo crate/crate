@@ -120,7 +120,7 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public final List<CompletableFuture<Long>> executeBulk() {
+    public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         try {
             sendRequests();
         } catch (Throwable throwable) {
