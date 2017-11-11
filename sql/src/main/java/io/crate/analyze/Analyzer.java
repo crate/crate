@@ -205,7 +205,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis context) {
-            return deleteAnalyzer.analyze(node, context);
+            return deleteAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

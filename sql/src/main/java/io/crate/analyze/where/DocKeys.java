@@ -25,11 +25,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.ParamSymbols;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.data.Row;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -78,11 +81,21 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return Optional.of(values);
         }
 
+        /**
+         * @deprecated use {@link #getId(Row)} instead
+         */
+        @Deprecated
         public String id() {
             if (id == null) {
                 id = idFunction.apply(pkValues(key));
             }
             return id;
+        }
+
+        public String getId(Row params) {
+            return idFunction.apply(
+                Lists.transform(key.subList(0, width),
+                    s -> ValueSymbolVisitor.BYTES_REF.function.apply(ParamSymbols.toLiterals(s, params))));
         }
 
         private List<BytesRef> pkValues(List<Symbol> key) {
@@ -91,6 +104,23 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public List<Symbol> values() {
             return key;
+        }
+
+        public List<BytesRef> getPartitionValues(Row params) {
+            if (partitionIdx == null || partitionIdx.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return Lists.transform(
+                partitionIdx,
+                pIdx -> ValueSymbolVisitor.BYTES_REF.function.apply(ParamSymbols.toLiterals(key.get(pIdx), params)));
+
+        }
+
+        public String getRouting(Row params) {
+            if (clusteredByIdx >= 0) {
+                return ValueSymbolVisitor.STRING.process(ParamSymbols.toLiterals(key.get(clusteredByIdx), params));
+            }
+            return getId(params);
         }
     }
 

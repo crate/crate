@@ -21,12 +21,12 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
-import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.DeletePartitions;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -41,16 +41,10 @@ public class ESDeletePartitionTask extends JobTask {
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
-        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW);
-        transport.execute(request, actionListener);
-    }
-
-    public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {
-        super(esDeletePartition.jobId());
+    public ESDeletePartitionTask(DeletePartitions deletePartitions, TransportDeleteIndexAction transport) {
+        super(deletePartitions.jobId());
         this.transport = transport;
-        this.request = new DeleteIndexRequest(esDeletePartition.indices());
+        this.request = new DeleteIndexRequest(deletePartitions.partitions().toArray(new String[0]));
 
         /**
          * table is partitioned, in case of concurrent "delete from partitions"
@@ -58,5 +52,11 @@ public class ESDeletePartitionTask extends JobTask {
          * so ignore it if some are missing
          */
         this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
+    }
+
+    @Override
+    public void execute(RowConsumer consumer, Row parameters) {
+        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW);
+        transport.execute(request, actionListener);
     }
 }

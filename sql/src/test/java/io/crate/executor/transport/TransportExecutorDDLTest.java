@@ -30,7 +30,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
@@ -140,6 +140,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeletePartitionTask() throws Exception {
+        fail("TODO");
+        /*
         execute("create table t (id integer primary key, name string) partitioned by (id)");
         ensureYellow();
 
@@ -151,7 +153,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
-        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
+        DeletePartitions plan = new DeletePartitions(UUID.randomUUID(), partitionName);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         executor.execute(plan, consumer, Row.EMPTY);
@@ -160,6 +162,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
+        */
     }
 
     /**
@@ -170,6 +173,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
      */
     @Test
     public void testDeletePartitionTaskClosed() throws Exception {
+        fail("TODO");
+        /*
         execute("create table t (id integer primary key, name string) partitioned by (id)");
         ensureYellow();
 
@@ -180,7 +185,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName(sqlExecutor.getDefaultSchema(), "t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         assertTrue(client().admin().indices().prepareClose(partitionName).execute().actionGet().isAcknowledged());
 
-        ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
+        DeletePartitions plan = new DeletePartitions(UUID.randomUUID(), partitionName);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         executor.execute(plan, consumer, Row.EMPTY);
@@ -189,6 +194,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
+        */
     }
 
     @Test

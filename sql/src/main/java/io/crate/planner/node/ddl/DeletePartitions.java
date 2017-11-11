@@ -24,21 +24,21 @@ package io.crate.planner.node.ddl;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
-import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.UUID;
 
-public class ESDeletePartition extends UnnestablePlan {
+public class DeletePartitions extends UnnestablePlan {
 
     private final UUID jobId;
-    private final String[] indices;
+    private final List<String> partitions;
 
-    public ESDeletePartition(UUID jobId, @Nonnull String... indices) {
+    public DeletePartitions(UUID jobId, List<String> partitions) {
         this.jobId = jobId;
-        this.indices = indices;
+        this.partitions = partitions;
     }
 
-    public String[] indices() {
-        return indices;
+    public List<String> partitions() {
+        return partitions;
     }
 
     @Override

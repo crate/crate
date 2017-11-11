@@ -51,10 +51,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitDeleteStatement(DeleteAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     protected R visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }

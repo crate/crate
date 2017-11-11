@@ -143,7 +143,8 @@ class BulkPortal extends AbstractPortal {
 
     private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
         assert completedResultFutures.size() == resultReceivers.size()
-            : "number of result must match number of rowReceivers";
+            : "number of result must match number of rowReceivers, results: " +
+              "" + completedResultFutures.size() + "; receivers: " + resultReceivers.size();
 
         Long[] cells = new Long[1];
         RowN row = new RowN(cells);

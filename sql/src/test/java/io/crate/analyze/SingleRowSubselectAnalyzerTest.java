@@ -79,6 +79,8 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
+        fail("TODO");
+        /*
         expectedException.expectMessage("Subquery not supported in this statement");
         DeleteAnalyzedStatement stmt = e.analyze("delete from t1 where x = (select y from t2)");
         /*

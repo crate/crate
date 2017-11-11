@@ -23,9 +23,9 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.Delete;
-import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -51,20 +51,26 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeletePlan() throws Exception {
-        ESDelete plan = e.plan("delete from users where id = 1");
+        fail("TODO");
+        /*
+        DeleteById plan = e.plan("delete from users where id = 1");
         assertThat(plan.tableInfo().ident().name(), is("users"));
         assertThat(plan.docKeys().size(), is(1));
         assertThat(plan.docKeys().get(0), isDocKey(1L));
+        */
     }
 
     @Test
     public void testBulkDeletePartitionedTable() throws Exception {
-        ESDeletePartition plan = e.plan("delete from parted_pks where date = ?", new Object[][]{
+        fail("TODO");
+        /*
+        DeletePartitions plan = e.plan("delete from parted_pks where date = ?", new Object[][]{
             new Object[]{"1395874800000"},
             new Object[]{"1395961200000"},
         });
         assertThat(plan.indices(),
             is(new String[]{".partitioned.parted.04732cpp6ks3ed1o60o30c1g", ".partitioned.parted.04732cpp6ksjcc9i60o30c1g"}));
+            */
     }
 
     @Test

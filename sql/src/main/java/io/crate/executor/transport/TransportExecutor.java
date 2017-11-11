@@ -46,7 +46,7 @@ import io.crate.executor.transport.task.UpsertByIdTask;
 import io.crate.executor.transport.task.elasticsearch.CreateAnalyzerTask;
 import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
+import io.crate.executor.transport.task.DeleteByIdTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
@@ -64,9 +64,9 @@ import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.ESGet;
@@ -260,8 +260,8 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDelete(ESDelete plan, List<Row> bulkParams) {
-            return new ESDeleteTask(clusterService, transportActionProvider.transportShardDeleteAction(), plan);
+        public Task visitDeleteById(DeleteById plan, List<Row> bulkParams) {
+            return new DeleteByIdTask(clusterService, transportActionProvider.transportShardDeleteAction(), plan);
         }
 
         @Override
@@ -276,7 +276,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, List<Row> bulkParams) {
+        public Task visitESDeletePartition(DeletePartitions plan, List<Row> bulkParams) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
 
