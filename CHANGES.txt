@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that resulted in closed partitions showing a ``CRITICAL`` data
+  state in the Admin UI.
+
 - Fixed an issue that caused ``INSERT INTO .. VALUES`` statements to fail if
   the ``VALUES`` clause contains multiple rows and the table has a generated
   column as primary key.
