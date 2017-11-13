@@ -18,10 +18,9 @@
 
 package io.crate.operation.user;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
@@ -29,7 +28,6 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -83,24 +81,17 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
         MetaData metaData = MetaData.builder()
             .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY))
             .build();
-        List<String> userNames = Lists.newArrayList("ford", "arthur");
+        List<String> userNames = Lists.newArrayList("Ford", "Arthur");
         List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, userNames);
-        assertThat(unknownUserNames, contains("arthur"));
+        assertThat(unknownUserNames, contains("Ford"));
     }
 
     @Test
     public void testValidateUserNamesAllExists() throws Exception {
-        final Map<String, UserAttributes> USERS = ImmutableMap.of(
-            "ford",
-            null,
-            "arthur",
-            null
-        );
-        List<String> userNames = new ArrayList<>(USERS.keySet());
         MetaData metaData = MetaData.builder()
-            .putCustom(UsersMetaData.TYPE, new UsersMetaData())
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.DUMMY_USERS))
             .build();
-        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, userNames);
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, ImmutableList.of("Ford", "Arthur"));
         assertThat(unknownUserNames.size(), is(0));
     }
 
