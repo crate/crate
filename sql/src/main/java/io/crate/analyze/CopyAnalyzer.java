@@ -283,12 +283,11 @@ class CopyAnalyzer {
         if (where.isPresent()) {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
             Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
-            whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
-            whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);
+            whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
         }
 
         if (whereClause == null) {
-            return new WhereClause(null, null, partitions);
+            return new WhereClause(null, null, partitions, null);
         } else if (whereClause.noMatch()) {
             return whereClause;
         } else {
@@ -297,8 +296,12 @@ class CopyAnalyzer {
                 throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
             }
 
-            return new WhereClause(whereClause.query(), whereClause.docKeys().orElse(null),
-                partitions.isEmpty() ? whereClause.partitions() : partitions);
+            return new WhereClause(
+                whereClause.query(),
+                whereClause.docKeys().orElse(null),
+                partitions.isEmpty() ? whereClause.partitions() : partitions,
+                whereClause.clusteredBy().orElse(null)
+            );
         }
     }
 

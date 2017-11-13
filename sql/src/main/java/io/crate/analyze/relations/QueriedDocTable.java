@@ -46,7 +46,9 @@ public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
     }
 
     void analyzeWhereClause(Functions functions, TransactionContext transactionContext) {
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation());
-        querySpec().where(whereClauseAnalyzer.analyze(querySpec().where(), transactionContext));
+        if (querySpec().where().hasQuery()) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation());
+            querySpec().where(whereClauseAnalyzer.analyze(querySpec().where().query(), transactionContext));
+        }
     }
 }

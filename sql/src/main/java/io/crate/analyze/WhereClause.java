@@ -61,9 +61,11 @@ public class WhereClause extends QueryClause implements Streamable {
 
     public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable DocKeys docKeys,
-                       @Nullable List<String> partitions) {
+                       @Nullable List<String> partitions,
+                       @Nullable Set<Symbol> clusteredBy) {
         super(normalizedQuery);
-        docKeys(docKeys);
+        this.docKeys = Optional.ofNullable(docKeys);
+        this.clusteredBy = Optional.ofNullable(clusteredBy);
         if (partitions != null) {
             this.partitions = partitions;
         }
@@ -81,10 +83,7 @@ public class WhereClause extends QueryClause implements Streamable {
         if (normalizedQuery == query) {
             return this;
         }
-        WhereClause normalizedWhereClause = new WhereClause(normalizedQuery,
-            docKeys.orElse(null), partitions);
-        normalizedWhereClause.clusteredBy = clusteredBy;
-        return normalizedWhereClause;
+        return new WhereClause(normalizedQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
     }
 
     public Optional<Set<Symbol>> clusteredBy() {
@@ -100,29 +99,6 @@ public class WhereClause extends QueryClause implements Streamable {
             return result;
         } else {
             return null;
-        }
-    }
-
-    public void clusteredBy(@Nullable Set<Symbol> clusteredBy) {
-        assert this != NO_MATCH && this != MATCH_ALL : "may not set clusteredByLiteral on MATCH_ALL/NO_MATCH singleton";
-        if (clusteredBy != null && !clusteredBy.isEmpty()) {
-            this.clusteredBy = Optional.of(clusteredBy);
-        }
-    }
-
-    public void partitions(List<Literal> partitions) {
-        assert this != NO_MATCH && this != MATCH_ALL : "may not set partitions on MATCH_ALL/NO_MATCH singleton";
-        for (Literal partition : partitions) {
-            this.partitions.add(ValueSymbolVisitor.STRING.process(partition));
-        }
-    }
-
-    public void docKeys(@Nullable DocKeys docKeys) {
-        assert this != NO_MATCH && this != MATCH_ALL : "may not set docKeys on MATCH_ALL/NO_MATCH singleton";
-        if (docKeys == null) {
-            this.docKeys = Optional.empty();
-        } else {
-            this.docKeys = Optional.of(docKeys);
         }
     }
 
@@ -227,6 +203,6 @@ public class WhereClause extends QueryClause implements Streamable {
             return this;
         }
         Symbol newQuery = replaceFunction.apply(query);
-        return new WhereClause(newQuery, docKeys.orElse(null), partitions);
+        return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
     }
 }

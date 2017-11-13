@@ -208,9 +208,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         });
         DocTableRelation tableRelation = statement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(e.functions(), tableRelation);
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), transactionContext).docKeys().get(), contains(isDocKey("1")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), transactionContext).docKeys().get(), contains(isDocKey("2")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), transactionContext).docKeys().get(), contains(isDocKey("3")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0).query(), transactionContext).docKeys().get(), contains(isDocKey("1")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1).query(), transactionContext).docKeys().get(), contains(isDocKey("2")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2).query(), transactionContext).docKeys().get(), contains(isDocKey("3")));
     }
 
     @Test

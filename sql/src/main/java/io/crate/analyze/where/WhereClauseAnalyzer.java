@@ -31,6 +31,8 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -45,6 +47,7 @@ import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,21 +70,18 @@ public class WhereClauseAnalyzer {
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
-    public WhereClause analyze(WhereClause whereClause, TransactionContext transactionContext) {
-        if (!whereClause.hasQuery()) {
-            return whereClause;
+    public WhereClause analyze(Symbol query, TransactionContext transactionContext) {
+        if (query.equals(Literal.BOOLEAN_TRUE)) {
+            return WhereClause.MATCH_ALL;
         }
-        Set<Symbol> clusteredBy = null;
-        if (whereClause.hasQuery()) {
-            WhereClauseValidator.validate(whereClause);
-            Symbol query = GENERATED_COLUMN_COMPARISON_REPLACER.replaceIfPossible(whereClause.query(), tableInfo);
-            if (!whereClause.query().equals(query)) {
-                whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
-            }
+        WhereClauseValidator.validate(query);
+        Symbol queryGenColsProcessed = GENERATED_COLUMN_COMPARISON_REPLACER.replaceIfPossible(query, tableInfo);
+        if (!query.equals(queryGenColsProcessed)) {
+            query = normalizer.normalize(queryGenColsProcessed, transactionContext);
         }
 
         List<ColumnIdent> pkCols;
-        boolean versionInQuery = Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION);
+        boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
         if (versionInQuery) {
             pkCols = new ArrayList<>(tableInfo.primaryKey().size() + 1);
             pkCols.addAll(tableInfo.primaryKey());
@@ -89,8 +89,9 @@ public class WhereClauseAnalyzer {
         } else {
             pkCols = tableInfo.primaryKey();
         }
-        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, whereClause.query(), transactionContext);
-
+        List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, transactionContext);
+        Set<Symbol> clusteredBy = null;
+        DocKeys docKeys = null;
         if (!pkCols.isEmpty() && pkValues != null) {
             int clusterdIdx = -1;
             if (tableInfo.clusteredBy() != null) {
@@ -107,31 +108,33 @@ public class WhereClauseAnalyzer {
                     }
                 }
             }
-            whereClause.docKeys(new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx));
+            docKeys = new DocKeys(pkValues, versionInQuery, clusterdIdx, partitionsIdx);
             if (clusterdIdx >= 0) {
                 for (List<Symbol> row : pkValues) {
                     clusteredBy.add(row.get(clusterdIdx));
                 }
-                whereClause.clusteredBy(clusteredBy);
             }
         } else {
-            clusteredBy = getClusteredByLiterals(whereClause, eqExtractor, transactionContext);
+            clusteredBy = getClusteredByLiterals(query, eqExtractor, transactionContext);
         }
-        if (clusteredBy != null) {
-            whereClause.clusteredBy(clusteredBy);
+
+        List<String> partitions = null;
+        if (tableInfo.isPartitioned() && docKeys == null) {
+            if (tableInfo.partitions().isEmpty()) {
+                return WhereClause.NO_MATCH;
+            }
+            PartitionResult partitionResult = resolvePartitions(query, tableInfo, functions, transactionContext);
+            partitions = partitionResult.partitions;
+            query = partitionResult.query;
         }
-        if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
-            whereClause = resolvePartitions(new WhereClause(normalizer.normalize(whereClause.query(), transactionContext)), tableInfo, functions, transactionContext);
-        }
-        return whereClause;
+        return new WhereClause(query, docKeys, partitions, clusteredBy);
     }
 
     @Nullable
-    private Set<Symbol> getClusteredByLiterals(WhereClause whereClause, EqualityExtractor ee, TransactionContext transactionContext) {
+    private Set<Symbol> getClusteredByLiterals(Symbol query, EqualityExtractor ee, TransactionContext transactionContext) {
         if (tableInfo.clusteredBy() != null) {
             List<List<Symbol>> clusteredValues = ee.extractParentMatches(
-                ImmutableList.of(tableInfo.clusteredBy()),
-                whereClause.query(), transactionContext);
+                ImmutableList.of(tableInfo.clusteredBy()), query, transactionContext);
             if (clusteredValues != null) {
                 Set<Symbol> clusteredBy = new HashSet<>(clusteredValues.size());
                 for (List<Symbol> row : clusteredValues) {
@@ -154,15 +157,22 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(partitionExpressions);
     }
 
-    private static WhereClause resolvePartitions(WhereClause whereClause,
-                                                 DocTableInfo tableInfo,
-                                                 Functions functions,
-                                                 TransactionContext transactionContext) {
-        assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        assert whereClause.partitions().isEmpty() : "partitions must not be analyzed twice";
-        if (tableInfo.partitions().isEmpty()) {
-            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
+    private static class PartitionResult {
+        private final Symbol query;
+        private final List<String> partitions;
+
+        PartitionResult(Symbol query, List<String> partitions) {
+            this.query = query;
+            this.partitions = partitions;
         }
+    }
+
+    private static PartitionResult resolvePartitions(Symbol query,
+                                                     DocTableInfo tableInfo,
+                                                     Functions functions,
+                                                     TransactionContext transactionContext) {
+        assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
+        assert !tableInfo.partitions().isEmpty() : "table must have at least one partition";
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
@@ -176,11 +186,11 @@ public class WhereClauseAnalyzer {
             for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
                 partitionExpression.setNextRow(partitionName);
             }
-            normalized = normalizer.normalize(whereClause.query(), transactionContext);
+            normalized = normalizer.normalize(query, transactionContext);
             assert normalized != null : "normalizing a query must not return null";
 
-            if (normalized.equals(whereClause.query())) {
-                return whereClause; // no partition columns inside the where clause
+            if (normalized.equals(query)) {
+                return new PartitionResult(query, Collections.emptyList()); // no partition columns inside the where clause
             }
 
             boolean canMatch = WhereClause.canMatch(normalized);
@@ -196,23 +206,18 @@ public class WhereClauseAnalyzer {
 
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
-            whereClause = new WhereClause(
-                entry.getKey(),
-                whereClause.docKeys().orElse(null),
-                new ArrayList<String>(entry.getValue().size()));
-            whereClause.partitions(entry.getValue());
-            return whereClause;
+            return new PartitionResult(
+                entry.getKey(), Lists2.copyAndReplace(entry.getValue(), ValueSymbolVisitor.STRING.function));
         } else if (queryPartitionMap.size() > 0) {
-            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause, transactionContext);
+            return tieBreakPartitionQueries(normalizer, queryPartitionMap, transactionContext);
         } else {
-            return WhereClause.NO_MATCH;
+            return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
         }
     }
 
-    private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
-                                                        Map<Symbol, List<Literal>> queryPartitionMap,
-                                                        WhereClause whereClause,
-                                                        TransactionContext transactionContext) throws UnsupportedOperationException {
+    private static PartitionResult tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
+                                                            Map<Symbol, List<Literal>> queryPartitionMap,
+                                                            TransactionContext transactionContext) throws UnsupportedOperationException {
         /*
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
@@ -254,11 +259,9 @@ public class WhereClauseAnalyzer {
         }
         if (canMatch.size() == 1) {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
-            WhereClause where = new WhereClause(symbolListTuple.v1(),
-                whereClause.docKeys().orElse(null),
-                new ArrayList<String>(symbolListTuple.v2().size()));
-            where.partitions(symbolListTuple.v2());
-            return where;
+            return new PartitionResult(
+                symbolListTuple.v1(),
+                Lists2.copyAndReplace(symbolListTuple.v2(), ValueSymbolVisitor.STRING.function));
         }
         throw new UnsupportedOperationException(
             "logical conjunction of the conditions in the WHERE clause which " +

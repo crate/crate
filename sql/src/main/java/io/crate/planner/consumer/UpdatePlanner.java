@@ -205,7 +205,12 @@ public final class UpdatePlanner {
                 throw new UnsupportedOperationException("Only a single _version comparison may occur in the WHERE clause");
             }
             versionSymbol = result.versions.get(0);
-            whereClause = new WhereClause(result.newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
+            whereClause = new WhereClause(
+                result.newQuery,
+                whereClause.docKeys().orElse(null),
+                whereClause.partitions(),
+                whereClause.clusteredBy().orElse(null)
+            );
         }
 
         if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {

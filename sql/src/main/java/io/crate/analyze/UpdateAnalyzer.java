@@ -226,19 +226,21 @@ public class UpdateAnalyzer {
             analysis.parameterContext().setBulkIdx(i);
 
             Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.whereClause(), expressionAnalysisContext);
-            WhereClause whereClause = new WhereClause(normalizer.normalize(querySymbol, transactionContext));
+            querySymbol = normalizer.normalize(querySymbol, transactionContext);
 
+            WhereClause where;
             if (whereClauseAnalyzer != null) {
-                whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);
+                where = whereClauseAnalyzer.analyze(querySymbol, transactionContext);
+            } else {
+                where = new WhereClause(querySymbol);
             }
 
-            if (!whereClause.docKeys().isPresent() &&
-                Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
+            if (!where.docKeys().isPresent() && Symbols.containsColumn(where.query(), DocSysColumns.VERSION)) {
                 throw VERSION_SEARCH_EX;
             }
 
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement =
-                new UpdateAnalyzedStatement.NestedAnalyzedStatement(whereClause);
+                new UpdateAnalyzedStatement.NestedAnalyzedStatement(where);
 
             for (Assignment assignment : node.assignements()) {
                 analyzeAssignment(

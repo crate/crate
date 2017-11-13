@@ -127,8 +127,8 @@ class DeleteAnalyzer {
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
             Symbol query = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
-            WhereClause whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
-            whereClause = validate(whereClauseAnalyzer.analyze(whereClause, transactionContext));
+            Symbol normalizedQuery = normalizer.normalize(query, transactionContext);
+            WhereClause whereClause = validate(whereClauseAnalyzer.analyze(normalizedQuery, transactionContext));
             deleteAnalyzedStatement.whereClauses.add(whereClause);
         }
 

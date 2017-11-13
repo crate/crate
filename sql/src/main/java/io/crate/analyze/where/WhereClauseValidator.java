@@ -2,7 +2,6 @@ package io.crate.analyze.where;
 
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -19,14 +18,15 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.Stack;
 
-public abstract class WhereClauseValidator {
+public final class WhereClauseValidator {
 
     private static final Visitor visitor = new Visitor();
 
-    public static void validate(WhereClause whereClause) {
-        if (whereClause.hasQuery()) {
-            visitor.process(whereClause.query(), new Visitor.Context());
-        }
+    private WhereClauseValidator() {
+    }
+
+    public static void validate(Symbol query) {
+        visitor.process(query, new Visitor.Context());
     }
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
