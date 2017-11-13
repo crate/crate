@@ -252,27 +252,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    @Nightly
-    public void testCopyFromFileWithPartitionCreation() throws Exception {
-        // test with many shards and a small bulk size because this would trigger race conditions more reliably
-        // also use a larger data set to import
-        execute("CREATE TABLE names (group_id INTEGER, name STRING) " +
-                "PARTITIONED BY (group_id) " +
-                "CLUSTERED INTO 16 SHARDS " +
-                "WITH (number_of_replicas = 0)");
-        ensureGreen();
-        execute("COPY names PARTITION (group_id = 1) FROM ? WITH (bulk_size = 10, compression = 'gzip')",
-            new Object[]{copyFilePath + "test_copy_partition_from.json.gz"},
-            TimeValue.timeValueMinutes(15L));
-        assertEquals(10_000L, response.rowCount());
-        assertEquals(0, response.rows().length);
-
-        execute("REFRESH TABLE names");
-        execute("SELECT count(*) FROM names WHERE group_id = 1");
-        assertEquals(10_000L, response.rows()[0][0]);
-    }
-
-    @Test
     public void testCopyFromFileWithCompression() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string)");
