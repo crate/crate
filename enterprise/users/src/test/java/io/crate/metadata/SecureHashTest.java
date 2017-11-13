@@ -41,10 +41,10 @@ public class SecureHashTest extends CrateUnitTest {
 
     @Test
     public void testHashesWithSameSaltAreEqual() throws Exception {
-        SecureRandom rand1 = new SecureRandom();
+        SecureRandom rand1 = SecureRandom.getInstance("SHA1PRNG");
         rand1.setSeed(1);
         SecureHash hash1 = SecureHash.of(PASSWORD, rand1);
-        SecureRandom rand2 = new SecureRandom();
+        SecureRandom rand2 = SecureRandom.getInstance("SHA1PRNG");
         rand2.setSeed(1);
         SecureHash hash2 = SecureHash.of(PASSWORD, rand2);
         assertEquals(hash1, hash2);
