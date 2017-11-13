@@ -18,11 +18,11 @@
 
 package io.crate.operation.user;
 
-import io.crate.analyze.user.UserAttributes;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
 
@@ -87,7 +87,7 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testDropUser() throws Exception {
-        Map<String, UserAttributes> users = new HashMap<>();
+        Map<String, SecureHash> users = new HashMap<>();
         users.put("Arthur", null);
         users.put("Ford", null);
 

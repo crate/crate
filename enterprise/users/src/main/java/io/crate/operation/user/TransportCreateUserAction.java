@@ -19,9 +19,9 @@
 package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.user.SecureHash;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -75,7 +75,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    alreadyExists = putUser(mdBuilder, request.userName(), request.attributes());
+                    alreadyExists = putUser(mdBuilder, request.userName(), request.secureHash());
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
@@ -97,14 +97,14 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
      * @return boolean true if the user already exists, otherwise false
      */
     @VisibleForTesting
-    static boolean putUser(MetaData.Builder mdBuilder, String name, @Nullable UserAttributes attributes) {
+    static boolean putUser(MetaData.Builder mdBuilder, String name, @Nullable SecureHash secureHash) {
         UsersMetaData oldMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
         if (oldMetaData != null && oldMetaData.contains(name)) {
             return true;
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
-        newMetaData.add(name, attributes);
+        newMetaData.add(name, secureHash);
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
 

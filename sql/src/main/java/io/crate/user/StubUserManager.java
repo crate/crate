@@ -23,7 +23,6 @@
 package io.crate.user;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
@@ -38,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 public class StubUserManager implements UserManager {
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable UserAttributes password) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("CREATE USER is only supported in enterprise version")
         );

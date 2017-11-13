@@ -22,7 +22,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.user.Privilege;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
@@ -33,6 +32,7 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -128,14 +128,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable UserAttributes attributes) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist()) {
                 throw new UserAlreadyExistsException(userName);
             }
             return 1L;
         });
-        transportCreateUserAction.execute(new CreateUserRequest(userName, attributes), listener);
+        transportCreateUserAction.execute(new CreateUserRequest(userName, secureHash), listener);
         return listener;
     }
 

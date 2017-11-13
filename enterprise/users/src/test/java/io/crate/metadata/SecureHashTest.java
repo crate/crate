@@ -28,7 +28,6 @@ import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 
 public class SecureHashTest extends CrateUnitTest {
@@ -40,27 +39,15 @@ public class SecureHashTest extends CrateUnitTest {
         new SecureString("invalid-password".toCharArray());
 
     @Test
-    public void testHashesWithSameSaltAreEqual() throws Exception {
-        SecureRandom rand1 = SecureRandom.getInstance("SHA1PRNG");
-        rand1.setSeed(1);
-        SecureHash hash1 = SecureHash.of(PASSWORD, rand1);
-        SecureRandom rand2 = SecureRandom.getInstance("SHA1PRNG");
-        rand2.setSeed(1);
-        SecureHash hash2 = SecureHash.of(PASSWORD, rand2);
-        assertEquals(hash1, hash2);
-    }
-
-    @Test
     public void testSamePasswordsGenerateDifferentHash() throws Exception {
-        SecureRandom rand = new SecureRandom();
-        SecureHash hash1 = SecureHash.of(PASSWORD, rand);
-        SecureHash hash2 = SecureHash.of(PASSWORD, rand);
+        SecureHash hash1 = SecureHash.of(PASSWORD);
+        SecureHash hash2 = SecureHash.of(PASSWORD);
         assertNotEquals(hash1, hash2);
     }
 
     @Test
     public void testVerifyHash() throws Exception {
-        SecureHash hash = SecureHash.of(PASSWORD, new SecureRandom());
+        SecureHash hash = SecureHash.of(PASSWORD);
 
         assertTrue(hash.verifyHash(PASSWORD));
         assertFalse(hash.verifyHash(INVALID_PASSWORD));
@@ -69,7 +56,7 @@ public class SecureHashTest extends CrateUnitTest {
     @Test
     public void testNonAsciiChars() throws InvalidKeySpecException, NoSuchAlgorithmException {
         SecureString pw = new SecureString("πä😉ـص".toCharArray());
-        SecureHash hash = SecureHash.of(pw, new SecureRandom());
+        SecureHash hash = SecureHash.of(pw);
 
         assertFalse(hash.verifyHash(INVALID_PASSWORD));
         assertTrue(hash.verifyHash(pw));

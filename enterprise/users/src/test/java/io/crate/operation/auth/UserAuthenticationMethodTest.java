@@ -29,7 +29,6 @@ import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
 
@@ -44,7 +43,7 @@ public class UserAuthenticationMethodTest extends CrateUnitTest {
             User user = null;
             try {
                 // TODO: this mocking must only be used until the User has an implementation for password()
-                SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()), new SecureRandom());
+                SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
                 user = new User("crate", Collections.emptySet(), Collections.emptySet());
                 user = spy(user);
                 when(user.password()).thenReturn(pwHash);

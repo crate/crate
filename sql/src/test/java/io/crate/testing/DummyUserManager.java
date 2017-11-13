@@ -23,11 +23,11 @@
 package io.crate.testing;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -43,7 +43,7 @@ public class DummyUserManager implements UserManager {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable UserAttributes attributes) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
         return null;
     }
 

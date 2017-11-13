@@ -25,14 +25,12 @@ package io.crate.executor.transport;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.data.Row;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 
 import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -45,16 +43,15 @@ public final class UserActions {
 
     }
 
-    public static CompletableFuture<Long> execute(BiFunction<String, UserAttributes, CompletableFuture<Long>> userAction,
+    public static CompletableFuture<Long> execute(BiFunction<String, SecureHash, CompletableFuture<Long>> userAction,
                                                   CreateUserAnalyzedStatement statement,
                                                   Row parameters) {
         try (SecureString pw = getUserPasswordProperty(statement.properties(), parameters)) {
-            UserAttributes userAttributes = null;
+            SecureHash secureHash = null;
             if (pw != null) {
-                SecureHash hash = SecureHash.of(pw, new SecureRandom());
-                userAttributes = new UserAttributes(hash);
+                secureHash = SecureHash.of(pw);
             }
-            return userAction.apply(statement.userName(), userAttributes);
+            return userAction.apply(statement.userName(), secureHash);
         } catch (GeneralSecurityException e) {
             return failedFuture(e);
         }

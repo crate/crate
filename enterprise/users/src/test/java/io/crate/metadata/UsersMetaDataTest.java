@@ -95,6 +95,6 @@ public class UsersMetaDataTest extends CrateUnitTest {
         StreamInput in = out.bytes().streamInput();
         UsersMetaData readUserMeta = new UsersMetaData(in);
 
-        assertThat(writeUserMeta.userAttributes(), is(readUserMeta.userAttributes()));
+        assertThat(writeUserMeta.userHashes(), is(readUserMeta.userHashes()));
     }
 }

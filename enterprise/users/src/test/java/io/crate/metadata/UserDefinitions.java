@@ -23,12 +23,10 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 
 import java.security.GeneralSecurityException;
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
 
@@ -36,19 +34,19 @@ import static org.junit.Assert.assertNotNull;
 
 public final class UserDefinitions {
 
-    public static final Map<String, UserAttributes> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", null);
+    public static final Map<String, SecureHash> SINGLE_USER_ONLY = Collections.singletonMap("Arthur", null);
 
-    public static final Map<String, UserAttributes> DUMMY_USERS = ImmutableMap.of(
+    public static final Map<String, SecureHash> DUMMY_USERS = ImmutableMap.of(
         "Ford",
-        new UserAttributes(getSecureHash("fords-password")),
+        getSecureHash("fords-password"),
         "Arthur",
-        new UserAttributes(getSecureHash("arthurs-password"))
+        getSecureHash("arthurs-password")
     );
 
     private static SecureHash getSecureHash(String password) {
         SecureHash hash = null;
         try {
-            hash = SecureHash.of(new SecureString(password.toCharArray()), new SecureRandom());
+            hash = SecureHash.of(new SecureString(password.toCharArray()));
         } catch (GeneralSecurityException e) {
             // do nothing;
         }

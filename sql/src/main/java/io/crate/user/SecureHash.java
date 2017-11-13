@@ -62,7 +62,8 @@ public final class SecureHash implements Writeable, ToXContent {
         this.hash = hash;
     }
 
-    public static SecureHash of(SecureString password, SecureRandom random) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static SecureHash of(SecureString password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
         byte[] salt = new byte[32];
         random.nextBytes(salt);
         byte[] hash = pbkdf2(password, salt, DEFAULT_ITERATIONS, HASH_BIT_LENGTH);

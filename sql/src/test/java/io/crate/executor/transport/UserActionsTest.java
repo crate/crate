@@ -24,12 +24,12 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.user.UserAttributes;
 import io.crate.data.Row;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class UserActionsTest extends CrateUnitTest {
 
     @Test
     public void testUserActionExecution() throws Exception {
-        AtomicReference<Map<String, UserAttributes>> userRef = new AtomicReference<>();
+        AtomicReference<Map<String, SecureHash>> userRef = new AtomicReference<>();
 
         GenericProperties properties = new GenericProperties();
         properties.add(new GenericProperty("password", new StringLiteral("password")));
@@ -53,26 +53,26 @@ public class UserActionsTest extends CrateUnitTest {
             userRef.set(ImmutableMap.of(user, attributes));
             return CompletableFuture.completedFuture(1L);
         }, statement, Row.EMPTY);
-        Map<String, UserAttributes> actualUser = userRef.get();
+        Map<String, SecureHash> actualUser = userRef.get();
 
         SecureString password = new SecureString("password".toCharArray());
-        assertTrue(actualUser.get("foo").password().verifyHash(password));
+        assertTrue(actualUser.get("foo").verifyHash(password));
         assertTrue(actualUser.containsKey("foo"));
     }
 
     @Test
     public void testUserActionWithoutUserAttribute() throws Exception {
-        AtomicReference<Map<String, UserAttributes>> userRef = new AtomicReference<>();
+        AtomicReference<Map<String, SecureHash>> userRef = new AtomicReference<>();
 
         CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", GenericProperties.EMPTY);
 
-        UserActions.execute((user, attributes) -> {
-            Map<String, UserAttributes> userMeta = new HashMap<>();
-            userMeta.put(user, attributes);
+        UserActions.execute((user, secureHash) -> {
+            Map<String, SecureHash> userMeta = new HashMap<>();
+            userMeta.put(user, secureHash);
             userRef.set(userMeta);
             return CompletableFuture.completedFuture(1L);
         }, statement, Row.EMPTY);
-        Map<String, UserAttributes> actualUser = userRef.get();
+        Map<String, SecureHash> actualUser = userRef.get();
         assertNull(actualUser.get("foo"));
         assertTrue(actualUser.containsKey("foo"));
     }
