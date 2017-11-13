@@ -80,16 +80,3 @@ Changes
 
 Fixes
 =====
-
-- The download url, in the notifications section of the admin UI, now links
-  to the stable CrateDB version.
-
-- Replica shards in the ``Unassigned`` row of the Shards view of the Admin
-  UI are now grouped by id.
-
-- Fixed an issue that resulted in closed partitions showing a ``CRITICAL`` data
-  state.
-
-- Fixed an issue that caused ``INSERT INTO .. VALUES`` statements to fail if
-  the ``VALUES`` clause contains multiple rows and the table has a generated
-  column as primary key.

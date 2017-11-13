@@ -1,0 +1,49 @@
+.. _version_2.2.3:
+
+=============
+Version 2.2.3
+=============
+
+Released on 2017/11/13.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_1.1.3` or higher before you upgrade to 2.2.3.
+
+   If you want to perform a `rolling upgrade`_, your current CrateDB version
+   number must be :ref:`version_2.2.0`.  If you want to upgrade from a version
+   prior to this, the upgrade will introduce all of the breaking changes listed
+   for :ref:`version_2.2.0`, and will require a `full restart upgrade`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Changelog
+=========
+
+Fixes
+-----
+
+- The download url, in the notifications section of the admin UI, now links to
+  the stable CrateDB version.
+
+- Replica shards in the ``UNASSIGNED`` row of the *Shards* view of the Admin UI
+  are now grouped by id.
+
+- Fixed an issue that resulted in closed partitions showing a ``CRITICAL`` data
+  state.
+
+- Various bug fixes in ``crash`` CrateDB client.
+
+- Fixed a performance regression for ``DELETE`` and ``UPDATE`` statements
+  introduced in 2.2.2.
+
+- Fixed an issue that caused ``INSERT INTO .. VALUES`` statements to fail if
+  the ``VALUES`` clause contains multiple rows and the table has a generated
+  column as primary key.

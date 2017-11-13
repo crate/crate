@@ -26,6 +26,7 @@ information and changelog.
 .. toctree::
     :maxdepth: 1
 
+    2.2.3
     2.2.2
     2.2.1
     2.2.0
@@ -36,6 +37,7 @@ information and changelog.
 .. toctree::
     :maxdepth: 1
 
+    2.1.10
     2.1.9
     2.1.8
     2.1.7
