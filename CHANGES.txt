@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+- Various bug fixes in ``crash`` CrateDB client.
+
 - Fixed a performance regression for ``DELETE`` and ``UPDATE`` statements
   introduced in ``2.2.2``
 
