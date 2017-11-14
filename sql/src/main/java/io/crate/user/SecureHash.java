@@ -22,12 +22,14 @@
 
 package io.crate.user;
 
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -43,6 +45,10 @@ import java.util.Objects;
  * @see <a href="https://tools.ietf.org/html/rfc2898">PBKDF2 Algorithm</a>
  */
 public final class SecureHash implements Writeable, ToXContent {
+
+    private static final String X_CONTENT_KEY_ITERATIONS = "iterations";
+    private static final String X_CONTENT_KEY_SALT = "salt";
+    private static final String X_CONTENT_KEY_HASH = "hash";
 
     private static final String ALGORITHM = "PBKDF2WithHmacSHA512";
     private static final int HASH_BIT_LENGTH = 64;
@@ -141,11 +147,61 @@ public final class SecureHash implements Writeable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject("secure_hash")
-            .field("iterations", iterations)
-            .field("hash", hash)
-            .field("salt", salt)
+            .field(X_CONTENT_KEY_ITERATIONS, iterations)
+            .field(X_CONTENT_KEY_HASH, hash)
+            .field(X_CONTENT_KEY_SALT, salt)
             .endObject();
         return builder;
+    }
+
+    public static SecureHash fromXContent(XContentParser parser) throws IOException {
+        XContentParser.Token currentToken;
+        int iterations = 0;
+        byte[] hash = new byte[0];
+        byte[] salt = new byte[0];
+        boolean hasPassword = false;
+
+        while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (currentToken == XContentParser.Token.FIELD_NAME) {
+                while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) { // secure_hash
+                    hasPassword = true;
+                    if (currentToken == XContentParser.Token.FIELD_NAME) {
+                        String currentFieldName = parser.currentName();
+                        currentToken = parser.nextToken();
+                        switch (currentFieldName) {
+                            case X_CONTENT_KEY_ITERATIONS:
+                                if (currentToken != XContentParser.Token.VALUE_NUMBER) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'iterations' value is not a number [{}]", currentToken);
+                                }
+                                iterations = parser.intValue();
+                                break;
+                            case X_CONTENT_KEY_HASH:
+                                if (currentToken.isValue() == false) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'hash' does not contain any value [{}]", currentToken);
+                                }
+                                hash = parser.binaryValue();
+                                break;
+                            case X_CONTENT_KEY_SALT:
+                                if (currentToken.isValue() == false) {
+                                    throw new ElasticsearchParseException(
+                                        "failed to parse SecureHash, 'salt' does not contain any value [{}]", currentToken);
+                                }
+                                salt = parser.binaryValue();
+                                break;
+                            default:
+                                throw new ElasticsearchParseException("failed to parse secure_hash");
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasPassword) {
+            return SecureHash.of(iterations, salt, hash);
+        }
+        return null;
     }
 
     @Override

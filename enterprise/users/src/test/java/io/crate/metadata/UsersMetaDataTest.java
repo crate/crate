@@ -19,6 +19,7 @@
 package io.crate.metadata;
 
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.user.SecureHash;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -29,6 +30,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -59,8 +61,34 @@ public class UsersMetaDataTest extends CrateUnitTest {
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        UsersMetaData users2 = new UsersMetaData().fromXContent(parser);
+        UsersMetaData users2 = UsersMetaData.fromXContent(parser);
         assertEquals(users, users2);
+
+        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
+        assertThat(parser.nextToken(), nullValue());
+    }
+
+    @Test
+    public void testUsersMetaDataFromLegacyXContent() throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        // Generate legacy (v1) XContent of UsersMetaData
+        // { "users": [ "Ford", "Arthur" ] }
+        builder.startObject();
+        builder.startArray("users");
+        builder.value("Ford");
+        builder.value("Arthur");
+        builder.endArray();
+        builder.endObject();
+
+        HashMap<String, SecureHash> expectedUsers = new HashMap<>();
+        expectedUsers.put("Ford", null);
+        expectedUsers.put("Arthur", null);
+
+        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        parser.nextToken(); // start object
+        UsersMetaData users = UsersMetaData.fromXContent(parser);
+        assertEquals(users, new UsersMetaData(expectedUsers));
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
@@ -79,7 +107,7 @@ public class UsersMetaDataTest extends CrateUnitTest {
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        UsersMetaData users2 = new UsersMetaData().fromXContent(parser);
+        UsersMetaData users2 = UsersMetaData.fromXContent(parser);
         assertEquals(users, users2);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
