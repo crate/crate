@@ -1,7 +1,7 @@
 .. _crate_standard_sql:
 
 =======================
-Standard SQL compliance
+Standard SQL Compliance
 =======================
 
 CrateDB aims to provide an SQL implementation that is familiar to anyone having
@@ -20,7 +20,7 @@ CrateDB supports a set of primitive data types: integer, long, short, double,
 float, and byte, with the same ranges as corresponding Java types.
 
 The following table defines how data types of standard SQL map to CrateDB
-:ref:`sql_ddl_datatypes`.
+:ref:`data-types`.
 
 +-----------------------------------+------------------------+
 | Standard SQL                      | CrateDB                |

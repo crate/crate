@@ -46,8 +46,8 @@ Parameters
            retain names, but you can name them in your query for documentation
            purposes.
 
-:arg_type: The data type of a given argument. See :ref:`sql_ddl_datatypes` for
-           more detailed information about the supported types.
+:arg_type: The data type of a given argument. See :ref:`data-types` for more
+           detailed information about the supported types.
 
 :return_type: The returned data type of the function. The return type can be
               any supported type.

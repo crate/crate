@@ -15,11 +15,8 @@ CrateDB uses SQL to query documents. For concise reference documentation see
    dql
    administration/index
    joins
-   data_types
    functions_operators
    occ
    partitioned_tables
    analyzer
    sql
-   features
-   crate-standard-sql

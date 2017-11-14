@@ -110,7 +110,7 @@ Supported Types
 ===============
 
 The argument types, and the return type of the function can be any of the
-CrateDB supported :ref:`sql_ddl_datatypes`. Data types of values passed into a
+CrateDB supported :ref:`data-types`. Data types of values passed into a
 function must strictly correspond to its argument data types.
 
 .. NOTE::

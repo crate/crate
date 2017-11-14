@@ -1,0 +1,15 @@
+.. _appendix:
+
+========
+Appendix
+========
+
+.. rubric:: Table of Contents
+
+.. toctree::
+    :maxdepth: 1
+
+    sql-compliance
+    supported-features
+    data-types
+    system-columns
