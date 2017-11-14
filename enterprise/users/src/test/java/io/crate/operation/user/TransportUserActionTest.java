@@ -39,8 +39,8 @@ public class TransportUserActionTest extends CrateUnitTest {
         MetaData.Builder mdBuilder = new MetaData.Builder();
         TransportCreateUserAction.putUser(mdBuilder, "root", null);
         UsersMetaData metaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        assertThat(metaData.users().size(), is(1));
-        assertThat(metaData.users().get(0), is("root"));
+        assertThat(metaData.userNames().size(), is(1));
+        assertThat(metaData.userNames().get(0), is("root"));
     }
 
     @Test
@@ -64,7 +64,7 @@ public class TransportUserActionTest extends CrateUnitTest {
             .putCustom(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
         TransportCreateUserAction.putUser(mdBuilder, "Trillian", null);
         UsersMetaData newMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
-        assertThat(newMetaData.users(), containsInAnyOrder("Trillian", "Arthur"));
+        assertThat(newMetaData.userNames(), containsInAnyOrder("Trillian", "Arthur"));
     }
 
     @Test
@@ -92,6 +92,6 @@ public class TransportUserActionTest extends CrateUnitTest {
     }
 
     private static List<String> users(MetaData.Builder mdBuilder) {
-        return ((UsersMetaData)mdBuilder.build().custom(UsersMetaData.TYPE)).users();
+        return ((UsersMetaData)mdBuilder.build().custom(UsersMetaData.TYPE)).userNames();
     }
 }

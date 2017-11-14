@@ -35,17 +35,20 @@ import io.crate.operation.user.User;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.Map;
 
 public class SysUsersTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "users");
+    private static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "users");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
+    private static final BytesRef PASSWORD_PLACEHOLDER = BytesRefs.toBytesRef("********");
 
-    public static class Columns {
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent SUPERUSER = new ColumnIdent("superuser");
+    private static class Columns {
+        private static final ColumnIdent NAME = new ColumnIdent("name");
+        private static final ColumnIdent SUPERUSER = new ColumnIdent("superuser");
+        private static final ColumnIdent PASSWORD = new ColumnIdent("password");
     }
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
@@ -53,7 +56,8 @@ public class SysUsersTableInfo extends StaticTableInfo {
     public SysUsersTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.NAME, DataTypes.STRING)
-                .register(Columns.SUPERUSER, DataTypes.BOOLEAN),
+                .register(Columns.SUPERUSER, DataTypes.BOOLEAN)
+                .register(Columns.PASSWORD, DataTypes.STRING),
             PRIMARY_KEY);
     }
 
@@ -73,16 +77,22 @@ public class SysUsersTableInfo extends StaticTableInfo {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
-            .put(SysUsersTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<User, BytesRef>() {
+            .put(Columns.NAME, () -> new RowContextCollectorExpression<User, BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(row.name());
                 }
             })
-            .put(SysUsersTableInfo.Columns.SUPERUSER, () -> new RowContextCollectorExpression<User, Boolean>() {
+            .put(Columns.SUPERUSER, () -> new RowContextCollectorExpression<User, Boolean>() {
                 @Override
                 public Boolean value() {
                     return row.isSuperUser();
+                }
+            })
+            .put(Columns.PASSWORD, () -> new RowContextCollectorExpression<User, BytesRef>() {
+                @Override
+                public BytesRef value() {
+                    return row.password() != null ? PASSWORD_PLACEHOLDER : null;
                 }
             })
             .build();

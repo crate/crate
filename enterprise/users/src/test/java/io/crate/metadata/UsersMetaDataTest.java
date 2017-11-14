@@ -123,6 +123,6 @@ public class UsersMetaDataTest extends CrateUnitTest {
         StreamInput in = out.bytes().streamInput();
         UsersMetaData readUserMeta = new UsersMetaData(in);
 
-        assertThat(writeUserMeta.userHashes(), is(readUserMeta.userHashes()));
+        assertThat(writeUserMeta.users(), is(readUserMeta.users()));
     }
 }

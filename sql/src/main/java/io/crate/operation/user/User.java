@@ -35,16 +35,20 @@ public class User {
         SUPERUSER
     }
 
-    private final Set<Role> roles;
-
     private final String name;
-
+    private final Set<Role> roles;
     private final UserPrivileges privileges;
+    private final SecureHash password;
 
-    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
+    public User(String name, Set<Role> roles, Set<Privilege> privileges, SecureHash password) {
         this.roles = roles;
         this.name = name;
         this.privileges = new UserPrivileges(privileges);
+        this.password = password;
+    }
+
+    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
+        this(name, roles, privileges, null);
     }
 
     public String name() {
@@ -53,7 +57,7 @@ public class User {
 
     @Nullable
     public SecureHash password() {
-        return null;
+        return password;
     }
 
     @SuppressWarnings("WeakerAccess")

@@ -18,7 +18,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.user.SecureHash;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -70,12 +69,11 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         users.remove(name);
     }
 
-    public List<String> users() {
+    public List<String> userNames() {
         return new ArrayList<>(users.keySet());
     }
 
-    @VisibleForTesting
-    Map<String, SecureHash> userHashes() {
+    public Map<String, SecureHash> users() {
         return users;
     }
 

@@ -44,6 +44,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -115,13 +116,16 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                               @Nullable UsersPrivilegesMetaData privilegesMetaData) {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
         if (metaData != null) {
-            for (String userName : metaData.users()) {
+            for (Map.Entry<String, SecureHash> user: metaData.users().entrySet()) {
+                String userName = user.getKey();
+                SecureHash password = user.getValue();
                 Set<Privilege> privileges = null;
                 if (privilegesMetaData != null) {
                     privileges = privilegesMetaData.getUserPrivileges(userName);
                 }
-                usersBuilder.add(new User(userName, ImmutableSet.of(),
-                    privileges == null ? ImmutableSet.of() : privileges));
+                usersBuilder.add(
+                    new User(userName, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges, password)
+                );
             }
         }
         return usersBuilder.build();

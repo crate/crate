@@ -43,8 +43,12 @@ To create a new user for the CrateDB database cluster use the
 
 The newly created user does not have any special :doc:`/sql/administration/privileges`.
 It can be used to connect to the database cluster using available authentication
-methods.
+methods. You can specify the user's password in the ``WITH`` clause of the
+``CREATE`` statement. This is required if you want to use the
+:ref:`auth_password`::
 
+    cr> CREATE USER user_b WITH (password = 'a_secret_password');
+    CREATE OK, 1 row affected (... sec)
 
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters
@@ -64,20 +68,20 @@ statement returns an error::
 
 .. hide:
 
-    cr> CREATE USER user_b;
+    cr> CREATE USER user_c;
     CREATE OK, 1 row affected (... sec)
 
 To remove an existing user from the CrateDB database cluster use the
 :doc:`/sql/reference/drop_user` SQL statement::
 
-    cr> DROP USER user_b;
+    cr> DROP USER user_c;
     DROP OK, 1 row affected (... sec)
 
 If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
-    cr> DROP USER user_b;
-    SQLActionException[UserUnknownException: User 'user_b' does not exist]
+    cr> DROP USER user_c;
+    SQLActionException[UserUnknownException: User 'user_c' does not exist]
 
 It is not possible to drop the built-in superuser ``crate``.
 
@@ -92,14 +96,15 @@ CrateDB clusters is also part of that list.
 To list all existing users query that table::
 
     cr> SELECT * FROM sys.users order by name;
-    +-------------+-----------+
-    | name        | superuser |
-    +-------------+-----------+
-    | Custom User | FALSE     |
-    | crate       | TRUE      |
-    | user_a      | FALSE     |
-    +-------------+-----------+
-    SELECT 3 rows in set (... sec)
+    +-------------+----------+-----------+
+    | name        | password | superuser |
+    +-------------+----------+-----------+
+    | Custom User |     NULL | FALSE     |
+    | crate       |     NULL | TRUE      |
+    | user_a      |     NULL | FALSE     |
+    | user_b      | ******** | FALSE     |
+    +-------------+----------+-----------+
+    SELECT 4 rows in set (... sec)
 
 The column ``name`` shows the unique name of the user, the column ``superuser``
 shows whether the user has superuser privileges or not.
