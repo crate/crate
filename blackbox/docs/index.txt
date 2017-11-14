@@ -30,6 +30,7 @@ massive amounts of machine data in real-time.
    enterprise/index
    administration/index
    monitoring/index
+   appendix/index
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/
 .. _Getting Started with CrateDB: https://crate.io/docs/crate/getting-started/en/latest/

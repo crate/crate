@@ -140,7 +140,7 @@ Parameters
 
 :data_type: The data type of the column. This can include array and object
             specifiers. For more information on the data types supported by
-            CrateDB see :ref:`sql_ddl_datatypes`.
+            CrateDB see :ref:`data-types`.
 
 :generation_expression: An expression (usually a function call) that is applied
                         in the context of the current row. As such it can

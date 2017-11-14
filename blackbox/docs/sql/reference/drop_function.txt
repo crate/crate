@@ -39,5 +39,5 @@ Parameters
            since only the argument data types are needed to identify the
            function.
 
-:arg_type: The data type of an argument, if any. See  :ref:`sql_ddl_datatypes`
-           for more information about the supported types.
+:arg_type: The data type of an argument, if any. See :ref:`data-types` for more
+           information about the supported types.

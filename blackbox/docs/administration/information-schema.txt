@@ -308,8 +308,7 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 | ``data_type``                 | The data type of the column                   | ``String``    |
 |                               |                                               |               |
-|                               | For further information see                   |               |
-|                               | :doc:`/sql/data_types`                        |               |
+|                               | For further information see :ref:`data-types` |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``column_default``            | Not implemented (always returns ``NULL``)     | ``String``    |
 +-------------------------------+-----------------------------------------------+---------------+

@@ -13,7 +13,7 @@ Introduction
 To create a table use the ``CREATE TABLE`` command. You must at least specify a
 name for the table and names and types of the columns.
 
-See :ref:`sql_ddl_datatypes` for information about the supported data types.
+See :ref:`data-types` for information about the supported data types.
 
 Let's create a simple table with two columns of type ``integer`` and
 ``string``::

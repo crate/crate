@@ -1,5 +1,6 @@
 .. highlight:: psql
-.. _sql_ddl_datatypes:
+
+.. _data-types:
 
 ==========
 Data Types

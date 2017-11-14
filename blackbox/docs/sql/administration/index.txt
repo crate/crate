@@ -10,6 +10,5 @@ Database Administration Statements
 .. toctree::
    :maxdepth: 2
 
-   system_columns
    show_create_table
    user_defined_functions
