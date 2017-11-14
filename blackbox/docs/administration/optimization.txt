@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _optimize:
 
-========
-Optimize
-========
+============
+Optimization
+============
 
 .. rubric:: Table of Contents
 

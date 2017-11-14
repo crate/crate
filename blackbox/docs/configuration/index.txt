@@ -45,6 +45,11 @@ settings will override configuration file settings.
 
 .. NOTE::
 
+   Cluster settings can be :ref:`changed at runtime
+   <administration-runtime-config>`.
+
+.. NOTE::
+
    If you're just getting started with a particular part of CrateDB, we
    recommend you consult the appropriate top-level section of the
    documentation. The configuration documentation assumes a basic familiarity

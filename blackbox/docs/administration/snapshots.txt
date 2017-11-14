@@ -1,8 +1,9 @@
 .. highlight:: psql
 .. _snapshot-restore:
 
-Backup With Snapshot and Restore
-================================
+=========
+Snapshots
+=========
 
 .. rubric:: Table of Contents
 

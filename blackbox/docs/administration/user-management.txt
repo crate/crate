@@ -41,10 +41,9 @@ To create a new user for the CrateDB database cluster use the
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
 
-The newly created user does not have any special :doc:`/sql/administration/privileges`.
-It can be used to connect to the database cluster using available authentication
-methods.
-
+The newly created user does not have any special
+:ref:`administration-privileges`. It can be used to connect to the database
+cluster using available authentication methods.
 
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters

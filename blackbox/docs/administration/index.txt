@@ -1,16 +1,25 @@
 .. _administration_features:
 
-=======================
-Database Administration
-=======================
+==============
+Administration
+==============
 
 .. rubric:: Table of Contents
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
+    :titlesonly:
 
-    ingestion/index
-    auth_methods
-    hba
+    runtime-config
+    user-management
+    privileges
+    authentication/index
     ssl
-
+    ingestion/index
+    information-schema
+    system-information
+    optimization
+    jobs-management
+    snapshots
+    discovery
+    udc
