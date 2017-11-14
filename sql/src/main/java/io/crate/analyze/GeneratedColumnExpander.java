@@ -33,11 +33,10 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GtOperator;
@@ -50,7 +49,6 @@ import io.crate.operation.scalar.arithmetic.CeilFunction;
 import io.crate.operation.scalar.arithmetic.FloorFunction;
 import io.crate.operation.scalar.arithmetic.RoundFunction;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -60,8 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Singleton
-public class GeneratedColumnComparisonReplacer {
+public final class GeneratedColumnExpander {
 
     private static final Map<String, String> ROUNDING_FUNCTION_MAPPING = ImmutableMap.of(
         GtOperator.NAME, GteOperator.NAME,
@@ -75,10 +72,26 @@ public class GeneratedColumnComparisonReplacer {
         DateTruncFunction.NAME
     );
 
+    private GeneratedColumnExpander() {
+    }
+
     private static final ComparisonReplaceVisitor COMPARISON_REPLACE_VISITOR = new ComparisonReplaceVisitor();
 
-    public Symbol replaceIfPossible(Symbol symbol, DocTableInfo tableInfo) {
-        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, tableInfo);
+    /**
+     * @return symbol as is or rewritten to have generated columns expanded.
+     *
+     * <pre>
+     *     example for an expansion:
+     *
+     *     generatedCols: [day as date_trunc('day', ts)]
+     *     partitionCols: [day]
+     *
+     *     input:   ts > $1
+     *     output:  ts > $1 and day > date_trunc('day', ts)
+     * </pre>
+     */
+    public static Symbol maybeExpand(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> partitionCols) {
+        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, partitionCols);
     }
 
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
@@ -95,8 +108,9 @@ public class GeneratedColumnComparisonReplacer {
             super();
         }
 
-        Symbol addComparisons(Symbol symbol, DocTableInfo tableInfo) {
-            Multimap<Reference, GeneratedReference> referencedSingleReferences = extractGeneratedReferences(tableInfo);
+        Symbol addComparisons(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> partitionCols) {
+            Multimap<Reference, GeneratedReference> referencedSingleReferences =
+                extractGeneratedReferences(generatedCols, partitionCols);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
@@ -183,12 +197,11 @@ public class GeneratedColumnComparisonReplacer {
             );
         }
 
-        private Multimap<Reference, GeneratedReference> extractGeneratedReferences(DocTableInfo tableInfo) {
+        private static Multimap<Reference, GeneratedReference> extractGeneratedReferences(List<GeneratedReference> generatedCols,
+                                                                                          Collection<Reference> partitionCols) {
             Multimap<Reference, GeneratedReference> multiMap = HashMultimap.create();
-
-            for (GeneratedReference generatedColumn : tableInfo.generatedColumns()) {
-                if (generatedColumn.referencedReferences().size() == 1 &&
-                    tableInfo.partitionedByColumns().contains(generatedColumn)) {
+            for (GeneratedReference generatedColumn : generatedCols) {
+                if (generatedColumn.referencedReferences().size() == 1 && partitionCols.contains(generatedColumn)) {
                     multiMap.put(generatedColumn.referencedReferences().get(0), generatedColumn);
                 }
             }
