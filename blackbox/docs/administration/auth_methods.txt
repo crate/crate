@@ -90,7 +90,7 @@ HTTP connections.
    **CrateDB does not store user passwords as clear text!**
 
    CrateDB stores user passwords salted with a per-user salt and hashed using
-   the PBKDF2_ key derivation function and the `SHA-2 hash algorithm`_.
+   the PBKDF2_ key derivation function and the `SHA-512 hash algorithm`_.
 
 .. _auth_cert:
 
@@ -120,4 +120,4 @@ connect using SSL with client certificate.
 
 
 .. _PBKDF2: https://en.wikipedia.org/wiki/PBKDF2
-.. _SHA-2 hash algorithm: https://en.wikipedia.org/wiki/SHA-2
+.. _SHA-512 hash algorithm: https://en.wikipedia.org/wiki/SHA-2
