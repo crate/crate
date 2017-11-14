@@ -74,10 +74,35 @@ class EqualityExtractor {
         return extractMatches(columns, symbol, false, transactionContext);
     }
 
-    List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+    /**
+     * @return Exact matches of the {@code columns} within {@code symbol}.
+     *         Null if there are no exact matches
+     *
+     * <pre>
+     * Example for exact matches:
+     *
+     * columns: [x]
+     *      x = ?                                           ->  [[?]]
+     *      x = 1 or x = 2                                  ->  [[1], [2]]
+     *
+     * columns: [x, y]
+     *      x = $1 and y = $2                               -> [[$1, $2]]
+     *
+     *      (x = 1 and y = 2) or (x = 2 and y = 3)          -> [[1, 2], [2, 3]]
+     *
+     *
+     * columns: [x]
+     *      x = 10 or y = 20                                -> null (y not inside columns)
+     * </pre>
+     */
+    @Nullable
+    List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns,
+                                           Symbol symbol,
+                                           @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, true, transactionContext);
     }
 
+    @Nullable
     private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns,
                                               Symbol symbol,
                                               boolean exact,
