@@ -8,9 +8,8 @@ Cluster Wide Settings
 
 All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
-cluster settings can be changed at runtime using the
-:ref:`SET/RESET<administration-set-reset>` statement. This is documented at
-:each setting.
+cluster settings can be :ref:`changed at runtime
+<administration-runtime-config>`. This is documented at each setting.
 
 .. rubric:: Table of Contents
 

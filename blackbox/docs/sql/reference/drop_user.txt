@@ -25,7 +25,7 @@ Description
 from the CrateDB cluster.
 
 For usage of the ``DROP USER`` statement see
-:doc:`/sql/administration/user_management`.
+:ref:`administration_user_management`.
 
 Parameters
 ==========

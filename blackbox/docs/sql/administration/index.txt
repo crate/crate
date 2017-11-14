@@ -11,9 +11,5 @@ Database Administration Statements
    :maxdepth: 2
 
    system_columns
-   set_reset
    show_create_table
    user_defined_functions
-   user_management
-   privileges
-   ingestion_rules

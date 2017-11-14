@@ -62,7 +62,7 @@ Authentication
 ..............
 
 If the `Enterprise Edition`_ is enabled, authentication methods can be
-configured using :doc:`/administration/hba`.
+configured using :ref:`administration_hba`.
 
 If the enterprise functionality is disabled, all "start up" requests are
 answered with an ``AuthenticationOK`` response.

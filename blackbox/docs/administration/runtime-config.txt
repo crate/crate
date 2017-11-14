@@ -1,7 +1,8 @@
-.. _administration-set-reset:
+.. _administration-runtime-config:
 
-Set and Reset
-=============
+=====================
+Runtime Configuration
+=====================
 
 The CrateDB cluster can be configured at runtime using the :ref:`SET <ref-set>`
 and :ref:`RESET <ref-set>` statement. See the :ref:`Cluster Settings
