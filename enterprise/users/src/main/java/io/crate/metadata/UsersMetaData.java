@@ -18,6 +18,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.user.SecureHash;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -73,7 +74,8 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return new ArrayList<>(users.keySet());
     }
 
-    public Map<String, SecureHash> userHashes() {
+    @VisibleForTesting
+    Map<String, SecureHash> userHashes() {
         return users;
     }
 
@@ -98,6 +100,7 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject("users");
         for (Map.Entry<String, SecureHash> entry : users.entrySet()) {
             builder.startObject(entry.getKey());
             if (entry.getValue() != null) {
@@ -105,84 +108,65 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
             }
             builder.endObject();
         }
+        builder.endObject();
         return builder;
     }
 
     /**
-     * UsersMetaData has the form of:
+     * UsersMetaData v2 has the form of:
      *
-     * {
-     *     "user1": {
-     *         "secure_hash": {
-     *             "iterations": INT,
-     *             "hash": BYTE[],
-     *             "salt": BYTE[]
-     *         }
-     *     },
-     *     ...
+     * users: {
+     *   "user1": {
+     *     "secure_hash": {
+     *       "iterations": INT,
+     *       "hash": BYTE[],
+     *       "salt": BYTE[]
+     *     }
+     *   },
+     *   "user2": {
+     *     "secure_hash": null
+     *   },
+     *   ...
      * }
+     *
+     * UsersMetaData v1 has the form of:
+     *
+     * users: [
+     *   "user1",
+     *   "user2",
+     *   ...
+     * ]
+     *
      */
     public static UsersMetaData fromXContent(XContentParser parser) throws IOException {
         Map<String, SecureHash> users = new HashMap<>();
+        XContentParser.Token token = parser.nextToken();
 
-        while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
-            String userName = parser.currentName();
-            if (parser.nextToken() == XContentParser.Token.START_OBJECT) {  // user
-                users.put(userName, secureHashFromXContent(parser));
+        if (token == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
+            token = parser.nextToken();
+            if (token == XContentParser.Token.START_ARRAY) {
+                // UsersMetaData v1
+                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
+                    users.put(parser.text(), null); // old users do not have passwords
+                }
+            } else if (token == XContentParser.Token.START_OBJECT) {
+                // UsersMetaData v2
+                while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
+                    String userName = parser.currentName();
+                    if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
+                        users.put(userName, SecureHash.fromXContent(parser));
+                    }
+                }
+            }
+            if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                // each custom metadata is packed inside an object.
+                // each custom must move the parser to the end otherwise possible following customs won't be read
+                throw new ElasticsearchParseException("failed to parse users, expected an object token at the end");
             }
         }
         return new UsersMetaData(users);
     }
 
-    private static SecureHash secureHashFromXContent(XContentParser parser) throws IOException {
-        XContentParser.Token currentToken;
-        int iterations = 0;
-        byte[] hash = new byte[0];
-        byte[] salt = new byte[0];
-        boolean hasPassword = false;
-
-        while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (currentToken == XContentParser.Token.FIELD_NAME) {
-                while ((currentToken = parser.nextToken()) != XContentParser.Token.END_OBJECT) { // secure_hash
-                    hasPassword = true;
-                    if (currentToken == XContentParser.Token.FIELD_NAME) {
-                        String currentFieldName = parser.currentName();
-                        currentToken = parser.nextToken();
-                        switch (currentFieldName) {
-                            case "iterations":
-                                if (currentToken != XContentParser.Token.VALUE_NUMBER) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'iterations' value is not a number [{}]", currentToken);
-                                }
-                                iterations = parser.intValue();
-                                break;
-                            case "hash":
-                                if (currentToken.isValue()) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'hash' does not contain any value [{}]", currentToken);
-                                }
-                                hash = parser.binaryValue();
-                                break;
-                            case "salt":
-                                if (currentToken.isValue()) {
-                                    throw new ElasticsearchParseException(
-                                        "failed to parse SecureHash, 'salt' does not contain any value [{}]", currentToken);
-                                }
-                                salt = parser.binaryValue();
-                                break;
-                            default:
-                                throw new ElasticsearchParseException("failed to parse secure_hash");
-                        }
-                    }
-                }
-            }
-        }
-
-        if (hasPassword) {
-            return SecureHash.of(iterations, salt, hash);
-        }
-        return null;
-    }
 
     @Override
     public EnumSet<MetaData.XContentContext> context() {
