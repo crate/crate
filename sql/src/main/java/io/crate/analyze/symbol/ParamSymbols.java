@@ -23,6 +23,7 @@
 package io.crate.analyze.symbol;
 
 import io.crate.data.Row;
+import io.crate.types.DataType;
 
 public final class ParamSymbols extends DefaultTraversalSymbolVisitor<Row, Symbol> {
 
@@ -38,7 +39,8 @@ public final class ParamSymbols extends DefaultTraversalSymbolVisitor<Row, Symbo
     }
 
     @Override
-    public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
-        return Literal.of(parameterSymbol.valueType(), params.get(parameterSymbol.index()));
+    public Symbol visitParameterSymbol(ParameterSymbol param, Row params) {
+        DataType type = param.valueType();
+        return Literal.of(type, type.value(params.get(param.index())));
     }
 }

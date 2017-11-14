@@ -77,7 +77,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyStatementPlanner;
-import io.crate.planner.statement.DeleteStatementPlanner;
+import io.crate.planner.statement.DeletePlanner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
@@ -339,7 +339,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, Context context) {
-        return DeleteStatementPlanner.planDelete(functions, statement, context);
+        return DeletePlanner.planDelete(functions, statement, context);
     }
 
     @Override

@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
@@ -30,14 +31,14 @@ import java.util.UUID;
 public class DeletePartitions extends UnnestablePlan {
 
     private final UUID jobId;
-    private final List<String> partitions;
+    private final List<List<Symbol>> partitions;
 
-    public DeletePartitions(UUID jobId, List<String> partitions) {
+    public DeletePartitions(UUID jobId, List<List<Symbol>> partitions) {
         this.jobId = jobId;
         this.partitions = partitions;
     }
 
-    public List<String> partitions() {
+    public List<List<Symbol>> partitions() {
         return partitions;
     }
 

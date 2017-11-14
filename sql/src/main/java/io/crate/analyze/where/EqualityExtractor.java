@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class EqualityExtractor {
+public class EqualityExtractor {
 
     private static final Function NULL_MARKER = new Function(
         new FunctionInfo(
@@ -66,7 +66,7 @@ class EqualityExtractor {
 
     private EvaluatingNormalizer normalizer;
 
-    EqualityExtractor(EvaluatingNormalizer normalizer) {
+    public EqualityExtractor(EvaluatingNormalizer normalizer) {
         this.normalizer = normalizer;
     }
 
@@ -96,9 +96,9 @@ class EqualityExtractor {
      * </pre>
      */
     @Nullable
-    List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns,
-                                           Symbol symbol,
-                                           @Nullable TransactionContext transactionContext) {
+    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns,
+                                                  Symbol symbol,
+                                                  @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, true, transactionContext);
     }
 

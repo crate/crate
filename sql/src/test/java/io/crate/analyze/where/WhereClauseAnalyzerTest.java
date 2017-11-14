@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.PartitionName;

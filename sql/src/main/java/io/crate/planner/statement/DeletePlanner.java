@@ -25,10 +25,10 @@ package io.crate.planner.statement;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -39,6 +39,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
@@ -51,20 +52,23 @@ import java.util.Collections;
 
 import static java.util.Objects.requireNonNull;
 
-public final class DeleteStatementPlanner {
+public final class DeletePlanner {
 
     public static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, Planner.Context context) {
-        DocTableRelation table = delete.relation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, table);
-        WhereClause where = whereClauseAnalyzer.analyze(new WhereClause(delete.query()), context.transactionContext());
+        DocTableRelation tableRel = delete.relation();
+        DocTableInfo table = tableRel.tableInfo();
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
+        WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
+            normalizer, delete.query(), table, context.transactionContext());
 
-        if (where.docKeys().isPresent()) {
-            return new DeleteById(context.jobId(), table.tableInfo(), where.docKeys().get());
+        if (detailedQuery.docKeys().isPresent()) {
+            return new DeleteById(context.jobId(), tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
-        if (!where.partitions().isEmpty()) {
-            return new DeletePartitions(context.jobId(), where.partitions());
+        if (!detailedQuery.partitions().isEmpty()) {
+            return new DeletePartitions(context.jobId(), detailedQuery.partitions());
         }
-        return deleteByQuery(table.tableInfo(), where, context);
+        WhereClause where = new WhereClause(delete.query(), null, null, null);
+        return deleteByQuery(tableRel.tableInfo(), where , context);
     }
 
     private static Plan deleteByQuery(DocTableInfo table, WhereClause where, Planner.Context context) {
