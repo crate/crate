@@ -24,7 +24,7 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.GeneratedColumnComparisonReplacer;
+import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.SymbolToTrueVisitor;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -56,8 +56,6 @@ import java.util.Set;
 
 public class WhereClauseAnalyzer {
 
-    private static final GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
-
     private final Functions functions;
     private final DocTableInfo tableInfo;
     private final EqualityExtractor eqExtractor;
@@ -75,7 +73,8 @@ public class WhereClauseAnalyzer {
             return WhereClause.MATCH_ALL;
         }
         WhereClauseValidator.validate(query);
-        Symbol queryGenColsProcessed = GENERATED_COLUMN_COMPARISON_REPLACER.replaceIfPossible(query, tableInfo);
+        Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
+            query, tableInfo.generatedColumns(), tableInfo.partitionedByColumns());
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, transactionContext);
         }
