@@ -57,6 +57,7 @@ public final class DeletePlanner {
     public static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, Planner.Context context) {
         DocTableRelation tableRel = delete.relation();
         DocTableInfo table = tableRel.tableInfo();
+        // TODO: drop all partitions on match-all
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, delete.query(), table, context.transactionContext());
@@ -65,7 +66,7 @@ public final class DeletePlanner {
             return new DeleteById(context.jobId(), tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (!detailedQuery.partitions().isEmpty()) {
-            return new DeletePartitions(context.jobId(), detailedQuery.partitions());
+            return new DeletePartitions(context.jobId(), table.ident(), detailedQuery.partitions());
         }
         WhereClause where = new WhereClause(delete.query(), null, null, null);
         return deleteByQuery(tableRel.tableInfo(), where , context);

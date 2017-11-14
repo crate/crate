@@ -21,17 +21,27 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
+import io.crate.analyze.symbol.ParamSymbols;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ddl.DeletePartitions;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 public class ESDeletePartitionTask extends JobTask {
@@ -39,24 +49,36 @@ public class ESDeletePartitionTask extends JobTask {
     private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = o -> new Row1(-1L);
 
     private final TransportDeleteIndexAction transport;
-    private final DeleteIndexRequest request;
+    private final List<List<Symbol>> partitions;
+    private final TableIdent table;
 
     public ESDeletePartitionTask(DeletePartitions deletePartitions, TransportDeleteIndexAction transport) {
         super(deletePartitions.jobId());
         this.transport = transport;
-        this.request = new DeleteIndexRequest(deletePartitions.partitions().toArray(new String[0]));
+        this.table = deletePartitions.tableIdent();
+        partitions = deletePartitions.partitions();
+    }
+
+    @Override
+    public void execute(RowConsumer consumer, Row parameters) {
+        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW);
+
+        ArrayList<String> indexNames = new ArrayList<>();
+        for (List<Symbol> partitionValues : partitions) {
+            Function<Symbol, BytesRef> symbolToBytesRef =
+                s -> ValueSymbolVisitor.BYTES_REF.process(ParamSymbols.toLiterals(s, parameters));
+            List<BytesRef> values = Lists2.copyAndReplace(partitionValues, symbolToBytesRef);
+            String indexName = IndexParts.toIndexName(table, PartitionName.encodeIdent(values));
+            indexNames.add(indexName);
+        }
+        DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
 
         /**
          * table is partitioned, in case of concurrent "delete from partitions"
          * it could be that some partitions are already deleted,
          * so ignore it if some are missing
          */
-        this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
-    }
-
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
-        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW);
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
         transport.execute(request, actionListener);
     }
 }
