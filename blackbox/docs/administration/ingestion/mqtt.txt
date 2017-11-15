@@ -5,7 +5,7 @@
 MQTT Ingestion Source
 =====================
 
-The MQTT_ ingestion source allows CrateDB to function as an MQTT broker for
+The MQTT_ ingestion source allows CrateDB to function as an MQTT endpoint for
 data ingestion.
 
 .. NOTE::
@@ -53,7 +53,7 @@ Node Settings
   | *Default:*   ``1883``
   | *Runtime:*  ``no``
 
-  TCP port on which the broker is exposed.
+  TCP port on which the endpoint is exposed.
 
   Can either be a number, or a string defining a port range. The first free
   port of this range is used.
@@ -70,12 +70,12 @@ Node Settings
 SSL Support
 ...........
 
-SSL support is available for the MQTT connections and can be enabled using the 
-``ssl.ingestion.mqtt.enabled`` setting. When SSL is enabled for the MQTT 
-connection, consider changing ``ingestion.mqtt.port`` to ``8883`` which is 
-the TCP/IP registered port for MQTT over SSL. 
+SSL support is available for the MQTT connections and can be enabled using the
+``ssl.ingestion.mqtt.enabled`` setting. When SSL is enabled for the MQTT
+connection, consider changing ``ingestion.mqtt.port`` to ``8883`` which is
+the TCP/IP registered port for MQTT over SSL.
 
-Once CrateDB is configured to use encrypted MQTT connections, unencrypted 
+Once CrateDB is configured to use encrypted MQTT connections, unencrypted
 connections will not be supported anymore.
 
 .. SEEALSO::
@@ -91,8 +91,8 @@ Quality of Service
 ------------------
 
 This ingestion source only implements MQTT Quality of Service (QoS) `level
-one`_, meaning that messages will be delivered at least once to the broker and
-stored in the database.
+one`_, meaning that messages will be delivered at least once to the endpoint
+and stored in the database.
 
 Other QoS levels are not supported and messages sent with those levels are
 discared and an error is logged.

@@ -32,7 +32,7 @@ Creating Ingestion Rules
 
 Use the :ref:`create-ingest-rule` statement to create ingestion rules.
 
-Suppose we have an ingestion source for an MQTT_ broker, that sends messages
+Suppose we have an ingestion source for an MQTT_ endpoint, that sends messages
 containing temperature and humidity measurements of our open space in the
 following data structure:
 
@@ -68,7 +68,7 @@ We could do this::
     CREATE OK, 1 row affected (... sec)
 
 In the ``WHERE CLAUSE`` of our example, ``topic`` stands for the message
-topic of the MQTT_ broker's data structure, as detailed above.
+topic of the MQTT_ endpoint's data structure, as detailed above.
 
 Multiple rules can be created for the same ingestion source. For example, to
 write the humidity data to the ``mqtt_humidity`` target table,
