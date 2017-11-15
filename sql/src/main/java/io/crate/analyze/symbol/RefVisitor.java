@@ -24,7 +24,9 @@ package io.crate.analyze.symbol;
 
 import io.crate.metadata.Reference;
 
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super Reference>, Void> {
 
@@ -47,5 +49,16 @@ public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? s
     public Void visitDynamicReference(DynamicReference ref, Consumer<? super Reference> consumer) {
         consumer.accept(ref);
         return null;
+    }
+
+    public static <B> B fold(Symbol tree, BiFunction<? super Reference, B, B> stepper, B identity) {
+        @SuppressWarnings("unchecked")
+        B[] result = (B[]) new Object[] {identity};
+        VISITOR.process(tree, r -> result[0] = stepper.apply(r, result[0]));
+        return result[0];
+    }
+
+    public static boolean any(Symbol tree, Predicate<? super Reference> predicate) {
+        return fold(tree, (r, val) -> val || predicate.test(r), false);
     }
 }

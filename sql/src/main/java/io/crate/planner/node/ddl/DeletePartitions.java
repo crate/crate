@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,60 +19,43 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.planner.node.ddl;
 
-import io.crate.analyze.where.DocKeys;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-public class ESDelete extends UnnestablePlan {
+public class DeletePartitions extends UnnestablePlan {
 
     private final UUID jobId;
-    private final DocTableInfo tableInfo;
-    private final List<DocKeys.DocKey> docKeys;
-    private final Map<Integer, Integer> itemToBulkIdx;
-    private final int bulkSize;
+    private final TableIdent tableIdent;
+    private final List<List<Symbol>> partitions;
 
-    public ESDelete(UUID jobId,
-                    DocTableInfo tableInfo,
-                    List<DocKeys.DocKey> docKeys,
-                    Map<Integer, Integer> itemToBulkIdx,
-                    int bulkSize) {
+    public DeletePartitions(UUID jobId, TableIdent tableIdent, List<List<Symbol>> partitions) {
         this.jobId = jobId;
-        this.tableInfo = tableInfo;
-        this.docKeys = docKeys;
-        this.itemToBulkIdx = itemToBulkIdx;
-        this.bulkSize = bulkSize;
+        this.tableIdent = tableIdent;
+        this.partitions = partitions;
     }
 
-    public DocTableInfo tableInfo() {
-        return tableInfo;
-    }
-
-    public List<DocKeys.DocKey> docKeys() {
-        return docKeys;
-    }
-
-    public Map<Integer, Integer> getItemToBulkIdx() {
-        return itemToBulkIdx;
-    }
-
-    public int getBulkSize() {
-        return bulkSize;
+    public List<List<Symbol>> partitions() {
+        return partitions;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDelete(this, context);
+        return visitor.visitESDeletePartition(this, context);
     }
 
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 }

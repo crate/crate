@@ -126,12 +126,15 @@ class BulkPortal extends AbstractPortal {
         }
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         synced = true;
-        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs);
+        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs, bulkParams);
     }
 
-    private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
-                                                final JobsLogs jobsLogs) {
-        List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
+    private CompletableFuture<Void> executeBulk(Executor executor,
+                                                Plan plan,
+                                                final UUID jobId,
+                                                final JobsLogs jobsLogs,
+                                                List<Row> bulkParams) {
+        List<CompletableFuture<Long>> futures = executor.executeBulk(plan, bulkParams);
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
@@ -140,7 +143,8 @@ class BulkPortal extends AbstractPortal {
 
     private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
         assert completedResultFutures.size() == resultReceivers.size()
-            : "number of result must match number of rowReceivers";
+            : "number of result must match number of rowReceivers, results: " +
+              "" + completedResultFutures.size() + "; receivers: " + resultReceivers.size();
 
         Long[] cells = new Long[1];
         RowN row = new RowN(cells);

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,31 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.ddl;
+package io.crate.planner.node.dml;
 
+import io.crate.analyze.where.DocKeys;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
-import javax.annotation.Nonnull;
 import java.util.UUID;
 
-public class ESDeletePartition extends UnnestablePlan {
+public class DeleteById extends UnnestablePlan {
 
     private final UUID jobId;
-    private final String[] indices;
+    private final DocTableInfo table;
+    private final DocKeys docKeys;
 
-    public ESDeletePartition(UUID jobId, @Nonnull String... indices) {
+    public DeleteById(UUID jobId, DocTableInfo table, DocKeys docKeys) {
         this.jobId = jobId;
-        this.indices = indices;
+        this.table = table;
+        this.docKeys = docKeys;
     }
 
-    public String[] indices() {
-        return indices;
+    public DocTableInfo table() {
+        return table;
+    }
+
+    public DocKeys docKeys() {
+        return docKeys;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeletePartition(this, context);
+        return visitor.visitDeleteById(this, context);
     }
 
     @Override

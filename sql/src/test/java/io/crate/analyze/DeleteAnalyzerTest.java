@@ -50,6 +50,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhere() throws Exception {
+        fail("TODO");
+        /*
         DeleteAnalyzedStatement statement = e.analyze("delete from users where name='Trillian'");
         DocTableRelation tableRelation = statement.analyzedRelation;
         TableInfo tableInfo = tableRelation.tableInfo();
@@ -63,6 +65,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
         assertThat(whereClause.arguments().get(1), isLiteral("Trillian"));
+        */
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -79,21 +82,27 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
+        fail("TODO");
+        /*
         DeleteAnalyzedStatement statement = e.analyze("delete from parted where date = 1395874800000");
         assertThat(statement.whereClauses().get(0).hasQuery(), is(false));
         assertThat(statement.whereClauses().get(0).noMatch(), is(false));
         assertThat(statement.whereClauses().get(0).partitions().size(), is(1));
         assertThat(statement.whereClauses().get(0).partitions().get(0),
             is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+            */
     }
 
     @Test
     public void testDeleteTableAlias() throws Exception {
+        fail("TODO");
+        /*
         DeleteAnalyzedStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
         DeleteAnalyzedStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
 
         assertThat(actualStatement.analyzedRelation.tableInfo(), equalTo(expectedStatement.analyzedRelation().tableInfo()));
         assertThat(actualStatement.whereClauses().get(0), equalTo(expectedStatement.whereClauses().get(0)));
+        */
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -103,6 +112,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBulkDelete() throws Exception {
+        fail("TODO");
+        /*
         DeleteAnalyzedStatement analysis = e.analyze("delete from users where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{2},
@@ -110,6 +121,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new Object[]{4},
         });
         assertThat(analysis.whereClauses().size(), is(4));
+        */
     }
 
     @Test

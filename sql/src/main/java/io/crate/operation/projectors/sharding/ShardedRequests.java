@@ -40,6 +40,9 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
 
     private int location = -1;
 
+    /**
+     * @param requestFactory function to create a request, will receive the indexName and routing
+     */
     public ShardedRequests(BiFunction<ShardId, String, TReq> requestFactory) {
         this.requestFactory = requestFactory;
     }

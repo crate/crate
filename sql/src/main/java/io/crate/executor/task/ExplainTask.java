@@ -22,10 +22,10 @@
 
 package io.crate.executor.task;
 
-import io.crate.data.RowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.executor.Task;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.node.management.ExplainPlan;
@@ -58,7 +58,7 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public List<CompletableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
     }
 }

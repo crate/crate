@@ -20,43 +20,27 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.analyze.symbol;
 
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
+import io.crate.types.DataType;
 
-import java.util.function.Consumer;
+public final class ParamSymbols extends DefaultTraversalSymbolVisitor<Row, Symbol> {
 
-public final class AnalyzedDeleteStatement implements AnalyzedStatement {
+    private static final ParamSymbols INSTANCE = new ParamSymbols();
 
-    private final DocTableRelation relation;
-    private final Symbol query;
-
-    public AnalyzedDeleteStatement(DocTableRelation relation, Symbol query) {
-        this.relation = relation;
-        this.query = query;
+    public static Symbol toLiterals(Symbol st, Row params) {
+        return INSTANCE.process(st, params);
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAnalyzedDeleteStatement(this, context);
+    protected Symbol visitSymbol(Symbol symbol, Row params) {
+        return symbol;
     }
 
     @Override
-    public boolean isWriteOperation() {
-        return true;
-    }
-
-    @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        consumer.accept(query);
-    }
-
-    public DocTableRelation relation() {
-        return relation;
-    }
-
-    public Symbol query() {
-        return query;
+    public Symbol visitParameterSymbol(ParameterSymbol param, Row params) {
+        DataType type = param.valueType();
+        return Literal.of(type, type.value(params.get(param.index())));
     }
 }
