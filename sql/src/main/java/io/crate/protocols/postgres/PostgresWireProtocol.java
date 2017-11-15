@@ -50,6 +50,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -225,6 +226,16 @@ class PostgresWireProtocol {
         }
         buffer.readBytes(bytes);
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
+    }
+
+    @Nullable
+    private static char[] readCharArray(ByteBuf buffer) {
+        byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
+        if (bytes.length == 0) {
+            return null;
+        }
+        buffer.readBytes(bytes);
+        return StandardCharsets.UTF_8.decode(ByteBuffer.wrap(bytes)).array();
     }
 
     private Properties readStartupMessage(ByteBuf buffer) {
@@ -470,9 +481,9 @@ class PostgresWireProtocol {
     }
 
     private void handlePassword(ByteBuf buffer, final Channel channel) {
-        String passwd = readCString(buffer);
+        char[] passwd = readCharArray(buffer);
         if (passwd != null) {
-            authContext.setSecurePassword(passwd.toCharArray());
+            authContext.setSecurePassword(passwd);
         }
         finishAuthentication(channel);
     }
