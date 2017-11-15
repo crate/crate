@@ -71,9 +71,8 @@ public class CreateUserAnalyzer {
         Map<String, Symbol> rows = new HashMap<>();
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
         for (Map.Entry<String, Expression> exprEntry : properties.entrySet()) {
-            String key = exprEntry.getKey();
-            Symbol valueSymbol = expressionAnalyzer.convert(properties.get(key), exprCtx);
-            rows.put(key, valueSymbol);
+            Symbol valueSymbol = expressionAnalyzer.convert(exprEntry.getValue(), exprCtx);
+            rows.put(exprEntry.getKey(), valueSymbol);
         }
         return new CreateUserAnalyzedStatement(node.name(), rows);
     }
