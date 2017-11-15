@@ -21,6 +21,10 @@ Breaking Changes
    configuration for ``auth.host_based.config``.
    This is done in order to provide a better default installation for new users
    without breaking exising HBA configurations.
+   An implication of these settings is that whenever Enterprise is enabled
+   (default behaviour) connections from remote hosts *always* require
+   password authentication. Note, that when running CrateDB in Docker, the host
+   of the Docker container is also considered a remote host.
 
  - Columns aren't implicitly cast to a type anymore. Whenever columns are
    compared to Literals (e.g. 'string', 1, 1.2), these literals will be
