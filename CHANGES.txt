@@ -35,6 +35,15 @@ Breaking Changes
 Changes
 =======
 
+- Added new "password" authentication method which is available for connections
+  via the Postgres Protocol. This method allowes clients to authenticate using
+  a valid database user and its password.
+
+- Added ``WITH`` clause to ``CREATE USER`` statement to specify user properties
+  upon creation. The single property available right now is the ``password``
+  property which can be used for "password" authentication. User passwords are
+  never stored in clear-text inside CrateDB.
+
 - Clients using the postgres wire protocol will now receive an additional
   ``crate_version`` ``ParameterStatus`` message during the connection
   establishment. This can be used to identify the server as ``CrateDB``.
