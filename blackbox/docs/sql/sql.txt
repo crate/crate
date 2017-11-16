@@ -16,7 +16,6 @@ CrateDB.
 
     reference/alter_table
     reference/alter_cluster
-    reference/alter_user
     reference/copy_from
     reference/copy_to
     reference/create_analyzer
