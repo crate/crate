@@ -146,7 +146,7 @@ public final class DataTypes {
             .add(OBJECT)
             .build())
         .put(IP.id(), ImmutableSet.of(STRING))
-        .put(TIMESTAMP.id(), ImmutableSet.of(LONG, STRING))
+        .put(TIMESTAMP.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
         .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
         .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
         .put(OBJECT.id(), ImmutableSet.of(GEO_SHAPE))

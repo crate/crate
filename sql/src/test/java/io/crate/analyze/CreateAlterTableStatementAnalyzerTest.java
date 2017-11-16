@@ -889,7 +889,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
-        assertThat((String) dayMapping.get("type"), is("date"));
+        assertThat((String) dayMapping.get("type"), is("long"));
     }
 
     @Test

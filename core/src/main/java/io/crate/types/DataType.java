@@ -35,7 +35,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     /**
      * Type precedence ids which help to decide when a type can be cast
-     * into another type without loosing information (upcasting).
+     * into another type without losing information (upcasting).
      *
      * Lower ordinal => Lower precedence
      * Higher ordinal => Higher precedence
@@ -54,7 +54,6 @@ public abstract class DataType<T> implements Comparable, Streamable {
         ShortType,
         IntegerType,
         LongType,
-        TimestampType,
         FloatType,
         DoubleType,
         ArrayType,
@@ -68,6 +67,11 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     public abstract int id();
 
+    /**
+     * Returns the precedence of the type which determines whether the
+     * type should be preferred (higher precedence) or converted (lower
+     * precedence) during type conversions.
+     */
     public abstract Precedence precedence();
 
     public abstract String getName();

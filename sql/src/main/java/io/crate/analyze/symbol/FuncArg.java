@@ -38,6 +38,8 @@ public interface FuncArg {
     /**
      * Indicates whether a Symbol can be casted or not.
      * Typically, we only allow casting of Literals.
+     * Note: Convertibility checks have to be performed nevertheless.
+     *       This just indicates whether casting is allowed.
      * @return True is casting is possible, false otherwise.
      */
     boolean canBeCasted();
