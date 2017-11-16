@@ -227,4 +227,9 @@ public class TypeConversionTest extends CrateUnitTest {
         assertThat(DataTypes.STRING.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
         assertThat(DataTypes.OBJECT.isConvertableTo(DataTypes.GEO_SHAPE), is(true));
     }
+
+    @Test
+    public void testTimestampToDoubleConversion() {
+        assertThat(TimestampType.INSTANCE.isConvertableTo(DoubleType.INSTANCE), is(true));
+    }
 }

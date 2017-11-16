@@ -29,11 +29,14 @@ import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,14 +45,15 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
+import java.util.List;
 import java.util.Locale;
 
 public class ExtractFunctions {
 
-    private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
+    private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.of(DataTypes.TIMESTAMP);
     public static final String GENERIC_NAME = "_extract";
     public static final FunctionInfo GENERIC_INFO = new FunctionInfo(
-        new FunctionIdent(GENERIC_NAME, ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
+        new FunctionIdent(GENERIC_NAME, ImmutableList.of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
     private static final String NAME_PREFIX = "extract_";
 
     private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
@@ -76,7 +80,8 @@ public class ExtractFunctions {
         scalarFunctionModule.register(ExtractHour.INSTANCE);
         scalarFunctionModule.register(ExtractMinute.INSTANCE);
         scalarFunctionModule.register(ExtractSecond.INSTANCE);
-        scalarFunctionModule.register(ExtractFunction.INSTANCE);
+        // The resolver translates to a specialized version of extract
+        scalarFunctionModule.register(GENERIC_NAME, new ExtractFunctionResolver());
     }
 
     static Scalar<Number, Long> getScalar(Extract.Field field) {
@@ -123,6 +128,20 @@ public class ExtractFunctions {
         );
     }
 
+    private static class ExtractFunctionResolver extends BaseFunctionResolver {
+
+        public static final FunctionImplementation INSTANCE = new ExtractFunction();
+
+        public ExtractFunctionResolver() {
+            super(FuncParams.builder(Param.STRING, Param.of(DataTypes.TIMESTAMP)).build());
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> symbols) throws IllegalArgumentException {
+            return INSTANCE;
+        }
+    }
+
     /**
      * This is a generic ExtractFunction variant: _extract(field from ts).
      * Where the field doesn't yet have a value (either because it is a parameter or because of lazy evaluation)
@@ -131,7 +150,6 @@ public class ExtractFunctions {
      */
     private static class ExtractFunction extends Scalar<Object, Object> implements FunctionFormatSpec {
 
-        public static final FunctionImplementation INSTANCE = new ExtractFunction();
 
         private ExtractFunction() {
         }

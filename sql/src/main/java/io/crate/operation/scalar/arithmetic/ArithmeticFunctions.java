@@ -166,11 +166,8 @@ public class ArithmeticFunctions {
                     break;
 
                 case LongType.ID:
-                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
-                    break;
-
                 case TimestampType.ID:
-                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.TIMESTAMP, features);
+                    scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
                     break;
 
                 default:

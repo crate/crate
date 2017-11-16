@@ -93,4 +93,14 @@ public class TypeInferenceTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Cannot cast 'foo' to type double");
         assertEvaluate("1 = ANY ([null, 1::integer, 2::long, 3.0, 'foo'])", true);
     }
+
+    /**
+     * Tests that timestamp operations interpret the timestamp as long (legacy feature).
+     */
+    @Test
+    public void testTimestampOperations() {
+        assertEvaluate("3::timestamp - 1", 2L);
+        assertEvaluate("3000::timestamp / 1000", 3L);
+        assertEvaluate("3000::timestamp / 1000.0", 3.0);
+    }
 }
