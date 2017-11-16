@@ -107,9 +107,11 @@ The meaning of the fields of the are as follows:
   | *Runtime:* ``no``
 
   | The client machine addresses that the client matches, and which are allowed
-  | to authenticate. This field can contain an IP address or a CIDR mask. For
-  | example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified in
-  | the entry, then access to CrateDB is open for all hosts.
+  | to authenticate. This field may contain an IPv4 address, an IPv6 address or
+  | an IPv4 CIDR mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. It also
+  | may contain the special ``_local_`` notation which will match both IPv4 and
+  | IPv6 connections from localhost. If no address is specified in the entry,
+  | then access to CrateDB is open for all hosts.
 
 **auth.host_based.config.${order}.method**
   | *Runtime:* ``no``
@@ -190,8 +192,8 @@ Layer Security (TLS).
   | *Runtime:*  ``no``
   | *Default:* ``false``
 
-  Set this to true to enable secure communication between the CrateDB node 
-  and the client through SSL via the MQTT protocol.
+  Set this to true to enable secure communication between the CrateDB node and
+  the client through SSL via the MQTT protocol.
 
 **ssl.keystore_filepath**
   | *Runtime:* ``no``

@@ -72,6 +72,10 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         .put("protocol", "pg")
         .build();
 
+    private static final ImmutableMap<String, String> HBA_4 = ImmutableMap.<String, String>builder()
+        .put("address", "_local_")
+        .build();
+
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
 
     private HostBasedAuthentication authService;
@@ -164,6 +168,18 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         entry = authService.getEntry("cr8",
             new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent(), is(false));
+    }
+
+    @Test
+    public void testLocalhostMatchesBothIpv4AndIpv6() {
+        authService.updateHbaConfig(createHbaConf(HBA_4));
+        Optional<Map.Entry<String, Map<String, String>>> entry;
+        entry = authService.getEntry("crate",
+            new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
+        assertTrue(entry.isPresent());
+        entry = authService.getEntry("crate",
+            new ConnectionProperties(InetAddresses.forString("::1"), Protocol.POSTGRES, null));
+        assertTrue(entry.isPresent());
     }
 
     @Test

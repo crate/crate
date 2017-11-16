@@ -28,6 +28,10 @@ Breaking Changes
 Changes
 =======
 
+- The "address" field of the ``auth.host_based.config`` setting allows the
+  special ``_local_`` identifier additionally to IP and CIDR notation.
+  ``_local_`` matches both IPv4 and IPv6 connections from localhost.
+
 - Clients using the postgres wire protocol will now receive an additional
   ``crate_version`` ``ParameterStatus`` message during the connection
   establishment. This can be used to identify the server as ``CrateDB``.

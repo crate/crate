@@ -133,6 +133,11 @@ public class HostBasedAuthentication implements Authentication {
 
     static class Matchers {
 
+        // IPv4 127.0.0.1 -> 2130706433
+        private static final int IPv4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
+        // IPv6 ::1 -> 1
+        private static final int IPv6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
+
         static boolean isValidUser(Map.Entry<String, Map<String, String>> entry, String user) {
             String hbaUser = entry.getValue().get(KEY_USER);
             return hbaUser == null || user.equals(hbaUser);
@@ -142,6 +147,10 @@ public class HostBasedAuthentication implements Authentication {
             if (hbaAddress == null) {
                 // no IP/CIDR --> 0.0.0.0/0 --> match all
                 return true;
+            }
+            if (hbaAddress.equals("_local_")) {
+                // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
+                return inetAddressToInt(address) == IPv4_LOCALHOST || inetAddressToInt(address) == IPv6_LOCALHOST;
             }
             int p = hbaAddress.indexOf('/');
             if (p < 0) {
@@ -163,14 +172,14 @@ public class HostBasedAuthentication implements Authentication {
                    (hbaConnectionMode.equals(SSL.NEVER.VALUE) && !connectionProperties.hasSSL()) ||
                    (hbaConnectionMode.equals(SSL.REQUIRED.VALUE) && connectionProperties.hasSSL());
         }
-    }
 
-    private static int inetAddressToInt(InetAddress address) {
-        int net = 0;
-        for (byte a : address.getAddress()) {
-            net <<= 8;
-            net |= a & 0xFF;
+        private static int inetAddressToInt(InetAddress address) {
+            int net = 0;
+            for (byte a : address.getAddress()) {
+                net <<= 8;
+                net |= a & 0xFF;
+            }
+            return net;
         }
-        return net;
     }
 }
