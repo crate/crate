@@ -71,7 +71,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_MODULO,
-            new User("not_streamed", Collections.emptySet(), Collections.emptySet())
+            User.of("not_streamed")
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

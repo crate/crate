@@ -156,7 +156,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
-        User crateUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
+        User crateUser = User.of("crate", EnumSet.of(User.Role.SUPERUSER));
         Authentication authServiceNoHBA = new AlwaysOKAuthentication(userName -> crateUser);
 
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);

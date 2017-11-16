@@ -578,7 +578,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            sqlExecutor.getDefaultSchema(), new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlExecutor.getDefaultSchema(), User.of("crate", EnumSet.of(User.Role.SUPERUSER)), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**

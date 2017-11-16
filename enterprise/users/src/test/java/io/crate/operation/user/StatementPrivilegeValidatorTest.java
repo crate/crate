@@ -18,6 +18,7 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -43,7 +44,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
@@ -74,7 +74,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
 
-        user = new User("normal", Collections.emptySet(), Collections.emptySet()) {
+        user = new User("normal", ImmutableSet.of(), ImmutableSet.of()) {
             @Override
             public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
                 validationCallArguments.add(Lists.newArrayList(type, clazz, ident, user.name()));

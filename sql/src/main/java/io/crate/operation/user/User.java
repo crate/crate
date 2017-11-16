@@ -22,9 +22,11 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.user.Privilege;
 
 import javax.annotation.Nullable;
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -40,10 +42,22 @@ public class User {
 
     private final UserPrivileges privileges;
 
-    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
+    User(String name, Set<Role> roles, Set<Privilege> privileges) {
         this.roles = roles;
         this.name = name;
         this.privileges = new UserPrivileges(privileges);
+    }
+
+    public static User of(String name) {
+        return new User(name, ImmutableSet.of(), ImmutableSet.of());
+    }
+
+    public static User of(String name, @Nullable Set<Privilege> privileges) {
+        return new User(name, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges);
+    }
+
+    public static User of(String name, EnumSet<Role> roles) {
+        return new User(name, roles, ImmutableSet.of());
     }
 
     public String name() {

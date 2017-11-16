@@ -44,8 +44,6 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.user.Privilege.Clazz.CLUSTER;
 import static io.crate.analyze.user.Privilege.Clazz.SCHEMA;
@@ -63,7 +61,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final User GRANTOR_TEST_USER = new User("test", Collections.emptySet(), Collections.emptySet());
+    private static final User GRANTOR_TEST_USER = User.of("test");
 
     private static final TableIdent CUSTOM_SCHEMA_IDENT = new TableIdent("my_schema", "locations");
     private static final DocTableInfo CUSTOM_SCHEMA_INFO = TestingTableInfo.builder(CUSTOM_SCHEMA_IDENT, SHARD_ROUTING)

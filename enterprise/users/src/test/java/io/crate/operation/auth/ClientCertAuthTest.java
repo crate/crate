@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import javax.net.ssl.SSLSession;
 import java.security.cert.Certificate;
-import java.util.Collections;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -42,7 +41,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate
-    private User exampleUser = new User("example.com", Collections.emptySet(), Collections.emptySet());
+    private User exampleUser = User.of("example.com");
     private SSLSession sslSession;
 
     @Before
@@ -64,7 +63,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> new User("arthur", Collections.emptySet(), Collections.emptySet()));
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> User.of("arthur"));
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
         clientCertAuth.authenticate("arthur", sslConnWithCert);

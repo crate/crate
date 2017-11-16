@@ -19,7 +19,6 @@
 package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -63,7 +62,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNewUser() {
         Set<User> users = UserManagerService.getUsers(new UsersMetaData(ImmutableList.of("arthur")), new UsersPrivilegesMetaData());
-        assertThat(users, containsInAnyOrder(new User("arthur", ImmutableSet.of(), ImmutableSet.of()), CRATE_USER));
+        assertThat(users, containsInAnyOrder(User.of("arthur"), CRATE_USER));
     }
 
     @Test

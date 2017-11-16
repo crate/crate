@@ -27,14 +27,13 @@ import io.crate.testing.SqlExpressions;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 public class UserFunctionTest extends AbstractScalarFunctionsTest {
 
-    private static final User TEST_USER = new User("testUser", Collections.emptySet(), Collections.emptySet());
+    private static final User TEST_USER = User.of("testUser");
 
     private void setupFunctionsFor(@Nullable User user) {
         sqlExpressions = new SqlExpressions(tableSources, null, null, user,

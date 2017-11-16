@@ -23,7 +23,6 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.BlockingEvictingQueue;
@@ -218,7 +217,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionStart() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        User user = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
+        User user = User.of("arthur");
 
         JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user);
         jobsLogs.logExecutionStart(jobContext.id, jobContext.stmt, user);
@@ -232,7 +231,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExecutionFailure() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        User user = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
+        User user = User.of("arthur");
         Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
 
         jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));

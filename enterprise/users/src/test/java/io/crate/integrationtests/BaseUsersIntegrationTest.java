@@ -18,7 +18,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
@@ -49,7 +48,7 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     Session createUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, User.of("normal"), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     Session createNullUserSession(String node) {

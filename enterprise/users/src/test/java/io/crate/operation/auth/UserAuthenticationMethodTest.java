@@ -26,8 +26,6 @@ import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static org.hamcrest.core.Is.is;
 
 public class UserAuthenticationMethodTest extends CrateUnitTest {
@@ -36,7 +34,7 @@ public class UserAuthenticationMethodTest extends CrateUnitTest {
     public void testTrustAuthentication() throws Exception {
         TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(userName -> {
             if (userName.equals("crate")) {
-                return new User("crate", Collections.emptySet(), Collections.emptySet());
+                return User.of("crate");
             }
             return null;
         });
@@ -52,7 +50,7 @@ public class UserAuthenticationMethodTest extends CrateUnitTest {
     public void testAlwaysOKAuthentication() throws Exception {
         AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(userName -> {
             if (userName.equals("crate")) {
-                return new User("crate", Collections.emptySet(), Collections.emptySet());
+                return User.of("crate");
             }
             return null;
         });

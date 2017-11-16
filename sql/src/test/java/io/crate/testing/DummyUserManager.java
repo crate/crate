@@ -30,7 +30,6 @@ import io.crate.operation.user.UserManager;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 public class DummyUserManager implements UserManager {
@@ -38,7 +37,7 @@ public class DummyUserManager implements UserManager {
     @Nullable
     @Override
     public User findUser(String userName) {
-        return new User(userName, Collections.emptySet(), Collections.emptySet());
+        return User.of(userName);
     }
 
     @Override

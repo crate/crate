@@ -18,6 +18,7 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.RelationValidationException;
@@ -31,7 +32,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
@@ -47,7 +47,7 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new User("normal", Collections.emptySet(), Collections.emptySet()) {
+        user = new User("normal", ImmutableSet.of(), ImmutableSet.of()) {
 
             @Override
             public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {

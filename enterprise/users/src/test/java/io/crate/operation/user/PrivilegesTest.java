@@ -23,14 +23,12 @@ import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import java.util.Collections;
-
 public class PrivilegesTest extends CrateUnitTest {
+
+    private static User user = User.of("ford");
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {
-        User user = new User("ford", Collections.emptySet(), Collections.emptySet());
-
         expectedException.expect(MissingPrivilegeException.class);
         expectedException.expectMessage("Missing 'DQL' privilege for user 'ford'");
         Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, user);
@@ -38,15 +36,12 @@ public class PrivilegesTest extends CrateUnitTest {
 
     @Test
     public void testNoExceptionIsThrownIfUserHasNotRequiredPrivilegeOnInformationSchema() throws Exception {
-        User user = new User("ford", Collections.emptySet(), Collections.emptySet());
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
         Privileges.ensureUserHasPrivilege(Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "information_schema", user);
     }
 
     @Test
     public void testExceptionIsThrownIfUserHasNotAnyPrivilege() throws Exception {
-        User user = new User("ford", Collections.emptySet(), Collections.emptySet());
-
         expectedException.expect(MissingPrivilegeException.class);
         expectedException.expectMessage("Missing privilege for user 'ford'");
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, user);
@@ -54,8 +49,6 @@ public class PrivilegesTest extends CrateUnitTest {
 
     @Test
     public void testUserWithNoPrivilegeCanAccessInformationSchema() throws Exception {
-        User user = new User("ford", Collections.emptySet(), Collections.emptySet());
-
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "information_schema", user);
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table", user);

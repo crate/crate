@@ -119,8 +119,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                 if (privilegesMetaData != null) {
                     privileges = privilegesMetaData.getUserPrivileges(userName);
                 }
-                usersBuilder.add(new User(userName, ImmutableSet.of(),
-                    privileges == null ? ImmutableSet.of() : privileges));
+                usersBuilder.add(User.of(userName, privileges));
             }
         }
         return usersBuilder.build();
