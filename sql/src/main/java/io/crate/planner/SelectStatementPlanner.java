@@ -96,10 +96,6 @@ class SelectStatementPlanner {
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
             }
-            Limits limits = context.getLimits(querySpec);
-            if (querySpec.where().noMatch() || (querySpec.limit() != null && limits.finalLimit() == 0)) {
-                return new NoopPlan(context.jobId());
-            }
             return invokeLogicalPlanner(table, context);
         }
 

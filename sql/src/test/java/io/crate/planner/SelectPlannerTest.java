@@ -478,26 +478,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHasNoResultFromLimit() {
-        CountPlan count = e.plan("select count(*) from users limit 1 offset 1");
-        assertThat(count.mergePhase().projections().get(1), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).limit(), is(1));
-        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).offset(), is(1));
-
-        count = e.plan("select count(*) from users limit 0");
-        assertThat(count.mergePhase().projections().get(1), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).limit(), is(0));
-
-        assertThat(e.plan("select * from users order by name limit 0"), instanceOf(NoopPlan.class));
-        assertThat(e.plan("select * from users order by name limit 0 offset 0"), instanceOf(NoopPlan.class));
-    }
-
-    @Test
-    public void testHasNoResultFromQuery() {
-        assertThat(e.plan("select name from users where false"), instanceOf(NoopPlan.class));
-    }
-
-    @Test
     public void testShardQueueSizeCalculation() throws Exception {
         Merge merge = e.plan("select name from users order by name limit 500");
         Collect collect = (Collect) merge.subPlan();
