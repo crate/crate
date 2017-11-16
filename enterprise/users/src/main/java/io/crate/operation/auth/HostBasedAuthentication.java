@@ -148,7 +148,7 @@ public class HostBasedAuthentication implements Authentication {
                 return InetAddresses.forString(hbaAddress).equals(address);
             }
             long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddress);
-            int addressAsInt = ipv4AddressToInt(address.getAddress());
+            int addressAsInt = inetAddressToInt(address);
             return minAndMax[0] <= addressAsInt && addressAsInt < minAndMax[1];
         }
 
@@ -165,9 +165,9 @@ public class HostBasedAuthentication implements Authentication {
         }
     }
 
-    private static int ipv4AddressToInt(byte[] address) {
+    private static int inetAddressToInt(InetAddress address) {
         int net = 0;
-        for (byte a : address) {
+        for (byte a : address.getAddress()) {
             net <<= 8;
             net |= a & 0xFF;
         }
