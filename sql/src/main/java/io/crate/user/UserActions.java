@@ -43,14 +43,17 @@ public final class UserActions {
 
     public static SecureHash generateSecureHash(CreateUserAnalyzedStatement statement,
                                                 Row parameters,
-                                                Functions functions) throws GeneralSecurityException {
-        SecureString pw = getUserPasswordProperty(statement.properties(), parameters, functions);
-        SecureHash secureHash = null;
-        if (pw != null) {
-            secureHash = SecureHash.of(pw);
-            pw.close();
+                                                Functions functions) throws GeneralSecurityException, IllegalArgumentException {
+        try(SecureString pw = getUserPasswordProperty(statement.properties(), parameters, functions)) {
+            SecureHash secureHash = null;
+            if (pw != null) {
+                if (pw.length() == 0) {
+                    throw new IllegalArgumentException("Password must not be empty");
+                }
+                secureHash = SecureHash.of(pw);
+            }
+            return secureHash;
         }
-        return secureHash;
     }
 
     @VisibleForTesting

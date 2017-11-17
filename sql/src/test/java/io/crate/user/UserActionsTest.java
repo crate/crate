@@ -51,10 +51,18 @@ public class UserActionsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testNoSecureHashIfPasswordPropertyIsEmpty() throws Exception {
+    public void testNoSecureHashIfPasswordPropertyNotPresent() throws Exception {
         CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", ImmutableMap.of());
         SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY, functions);
         assertNull(secureHash);
+    }
+
+    @Test
+    public void testNoSecureHashIfPasswordPropertyIsEmpty() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Password must not be empty");
+        CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", ImmutableMap.of("password", Literal.of("")));
+        UserActions.generateSecureHash(statement, Row.EMPTY, functions);
     }
 
     @Test

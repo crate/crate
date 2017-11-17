@@ -262,7 +262,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
             SecureHash secureHash;
             try {
                 secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
-            } catch (GeneralSecurityException e) {
+            } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }
             return userManager.createUser(analysis.userName(), secureHash);
