@@ -263,9 +263,19 @@ rows. You can find :ref:`here <sql_union>` sample usage of UNION ALL.
 
 .. note::
 
-    ORDER BY, LIMIT and OFFSET can be attached only to the last select statement
-    of the UNION ALL and will apply to the whole result of the UNION. Column names
-    used in ORDER BY must refer to the outputs of the 1st SELECT statement.
+    ORDER BY, LIMIT and OFFSET can only be applied after the last SELECT
+    statement of the UNION ALL, as they are applied to the complete result of
+    the UNION operation. In order to apply an ORDER BY and/or LIMIT and/or
+    OFFSET to any of the partial SELECT statements, those statements need to
+    become subqueries.
+
+.. note::
+
+    Column names used in ORDER BY must be position numbers or refer to the
+    outputs of the first SELECT statement, and no functions can be applied on
+    top of the ORDER BY symbols. To achieve more complex ordering UNION ALL
+    must become a subselect and the more complex ORDER BY should be applied on
+    the outer SELECT wrapping the UNION ALL subselect.
 
 .. note::
 
