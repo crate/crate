@@ -5,17 +5,28 @@
 MQTT Ingestion Source
 =====================
 
-The MQTT_ ingestion source allows CrateDB to function as an MQTT endpoint for
-data ingestion.
+.. sidebar:: Overview
+
+   .. figure:: mqtt-01.png
+      :alt: A diagram of CrateDB acting as an MQTT endpoint
+
+MQTT_ (Message Queue Telemetry Transport) is a machine-to-machine communication
+protocol particularly well suited for machine data and Internet of Things (IoT)
+applications.
+
+The MQTT ingestion source allows CrateDB to function as an MQTT endpoint for
+data ingestion. Incoming messages can be written to user defined tables
+according to :ref:`user defined rules <administration-ingestion-rules>`. These
+tables can then be queried or polled at will by CrateDB clients.
+
+Using CrateDB as an MQTT endpoint removes the need for intermediary brokers,
+message queues, or MQTT subscribers doing message transformation or
+persistence.
 
 .. NOTE::
 
    The MQTT ingestion source an
    :ref:`enterprise feature <enterprise_features>`.
-
-.. SEEALSO::
-
-   :ref:`ingestion`
 
 .. rubric:: Table of Contents
 
@@ -175,5 +186,11 @@ Once you have done that, you can create :ref:`ingestion rules
     ...  WHERE topic like 'temperature/%'
     ...  INTO mqtt_temperature;
     CREATE OK, 1 row affected (... sec)
+
+.. SEEALSO::
+
+   `Getting Started With CrateDB as an MQTT Endpoint
+   <https://crate.io/a/getting-started-cratedb-mqtt-endpoint/>`_ (November
+   2017)
 
 .. _MQTT: http://mqtt.org/
