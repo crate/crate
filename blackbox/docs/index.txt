@@ -20,7 +20,6 @@ massive amounts of machine data in real-time.
    :maxdepth: 2
 
    release_notes/index
-   installation
    configuration/index
    cli
    general/index

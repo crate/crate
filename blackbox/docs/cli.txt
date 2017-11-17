@@ -13,9 +13,7 @@ Command Line Interface
 The Basics
 ==========
 
-After downloading and extracting the tarball (see :ref:`install_targz`) you
-will be able to invoke the CrateDB command in the ``bin`` directory. The
-excutable is named ``crate``.
+CrateDB ships with a ``crate`` command in the ``bin`` directory.
 
 The simplest way to start a CrateDB instance is to invoke ``crate`` without
 parameters. This will start the process in the foreground.
