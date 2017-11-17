@@ -72,7 +72,7 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCreateUserWithPasswordIsStringLiteral() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Can only resolve string literals");
+        expectedException.expectMessage("Cannot resolve field references");
         CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROO WITH (PASSWORD = NO_STRING)");
     }
 }

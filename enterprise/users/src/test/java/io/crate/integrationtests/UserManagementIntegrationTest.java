@@ -88,6 +88,12 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
+    public void testCreateUserWithPasswordExpression() throws Exception {
+        executeAsSuperuser("CREATE USER arthur WITH (password = substr(?, 3))", new Object[]{"**password"});
+        assertUserIsCreated("arthur");
+    }
+
+    @Test
     public void testDropUser() throws Exception {
         executeAsSuperuser("create user ford");
         assertUserIsCreated("ford");

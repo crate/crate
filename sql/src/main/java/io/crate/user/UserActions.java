@@ -23,11 +23,12 @@
 package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.action.sql.ParameterSymbolEvaluator;
 import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.symbol.ParamSymbols;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.data.Row;
+import io.crate.metadata.Functions;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.SecureString;
 
 import java.security.GeneralSecurityException;
@@ -40,8 +41,10 @@ public final class UserActions {
 
     }
 
-    public static SecureHash generateSecureHash(CreateUserAnalyzedStatement statement, Row parameters) throws GeneralSecurityException {
-        SecureString pw = getUserPasswordProperty(statement.properties(), parameters);
+    public static SecureHash generateSecureHash(CreateUserAnalyzedStatement statement,
+                                                Row parameters,
+                                                Functions functions) throws GeneralSecurityException {
+        SecureString pw = getUserPasswordProperty(statement.properties(), parameters, functions);
         SecureHash secureHash = null;
         if (pw != null) {
             secureHash = SecureHash.of(pw);
@@ -51,12 +54,14 @@ public final class UserActions {
     }
 
     @VisibleForTesting
-    static SecureString getUserPasswordProperty(Map<String, Symbol> properties, Row parameters) throws IllegalArgumentException {
+    static SecureString getUserPasswordProperty(Map<String, Symbol> properties,
+                                                Row parameters,
+                                                Functions functions) throws IllegalArgumentException {
         final String PASSWORD_PROPERTY = "password";
         if (properties != null) {
             for (String key : properties.keySet()) {
                 if (PASSWORD_PROPERTY.equals(key)) {
-                    String value = ValueSymbolVisitor.STRING.process(ParamSymbols.toLiterals(properties.get(key), parameters));
+                    String value = BytesRefs.toString(ParameterSymbolEvaluator.eval(functions, parameters, properties.get(key), null));
                     return new SecureString(value.toCharArray());
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,

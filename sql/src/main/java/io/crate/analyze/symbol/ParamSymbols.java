@@ -24,7 +24,7 @@ package io.crate.analyze.symbol;
 
 import io.crate.data.Row;
 
-public final class ParamSymbols extends DefaultTraversalSymbolVisitor<Row, Symbol> {
+public final class ParamSymbols extends FunctionCopyVisitor<Row> {
 
     private ParamSymbols() {
 

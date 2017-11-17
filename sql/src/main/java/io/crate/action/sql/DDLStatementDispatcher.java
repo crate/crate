@@ -55,6 +55,7 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.executor.transport.RerouteActions;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
+import io.crate.metadata.Functions;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
 import io.crate.user.SecureHash;
@@ -103,6 +104,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
     private final TransportClusterRerouteAction rerouteAction;
+    private final Functions functions;
 
 
     @Inject
@@ -116,7 +118,8 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                                   Provider<UserManager> userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
-                                  Provider<TransportRefreshAction> transportRefreshActionProvider) {
+                                  Provider<TransportRefreshAction> transportRefreshActionProvider,
+                                  Functions functions) {
         this.blobAdminClient = blobAdminClient;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
@@ -128,6 +131,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         this.transportRefreshActionProvider = transportRefreshActionProvider;
         this.userManager = userManagerProvider.get();
         this.rerouteAction = rerouteAction;
+        this.functions = functions;
     }
 
     @Override
@@ -257,7 +261,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
             SecureHash secureHash;
             try {
-                secureHash = UserActions.generateSecureHash(analysis, parameters);
+                secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
             } catch (GeneralSecurityException e) {
                 return failedFuture(e);
             }

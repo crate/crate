@@ -26,11 +26,17 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Row;
+import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
 public class UserActionsTest extends CrateUnitTest {
+
+    private static final Functions functions = new Functions(
+        ImmutableMap.of(),
+        ImmutableMap.of()
+    );
 
     @Test
     public void testGenerateSecureHash() throws Exception {
@@ -38,7 +44,7 @@ public class UserActionsTest extends CrateUnitTest {
             "foo",
             ImmutableMap.of("password", Literal.of("password")));
 
-        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY);
+        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY, functions);
 
         SecureString password = new SecureString("password".toCharArray());
         assertTrue(secureHash.verifyHash(password));
@@ -47,13 +53,13 @@ public class UserActionsTest extends CrateUnitTest {
     @Test
     public void testNoSecureHashIfPasswordPropertyIsEmpty() throws Exception {
         CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", ImmutableMap.of());
-        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY);
+        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY, functions);
         assertNull(secureHash);
     }
 
     @Test
     public void testUserPasswordProperty() throws Exception {
-        SecureString password = UserActions.getUserPasswordProperty(ImmutableMap.of("password", Literal.of("my-pass")), Row.EMPTY);
+        SecureString password = UserActions.getUserPasswordProperty(ImmutableMap.of("password", Literal.of("my-pass")), Row.EMPTY, functions);
         assertEquals(new SecureString("my-pass".toCharArray()), password);
     }
 
@@ -61,6 +67,6 @@ public class UserActionsTest extends CrateUnitTest {
     public void testInvalidPasswordProperty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"invalid\" is not a valid setting for CREATE USER");
-        UserActions.getUserPasswordProperty(ImmutableMap.of("invalid", Literal.of("password")), Row.EMPTY);
+        UserActions.getUserPasswordProperty(ImmutableMap.of("invalid", Literal.of("password")), Row.EMPTY, functions);
     }
 }
