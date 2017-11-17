@@ -6,7 +6,7 @@ Ingestion Framework
 
 .. sidebar:: Overview
 
-   .. figure:: ingestion_01.png
+   .. figure:: ingestion-01.png
       :alt: A diagram of the ingestion framework
 
 As well as allowing you to ingest data via standard SQL inserts, CrateDB
