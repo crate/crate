@@ -126,7 +126,7 @@ Additionally, table and schema names are restricted in terms of characters and
 length. They:
 
   - may not contain one of the following characters: ``\ / * ? " < > |
-    <whitespace> , #``
+    <whitespace> , # .``
 
   - may not contain upper case letters
 

@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidTableNameException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -48,5 +49,11 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Target table name must not include a schema");
         e.analyze("alter table t1 rename to my_schema.t1");
+    }
+
+    @Test
+    public void testRenameToInvalidName() throws Exception {
+        expectedException.expect(InvalidTableNameException.class);
+        e.analyze("alter table t1 rename to \"foo.bar\"");
     }
 }

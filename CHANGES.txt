@@ -84,3 +84,6 @@ Changes
 
 Fixes
 =====
+
+- The target table name used in ``ALTER TABLE ... RENAME TO`` is now correctly
+  validated.
