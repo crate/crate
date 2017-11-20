@@ -111,14 +111,14 @@ You can create test coverage reports with `jacoco`_::
 The HTML test coverage report can then be found in the
 ``build/reports/jacoco/jacocoHtml`` directory.
 
-FindBugs
---------
+SpotBugs (formerly known as FindBugs)
+-------------------------------------
 
-You can run `FindBugs`_ like so::
+You can run `SpotBugs`_ like so::
 
-    $ ./gradlew findBugsMain
+    $ ./gradlew spotbugsMain
 
-The FindBugs check will also be executed when running ``./gradlew check``.
+The SpotBugs check will also be executed when running ``./gradlew check``.
 
 Forbidden APIs
 --------------
@@ -152,5 +152,5 @@ build like so::
 .. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
 .. _IntelliJ IDEA: https://www.jetbrains.com/idea/
 .. _jacoco: http://www.eclemma.org/jacoco/
-.. _FindBugs: http://findbugs.sourceforge.net/
+.. _SpotBugs: https://spotbugs.github.io
 .. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis

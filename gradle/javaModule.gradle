@@ -3,7 +3,6 @@ apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'me.champeau.gradle.jmh'
-apply plugin: 'findbugs'
 apply plugin: 'pmd'
 apply plugin: 'checkstyle'
 
@@ -48,20 +47,6 @@ forbiddenApisMain {
     signaturesFiles = files("$rootDir/gradle/forbidden-signatures.txt")
     suppressAnnotations = ['**.SuppressForbidden']
     ignoreFailures = false
-}
-
-findbugs {
-    excludeFilter = file("$rootDir/gradle/findBugs-excludeFilter.xml")
-    ignoreFailures = true
-    effort = "max"
-    reportLevel = "low"
-}
-
-tasks.withType(FindBugs) {
-    reports {
-        xml.enabled = true
-        html.enabled = false
-    }
 }
 
 pmd {

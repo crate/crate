@@ -4,12 +4,14 @@ buildscript {
     }
     dependencies {
         classpath 'de.thetaphi:forbiddenapis:2.3'
+        classpath "gradle.plugin.com.github.spotbugs:gradlePlugin:1.6.0"
     }
 }
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.4'
     id 'me.champeau.gradle.jmh' version '0.4.4'
+    id 'com.github.spotbugs' version '1.6.0'
 }
 
 
@@ -33,7 +35,7 @@ repositories {
 }
 
 allprojects {
-    apply plugin: 'findbugs'
+    apply plugin: 'com.github.spotbugs'
     apply plugin: 'jacoco'
 
     tasks.withType(JavaCompile) {
@@ -85,8 +87,18 @@ allprojects {
 
     group = 'io.crate'
 
-    findbugs {
+    spotbugs {
+        excludeFilter = file("$rootDir/gradle/findBugs-excludeFilter.xml")
         ignoreFailures = true
+        effort = "max"
+        reportLevel = "low"
+    }
+
+    tasks.withType(com.github.spotbugs.SpotBugsTask) {
+        reports {
+            xml.enabled = true
+            html.enabled = false
+        }
     }
 
     tasks.withType(Javadoc) {
