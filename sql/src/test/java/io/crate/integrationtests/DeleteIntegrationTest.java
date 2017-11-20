@@ -49,6 +49,13 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDeleteOnPKNoMatch() throws Exception {
+        execute("create table t (id string primary key)");
+        execute("delete from t where id = 'nope'");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testDeleteWithWhere() throws Exception {
         String fqn = getFqn("test");
         createIndex(fqn);

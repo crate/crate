@@ -23,3 +23,7 @@ Fixes
 
 - The target table name used in ``ALTER TABLE ... RENAME TO`` is now correctly
   validated.
+
+- Fixed a regression that caused ``DELETE`` statements with a filter on
+  ``PRIMARY KEY`` columns that don't match to fail instead of returning with a
+  row count of 0.

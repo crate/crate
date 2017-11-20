@@ -141,8 +141,7 @@ public class ESDeleteTask extends JobTask {
         public void onResponse(ShardResponse response) {
             ShardResponse.Failure failure = response.failures().get(0);
             if (failure != null) {
-                if (failure.versionConflict()) {
-                    // treat version conflict as rows affected = 0
+                if (failure.versionConflict() || failure.message().contains("Document not found")) {
                     result.complete(0L);
                 } else {
                     result.completeExceptionally(new Exception(failure.message()));
