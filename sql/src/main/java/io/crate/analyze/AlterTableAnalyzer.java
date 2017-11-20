@@ -58,8 +58,6 @@ class AlterTableAnalyzer {
     }
 
     AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
-        TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent);
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -71,7 +69,10 @@ class AlterTableAnalyzer {
             throw new IllegalArgumentException("Target table name must not include a schema");
         }
 
+        TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
+        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent);
         TableIdent newTableIdent = new TableIdent(tableIdent.schema(), newIdentParts.get(0));
+        newTableIdent.validate();
         return new AlterTableRenameAnalyzedStatement(tableInfo, newTableIdent);
     }
 
