@@ -199,7 +199,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ensureUnionOutputsHaveCompatibleTypes(left, right);
 
         UnionSelect unionSelect = new UnionSelect(left, right, node.isDistinct());
-        unionSelect.querySpec().outputs(left.querySpec().outputs());
+        unionSelect.querySpec().outputs(new ArrayList<>(left.fields()));
         return unionSelect;
     }
 
@@ -218,10 +218,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Symbol result = Symbols.tryUpcast(leftSymbol, rightSymbol);
             if (result != null) {
                 leftOutputs.set(i, result);
+                Field oldField = left.fields().get(i);
+                left.fields().set(i, new Field(oldField.relation(), oldField.path(), result.valueType()));
             } else {
                 result = Symbols.tryUpcast(rightSymbol, leftSymbol);
                 if (result != null) {
                     right.outputs().set(i, result);
+                    Field oldField = right.fields().get(i);
+                    right.fields().set(i, new Field(oldField.relation(), oldField.path(), result.valueType()));
                 } else {
                     throw new UnsupportedOperationException("Corresponding output columns at position: " + i +
                                                             " must be compatible for all parts of a UNION");

@@ -26,14 +26,17 @@ import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -110,9 +113,16 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            "select b, y::long, i from t2");
         assertThat(relation, instanceOf(UnionSelect.class));
         UnionSelect tableUnion = (UnionSelect) relation;
-        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.t1.a, to_long(doc.t1.x), to_long(doc.t1.i)"));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.CAST(i AS long)"));
+        assertThat(Symbols.typeView(tableUnion.querySpec().outputs()),
+            contains(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG));
+
         assertThat(tableUnion.left().querySpec(), isSQL("SELECT doc.t1.a, to_long(doc.t1.x), to_long(doc.t1.i)"));
+        assertThat(Symbols.typeView(tableUnion.left().fields()),
+            contains(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG));
         assertThat(tableUnion.right().querySpec(), isSQL("SELECT doc.t2.b, to_long(doc.t2.y), to_long(doc.t2.i)"));
+        assertThat(Symbols.typeView(tableUnion.right().fields()),
+            contains(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG));
     }
 
     @Test
