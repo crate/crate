@@ -111,6 +111,7 @@ checkstyle {
             'checkstyleDir' : checkstyle_dir
     ]
     configFile = file(checkstyle_dir + "rules.xml")
+    checkstyleTest.enabled = false
 }
 
 jmh {
