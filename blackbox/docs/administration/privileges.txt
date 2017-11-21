@@ -152,8 +152,7 @@ Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
     CREATE OK, 1 row affected (... sec)
 
 To grant a privilege to an existing user on the whole cluster,
-we use the :doc:`/sql/reference/grant`
-SQL statement, for example::
+we use the :ref:`ref-grant` SQL statement, for example::
 
     cr> GRANT DML TO wolfgang;
     GRANT OK, 1 row affected (... sec)
@@ -202,7 +201,7 @@ Privileges can be granted to multiple users in the same statement, like so::
 ........
 
 To deny a privilege to an existing user on the whole cluster, use the
-:doc:`/sql/reference/deny` SQL statement, for example::
+:ref:`ref-deny` SQL statement, for example::
 
     cr> DENY DDL TO will;
     DENY OK, 1 row affected (... sec)
@@ -228,10 +227,10 @@ on the cluster it can be used like this::
 ``REVOKE``
 ..........
 
-To revoke a privilege that was previously granted or denied to a user
-use the :doc:`/sql/reference/revoke` SQL statement, for example the
-``DQL`` privilege that was previously denied to user wolfgang on the
-*sys* schema, can be revoked like this ::
+To revoke a privilege that was previously granted or denied to a user use the
+:ref:`ref-revoke` SQL statement, for example the ``DQL`` privilege that was
+previously denied to user wolfgang on the *sys* schema, can be revoked like
+this::
 
     cr> REVOKE DQL ON SCHEMA sys FROM wolfgang;
     REVOKE OK, 1 row affected (... sec)

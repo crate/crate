@@ -29,7 +29,7 @@ Different types have different notations. The simplest forms are:
 
 .. SEEALSO::
 
-    - :doc:`/sql/reference/lexical_structure`
+    - :ref:`sql_lexical`
     - :ref:`data-types`
 
 Column Reference
@@ -50,7 +50,7 @@ multiple alias or table definitions::
 
 .. SEEALSO::
 
-    - :doc:`/sql/reference/lexical_structure`
+    - :ref:`sql_lexical`
 
 Parameter Reference
 ===================
@@ -77,7 +77,7 @@ There are two different types of operators in CrateDB:
 .. SEEALSO::
 
     - :ref:`sql_dql_where_clause`
-    - :doc:`/sql/arithmetic`
+    - :ref:`arithmetic`
 
 .. _sql_expressions_subscript:
 
@@ -127,8 +127,8 @@ parentheses::
 
 .. SEEALSO::
 
-    - :doc:`/sql/scalar`
-    - :doc:`/sql/aggregation`
+    - :ref:`scalar`
+    - :ref:`aggregation`
 
 Type Cast
 =========

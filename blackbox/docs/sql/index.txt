@@ -1,22 +1,13 @@
-===========
-CrateDB SQL
-===========
+==========
+SQL Syntax
+==========
 
-CrateDB uses SQL to query documents. For concise reference documentation see
-:doc:`sql`. For general information about SQL please refer to `Wikipedia SQL`_.
+CrateDB uses `SQL`_ to query documents.
 
-.. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
+.. _`SQL`: http://en.wikipedia.org/wiki/Sql
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   ddl/index
-   dml
-   dql
-   administration/index
-   joins
-   functions_operators
-   occ
-   partitioned_tables
-   analyzer
-   sql
+    general/index
+    statements/index

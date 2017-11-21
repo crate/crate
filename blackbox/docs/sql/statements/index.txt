@@ -1,0 +1,45 @@
+==============
+SQL Statements
+==============
+
+.. rubric:: Table of Contents
+
+.. toctree::
+    :maxdepth: 1
+
+    alter_table
+    alter_cluster
+    copy_from
+    copy_to
+    create_analyzer
+    create_blob_table
+    create_function
+    create_ingest_rule
+    create_repository
+    create_snapshot
+    create_table
+    create_user
+    delete
+    deny
+    drop_function
+    drop_ingest_rule
+    drop_repository
+    drop_snapshot
+    drop_table
+    drop_user
+    explain
+    grant
+    insert
+    kill
+    optimize
+    refresh
+    restore_snapshot
+    revoke
+    select
+    set
+    set_transaction
+    show_columns
+    show_create_table
+    show_schemas
+    show_tables
+    update

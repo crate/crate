@@ -1,5 +1,7 @@
 .. highlight:: psql
 
+.. _dml:
+
 =================
 Data Manipulation
 =================

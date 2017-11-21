@@ -443,50 +443,50 @@ def test_suite():
                      tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/ddl/basics.txt',
-               'sql/ddl/generated_columns.txt',
-               'sql/ddl/constraints.txt',
-               'sql/ddl/sharding.txt',
-               'sql/ddl/replication.txt',
-               'sql/ddl/column_policy.txt',
-               'sql/ddl/indices_full_search.txt',
+    for fn in ('general/ddl/basics.txt',
+               'general/ddl/generated_columns.txt',
+               'general/ddl/constraints.txt',
+               'general/ddl/sharding.txt',
+               'general/ddl/replication.txt',
+               'general/ddl/column_policy.txt',
+               'general/ddl/indices_full_search.txt',
                'appendix/system-columns.txt',
-               'sql/ddl/alter_table.txt',
+               'general/ddl/alter_table.txt',
                'administration/runtime-config.txt',
-               'sql/administration/show_create_table.txt',
-               'sql/administration/user_defined_functions.txt',
+               'general/administration/show_create_table.txt',
+               'general/administration/user_defined_functions.txt',
                'administration/user-management.txt',
                'administration/privileges.txt',
                'administration/ingestion/rules.txt',
-               'sql/dql.txt',
-               'sql/refresh.txt',
+               'general/dql.txt',
+               'general/refresh.txt',
                'administration/optimization.txt',
-               'sql/fulltext.txt',
+               'general/fulltext.txt',
                'appendix/data-types.txt',
-               'sql/occ.txt',
+               'general/occ.txt',
                'administration/information-schema.txt',
-               'sql/partitioned_tables.txt',
-               'sql/aggregation.txt',
-               'sql/arithmetic.txt',
-               'sql/scalar.txt',
-               'sql/table_functions.txt',
+               'general/partitioned_tables.txt',
+               'general/aggregation.txt',
+               'general/arithmetic.txt',
+               'general/scalar.txt',
+               'general/table_functions.txt',
                'administration/system-information.txt',
-               'sql/queries.txt',
+               'general/queries.txt',
                'protocols/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
                      tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/geo.txt',):
+    for fn in ('general/geo.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpCountries,
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt',
-               'sql/subquery_expressions.txt',):
+    for fn in ('general/joins.txt',
+               'general/subquery_expressions.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,
@@ -494,7 +494,7 @@ def test_suite():
                      tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/dml.txt',):
+    for fn in ('general/dml.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsQuotesAndUserVisits,
