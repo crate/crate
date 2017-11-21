@@ -131,7 +131,7 @@ public class RelationBoundary implements LogicalPlan {
         if (collapsed == source) {
             return this;
         }
-        return new RelationBoundary(source, relation, outputs, expressionMapping, subQueries);
+        return new RelationBoundary(collapsed, relation, outputs, expressionMapping, subQueries);
     }
 
     @Override

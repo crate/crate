@@ -158,6 +158,24 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSelectCountStarIsOptimizedInsideRelations() throws Exception {
+        LogicalPlan plan = plan("select t2.i, cnt from " +
+                               " (select count(*) as cnt from t1) t1 " +
+                               "join" +
+                               " (select i from t2 limit 1) t2 " +
+                               "on t1.cnt = t2.i::long ");
+        assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
+                                "Join[\n" +
+                                "    Boundary[cnt]\n" +
+                                "    Count[doc.t1 | All]\n" +
+                                "    --- INNER ---\n" +
+                                "    Boundary[i]\n" +
+                                "    Limit[1;0]\n" +
+                                "    Collect[doc.t2 | [i] | All]\n" +
+                                "]\n"));
+    }
+
+    @Test
     public void testJoinTwoTables() throws Exception {
         LogicalPlan plan = plan("select " +
                                 "   t1.x, t1.a, t2.y " +
