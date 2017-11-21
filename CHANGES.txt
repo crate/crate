@@ -39,6 +39,9 @@ Breaking Changes
 Changes
 =======
 
+- Added the ``typtype`` column to ``pg_catalog.pg_type`` for better
+  compatibility with certain postgres client libraries.
+
 - Added support for scalar subqueries in DELETE statements.
 
 - Added new "password" authentication method which is available for connections

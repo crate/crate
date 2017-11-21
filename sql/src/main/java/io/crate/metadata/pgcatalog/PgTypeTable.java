@@ -36,6 +36,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -50,27 +51,39 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPNAME = new ColumnIdent("typname");
         static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
         static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
+        static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
     }
+
+    private static final BytesRef TYPTYPE_BASE = new BytesRef("b");
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
-            .put(PgTypeTable.Columns.OID,
+            .put(Columns.OID,
                 () -> RowContextCollectorExpression.forFunction(PGType::oid))
-            .put(PgTypeTable.Columns.TYPNAME,
+            .put(Columns.TYPNAME,
                 () -> RowContextCollectorExpression.objToBytesRef(PGType::typName))
-            .put(PgTypeTable.Columns.TYPDELIM,
+            .put(Columns.TYPDELIM,
                 () -> RowContextCollectorExpression.objToBytesRef(PGType::typDelim))
-            .put(PgTypeTable.Columns.TYPELEM,
+            .put(Columns.TYPELEM,
                 () -> RowContextCollectorExpression.forFunction(PGType::typElem))
+            .put(Columns.TYPTYPE,
+                () -> new RowContextCollectorExpression<PGType, BytesRef>() {
+
+                    @Override
+                    public BytesRef value() {
+                        return TYPTYPE_BASE;
+                    }
+                })
             .build();
     }
 
     PgTypeTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register("oid", DataTypes.INTEGER, null)
-                .register("typname", DataTypes.STRING, null)
-                .register("typdelim", DataTypes.STRING, null)
-                .register("typelem", DataTypes.INTEGER, null),
+                .register(Columns.OID.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPNAME.name(), DataTypes.STRING, null)
+                .register(Columns.TYPDELIM.name(), DataTypes.STRING, null)
+                .register(Columns.TYPELEM.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPTYPE.name(), DataTypes.STRING, null),
             Collections.emptyList());
     }
 
