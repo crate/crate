@@ -173,7 +173,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitAnalyzedDeleteStatement(AnalyzedDeleteStatement statement, PlannerContext context) {
-        return DeletePlanner.planDelete(functions, statement, context);
+        return DeletePlanner.planDelete(
+            functions,
+            statement,
+            new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)),
+            context
+        );
     }
 
     @Override

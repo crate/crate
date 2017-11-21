@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
@@ -66,7 +67,7 @@ final class DeleteAnalyzer {
                 relationCtx.parentSources(),
                 txnContext.sessionContext().defaultSchema()
             ),
-            null
+            new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );
         Symbol query = normalizer.normalize(
             expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext()),

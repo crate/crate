@@ -184,5 +184,5 @@ the column is unknown.
 
 .. NOTE::
 
-    Scalar subqueries are restricted to SELECT statements and cannot be used in
-    other statements.
+    Scalar subqueries are restricted to SELECT and DELETE statements and cannot
+    be used in other statements.

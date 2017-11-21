@@ -241,4 +241,33 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("delete from t1");
         assertThat(response.rowCount(), is((long) bulkArgs.length));
     }
+
+    @Test
+    public void testDeleteWithSubQuery() throws Exception {
+        execute("create table t1 (id int primary key, x int)");
+        execute("insert into t1 (id, x) values (1, 1), (2, 2), (3, 3)");
+        execute("refresh table t1");
+
+        execute("delete from t1 where x = (select 1)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("delete from t1 where id = (select 2)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("delete from t1 where id in (select col1 from unnest([1, 2, 3]))");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testDeleteWithSubQueryOnPartition() throws Exception {
+        execute("create table t (p string, x int) partitioned by (p)");
+        execute("insert into t (p, x) values ('a', 1)");
+        execute("refresh table t");
+
+        execute("delete from t where p = (select 'a')");
+        assertThat(response.rowCount(), is(-1L));
+
+        execute("select count(*) from t");
+        assertThat(response.rows()[0][0], is(0L));
+    }
 }

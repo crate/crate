@@ -23,12 +23,17 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.operation.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -79,8 +84,8 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
-        expectedException.expectMessage("Subquery not supported in this statement");
-        e.analyze("delete from t1 where x = (select y from t2)");
+        AnalyzedDeleteStatement delete = e.analyze("delete from t1 where x = (select y from t2)");
+        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("x"), instanceOf(SelectSymbol.class)));
     }
 
     @Test

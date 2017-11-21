@@ -22,10 +22,10 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.planner.operators.LogicalPlan;
 
 import java.util.HashMap;
@@ -41,9 +41,9 @@ public class SubqueryPlanner {
         this.planSubSelects = planSubSelects;
     }
 
-    public Map<LogicalPlan, SelectSymbol> planSubQueries(QueriedRelation relation) {
+    public Map<LogicalPlan, SelectSymbol> planSubQueries(AnalyzedStatement statement) {
         Visitor visitor = new Visitor();
-        relation.visitSymbols(visitor);
+        statement.visitSymbols(visitor);
         return visitor.subQueries;
     }
 
@@ -52,17 +52,9 @@ public class SubqueryPlanner {
         subQueries.put(subPlan, selectSymbol);
     }
 
-    private class Visitor extends SymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
+    private class Visitor extends DefaultTraversalSymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
 
         private final Map<LogicalPlan, SelectSymbol> subQueries = new HashMap<>();
-
-        @Override
-        public Void visitFunction(io.crate.analyze.symbol.Function function, Symbol parent) {
-            for (Symbol arg : function.arguments()) {
-                process(arg, function);
-            }
-            return null;
-        }
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {

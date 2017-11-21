@@ -29,10 +29,12 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
-import io.crate.planner.Merge;
-import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
+import io.crate.planner.Merge;
+import io.crate.planner.MultiPhasePlan;
+import io.crate.planner.node.ddl.DeletePartitions;
+import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.ESGet;
@@ -41,6 +43,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -75,6 +78,22 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         @Override
         protected Void visitPlan(ExecutionPlan executionPlan, SymbolReplacer context) {
             throw new UnsupportedOperationException("Subselect not supported in " + executionPlan);
+        }
+
+        @Override
+        public Void visitDeleteById(DeleteById plan, SymbolReplacer replacer) {
+            for (DocKeys.DocKey docKey : plan.docKeys()) {
+                Lists2.replaceItems(docKey.values(), replacer);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitDeletePartitions(DeletePartitions plan, SymbolReplacer replacer) {
+            for (List<Symbol> symbols : plan.partitions()) {
+                Lists2.replaceItems(symbols, replacer);
+            }
+            return null;
         }
 
         @Override

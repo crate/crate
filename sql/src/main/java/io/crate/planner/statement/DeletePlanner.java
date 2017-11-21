@@ -30,6 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.ParamSymbols;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.collections.Lists2;
@@ -45,8 +46,10 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.DeleteAllPartitions;
@@ -54,17 +57,42 @@ import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Objects.requireNonNull;
 
 public final class DeletePlanner {
 
-    public static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, PlannerContext context) {
+    public static Plan planDelete(Functions functions,
+                                  AnalyzedDeleteStatement delete,
+                                  SubqueryPlanner subqueryPlanner,
+                                  PlannerContext context) {
+        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(delete);
+        if (!subQueries.isEmpty()) {
+            return (plannerCtx, projectionBuilder, params) -> {
+                ExecutionPlan rootPlan =
+                    planDelete(functions, delete, context).build(plannerCtx, projectionBuilder, params);
+                HashMap<ExecutionPlan, SelectSymbol> plannedSubqueries = new HashMap<>();
+                for (Map.Entry<LogicalPlan, SelectSymbol> entry : subQueries.entrySet()) {
+                    plannedSubqueries.put(
+                        entry.getKey().build(PlannerContext.forSubPlan(plannerCtx), projectionBuilder, params),
+                        entry.getValue());
+                }
+                return MultiPhasePlan.createIfNeeded(rootPlan, plannedSubqueries);
+            };
+        }
+        return planDelete(functions, delete, context);
+    }
+
+    private static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, PlannerContext context) {
         DocTableRelation tableRel = delete.relation();
         DocTableInfo table = tableRel.tableInfo();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
@@ -109,7 +137,7 @@ public final class DeletePlanner {
             "collect",
             routing,
             tableInfo.rowGranularity(),
-            ImmutableList.of(idReference),
+            newArrayList(idReference),
             ImmutableList.of(deleteProjection),
             where,
             DistributionInfo.DEFAULT_BROADCAST,

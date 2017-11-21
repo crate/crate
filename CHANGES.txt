@@ -39,6 +39,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for scalar subqueries in DELETE statements.
+
 - Added new "password" authentication method which is available for connections
   via the Postgres Protocol. This method allowes clients to authenticate using
   a valid database user and its password.
