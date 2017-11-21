@@ -1,5 +1,7 @@
 .. highlight:: psql
 
+.. _ref-table-functions:
+
 ===============
 Table Functions
 ===============

@@ -36,7 +36,7 @@ Users cannot be backed up or restored.
 ===============
 
 To create a new user for the CrateDB database cluster use the
-:doc:`/sql/reference/create_user` SQL statement::
+:ref:`ref-create-user` SQL statement::
 
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
@@ -72,7 +72,7 @@ statement returns an error::
     CREATE OK, 1 row affected (... sec)
 
 To remove an existing user from the CrateDB database cluster use the
-:doc:`/sql/reference/drop_user` SQL statement::
+:ref:`ref-drop-user` SQL statement::
 
     cr> DROP USER user_c;
     DROP OK, 1 row affected (... sec)

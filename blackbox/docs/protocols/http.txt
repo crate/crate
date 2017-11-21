@@ -22,7 +22,7 @@ the statement is sent as value associated to the key ``stmt``.
 
 .. SEEALSO::
 
-    :doc:`../sql/dml`
+    :ref:`dml`
 
 A simple ``SELECT`` statement can be submitted like this::
 

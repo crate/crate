@@ -1,0 +1,18 @@
+===========
+General Use
+===========
+
+.. rubric:: Table of Contents
+
+.. toctree::
+   :maxdepth: 2
+
+   ddl/index
+   dml
+   dql
+   administration/index
+   joins
+   functions_operators
+   occ
+   partitioned_tables
+   analyzer
