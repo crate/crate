@@ -11,6 +11,8 @@ Data Definition
    :maxdepth: 2
 
    basics
+   data-types
+   system-columns
    generated_columns
    constraints
    sharding
