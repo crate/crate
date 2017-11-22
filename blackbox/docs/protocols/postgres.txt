@@ -105,8 +105,8 @@ Extended Query
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
-- The ``ParameterDescription` message only works for ``SELECT``, ``DELETE`` and
-  ``UPDATE`` statements.
+- The ``ParameterDescription` message works for the most common use cases 
+  except for DDL statements.
 
 - To optimize the execution of bulk operations the execution of statements is
   delayed until the ``Sync`` message is received

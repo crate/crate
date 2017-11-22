@@ -101,6 +101,43 @@ class InsertFromSubQueryAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
+    public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, TransactionContext txnCtx) {
+        TableIdent tableIdent = TableIdent.of(insert.table(), txnCtx.sessionContext().defaultSchema());
+        DocTableInfo targetTable = schemas.getTableInfo(tableIdent, Operation.INSERT);
+        DocTableRelation tableRelation = new DocTableRelation(targetTable);
+
+        QueriedRelation subQueryRelation =
+            (QueriedRelation) relationAnalyzer.analyzeUnbound(insert.subQuery(), txnCtx, typeHints);
+
+        List<Reference> targetColumns =
+            new ArrayList<>(resolveTargetColumns(insert.columns(), targetTable, subQueryRelation.fields().size()));
+        validateColumnsAndAddCastsIfNecessary(targetColumns, subQueryRelation.querySpec());
+
+        ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
+            functions,
+            txnCtx,
+            typeHints,
+            new NameFieldProvider(tableRelation),
+            null
+        );
+        exprAnalyzer.setResolveFieldsOperation(Operation.INSERT);
+
+        Map<Reference, Symbol> onDuplicateKeyAssignments = getUpdateAssignments(
+            functions,
+            tableRelation,
+            targetColumns,
+            exprAnalyzer,
+            txnCtx,
+            typeHints,
+            insert.onDuplicateKeyAssignments()
+        );
+
+        return new AnalyzedInsertStatement(
+            targetTable,
+            targetColumns,
+            subQueryRelation,
+            onDuplicateKeyAssignments);
+    }
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(

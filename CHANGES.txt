@@ -102,7 +102,7 @@ Changes
 - Added support for the PSQL ParameterDescription message which allows to get
   the parameter types in prepared statements up front without specifying the
   actual arguments first. This fixes compatibility issues with some drivers.
-  Only works for ``SELECT``, ``DELETE`` and ``UPDATE`` statements at the moment.
+  This works for the most common use cases except for DDL statements.
 
 Fixes
 =====

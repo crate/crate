@@ -156,7 +156,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testExtractTypesFromInsert() throws Exception {
+    public void testExtractTypesFromInsertValues() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
@@ -170,8 +170,29 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testExtractTypesFromInsertFromQuery() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).
+            addDocTable(TableDefinitions.USER_TABLE_INFO).
+            addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
+            build();
+        AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
+                                      "WHERE name = ?)"),
+            SessionContext.create(),
+            ParamTypeHints.EMPTY
+        );
+        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+
+        assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING}));
+    }
+
+    @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(TableDefinitions.USER_TABLE_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).
+            addDocTable(TableDefinitions.USER_TABLE_INFO).
+            addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
+            build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON DUPLICATE KEY UPDATE name = ?"),
@@ -181,6 +202,17 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
-        assertThat(parameterTypes, is(new DataType[] { DataTypes.LONG, DataTypes.STRING, DataTypes.STRING }));
+        assertThat(parameterTypes, is(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING}));
+
+        analyzedStatement = e.analyzer.unboundAnalyze(
+            SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
+                                      "WHERE name = ?) ON DUPLICATE KEY UPDATE name = ?"),
+            SessionContext.create(),
+            ParamTypeHints.EMPTY
+        );
+        typeExtractor = new Session.ParameterTypeExtractor();
+        parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
+
+        assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
     }
 }

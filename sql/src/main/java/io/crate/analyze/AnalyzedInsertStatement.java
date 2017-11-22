@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -34,18 +35,37 @@ public final class AnalyzedInsertStatement implements AnalyzedStatement {
 
     private final DocTableInfo targetTable;
     private final List<Reference> targetCols;
-    private final List<List<Symbol>> rows;
+    @Nullable
+    private List<List<Symbol>> rows;
+    @Nullable
+    private AnalyzedStatement subRelation;
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
+
+    private AnalyzedInsertStatement(DocTableInfo targetTable,
+                                    List<Reference> targetCols,
+                                    Map<Reference, Symbol> onDuplicateKeyAssignments) {
+
+        this.targetTable = targetTable;
+        this.targetCols = targetCols;
+        this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
+    }
 
     public AnalyzedInsertStatement(DocTableInfo targetTable,
                                    List<Reference> targetCols,
                                    List<List<Symbol>> rows,
                                    Map<Reference, Symbol> onDuplicateKeyAssignments) {
 
-        this.targetTable = targetTable;
-        this.targetCols = targetCols;
+        this(targetTable, targetCols, onDuplicateKeyAssignments);
         this.rows = rows;
-        this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
+    }
+
+    public AnalyzedInsertStatement(DocTableInfo targetTable,
+                                   List<Reference> targetCols,
+                                   AnalyzedStatement subRelation,
+                                   Map<Reference, Symbol> onDuplicateKeyAssignments) {
+
+        this(targetTable, targetCols, onDuplicateKeyAssignments);
+        this.subRelation = subRelation;
     }
 
     @Override
@@ -60,8 +80,12 @@ public final class AnalyzedInsertStatement implements AnalyzedStatement {
 
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (List<Symbol> row : rows) {
-            row.forEach(consumer);
+        if (rows != null) {
+            for (List<Symbol> row : rows) {
+                row.forEach(consumer);
+            }
+        } else if (subRelation != null) {
+            subRelation.visitSymbols(consumer);
         }
         onDuplicateKeyAssignments.values().forEach(consumer);
     }
