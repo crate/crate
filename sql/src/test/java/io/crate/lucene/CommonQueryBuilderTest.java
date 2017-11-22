@@ -181,12 +181,30 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("_id = 'i1'");
         assertThat(query, instanceOf(TermInSetQuery.class));
         assertThat(query.toString(), is("_uid:default#i1"));
+
+        query = convert("_id = 1");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("_uid:default#1"));
     }
 
     @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Query query = convert("d = any([-1.5, 0.0, 1.5])");
         assertThat(query, instanceOf(PointInSetQuery.class));
+
+        query = convert("_id in ('test','test2')");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("_uid:default#test _uid:default#test2"));
+        query = convert("_id in (1, 2)");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("_uid:default#1 _uid:default#2"));
+
+        query = convert("_id = any (['test','test2'])");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("_uid:default#test _uid:default#test2"));
+        query = convert("_id = any ([1, 2])");
+        assertThat(query, instanceOf(TermInSetQuery.class));
+        assertThat(query.toString(), is("_uid:default#1 _uid:default#2"));
     }
 
     @Test
