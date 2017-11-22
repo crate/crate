@@ -20,8 +20,8 @@ massive amounts of machine data in real-time.
    :maxdepth: 2
 
    release_notes/index
+   run
    configuration/index
-   cli
    general/index
    sql/index
    blob
