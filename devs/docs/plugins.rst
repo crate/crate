@@ -1,5 +1,3 @@
-.. _plugins:
-
 =======
 Plugins
 =======
@@ -15,13 +13,6 @@ A plugin must at least:
    it.
 
 See our `CrateDB example plugin`_ for details about that.
-
-.. rubric:: Table of Contents
-
-.. contents::
-   :local:
-
-.. _plugins_crate_dep:
 
 Plugin CrateDB Dependency
 =========================
@@ -87,8 +78,6 @@ Add CrateDB as a dependency:
     </dependency>
   </dependencies>
 
-.. _plugins_loading:
-
 Plugin Loading
 ==============
 
@@ -110,7 +99,6 @@ implement it's own custom setting entries.
 The `CrateDB example plugin`_ makes use of that to implement a custom setting.
 
 .. highlight:: java
-.. _plugins_interface:
 
 Plugin Interface
 ================
@@ -136,8 +124,6 @@ achieved by implementing a related ``onModule(AnyModule module)`` method::
   ...
 
 Again, checkout the `CrateDB example plugin`_ to see this in action.
-
-.. _plugins_abstract_plugin:
 
 ``AbstractPlugin`` Class
 ========================

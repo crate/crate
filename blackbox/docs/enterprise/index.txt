@@ -18,7 +18,7 @@ Current features:
   :ref:`USER <user>`, :ref:`SESSION_USER <session_user>`
 - :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
   functions in JavaScript
-- :ref:`jmx_monitoring_plugin`: monitor your query stats with JMX
+- :ref:`jmx_monitoring`: monitor your query stats with JMX
 - :ref:`ingest_mqtt`: ingest data using MQTT_ without any 3rd party tools
 
 .. _`enterprise edition`: https://crate.io/enterprise-edition/

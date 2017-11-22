@@ -72,8 +72,9 @@ Types
 
 A type determines how and where a repository stores its snapshots.
 
-The supported types are the following. More types are supported via
-:ref:`plugins`.
+The supported types are the following. More types are supported via `plugins`_.
+
+.. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 
 .. _ref-create-repository-types-fs:
 
