@@ -1,17 +1,28 @@
 .. highlight:: sh
 .. _cli:
 
-======================
-Command Line Interface
-======================
+===============
+Running CrateDB
+===============
+
+This document covers the basics of running CrateDB from the command line.
+
+.. NOTE::
+
+   For help installing CrateDB, check out `Getting Started with CrateDB`_.
+
+   For help deploying CrateDB, check out the `CrateDB Guide`_.
+
+.. _Getting Started with CrateDB: https://crate.io/docs/crate/getting-started/en/latest/install/index.html
+.. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/deployment/index.html
 
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
 
-The Basics
-==========
+Introduction
+============
 
 CrateDB ships with a ``crate`` command in the ``bin`` directory.
 
