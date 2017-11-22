@@ -25,11 +25,9 @@ massive amounts of machine data in real-time.
    general/index
    sql/index
    blob
-   plugins
    protocols/index
    enterprise/index
    administration/index
-   monitoring/index
    appendix/index
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/

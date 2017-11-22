@@ -20,6 +20,7 @@ Administration
     system-information
     optimization
     jobs-management
+    monitoring
     snapshots
     discovery
     udc

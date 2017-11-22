@@ -1,20 +1,22 @@
-.. _jmx_monitoring_plugin:
+.. _jmx_monitoring:
 
-=====================
-JMX Monitoring Plugin
-=====================
+==============
+JMX Monitoring
+==============
 
-The JMX monitoring plugin exposes query metrics via the `JMX`_ API.
+The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 
 .. NOTE::
 
-   The JMX monitoring plugin is an :ref:`enterprise feature
-   <enterprise_features>`.
+   JMX monitoring is an :ref:`enterprise feature <enterprise_features>`.
 
 .. rubric:: Table of Contents
 
 .. contents::
    :local:
+
+Setup
+=====
 
 Enable the Enterprise License
 -----------------------------
@@ -75,7 +77,7 @@ If you're using the CrateDB Debian or RPM packages, you can set this
 environment variable via the ``/etc/default/crate`` configuration file.
 
 Using Docker
-------------
+============
 
 .. highlight:: none
 
@@ -108,10 +110,10 @@ Here, again, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker
 host.
 
 JMX Beans
----------
+=========
 
 QueryStats MBean
-................
+----------------
 
 The ``QueryStats`` JMX MBean exposes query frequency and average duration in
 milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
