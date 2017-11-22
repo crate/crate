@@ -16,3 +16,4 @@ General Use
    occ
    partitioned_tables
    analyzer
+   blob
