@@ -24,7 +24,6 @@ massive amounts of machine data in real-time.
    cli
    general/index
    sql/index
-   blob
    protocols/index
    enterprise/index
    administration/index
