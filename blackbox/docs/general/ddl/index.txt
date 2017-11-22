@@ -15,8 +15,11 @@ Data Definition
    system-columns
    generated_columns
    constraints
+   partitioned_tables
    sharding
    replication
    column_policy
-   indices_full_search
+   fulltext_indices
+   analyzers
+   show_create_table
    alter_table

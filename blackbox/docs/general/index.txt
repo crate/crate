@@ -9,11 +9,8 @@ General Use
 
    ddl/index
    dml
-   dql
-   administration/index
-   joins
-   functions_operators
+   dql/index
+   builtins/index
+   user_defined_functions.txt
+   blobs
    occ
-   partitioned_tables
-   analyzer
-   blob

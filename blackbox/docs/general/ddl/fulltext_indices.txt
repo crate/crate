@@ -2,9 +2,9 @@
 
 .. _indices_and_fulltext:
 
-===========================
-Indices and Fulltext Search
-===========================
+================
+Fulltext Indices
+================
 
 Fulltext indices take the contents of one or more fields and split it up into
 tokens that are used for fulltext-search. The transformation from a text to
@@ -304,8 +304,7 @@ will be taken from the extended one.  Example::
 This analyzer will use the char-filters and token-filters from ``myanalyzer``
 and will override the tokenizer with ``mypattern``.
 
-Analyzer Reference
-==================
+.. SEEALSO::
 
-See the reference documentation of the :ref:`builtin-analyzer` to get detailed
-information on the available analyzers.
+   See the reference documentation of the :ref:`builtin-analyzer` to get
+   detailed information on the available analyzers.
