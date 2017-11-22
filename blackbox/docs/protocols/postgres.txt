@@ -105,7 +105,7 @@ Extended Query
 
 The `Extended Query`_ protocol is implemented with the following limitations:
 
-- The ``ParameterDescription` message works for the most common use cases 
+- The ``ParameterDescription`` message works for the most common use cases
   except for DDL statements.
 
 - To optimize the execution of bulk operations the execution of statements is
