@@ -30,7 +30,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.node.dml.UpsertById;
+import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -73,16 +73,16 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertPlan() throws Exception {
-        UpsertById upsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought')");
+        LegacyUpsertById legacyUpsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought')");
 
-        assertThat(upsertById.insertColumns().length, is(2));
-        Reference idRef = upsertById.insertColumns()[0];
+        assertThat(legacyUpsertById.insertColumns().length, is(2));
+        Reference idRef = legacyUpsertById.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = upsertById.insertColumns()[1];
+        Reference nameRef = legacyUpsertById.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
-        assertThat(upsertById.items().size(), is(1));
-        UpsertById.Item item = upsertById.items().get(0);
+        assertThat(legacyUpsertById.items().size(), is(1));
+        LegacyUpsertById.Item item = legacyUpsertById.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("42"));
         assertThat(item.routing(), is("42"));
@@ -94,17 +94,17 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertPlanMultipleValues() throws Exception {
-        UpsertById upsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
+        LegacyUpsertById legacyUpsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
 
-        assertThat(upsertById.insertColumns().length, is(2));
-        Reference idRef = upsertById.insertColumns()[0];
+        assertThat(legacyUpsertById.insertColumns().length, is(2));
+        Reference idRef = legacyUpsertById.insertColumns()[0];
         assertThat(idRef.ident().columnIdent().fqn(), is("id"));
-        Reference nameRef = upsertById.insertColumns()[1];
+        Reference nameRef = legacyUpsertById.insertColumns()[1];
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
-        assertThat(upsertById.items().size(), is(2));
+        assertThat(legacyUpsertById.items().size(), is(2));
 
-        UpsertById.Item item1 = upsertById.items().get(0);
+        LegacyUpsertById.Item item1 = legacyUpsertById.items().get(0);
         assertThat(item1.index(), is("users"));
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
@@ -112,7 +112,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item1.insertValues()[0], is(42L));
         assertThat(item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
-        UpsertById.Item item2 = upsertById.items().get(1);
+        LegacyUpsertById.Item item2 = legacyUpsertById.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
@@ -362,7 +362,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        UpsertById node = e.plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
+        LegacyUpsertById node = e.plan("insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
 
         assertThat(node.updateColumns(), is(new String[]{"name"}));
 
@@ -373,7 +373,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nameRef.ident().columnIdent().fqn(), is("name"));
 
         assertThat(node.items().size(), is(1));
-        UpsertById.Item item = node.items().get(0);
+        LegacyUpsertById.Item item = node.items().get(0);
         assertThat(item.index(), is("users"));
         assertThat(item.id(), is("1"));
         assertThat(item.routing(), is("1"));

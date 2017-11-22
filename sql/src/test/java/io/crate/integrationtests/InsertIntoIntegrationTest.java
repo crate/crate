@@ -368,7 +368,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'message'");
+        expectedException.expectMessage("\"message\" must not be null");
         Object[] args = new Object[]{"1", null};
         execute("insert into t (pk_col, message) values (?, ?)", args);
     }
@@ -382,7 +382,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'stuff['level1']'");
+        expectedException.expectMessage("\"stuff['level1']\" must not be null");
         execute("insert into test (stuff) values('{\"other_field\":\"value\"}')");
     }
 
@@ -397,8 +397,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column " +
-                                        "'stuff['level1']['level2']'");
+        expectedException.expectMessage("\"stuff['level1']['level2']\" must not be null");
         execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')");
     }
 
@@ -1010,7 +1009,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
+        expectedException.expectMessage("\"gen_col\" must not be null");
         execute("insert into generated_column (id, ts) values (1, null)");
     }
 
@@ -1024,7 +1023,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
+        expectedException.expectMessage("\"gen_col\" must not be null");
         execute("insert into generated_column (id, gen_col) values (1, null)");
     }
 

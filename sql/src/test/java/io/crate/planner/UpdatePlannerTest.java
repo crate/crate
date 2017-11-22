@@ -25,9 +25,9 @@ package io.crate.planner;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.metadata.Reference;
-import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertById;
+import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -36,14 +36,13 @@ import io.crate.planner.projection.UpdateProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -62,10 +61,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {
-        Upsert plan = e.plan("update users set name='Vogon lyric fan'");
-        assertThat(plan.nodes().size(), is(1));
+        Merge merge = e.plan("update users set name='Vogon lyric fan'");
 
-        Merge merge = (Merge) plan.nodes().get(0);
         Collect collect = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
@@ -94,54 +91,33 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateByIdPlan() throws Exception {
-        UpsertById upsertById = e.plan("update users set name='Vogon lyric fan' where id=1");
-        assertThat(upsertById.items().size(), is(1));
+        UpdateById updateById = e.plan("update users set name='Vogon lyric fan' where id=1");
 
-        assertThat(upsertById.updateColumns()[0], is("name"));
+        assertThat(updateById.assignmentByTargetCol().keySet(), contains(isReference("name")));
+        assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
+        assertThat(updateById.docKeys().size(), is(1));
 
-        UpsertById.Item item = upsertById.items().get(0);
-        assertThat(item.index(), is("users"));
-        assertThat(item.id(), is("1"));
-
-        Symbol symbol = item.updateAssignments()[0];
-        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
+        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY), is("1"));
     }
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        UpsertById plan = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-
-        List<String> ids = new ArrayList<>(3);
-        for (UpsertById.Item item : plan.items()) {
-            ids.add(item.id());
-            assertThat(item.updateAssignments().length, is(1));
-            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
-        }
-
-        assertThat(ids, containsInAnyOrder("1", "2", "3"));
+        UpdateById update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
+        assertThat(update.docKeys().size(), is(3));
     }
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
-        UpsertById planNode = e.plan("update parted_pks set name='Vogon lyric fan' where " +
+        Plan update = e.plan("update parted_pks set name='Vogon lyric fan' where " +
                                      "(id=2 and date = 0) OR" +
                                      "(id=3 and date=123)");
-
-        List<String> partitions = new ArrayList<>(2);
-        List<String> ids = new ArrayList<>(2);
-        for (UpsertById.Item item : planNode.items()) {
-            partitions.add(item.index());
-            ids.add(item.id());
-            assertThat(item.updateAssignments().length, is(1));
-            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
-        }
-        assertThat(ids, containsInAnyOrder("AgEyATA=", "AgEzAzEyMw==")); // multi primary key - values concatenated and base64'ed
-        assertThat(partitions, containsInAnyOrder(".partitioned.parted_pks.04130", ".partitioned.parted_pks.04232chj"));
+        assertThat(update, instanceOf(UpdateById.class));
+        assertThat(((UpdateById) update).docKeys().size(), is(2));
     }
 
     @Test
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
-        ExecutionPlan executionPlan = e.plan("update empty_parted set name='Vogon lyric fan'");
-        assertThat(executionPlan, instanceOf(NoopPlan.class));
+        Collect collect = e.plan("update empty_parted set name='Vogon lyric fan'");
+        assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
     }
 }

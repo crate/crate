@@ -35,7 +35,8 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.operation.projectors.RetryListener;
 import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
-import io.crate.planner.node.dml.UpsertById;
+import io.crate.planner.node.dml.LegacyUpsertById;
+import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -70,15 +71,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class UpsertByIdTask extends JobTask {
+public class LegacyUpsertByIdTask extends JobTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
+    private static final Logger LOGGER = Loggers.getLogger(UpdateById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
     private final ShardUpsertRequest.Builder reqBuilder;
     private final TransportCreatePartitionsAction createIndicesAction;
-    private final List<UpsertById.Item> items;
+    private final List<LegacyUpsertById.Item> items;
     private final ScheduledExecutorService scheduler;
     private final BulkRequestExecutor<ShardUpsertRequest> upsertAction;
     private final int numBulkResponses;
@@ -87,12 +88,12 @@ public class UpsertByIdTask extends JobTask {
     private final boolean isDebugEnabled;
     private final boolean isPartitioned;
 
-    public UpsertByIdTask(UpsertById upsertById,
-                          ClusterService clusterService,
-                          ScheduledExecutorService scheduler,
-                          Settings settings,
-                          BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
-                          TransportCreatePartitionsAction transportCreatePartitionsAction) {
+    public LegacyUpsertByIdTask(LegacyUpsertById upsertById,
+                                ClusterService clusterService,
+                                ScheduledExecutorService scheduler,
+                                Settings settings,
+                                BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
+                                TransportCreatePartitionsAction transportCreatePartitionsAction) {
         super(upsertById.jobId());
         this.scheduler = scheduler;
         this.upsertAction = transportShardUpsertAction;
@@ -184,7 +185,7 @@ public class UpsertByIdTask extends JobTask {
     private CompletableFuture<BitSet> doExecute() {
         MetaData metaData = clusterService.state().getMetaData();
         List<String> indicesToCreate = new ArrayList<>();
-        for (UpsertById.Item item : items) {
+        for (LegacyUpsertById.Item item : items) {
             String index = item.index();
             if (isPartitioned && metaData.hasIndex(index) == false) {
                 indicesToCreate.add(index);
@@ -293,7 +294,7 @@ public class UpsertByIdTask extends JobTask {
         ClusterState state = clusterService.state();
         Map<ShardId, ShardUpsertRequest> requestsByShard = new HashMap<>();
         for (int i = 0; i < items.size(); i++) {
-            UpsertById.Item item = items.get(i);
+            LegacyUpsertById.Item item = items.get(i);
 
             String index = item.index();
             ShardId shardId;

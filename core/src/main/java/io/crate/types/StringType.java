@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 
@@ -80,9 +81,13 @@ public class StringType extends DataType<BytesRef> implements Streamer<BytesRef>
                 return F;
             }
         }
-        if (value instanceof Map || value.getClass().isArray()) {
+        if (value instanceof Map) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type string", value));
+        }
+        if (value.getClass().isArray()) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot cast %s to type string", Arrays.toString((Object[]) value)));
         }
         if (value instanceof TimeValue) {
             return new BytesRef(((TimeValue) value).getStringRep());

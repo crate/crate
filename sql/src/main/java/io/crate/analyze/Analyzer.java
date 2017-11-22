@@ -224,7 +224,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitUpdate(Update node, Analysis context) {
-            return updateAnalyzer.analyze(node, context);
+            return updateAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
         }
 
         @Override

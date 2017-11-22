@@ -42,8 +42,9 @@ import io.crate.executor.transport.task.DeleteByIdTask;
 import io.crate.executor.transport.task.DropTableTask;
 import io.crate.executor.transport.task.KillJobTask;
 import io.crate.executor.transport.task.KillTask;
+import io.crate.executor.transport.task.LegacyUpsertByIdTask;
 import io.crate.executor.transport.task.ShowCreateTableTask;
-import io.crate.executor.transport.task.UpsertByIdTask;
+import io.crate.executor.transport.task.UpdateByIdTask;
 import io.crate.executor.transport.task.elasticsearch.CreateAnalyzerTask;
 import io.crate.executor.transport.task.elasticsearch.DeleteAllPartitionsTask;
 import io.crate.executor.transport.task.elasticsearch.DeletePartitionTask;
@@ -63,7 +64,6 @@ import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DeleteAllPartitions;
@@ -72,8 +72,9 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.DeleteById;
+import io.crate.planner.node.dml.LegacyUpsertById;
+import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -184,13 +185,16 @@ public class TransportExecutor implements Executor {
     private Task createTask(Plan plan, PlannerContext plannerCtx, List<Row> bulkParams) {
         // this is a bit in-progress here; We should be able to clean this up once all statement analyzers are unbound
 
-        if (plan instanceof Upsert || plan instanceof UpsertById || plan instanceof UpdatePlanner.UpdatePlan) {
+        if (plan instanceof Upsert || plan instanceof LegacyUpsertById) {
             // These are legacy plans which can already bulk specialized.
             // They should eventually be adopted, so that the Plan itself is params independent.
             return plan2TaskVisitor.process(plan.build(plannerCtx, projectionBuilder, Row.EMPTY), plannerCtx);
         } else if (plan instanceof DeleteById) {
             return new DeleteByIdTask(
                 clusterService, functions, transportActionProvider.transportShardDeleteAction(), ((DeleteById) plan));
+        } else if (plan instanceof UpdateById) {
+            return new UpdateByIdTask(
+                clusterService, functions, transportActionProvider.transportShardUpsertAction(), ((UpdateById) plan));
         }
         // Execution plans can be param specific, but we still want to execute all together in a single task/jobRequest
         String localNodeId = clusterService.localNode().getId();
@@ -307,8 +311,14 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitUpsertById(UpsertById plan, PlannerContext context) {
-            return new UpsertByIdTask(
+        public Task visitUpdateById(UpdateById updateById, PlannerContext context) {
+            return new UpdateByIdTask(
+                clusterService, functions, transportActionProvider.transportShardUpsertAction(), updateById);
+        }
+
+        @Override
+        public Task visitLegacyUpsertById(LegacyUpsertById plan, PlannerContext context) {
+            return new LegacyUpsertByIdTask(
                 plan,
                 clusterService,
                 threadPool.scheduler(),

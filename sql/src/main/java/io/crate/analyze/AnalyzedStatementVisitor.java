@@ -63,10 +63,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(relation, context);
     }
 
-    protected R visitUpdateStatement(UpdateAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     protected R visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

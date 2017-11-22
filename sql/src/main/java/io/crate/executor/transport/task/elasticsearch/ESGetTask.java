@@ -353,10 +353,10 @@ public class ESGetTask extends JobTask {
         return new FetchSourceContext(false);
     }
 
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
+    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> partitionValues) {
         if (tableInfo.isPartitioned()) {
-            assert values != null : "values must not be null";
-            return new PartitionName(tableInfo.ident(), values).asIndexName();
+            assert partitionValues != null : "values must not be null";
+            return new PartitionName(tableInfo.ident(), partitionValues).asIndexName();
         } else {
             return tableInfo.ident().indexName();
         }

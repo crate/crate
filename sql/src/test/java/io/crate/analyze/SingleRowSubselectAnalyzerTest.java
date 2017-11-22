@@ -74,7 +74,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testSingleRowSubselectInAssignmentOfUpdate() throws Exception {
         expectedException.expectMessage("Subquery not supported in this statement");
-        UpdateAnalyzedStatement stmt = e.analyze("update t1 set x = (select y from t2)");
+        e.analyze("update t1 set x = (select y from t2)");
         /*
         assertThat(
             stmt.nestedStatements().get(0).assignments().values().iterator().next(),

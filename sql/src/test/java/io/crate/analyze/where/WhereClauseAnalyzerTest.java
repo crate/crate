@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
-import io.crate.analyze.UpdateAnalyzedStatement;
+import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
@@ -39,6 +39,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -58,6 +59,7 @@ import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isNullDocKey;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -188,7 +190,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .build());
     }
 
-    private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
+    private AnalyzedUpdateStatement analyzeUpdate(String stmt) {
         return e.analyze(stmt);
     }
 
@@ -268,16 +270,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
-        UpdateAnalyzedStatement updateAnalyzedStatement = analyzeUpdate("update parted set id = 2 where date = 1395874800000");
-        UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement = updateAnalyzedStatement.nestedStatements().get(0);
-
-        assertThat(nestedAnalyzedStatement.whereClause().hasQuery(), is(false));
-        assertThat(nestedAnalyzedStatement.whereClause().noMatch(), is(false));
-
-        assertEquals(ImmutableList.of(
-            new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName()),
-            nestedAnalyzedStatement.whereClause().partitions()
-        );
+        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000");
+        assertThat(update.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
     }
 
     @Test

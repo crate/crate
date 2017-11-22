@@ -38,8 +38,7 @@ public final class ConstraintsValidator {
         assert targetColumn != null : "targetColumn is required to be able to validate it";
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Cannot insert null value for column '%s'", targetColumn.ident().columnIdent()));
+            throw new IllegalArgumentException("\"" + targetColumn.ident().columnIdent() + "\" must not be null");
         }
         validateNotNullOnChildren(value, targetColumn, notNullColumns);
     }
@@ -56,8 +55,7 @@ public final class ConstraintsValidator {
                     for (String path : columnIdent.path()) {
                         Object nested = Maps.getNested(map, path);
                         if (nested == null) {
-                            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                                             "Cannot insert null value for column '%s'", columnIdent));
+                            throw new IllegalArgumentException("\"" + columnIdent + "\" must not be null");
                         }
                         if (nested instanceof Map) {
                             map = (Map<String, Object>) nested;

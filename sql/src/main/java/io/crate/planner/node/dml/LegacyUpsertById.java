@@ -32,7 +32,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class UpsertById extends UnnestablePlan {
+/**
+ * @deprecated This should be replaced with a variant that doesn't depend on parameter values.
+ *             Similar to how {@link DeleteById} and {@link UpdateById} work.
+ */
+@Deprecated
+public class LegacyUpsertById extends UnnestablePlan {
 
     /**
      * A single update item.
@@ -103,12 +108,12 @@ public class UpsertById extends UnnestablePlan {
     @Nullable
     private final Reference[] insertColumns;
 
-    public UpsertById(UUID jobId,
-                      int numBulkResponses,
-                      boolean isPartitioned,
-                      List<Integer> bulkIndices,
-                      @Nullable String[] updateColumns,
-                      @Nullable Reference[] insertColumns) {
+    public LegacyUpsertById(UUID jobId,
+                            int numBulkResponses,
+                            boolean isPartitioned,
+                            List<Integer> bulkIndices,
+                            @Nullable String[] updateColumns,
+                            @Nullable Reference[] insertColumns) {
         this.jobId = jobId;
         this.numBulkResponses = numBulkResponses;
         this.isPartitioned = isPartitioned;
@@ -118,11 +123,11 @@ public class UpsertById extends UnnestablePlan {
         this.items = new ArrayList<>();
     }
 
-    public static UpsertById forUpdate(UUID jobId,
-                                       int numBulkResponses,
-                                       boolean isPartitioned,
-                                       @Nullable String[] updateColumns) {
-        return new UpsertById(jobId, numBulkResponses, isPartitioned, new ArrayList<>(), updateColumns, null);
+    public static LegacyUpsertById forUpdate(UUID jobId,
+                                             int numBulkResponses,
+                                             boolean isPartitioned,
+                                             @Nullable String[] updateColumns) {
+        return new LegacyUpsertById(jobId, numBulkResponses, isPartitioned, new ArrayList<>(), updateColumns, null);
     }
 
     @Nullable
@@ -170,7 +175,7 @@ public class UpsertById extends UnnestablePlan {
 
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitUpsertById(this, context);
+        return visitor.visitLegacyUpsertById(this, context);
     }
 
     @Override

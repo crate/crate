@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.AndOperator;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -176,7 +177,8 @@ public class WhereClause extends QueryClause implements Streamable {
     }
 
     public boolean hasVersions() {
-        return docKeys.isPresent() && docKeys.get().withVersions();
+        return (docKeys.isPresent() && docKeys.get().withVersions())
+            || query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
     }
 
 

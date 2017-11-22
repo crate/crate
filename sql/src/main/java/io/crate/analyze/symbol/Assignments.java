@@ -22,13 +22,21 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.analyze.ConstraintsValidator;
+import io.crate.analyze.expressions.ValueNormalizer;
+import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
 
-public class Assignments {
+public final class Assignments {
+
+    private final String[] targetNames;
+    private final Reference[] targetColumns;
+    private final Symbol[] sources;
 
     /**
      * convert assignments into a tuple of fqn column names and the symbols.
@@ -42,21 +50,55 @@ public class Assignments {
      * </pre>
      * becomes
      * <pre>
-     *     ( [users.age, users.name], [users.age + 1, users.name || 'foo'] )
+     *     ( [users.age, users.name], [ Ref[users.age], Ref[users.name] ] [users.age + 1, users.name || 'foo'] )
      * </pre>
      *
      * @return a tuple or null if the input is null.
      */
-    public static Tuple<String[], Symbol[]> convert(@Nonnull Map<Reference, ? extends Symbol> assignments) {
-        String[] assignmentColumns = new String[assignments.size()];
+    public static Assignments convert(@Nonnull Map<Reference, ? extends Symbol> assignments) {
+        String[] targetNames = new String[assignments.size()];
+        Reference[] targetColumns = new Reference[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];
         int i = 0;
         for (Map.Entry<Reference, ? extends Symbol> entry : assignments.entrySet()) {
             Reference key = entry.getKey();
-            assignmentColumns[i] = key.ident().columnIdent().fqn();
+            targetNames[i] = key.ident().columnIdent().fqn();
             assignmentSymbols[i] = entry.getValue();
+            targetColumns[i] = key;
             i++;
         }
-        return new Tuple<>(assignmentColumns, assignmentSymbols);
+        return new Assignments(targetNames, targetColumns, assignmentSymbols);
     }
+
+    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources) {
+        this.targetNames = targetNames;
+        this.targetColumns = targetColumns;
+        this.sources = sources;
+    }
+
+    public String[] targetNames() {
+        return targetNames;
+    }
+
+    public Symbol[] sources() {
+        return sources;
+    }
+
+    public Symbol[] bindSources(DocTableInfo tableInfo, Row params) {
+        Symbol[] boundSources = new Symbol[targetColumns.length];
+        for (int i = 0; i < boundSources.length; i++) {
+            Symbol source = ValueNormalizer.normalizeInputForReference(
+                ParamSymbols.toLiterals(sources[i], params),
+                targetColumns[i],
+                tableInfo
+            );
+            if (source instanceof Input) {
+                ConstraintsValidator.validate(
+                    ((Input) source).value(), targetColumns[i], tableInfo.notNullColumns());
+            }
+            boundSources[i] = source;
+        }
+        return boundSources;
+    }
+
 }

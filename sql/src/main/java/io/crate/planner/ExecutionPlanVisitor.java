@@ -29,8 +29,9 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.DeleteById;
+import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertById;
+import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.ESGet;
@@ -120,7 +121,7 @@ public class ExecutionPlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitUpsertById(UpsertById plan, C context) {
+    public R visitLegacyUpsertById(LegacyUpsertById plan, C context) {
         return visitPlan(plan, context);
     }
 
@@ -138,5 +139,9 @@ public class ExecutionPlanVisitor<C, R> {
 
     public R visitDeleteAllPartitions(DeleteAllPartitions deleteAllPartitions, C context) {
         return visitPlan(deleteAllPartitions, context);
+    }
+
+    public R visitUpdateById(UpdateById updateById, C context) {
+        return visitPlan(updateById, context);
     }
 }

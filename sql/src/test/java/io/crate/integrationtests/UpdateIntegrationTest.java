@@ -79,7 +79,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'message'");
+        expectedException.expectMessage("\"message\" must not be null");
         execute("update test set message=null where id=1");
     }
 
@@ -95,7 +95,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'stuff['level1']'");
+        expectedException.expectMessage("\"stuff['level1']\" must not be null");
         execute("update test set stuff['level1']=null");
     }
 
@@ -113,8 +113,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column " +
-                                        "'stuff['level1']['level2']'");
+        expectedException.expectMessage("\"stuff['level1']['level2']\" must not be null");
         execute("update test set stuff['level1']['level2']=null");
     }
 
@@ -642,25 +641,25 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateVersionOrOperator() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
         ensureGreen();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         execute("update test set c = 4 where _version = 2 or _version=1");
     }
 
     @Test
     public void testUpdateVersionInOperator() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
         ensureGreen();
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         execute("update test set c = 4 where _version in (1,2)");
     }
 
@@ -810,7 +809,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
+        expectedException.expectMessage("\"gen_col\" must not be null");
         execute("update generated_column set ts=null where id=1");
     }
 
@@ -827,7 +826,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
+        expectedException.expectMessage("\"gen_col\" must not be null");
         execute("update generated_column set gen_col=null where id=1");
     }
 

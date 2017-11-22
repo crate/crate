@@ -24,6 +24,7 @@ package io.crate.analyze.symbol;
 
 import io.crate.data.Row;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public final class ParamSymbols extends FunctionCopyVisitor<Row> {
 
@@ -44,6 +45,10 @@ public final class ParamSymbols extends FunctionCopyVisitor<Row> {
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
         DataType type = parameterSymbol.valueType();
-        return Literal.of(type, type.value(params.get(parameterSymbol.index())));
+        Object value = params.get(parameterSymbol.index());
+        if (type.equals(DataTypes.UNDEFINED)) {
+            type = DataTypes.guessType(value);
+        }
+        return Literal.of(type, type.value(value));
     }
 }

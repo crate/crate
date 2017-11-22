@@ -27,6 +27,7 @@ import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
@@ -43,7 +44,6 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
@@ -58,7 +58,7 @@ import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.UpsertById;
+import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
@@ -167,8 +167,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, PlannerContext context) {
-        return UpdatePlanner.plan(statement);
+    public Plan visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, PlannerContext context) {
+        return UpdatePlanner.plan(update, functions, context);
     }
 
     @Override
@@ -297,13 +297,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return new ExplainPlan(process(explainAnalyzedStatement.statement(), context), context.jobId());
     }
 
-    private UpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {
+    private LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {
         String[] onDuplicateKeyAssignmentsColumns = null;
         if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
             onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
         }
         DocTableInfo tableInfo = analysis.tableInfo();
-        UpsertById upsertById = new UpsertById(
+        LegacyUpsertById legacyUpsertById = new LegacyUpsertById(
             context.jobId(),
             analysis.numBulkResponses(),
             tableInfo.isPartitioned(),
@@ -319,7 +319,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 if (analysis.onDuplicateKeyAssignmentsColumns().size() > i) {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
-                upsertById.add(
+                legacyUpsertById.add(
                     indices[i],
                     analysis.ids().get(i),
                     analysis.routingValues().get(i),
@@ -333,7 +333,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                 if (analysis.onDuplicateKeyAssignments().size() > i) {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
-                upsertById.add(
+                legacyUpsertById.add(
                     tableInfo.ident().indexName(),
                     analysis.ids().get(i),
                     analysis.routingValues().get(i),
@@ -343,7 +343,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             }
         }
 
-        return upsertById;
+        return legacyUpsertById;
     }
 
     /**

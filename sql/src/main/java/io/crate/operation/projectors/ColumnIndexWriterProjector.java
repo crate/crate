@@ -39,7 +39,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -86,9 +85,9 @@ public class ColumnIndexWriterProjector implements Projector {
             updateColumnNames = null;
             assignments = null;
         } else {
-            Tuple<String[], Symbol[]> convert = Assignments.convert(updateAssignments);
-            updateColumnNames = convert.v1();
-            assignments = convert.v2();
+            Assignments convert = Assignments.convert(updateAssignments);
+            updateColumnNames = convert.targetNames();
+            assignments = convert.sources();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),

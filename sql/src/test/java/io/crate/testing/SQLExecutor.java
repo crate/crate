@@ -356,11 +356,12 @@ public class SQLExecutor {
             .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), Row.EMPTY);
     }
 
-    public <T extends ExecutionPlan> T plan(String stmt, Object[][] bulkArgs) {
-        Analysis analysis = analyzer.boundAnalyze(
+    public <T extends ExecutionPlan> T plan(String stmt, Row row) {
+        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(
             SqlParser.createStatement(stmt),
-            transactionContext,
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
+            sessionContext,
+            ParamTypeHints.EMPTY
+        );
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
@@ -372,8 +373,8 @@ public class SQLExecutor {
             0
         );
         //noinspection unchecked
-        return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
-            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), Row.EMPTY);
+        return (T) planner.plan(analyzedStatement, plannerContext)
+            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), row);
     }
 
     public <T extends ExecutionPlan> T plan(String statement) {

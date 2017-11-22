@@ -20,54 +20,51 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner.node.dml;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.ExecutionPlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.UUID;
 
-public final class AnalyzedUpdateStatement implements AnalyzedStatement {
+public final class UpdateById extends UnnestablePlan {
 
-    private final AbstractTableRelation table;
+    private final UUID jobId;
+    private final DocTableInfo table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
-    private final Symbol query;
+    private final DocKeys docKeys;
 
-    public AnalyzedUpdateStatement(AbstractTableRelation table, Map<Reference, Symbol> assignmentByTargetCol, Symbol query) {
+    public UpdateById(UUID jobId, DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
+        this.jobId = jobId;
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
-        this.query = query;
+        this.docKeys = docKeys;
     }
 
-    public AbstractTableRelation table() {
+    @Override
+    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitUpdateById(this, context);
+    }
+
+    @Override
+    public UUID jobId() {
+        return jobId;
+    }
+
+    public DocKeys docKeys() {
+        return docKeys;
+    }
+
+    public DocTableInfo table() {
         return table;
     }
 
     public Map<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
-    }
-
-    public Symbol query() {
-        return query;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
-        return visitor.visitAnalyzedUpdateStatement(this, context);
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
-    }
-
-    @Override
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        consumer.accept(query);
-        for (Symbol sourceExpr : assignmentByTargetCol.values()) {
-            consumer.accept(sourceExpr);
-        }
     }
 }

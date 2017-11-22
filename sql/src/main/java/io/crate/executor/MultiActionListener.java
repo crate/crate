@@ -31,7 +31,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-public class MultiActionListener<I, S, R> implements ActionListener<I> {
+public final class MultiActionListener<I, S, R> implements ActionListener<I> {
 
     private final AtomicInteger counter;
     private final AtomicReference<Exception> lastExceptions = new AtomicReference<>(null);
@@ -54,12 +54,19 @@ public class MultiActionListener<I, S, R> implements ActionListener<I> {
         this.actionListener = actionListener;
         this.state = stateSupplier.get();
         counter = new AtomicInteger(numResponses);
+        if (numResponses == 0) {
+            actionListener.onResponse(finisher.apply(state));
+        }
     }
 
     @Override
     public void onResponse(I response) {
         synchronized (state) {
-            accumulator.accept(state, response);
+            try {
+                accumulator.accept(state, response);
+            } catch (Exception e) {
+                lastExceptions.set(e);
+            }
         }
         countdown();
     }
