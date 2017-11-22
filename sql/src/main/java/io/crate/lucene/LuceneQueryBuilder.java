@@ -83,6 +83,7 @@ import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.operation.scalar.conditional.CoalesceFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
+import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -1363,12 +1364,12 @@ public class LuceneQueryBuilder {
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
                     if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
-                        String uid = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, ValueSymbolVisitor.STRING.process(right));
+                        Literal uidLiteral = generateLuceneUIDs(right);
                         return new Function(
                             function.info(),
                             Arrays.asList(
-                                 DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID),
-                                 Literal.of(uid)));
+                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID),
+                                uidLiteral));
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
                         if (unsupportedMessage != null) {
@@ -1378,6 +1379,25 @@ public class LuceneQueryBuilder {
                 }
             }
             return function;
+        }
+
+        /**
+         * Converts the Symbol value(s) to Lucene string(s) to match against the Lucene ids.
+         * @param symbol The Symbol to convert to a String uid.
+         * @return A literal holding the Lucene query value string.
+         */
+        private static Literal generateLuceneUIDs(Symbol symbol) {
+            if (DataTypes.isCollectionType(symbol.valueType())) {
+                List<String> strings = ValueSymbolVisitor.STRING_LIST.process(symbol);
+                String[] uids = new String[strings.size()];
+                for (int i = 0; i < uids.length; i++) {
+                    uids[i] = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, strings.get(i));
+                }
+                return Literal.of(new ArrayType(DataTypes.STRING), uids);
+            } else {
+                String uid = Uid.createUid(Constants.DEFAULT_MAPPING_TYPE, ValueSymbolVisitor.STRING.process(symbol));
+                return Literal.of(uid);
+            }
         }
 
         static Query genericFunctionFilter(Function function, Context context) {

@@ -110,6 +110,9 @@ Fixes
 - Handle MultiPolygon shapes in ``WITHIN`` queries correctly instead of
   throwing an exception.
 
+- Fixed an exception which occurred when using _id system column in IN or ANY
+  queries.
+
 - The target table name used in ``ALTER TABLE ... RENAME TO`` is now correctly
   validated.
 
