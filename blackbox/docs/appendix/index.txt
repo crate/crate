@@ -11,5 +11,3 @@ Appendix
 
     sql-compliance
     supported-features
-    data-types
-    system-columns
