@@ -122,26 +122,6 @@ public class Symbols {
         return new OutputName(SymbolPrinter.INSTANCE.printSimple(symbol));
     }
 
-    /**
-     * Try to cast the {@param symbol1} to {@param symbol2},
-     * assuming that {@param symbol2} has >= precedence to {@param symbol1}.
-     * @param symbol1 the 1st symbol
-     * @param symbol2 the 2nd symbol
-     * @return null if upcasting is not possible, {@param symbol1} if the 2 symbols have the same dataType,
-     *         {@param symbol1} wrapped with the proper cast function to match {@param symbol2},
-     */
-    public static Symbol tryUpcast(Symbol symbol1, Symbol symbol2) {
-        DataType dataType1 = symbol1.valueType();
-        DataType dataType2 = symbol2.valueType();
-
-        if (dataType1.equals(dataType2)) {
-            return symbol1;
-        } else if (dataType2.precedes(dataType1) && dataType1.isConvertableTo(dataType2)) {
-            return symbol1.cast(dataType2);
-        }
-        return null;
-    }
-
     private static class HasColumnVisitor extends SymbolVisitor<Path, Boolean> {
 
         @Override

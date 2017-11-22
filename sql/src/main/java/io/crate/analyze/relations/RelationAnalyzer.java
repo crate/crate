@@ -43,7 +43,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -213,23 +212,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Symbol> leftOutputs = left.outputs();
         List<Symbol> rightOutputs = right.outputs();
         for (int i = 0; i < leftOutputs.size(); i++) {
-            Symbol leftSymbol = leftOutputs.get(i);
-            Symbol rightSymbol = rightOutputs.get(i);
-            Symbol result = Symbols.tryUpcast(leftSymbol, rightSymbol);
-            if (result != null) {
-                leftOutputs.set(i, result);
-                Field oldField = left.fields().get(i);
-                left.fields().set(i, new Field(oldField.relation(), oldField.path(), result.valueType()));
-            } else {
-                result = Symbols.tryUpcast(rightSymbol, leftSymbol);
-                if (result != null) {
-                    right.outputs().set(i, result);
-                    Field oldField = right.fields().get(i);
-                    right.fields().set(i, new Field(oldField.relation(), oldField.path(), result.valueType()));
-                } else {
-                    throw new UnsupportedOperationException("Corresponding output columns at position: " + i +
-                                                            " must be compatible for all parts of a UNION");
-                }
+            if (!leftOutputs.get(i).valueType().equals(rightOutputs.get(i).valueType())) {
+                throw new UnsupportedOperationException("Corresponding output columns at position: " + (i + 1) +
+                                                        " must be compatible for all parts of a UNION");
             }
         }
     }
