@@ -1,7 +1,7 @@
 .. _sql_ddl_alter_table:
 
 ===============
-``ALTER TABLE``
+Altering Tables
 ===============
 
 .. NOTE::
@@ -137,7 +137,7 @@ Shard rerouting can help solve several problems:
 
 This command takes these :ref:`Routing Allocation Settings <conf_routing>` into
 account. Once an allocation occurs CrateDB tries (by default) to re-balance
-shards to an even state. CrateDB can be set to disable shard re-balancing 
+shards to an even state. CrateDB can be set to disable shard re-balancing
 with the setting ``cluster.routing.rebalance.enable=None`` to perform only the
 explicit triggered allocations.
 .

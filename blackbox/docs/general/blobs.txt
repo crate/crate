@@ -1,9 +1,9 @@
 .. highlight:: sh
 .. _blob_support:
 
-============
-Blob Support
-============
+=====
+Blobs
+=====
 
 CrateDB includes support to store `binary large objects`_. By utilizing
 CrateDB's cluster features the files can be replicated and sharded just like

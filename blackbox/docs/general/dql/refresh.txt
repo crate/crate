@@ -32,7 +32,7 @@ of a table can be changed with the table parameter ``refresh_interval`` (see
 
 .. SEEALSO::
 
- :doc:`Optimistic Concurrency Control <occ>`
+ :ref:`Optimistic Concurrency Control <sql_occ>`
 
 Multiple Table Refresh
 ======================

@@ -433,7 +433,7 @@ def test_suite():
 
     # Documentation tests
     docs_suite = unittest.TestSuite()
-    s = docsuite('../../general/blob.txt', parser=bash_parser, setUp=setUp)
+    s = docsuite('../../general/blobs.txt', parser=bash_parser, setUp=setUp)
     s.layer = crate_layer
     docs_suite.addTest(s)
     for fn in ('protocols/http.txt',):
@@ -449,44 +449,44 @@ def test_suite():
                'general/ddl/sharding.txt',
                'general/ddl/replication.txt',
                'general/ddl/column_policy.txt',
-               'general/ddl/indices_full_search.txt',
+               'general/ddl/fulltext_indices.txt',
                'general/ddl/system-columns.txt',
                'general/ddl/alter_table.txt',
                'administration/runtime-config.txt',
-               'general/administration/show_create_table.txt',
-               'general/administration/user_defined_functions.txt',
+               'general/ddl/show_create_table.txt',
+               'general/user_defined_functions.txt',
                'administration/user-management.txt',
                'administration/privileges.txt',
                'administration/ingestion/rules.txt',
-               'general/dql.txt',
-               'general/refresh.txt',
+               'general/dql/index.txt',
+               'general/dql/refresh.txt',
                'administration/optimization.txt',
-               'general/fulltext.txt',
+               'general/dql/fulltext.txt',
                'general/ddl/data-types.txt',
                'general/occ.txt',
                'administration/information-schema.txt',
-               'general/partitioned_tables.txt',
-               'general/aggregation.txt',
-               'general/arithmetic.txt',
-               'general/scalar.txt',
-               'general/table_functions.txt',
+               'general/ddl/partitioned_tables.txt',
+               'general/builtins/aggregation.txt',
+               'general/builtins/arithmetic.txt',
+               'general/builtins/scalar.txt',
+               'general/builtins/table_functions.txt',
                'administration/system-information.txt',
-               'general/queries.txt',
+               'general/dql/selects.txt',
                'protocols/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
                      tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('general/geo.txt',):
+    for fn in ('general/dql/geo.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpCountries,
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('general/joins.txt',
-               'general/subquery_expressions.txt',):
+    for fn in ('general/dql/joins.txt',
+               'general/builtins/subquery_expressions.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,

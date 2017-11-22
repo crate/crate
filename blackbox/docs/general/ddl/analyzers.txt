@@ -1,8 +1,8 @@
 .. _sql-analyzer:
 
-==========================================
-Builtin Tools for Fulltext Search in Crate
-==========================================
+==================
+Fulltext Analyzers
+==================
 
 .. rubric:: Table of Contents
 

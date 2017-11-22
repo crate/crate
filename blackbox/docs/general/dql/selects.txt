@@ -1,9 +1,14 @@
 .. highlight:: psql
 .. _sql_dql_queries:
 
-===============
-Retrieving Data
-===============
+==============
+Selecting Data
+==============
+
+Selecting (i.e. retrieving) data from CrateDB is done by using a SQL ``SELECT``
+statement. The response to a ``SELECT`` query contains the column names of the
+result, the actual result rows as a two-dimensional array of values, the row
+count and the duration.
 
 .. rubric:: Table of Contents
 
@@ -12,11 +17,6 @@ Retrieving Data
 
 Introduction
 ============
-
-Retrieving data from CrateDB is done by using a SQL ``SELECT`` statement. The
-response to a ``SELECT`` query contains the column names of the result, the
-actual result rows as a two-dimensional array of values, the row count and the
-duration.
 
 A simple select::
 

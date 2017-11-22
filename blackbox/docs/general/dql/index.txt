@@ -14,7 +14,8 @@ statements.
 .. toctree::
   :maxdepth: 2
 
-  queries
+  selects
+  joins
   refresh
   fulltext
   geo
