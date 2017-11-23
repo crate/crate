@@ -24,10 +24,8 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.monitor.ExtendedFsStats;
 import io.crate.monitor.ExtendedNetworkStats;
 import io.crate.monitor.ExtendedOsStats;
-import io.crate.monitor.ExtendedProcessCpuStats;
 import io.crate.monitor.ThreadPools;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -36,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.OsInfo;
 import org.elasticsearch.monitor.os.OsStats;
@@ -63,8 +62,7 @@ public class NodeStatsContext implements Streamable {
     private OsStats osStats;
     private ExtendedOsStats extendedOsStats;
     private ExtendedNetworkStats networkStats;
-    private ExtendedProcessCpuStats extendedProcessCpuStats;
-    private ExtendedFsStats extendedFsStats;
+    private FsInfo fsInfo;
     private ThreadPools threadPools;
 
     private BytesRef osName;
@@ -147,20 +145,16 @@ public class NodeStatsContext implements Streamable {
         return osStats;
     }
 
+    public FsInfo fsInfo() {
+        return fsInfo;
+    }
+
     public ExtendedOsStats extendedOsStats() {
         return extendedOsStats;
     }
 
     public ExtendedNetworkStats networkStats() {
         return networkStats;
-    }
-
-    public ExtendedProcessCpuStats extendedProcessCpuStats() {
-        return extendedProcessCpuStats;
-    }
-
-    public ExtendedFsStats extendedFsStats() {
-        return extendedFsStats;
     }
 
     public ThreadPools threadPools() {
@@ -243,20 +237,16 @@ public class NodeStatsContext implements Streamable {
         this.osStats = osStats;
     }
 
+    public void fsInfo(FsInfo fsInfo) {
+        this.fsInfo = fsInfo;
+    }
+
     public void extendedOsStats(ExtendedOsStats extendedOsStats) {
         this.extendedOsStats = extendedOsStats;
     }
 
     public void networkStats(ExtendedNetworkStats networkStats) {
         this.networkStats = networkStats;
-    }
-
-    public void extendedProcessCpuStats(ExtendedProcessCpuStats extendedProcessCpuStats) {
-        this.extendedProcessCpuStats = extendedProcessCpuStats;
-    }
-
-    public void extendedFsStats(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
     }
 
     public void threadPools(ThreadPools threadPools) {
@@ -285,10 +275,9 @@ public class NodeStatsContext implements Streamable {
         osInfo = in.readOptionalWriteable(OsInfo::new);
         processStats = in.readOptionalWriteable(ProcessStats::new);
         osStats = in.readOptionalWriteable(OsStats::new);
+        fsInfo = in.readOptionalWriteable(FsInfo::new);
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
         networkStats = in.readBoolean() ? ExtendedNetworkStats.readExtendedNetworkStats(in) : null;
-        extendedProcessCpuStats = in.readBoolean() ? ExtendedProcessCpuStats.readExtendedProcessCpuStats(in) : null;
-        extendedFsStats = in.readBoolean() ? ExtendedFsStats.readExtendedFsStats(in) : null;
         threadPools = in.readBoolean() ? ThreadPools.readThreadPools(in) : null;
 
         osName = DataTypes.STRING.readValueFrom(in);
@@ -327,10 +316,9 @@ public class NodeStatsContext implements Streamable {
         out.writeOptionalWriteable(osInfo);
         out.writeOptionalWriteable(processStats);
         out.writeOptionalWriteable(osStats);
+        out.writeOptionalWriteable(fsInfo);
         out.writeOptionalStreamable(extendedOsStats);
         out.writeOptionalStreamable(networkStats);
-        out.writeOptionalStreamable(extendedProcessCpuStats);
-        out.writeOptionalStreamable(extendedFsStats);
         out.writeOptionalStreamable(threadPools);
 
         DataTypes.STRING.writeValueTo(out, osName);

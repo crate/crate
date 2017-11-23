@@ -23,6 +23,7 @@ package io.crate.udc.ping;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -78,15 +79,14 @@ public class PingTask extends TimerTask {
                     Settings settings) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
-        this.extendedNodeInfo = extendedNodeInfo;
         this.pingUrl = pingUrl;
         this.settings = settings;
         this.licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
+        this.extendedNodeInfo = extendedNodeInfo;
         clusterSettings.addSettingsUpdateConsumer(SharedSettings.LICENSE_IDENT_SETTING.setting(), this::setLicenseIdent);
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getKernelData() {
+    private Map<String, String> getKernelData() {
         return extendedNodeInfo.osInfo().kernelData();
     }
 
@@ -122,42 +122,32 @@ public class PingTask extends TimerTask {
     }
 
     private Map<String, Object> getCounters() {
-        return new HashMap<String, Object>() {
-            {
-                put("success", successCounter.get());
-                put("failure", failCounter.get());
-            }
-        };
+        return ImmutableMap.of(
+            "success", successCounter.get(),
+            "failure", failCounter.get()
+        );
     }
 
     @Nullable
     @VisibleForTesting
     String getHardwareAddress() {
         String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
-        return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
-    }
-
-    private String getCrateVersion() {
-        return Version.CURRENT.number();
-    }
-
-    private String getJavaVersion() {
-        return System.getProperty("java.version");
+        return macAddress.equals("") ? null : macAddress;
     }
 
     private URL buildPingUrl() throws URISyntaxException, IOException, NoSuchAlgorithmException {
 
         final URI uri = new URI(this.pingUrl);
 
-        Map<String, String> queryMap = new HashMap<>();
+        Map<String, String> queryMap = new HashMap<>(9);
         queryMap.put("cluster_id", getClusterId()); // block until clusterId is available
         queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
         queryMap.put("master", isMasterNode().toString());
         queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
         queryMap.put("hardware_address", getHardwareAddress());
-        queryMap.put("crate_version", getCrateVersion());
-        queryMap.put("java_version", getJavaVersion());
+        queryMap.put("crate_version", Version.CURRENT.number());
+        queryMap.put("java_version", System.getProperty("java.version"));
         queryMap.put("license_ident", getLicenseIdent());
 
         if (logger.isDebugEnabled()) {

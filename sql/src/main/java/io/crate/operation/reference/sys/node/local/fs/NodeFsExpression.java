@@ -22,8 +22,8 @@
 
 package io.crate.operation.reference.sys.node.local.fs;
 
-import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.NestedObjectExpression;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 public class NodeFsExpression extends NestedObjectExpression {
 
@@ -31,9 +31,9 @@ public class NodeFsExpression extends NestedObjectExpression {
     private static final String FS_DISKS = "disks";
     private static final String FS_DATA = "data";
 
-    public NodeFsExpression(ExtendedFsStats fsStats) {
-        childImplementations.put(FS_TOTAL, new NodeFsTotalExpression(fsStats));
-        childImplementations.put(FS_DISKS, new NodeFsDisksExpression(fsStats));
-        childImplementations.put(FS_DATA, new NodeFsDataExpression(fsStats));
+    public NodeFsExpression(FsInfo stats) {
+        childImplementations.put(FS_TOTAL, new NodeFsTotalExpression(stats));
+        childImplementations.put(FS_DISKS, new NodeFsDisksExpression(stats));
+        childImplementations.put(FS_DATA, new NodeFsDataExpression(stats));
     }
 }

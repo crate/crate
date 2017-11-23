@@ -39,6 +39,7 @@ import java.nio.file.Path;
  * @see <a href="github.com/elastic/elasticsearch/blob/6.1/core/src/main/java/org/elasticsearch/monitor/os/OsProbe.java">OsProbe</a>
  *
  */
+@Deprecated
 public class CgroupMemoryProbe {
 
     private static String readSingleLine(final Path path) throws IOException {

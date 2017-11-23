@@ -92,7 +92,7 @@ public class BytesRefUtilsTest extends CrateUnitTest {
             .put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null })
             .put("nested", ImmutableMap.builder()
                 .put("str", BytesRefs.toBytesRef("other value"))
-                .put("str_array", new BytesRef[]{ null, BytesRefs.toBytesRef("v2") })
+                .put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v2"), null })
                 .put("obj_array", new Map[]{
                     Collections.singletonMap("key", BytesRefs.toBytesRef("value"))
                 })

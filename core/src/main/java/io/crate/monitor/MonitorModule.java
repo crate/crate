@@ -22,40 +22,15 @@
 
 package io.crate.monitor;
 
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.ServiceLoader;
 
 public class MonitorModule extends AbstractModule {
 
-    private final Settings settings;
-    private final Logger logger;
-
-    public MonitorModule(Settings settings) {
-        this.logger = Loggers.getLogger(MonitorModule.class, settings);
-        this.settings = settings;
+    public MonitorModule() {
     }
 
     @Override
     protected void configure() {
-        boolean bound = false;
-        for (NodeInfoLoader nodeInfoLoader : ServiceLoader.load(NodeInfoLoader.class)) {
-            Class<? extends ExtendedNodeInfo> extendedNodeInfoClass = nodeInfoLoader.getExtendedNodeInfoClass(settings);
-            if (extendedNodeInfoClass == null) {
-                continue;
-            }
-            if (bound) {
-                throw new IllegalArgumentException("Multiple ExtendedNodeInfo implementations found");
-            }
-            bind(ExtendedNodeInfo.class).to(extendedNodeInfoClass);
-            bound = true;
-        }
-        if (!bound) {
-            logger.info("Sigar not available. CPU/DISK/Network stats won't be available");
-            bind(ExtendedNodeInfo.class).to(ZeroExtendedNodeInfo.class).asEagerSingleton();
-        }
+        bind(ExtendedNodeInfo.class).asEagerSingleton();
     }
 }

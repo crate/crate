@@ -22,26 +22,28 @@
 
 package io.crate.operation.reference.sys.node.local.fs;
 
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysObjectArrayReference;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.ArrayList;
 import java.util.List;
 
 class NodeFsDisksExpression extends SysObjectArrayReference {
 
-    private final ExtendedFsStats extendedFsStats;
+    private final FsInfo fsInfo;
 
-    NodeFsDisksExpression(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
+    NodeFsDisksExpression(FsInfo fsInfo) {
+        this.fsInfo = fsInfo;
     }
 
     @Override
     protected List<io.crate.operation.reference.NestedObjectExpression> getChildImplementations() {
-        List<io.crate.operation.reference.NestedObjectExpression> diskRefs = new ArrayList<>(extendedFsStats.size());
-        for (ExtendedFsStats.Info info : extendedFsStats) {
-            diskRefs.add(new NodeFsDiskChildExpression(info));
+        List<io.crate.operation.reference.NestedObjectExpression> diskRefs = new ArrayList<>();
+        for (FsInfo.Path path : fsInfo) {
+            diskRefs.add(new NodeFsDiskChildExpression(path));
         }
         return diskRefs;
     }
@@ -52,28 +54,28 @@ class NodeFsDisksExpression extends SysObjectArrayReference {
         private static final String SIZE = "size";
         private static final String USED = "used";
         private static final String AVAILABLE = "available";
+        @Deprecated
         private static final String READS = "reads";
+        @Deprecated
         private static final String BYTES_READ = "bytes_read";
+        @Deprecated
         private static final String WRITES = "writes";
+        @Deprecated
         private static final String BYTES_WRITTEN = "bytes_written";
 
-        final ExtendedFsStats.Info fsInfo;
-
-        NodeFsDiskChildExpression(ExtendedFsStats.Info fsInfo) {
-            this.fsInfo = fsInfo;
-            addChildImplementations();
+        NodeFsDiskChildExpression(FsInfo.Path path) {
+            addChildImplementations(path);
         }
 
-        private void addChildImplementations() {
-            childImplementations.put(DEV, fsInfo::dev);
-            childImplementations.put(SIZE, fsInfo::total);
-            childImplementations.put(USED, fsInfo::used);
-            childImplementations.put(AVAILABLE, fsInfo::available);
-            childImplementations.put(READS, fsInfo::diskReads);
-            childImplementations.put(BYTES_READ, fsInfo::diskReadSizeInBytes);
-            childImplementations.put(WRITES, fsInfo::diskWrites);
-            childImplementations.put(BYTES_WRITTEN, fsInfo::diskWriteSizeInBytes);
-
+        private void addChildImplementations(FsInfo.Path path) {
+            childImplementations.put(DEV, () -> BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(path)));
+            childImplementations.put(SIZE, () -> FsInfoHelpers.Path.size(path));
+            childImplementations.put(USED, () -> FsInfoHelpers.Path.used(path));
+            childImplementations.put(AVAILABLE, () -> FsInfoHelpers.Path.available(path));
+            childImplementations.put(READS, () -> -1L);
+            childImplementations.put(BYTES_READ, () -> -1L);
+            childImplementations.put(WRITES, () -> -1L);
+            childImplementations.put(BYTES_WRITTEN, () -> -1L);
         }
     }
 }

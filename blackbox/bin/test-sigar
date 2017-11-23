@@ -1,4 +1,0 @@
-#!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PYTHONPATH=$DIR/../sigar/src:$DIR/../shared/src $DIR/../.venv/bin/zope-testrunner --test-path $DIR/../sigar/src "$@"
-

@@ -24,9 +24,8 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
-import io.crate.monitor.ZeroExtendedNodeInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
@@ -63,7 +62,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        extendedNodeInfo = new ZeroExtendedNodeInfo();
+        extendedNodeInfo = new ExtendedNodeInfo();
         threadPool = new TestThreadPool("dummy");
     }
 
@@ -89,8 +88,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ctx1.osStats(osProbe.osStats());
         ctx1.extendedOsStats(extendedNodeInfo.osStats());
         ctx1.networkStats(extendedNodeInfo.networkStats());
-        ctx1.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-        ctx1.extendedFsStats(extendedNodeInfo.fsStats());
         ctx1.threadPools(ThreadPools.newInstance(threadPool));
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
@@ -116,8 +113,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
         assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
         assertThat(ctx1.networkStats().timestamp(), is(ctx2.networkStats().timestamp()));
-        assertThat(ctx1.extendedProcessCpuStats().percent(), is(ctx2.extendedProcessCpuStats().percent()));
-        assertThat(ctx1.extendedFsStats().size(), is(ctx2.extendedFsStats().size()));
         assertThat(ctx1.threadPools(), is(ctx2.threadPools()));
     }
 
@@ -144,8 +139,6 @@ public class NodeStatsContextTest extends CrateUnitTest {
         assertNull(ctx2.osStats());
         assertNull(ctx2.extendedOsStats());
         assertNull(ctx2.networkStats());
-        assertNull(ctx2.extendedProcessCpuStats());
-        assertNull(ctx2.extendedFsStats());
         assertNull(ctx2.threadPools());
     }
 

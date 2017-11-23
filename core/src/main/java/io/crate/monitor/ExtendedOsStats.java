@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,6 +37,7 @@ public class ExtendedOsStats implements Streamable {
     private Cpu cpu;
     private OsStats osStats;
     @Nullable
+    @Deprecated // must be replaced with osStats.Cgroup memory when updating to ES6
     private CgroupMem cgroupMem;
     private long timestamp;
     private long uptime = -1;
@@ -52,8 +52,11 @@ public class ExtendedOsStats implements Streamable {
     public ExtendedOsStats() {
     }
 
-    public ExtendedOsStats(Cpu cpu, OsStats osStats, @Nullable CgroupMem cgroupMem) {
+    public ExtendedOsStats(long timestamp, Cpu cpu, double[] load, long uptime, OsStats osStats, @Nullable CgroupMem cgroupMem) {
+        this.timestamp = timestamp;
         this.cpu = cpu;
+        this.loadAverage = load;
+        this.uptime = uptime;
         this.osStats = osStats;
         this.cgroupMem = cgroupMem;
     }
@@ -62,24 +65,12 @@ public class ExtendedOsStats implements Streamable {
         return timestamp;
     }
 
-    public void timestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
-
     public TimeValue uptime() {
-        return new TimeValue(uptime, TimeUnit.SECONDS);
-    }
-
-    public void uptime(long uptime) {
-        this.uptime = uptime;
+        return new TimeValue(uptime, TimeUnit.MILLISECONDS);
     }
 
     public double[] loadAverage() {
         return loadAverage;
-    }
-
-    public void loadAverage(double[] loadAverage) {
-        this.loadAverage = loadAverage;
     }
 
     public Cpu cpu() {
@@ -93,11 +84,6 @@ public class ExtendedOsStats implements Streamable {
     @Nullable
     public CgroupMem cgroupMem() {
         return cgroupMem;
-    }
-
-    @VisibleForTesting
-    void cpu(Cpu cpu) {
-        this.cpu = cpu;
     }
 
     @Override
@@ -126,16 +112,22 @@ public class ExtendedOsStats implements Streamable {
         private short user;
         private short idle;
         private short stolen;
+        private short percent;
 
-        public Cpu() {
-            this((short) -1, (short) -1, (short) -1, (short) -1);
+        Cpu() {
+            this((short) -1);
         }
 
-        public Cpu(short sys, short user, short idle, short stolen) {
+        Cpu(short percent) {
+            this((short) -1, (short) -1, (short) -1, (short) -1, percent);
+        }
+
+        Cpu(short sys, short user, short idle, short stolen, short percent) {
             this.sys = sys;
             this.user = user;
             this.idle = idle;
             this.stolen = stolen;
+            this.percent = percent;
         }
 
         public short sys() {
@@ -154,12 +146,17 @@ public class ExtendedOsStats implements Streamable {
             return stolen;
         }
 
+        public short percent() {
+            return percent;
+        }
+
         @Override
         public void readFrom(StreamInput in) throws IOException {
             sys = in.readShort();
             user = in.readShort();
             idle = in.readShort();
             stolen = in.readShort();
+            percent = in.readShort();
         }
 
         @Override
@@ -168,9 +165,11 @@ public class ExtendedOsStats implements Streamable {
             out.writeShort(user);
             out.writeShort(idle);
             out.writeShort(stolen);
+            out.writeShort(percent);
         }
     }
 
+    @Deprecated // must be superseded by OsStats.Cgroup once we use ES6
     public static class CgroupMem implements Streamable {
 
         @Nullable

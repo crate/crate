@@ -26,14 +26,15 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 import javax.annotation.Nonnull;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -44,16 +45,20 @@ class NodeFsTotalExpression extends NestedObjectExpression {
     private static final String SIZE = "size";
     private static final String USED = "used";
     private static final String AVAILABLE = "available";
+    @Deprecated
     private static final String READS = "reads";
+    @Deprecated
     private static final String BYTES_READ = "bytes_read";
+    @Deprecated
     private static final String WRITES = "writes";
+    @Deprecated
     private static final String BYTES_WRITTEN = "bytes_written";
 
     private static final List<String> ALL_TOTALS = ImmutableList.of(
         SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
     private static final Logger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
-    private final ExtendedFsStats extendedFsStats;
+    private final FsInfo fsInfo;
 
 
     // cache that collects all totals at once, even if only one total value is queried
@@ -73,8 +78,8 @@ class NodeFsTotalExpression extends NestedObjectExpression {
             }
         });
 
-    NodeFsTotalExpression(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
+    NodeFsTotalExpression(FsInfo fsInfo) {
+        this.fsInfo = fsInfo;
         addChildImplementations();
     }
 
@@ -89,16 +94,17 @@ class NodeFsTotalExpression extends NestedObjectExpression {
     }
 
     private Map<String, Long> getTotals() {
-        Map<String, Long> totals = new HashMap<>(ALL_TOTALS.size());
-        ExtendedFsStats.Info totalInfo = extendedFsStats.total();
-        totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
-        totals.put(USED, totalInfo.used() == -1 ? -1 : totalInfo.used() * 1024);
-        totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);
-        totals.put(READS, totalInfo.diskReads());
-        totals.put(BYTES_READ, totalInfo.diskReadSizeInBytes());
-        totals.put(WRITES, totalInfo.diskWrites());
-        totals.put(BYTES_WRITTEN, totalInfo.diskWriteSizeInBytes());
-        return totals;
+        FsInfo.Path path = fsInfo.getTotal();
+        FsInfo.IoStats ioStats = fsInfo.getIoStats();
+        return ImmutableMap.<String, Long>builder()
+            .put(SIZE, FsInfoHelpers.Path.size(path))
+            .put(USED, FsInfoHelpers.Path.used(path))
+            .put(AVAILABLE, FsInfoHelpers.Path.available(path))
+            .put(READS, FsInfoHelpers.Stats.readOperations(ioStats))
+            .put(BYTES_READ, FsInfoHelpers.Stats.bytesRead(ioStats))
+            .put(WRITES, FsInfoHelpers.Stats.writeOperations(ioStats))
+            .put(BYTES_WRITTEN, FsInfoHelpers.Stats.bytesWritten(ioStats))
+            .build();
     }
 
     private class NodeFSTotalChildExpression implements ReferenceImplementation<Long> {

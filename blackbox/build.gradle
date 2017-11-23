@@ -53,10 +53,6 @@ task monitoringTest(type: Exec) {
     commandLine "$projectDir/bin/test-jmx"
 }
 
-task sigarTest(type: Exec) {
-    commandLine "$projectDir/bin/test-sigar"
-}
-
 task itest(type: Exec) {
     commandLine "$projectDir/bin/test-docs", '-1', '-t', '!process_test'
 }
@@ -76,7 +72,6 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 
 hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold,
         project(':es:es-repository-hdfs').blackBoxTestJar)
-sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 monitoringTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)

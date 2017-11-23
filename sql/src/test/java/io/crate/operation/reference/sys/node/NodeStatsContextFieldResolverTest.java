@@ -25,7 +25,7 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ZeroExtendedNodeInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.monitor.MonitorService;
@@ -74,7 +74,7 @@ public class NodeStatsContextFieldResolverTest {
             monitorService,
             () -> null,
             mock(ThreadPool.class),
-            new ZeroExtendedNodeInfo(),
+            new ExtendedNodeInfo(),
             () -> postgresAddress
         );
     }
@@ -133,7 +133,6 @@ public class NodeStatsContextFieldResolverTest {
         assertThat(context.osStats(), is(nullValue()));
         assertThat(context.extendedOsStats(), is(nullValue()));
         assertThat(context.networkStats(), is(nullValue()));
-        assertThat(context.extendedFsStats(), is(nullValue()));
         assertThat(context.threadPools(), is(nullValue()));
         assertThat(context.javaVersion(), is(notNullValue()));
     }

@@ -23,8 +23,8 @@
 package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.monitor.ExtendedProcessCpuStats;
 import io.crate.operation.reference.NestedObjectExpression;
+import org.elasticsearch.monitor.process.ProcessStats;
 
 class NodeProcessCpuExpression extends NestedObjectExpression {
 
@@ -32,40 +32,19 @@ class NodeProcessCpuExpression extends NestedObjectExpression {
     private static final String USER = "user";
     private static final String SYSTEM = "system";
 
-    NodeProcessCpuExpression(ExtendedProcessCpuStats cpuStats) {
+    NodeProcessCpuExpression(final ProcessStats.Cpu cpuStats) {
         addChildImplementations(cpuStats);
     }
 
-    private void addChildImplementations(final ExtendedProcessCpuStats cpuStats) {
-        childImplementations.put(PERCENT, new ReferenceImplementation<Short>() {
-            @Override
-            public Short value() {
-                if (cpuStats != null) {
-                    return cpuStats.percent();
-                } else {
-                    return -1;
-                }
+    private void addChildImplementations(final ProcessStats.Cpu cpuStats) {
+        childImplementations.put(PERCENT, (ReferenceImplementation<Short>) () -> {
+            if (cpuStats != null) {
+                return cpuStats.getPercent();
+            } else {
+                return (short) -1;
             }
         });
-        childImplementations.put(USER, new ReferenceImplementation<Long>() {
-            @Override
-            public Long value() {
-                if (cpuStats != null) {
-                    return cpuStats.user().millis();
-                } else {
-                    return -1L;
-                }
-            }
-        });
-        childImplementations.put(SYSTEM, new ReferenceImplementation<Long>() {
-            @Override
-            public Long value() {
-                if (cpuStats != null) {
-                    return cpuStats.sys().millis();
-                } else {
-                    return -1L;
-                }
-            }
-        });
+        childImplementations.put(USER, (ReferenceImplementation<Long>) () -> -1L);
+        childImplementations.put(SYSTEM, (ReferenceImplementation<Long>) () -> -1L);
     }
 }

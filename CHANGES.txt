@@ -15,6 +15,14 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- Certain metrics in the ``sys.nodes`` table have been deprecated and now
+  always return ``-1``, except network metrics with still return ``0`` as
+  previously when Sigar was not available.
+  The affected metrics are: network metrics, read/write filesystem metrics for
+  individual disks, system/user/idle/stolen values for CPU, and system/user
+  values for process CPU.
+  This is due to the removal of the "Sigar" library dependency.
+
 - The default value of the setting ``auth.host_based.enabled`` (``false``) is
   overwritten with ``true`` in the ``crate.yml`` that is shipped with the
   tarball and Linux distributions of CrateDB and also contains a sane default
@@ -38,6 +46,9 @@ Breaking Changes
 
 Changes
 =======
+
+- Added ``os['cpu']['used']`` column to ``sys.nodes`` table. This replaces the
+  deprecated system/user/idle/stolen values.
 
 - Subqueries which filter on primary key columns now have the same realtime
   semantics as the equivalent top-level queries.
