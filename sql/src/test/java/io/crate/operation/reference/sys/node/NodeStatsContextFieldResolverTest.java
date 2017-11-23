@@ -29,6 +29,8 @@ import io.crate.monitor.ZeroExtendedNodeInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.monitor.os.OsService;
+import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,6 +48,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class NodeStatsContextFieldResolverTest {
 
@@ -57,12 +60,18 @@ public class NodeStatsContextFieldResolverTest {
 
     @Before
     public void setup() throws UnknownHostException {
+        final OsService osService = mock(OsService.class);
+        final OsStats osStats = mock(OsStats.class);
+        final MonitorService monitorService = mock(MonitorService.class);
+
+        when(monitorService.osService()).thenReturn(osService);
+        when(osService.stats()).thenReturn(osStats);
         DiscoveryNode discoveryNode = newNode("node_name", "node_id");
 
         postgresAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);
         resolver = new NodeStatsContextFieldResolver(
             () -> discoveryNode,
-            mock(MonitorService.class),
+            monitorService,
             () -> null,
             mock(ThreadPool.class),
             new ZeroExtendedNodeInfo(),

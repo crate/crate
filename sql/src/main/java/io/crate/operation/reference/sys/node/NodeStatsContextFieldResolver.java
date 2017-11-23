@@ -217,6 +217,7 @@ public class NodeStatsContextFieldResolver {
                 @Override
                 public void accept(NodeStatsContext context) {
                     context.timestamp(System.currentTimeMillis());
+                    context.osStats(osService.stats());
                     context.extendedOsStats(extendedNodeInfo.osStats());
                 }
             })

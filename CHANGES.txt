@@ -39,6 +39,8 @@ Breaking Changes
 Changes
 =======
 
+- Added cgroup stats to ``sys.nodes``.
+
 - Added the ``typtype`` column to ``pg_catalog.pg_type`` for better
   compatibility with certain postgres client libraries.
 

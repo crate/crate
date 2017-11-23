@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItems;
@@ -195,6 +196,50 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
 
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
+    }
+
+    @Test
+    public void testSysNodesCgroup() throws Exception {
+        if (Constants.LINUX) { // cgroups are only available on Linux
+            SQLResponse response = execute("select" +
+                                           " os['cgroup']['cpuacct']['control_group']," +
+                                           " os['cgroup']['cpuacct']['usage_nanos']," +
+                                           " os['cgroup']['cpu']['control_group']," +
+                                           " os['cgroup']['cpu']['cfs_period_micros']," +
+                                           " os['cgroup']['cpu']['cfs_quota_micros']," +
+                                           " os['cgroup']['cpu']['num_elapsed_periods']," +
+                                           " os['cgroup']['cpu']['num_times_throttled']," +
+                                           " os['cgroup']['cpu']['time_throttled_nanos']" +
+                                           " from sys.nodes limit 1");
+            assertThat(response.rowCount(), is(1L));
+            assertThat((String) response.rows()[0][0], containsString("/"));
+            assertThat((long) response.rows()[0][1], greaterThanOrEqualTo(-1L));
+            assertThat((String) response.rows()[0][2], containsString("/"));
+            assertThat((long) response.rows()[0][3], greaterThanOrEqualTo(-1L));
+            assertThat((long) response.rows()[0][4], greaterThanOrEqualTo(-1L));
+            assertThat((long) response.rows()[0][5], greaterThanOrEqualTo(-1L));
+            assertThat((long) response.rows()[0][6], greaterThanOrEqualTo(-1L));
+            assertThat((long) response.rows()[0][7], greaterThanOrEqualTo(-1L));
+        } else {
+            // for all other OS cgroup fields should return `null`
+            response = execute("select os['cgroup']," +
+                               " os['cgroup']['cpuacct']," +
+                               " os['cgroup']['cpuacct']['control_group']," +
+                               " os['cgroup']['cpuacct']['usage_nanos']," +
+                               " os['cgroup']['cpu']," +
+                               " os['cgroup']['cpu']['control_group']," +
+                               " os['cgroup']['cpu']['cfs_period_micros']," +
+                               " os['cgroup']['cpu']['cfs_quota_micros']," +
+                               " os['cgroup']['cpu']['num_elapsed_periods']," +
+                               " os['cgroup']['cpu']['num_times_throttled']," +
+                               " os['cgroup']['cpu']['time_throttled_nanos']" +
+                               " from sys.nodes limit 1");
+            assertThat(response.rowCount(), is(1L));
+            for (int i = 0; i <= 10; i++) {
+                assertNull(response.rows()[0][i]);
+            }
+        }
+
     }
 
     @Test

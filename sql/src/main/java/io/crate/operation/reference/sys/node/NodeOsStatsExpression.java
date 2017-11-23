@@ -28,6 +28,7 @@ public class NodeOsStatsExpression extends NestedNodeStatsExpression {
     private static final String TIMESTAMP = "timestamp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
+    private static final String CGROUP = "cgroup";
 
     public NodeOsStatsExpression() {
         childImplementations.put(UPTIME, new SimpleNodeStatsExpression<Long>() {
@@ -51,5 +52,6 @@ public class NodeOsStatsExpression extends NestedNodeStatsExpression {
             }
         });
         childImplementations.put(CPU, new NodeOsCpuStatsExpression());
+        childImplementations.put(CGROUP, new NodeOsCgroupStatsExpression());
     }
 }

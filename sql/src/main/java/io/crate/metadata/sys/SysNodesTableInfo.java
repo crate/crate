@@ -164,6 +164,17 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent OS_CPU_IDLE = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "idle"));
         static final ColumnIdent OS_CPU_USED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "used"));
         static final ColumnIdent OS_CPU_STOLEN = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "stolen"));
+        static final ColumnIdent OS_CGROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup"));
+        static final ColumnIdent OS_CGROUP_CPUACCT = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct"));
+        static final ColumnIdent OS_CGROUP_CPUACCT_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct", "control_group"));
+        static final ColumnIdent OS_CGROUP_CPUACCT_USAGE_NANOS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct", "usage_nanos"));
+        static final ColumnIdent OS_CGROUP_CPU = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu"));
+        static final ColumnIdent OS_CGROUP_CPU_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "control_group"));
+        static final ColumnIdent OS_CGROUP_CPU_CFS_PERIOD_MICROS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "cfs_period_micros"));
+        static final ColumnIdent OS_CGROUP_CPU_CFS_QUOTA_MICROS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "cfs_quota_micros"));
+        static final ColumnIdent OS_CGROUP_CPU_NUM_ELAPSED_PERIODS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_elapsed_periods"));
+        static final ColumnIdent OS_CGROUP_CPU_NUM_TIMES_THROTTLED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_times_throttled"));
+        static final ColumnIdent OS_CGROUP_CPU_TIME_THROTTLED_NANOS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "time_throttled_nanos"));
 
         public static final ColumnIdent OS_INFO = new ColumnIdent(SYS_COL_OS_INFO);
         static final ColumnIdent OS_INFO_AVAIL_PROCESSORS = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("available_processors"));
@@ -424,6 +435,17 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.OS_CPU_IDLE, DataTypes.SHORT)
                 .register(Columns.OS_CPU_USED, DataTypes.SHORT)
                 .register(Columns.OS_CPU_STOLEN, DataTypes.SHORT)
+                .register(Columns.OS_CGROUP, DataTypes.OBJECT)
+                .register(Columns.OS_CGROUP_CPUACCT, DataTypes.OBJECT)
+                .register(Columns.OS_CGROUP_CPUACCT_CONTROL_GROUP, DataTypes.STRING)
+                .register(Columns.OS_CGROUP_CPUACCT_USAGE_NANOS, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_CPU, DataTypes.OBJECT)
+                .register(Columns.OS_CGROUP_CPU_CONTROL_GROUP, DataTypes.STRING)
+                .register(Columns.OS_CGROUP_CPU_CFS_PERIOD_MICROS, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_CPU_CFS_QUOTA_MICROS, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_CPU_NUM_ELAPSED_PERIODS, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_CPU_NUM_TIMES_THROTTLED, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_CPU_TIME_THROTTLED_NANOS, DataTypes.LONG)
 
                 .register(Columns.OS_INFO, DataTypes.OBJECT)
                 .register(Columns.OS_INFO_AVAIL_PROCESSORS, DataTypes.INTEGER)
