@@ -187,7 +187,7 @@ public class BootstrapProxy {
         }
 
         /*
-         * DISABLED setup of security manager due to policy problems with plugins (e.g. SigarPlugin will not work)
+         * DISABLED setup of security manager due to policy problems with plugins and dependencies.
          */
         // install SM after natives, shutdown hooks, etc.
         //try {

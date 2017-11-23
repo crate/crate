@@ -292,7 +292,6 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         Object[] disks = (Object[]) fs.get("disks");
         if (disks.length > 0) {
             // on travis there are no accessible disks
-
             assertThat(disks.length, greaterThanOrEqualTo(1));
             Map<String, Object> someDisk = (Map<String, Object>) disks[0];
             assertThat(someDisk.keySet().size(), is(8));

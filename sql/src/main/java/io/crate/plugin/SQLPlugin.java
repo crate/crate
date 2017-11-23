@@ -200,7 +200,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new MetaDataInformationModule());
         modules.add(new OperatorModule());
         modules.add(new PredicateModule());
-        modules.add(new MonitorModule(settings));
+        modules.add(new MonitorModule());
         modules.add(new SysClusterExpressionModule());
         modules.add(new SysNodeExpressionModule());
         modules.add(new AggregationImplModule());

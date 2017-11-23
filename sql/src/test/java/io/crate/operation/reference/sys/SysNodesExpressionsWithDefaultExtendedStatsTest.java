@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.monitor.ZeroExtendedNodeInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -35,27 +35,41 @@ import org.elasticsearch.discovery.local.LocalDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.monitor.fs.FsService;
+import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 
+@SuppressWarnings("unchecked")
 public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyClusterServiceUnitTest {
 
     private NodeSysExpression nodeExpression;
     private NodeEnvironment nodeEnvironment;
+    private FsService fsService;
 
     @Before
     public void prepare() throws Exception {
         Settings settings = Settings.builder()
-            .put("path.home", createTempDir()).build();
+            .put("path.home", createTempDir())
+            /*
+              storage cannot be enabled on master and data nodes
+              see {@link (org.elasticsearch.cluster.node.DiscoveryNode).nodeRequiresLocalStorage()}
+              used for {@link #testFsDataOnClientNode()} }
+             */
+            .put("node.local_storage", false)
+            .put("node.data", false)
+            .put("node.master", false)
+            .build();
         LocalDiscovery localDiscovery = new LocalDiscovery(
             settings,
             clusterService,
@@ -64,13 +78,14 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
+        fsService = monitorService.fsService();
         nodeExpression = new NodeSysExpression(
             clusterService,
             monitorService,
             null,
             localDiscovery,
             THREAD_POOL,
-            new ZeroExtendedNodeInfo()
+            new ExtendedNodeInfo()
         );
     }
 
@@ -84,22 +99,49 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
         Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression load =
             (io.crate.operation.reference.NestedObjectExpression) nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
-        Map<String, Object> loadValue = load.value();
-        assertThat((Double) loadValue.get("1"), is(-1.0d));
-        assertThat((Double) loadValue.get("5"), is(-1.0d));
-        assertThat((Double) loadValue.get("15"), is(-1.0d));
+        Map<String, Object> v = load.value();
+        assertNull(v.get("something"));
+        if (isRunningOnWindows()) {
+            assertThat(v.get("1"), is(-1.0d));
+            assertThat(v.get("5"), is(-1.0d));
+            assertThat(v.get("15"), is(-1.0d));
+        } else {
+            assertThat((double) v.get("1"), greaterThanOrEqualTo(0.0d));
+            assertThat((double) v.get("5"), greaterThanOrEqualTo(0.0d));
+            assertThat((double) v.get("15"), greaterThanOrEqualTo(0.0d));
+        }
     }
 
     @Test
     public void testFs() throws Exception {
+        boolean ioStatsAvailable = fsService.stats().getIoStats() != null;
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression fs = (io.crate.operation.reference.NestedObjectExpression)
             nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = fs.value();
-        //noinspection unchecked
-        assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
-            is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
+        Map<String, Object> total = (Map<String, Object>) v.get("total");
+        // node is not a data node, that's why there are no disk stats
+        assertThat(total.get("size"), is(-1L));
+        assertThat(total.get("used"), is(-1L));
+        assertThat(total.get("available"), is(-1L));
+        if (ioStatsAvailable) {
+            assertThat((long) total.get("reads"), greaterThanOrEqualTo(0L));
+            assertThat((long) total.get("bytes_written"), greaterThanOrEqualTo(0L));
+            assertThat((long) total.get("writes"), greaterThanOrEqualTo(0L));
+            assertThat((long) total.get("bytes_written"), greaterThanOrEqualTo(0L));
+        } else {
+            /*
+              reads/bytes_read/writes/bytes_written are -1 if the FsInfo.ioStats() probe is null
+              This is the case if the probe cache has not been refreshed (default refresh interval is 1s).
+              Unfortunately the probe cannot be forced to refresh.
+             */
+            assertThat(total.get("reads"), is(-1L));
+            assertThat(total.get("bytes_written"), is(-1L));
+            assertThat(total.get("writes"), is(-1L));
+            assertThat(total.get("bytes_written"), is(-1L));
+        }
+
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(0));
 
@@ -114,18 +156,17 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
             nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = os.value();
+        String cpu = mapToSortedString((Map<String, Object>) v.get("cpu"));
+        assertThat(cpu, StringContains.containsString("idle=-1"));
+        assertThat(cpu, StringContains.containsString("stolen=-1"));
+        assertThat(cpu, StringContains.containsString("system=-1"));
+        assertThat(cpu, StringContains.containsString("used="));
+        assertThat(cpu, StringContains.containsString("user=-1"));
 
-        Map<String, Short> cpuObj = new HashMap<>(5);
-        cpuObj.put("system", (short) -1);
-        cpuObj.put("user", (short) -1);
-        cpuObj.put("idle", (short) -1);
-        cpuObj.put("used", (short) -1);
-        cpuObj.put("stolen", (short) -1);
-        assertEquals(cpuObj, v.get("cpu"));
     }
 
     @Test
-    public void testFsDataOnNonDataNode() throws Exception {
+    public void testFsDataOnClientNode() throws Exception {
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         NestedObjectExpression fs = (NestedObjectExpression)

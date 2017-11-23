@@ -72,8 +72,8 @@ class NodeOsCpuExpression extends NestedObjectExpression {
         childImplementations.put(USAGE, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
-                if (cpu != null && cpu.sys() != -1) {
-                    return (short) (cpu.sys() + cpu.user());
+                if (cpu != null) {
+                    return cpu.percent();
                 } else {
                     return -1;
                 }

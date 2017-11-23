@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.sys.node;
 
-import io.crate.monitor.ExtendedProcessCpuStats;
+import org.elasticsearch.monitor.process.ProcessStats;
 
 class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
 
@@ -34,9 +34,9 @@ class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(PERCENT, new SimpleNodeStatsExpression<Short>() {
             @Override
             public Short innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
+                ProcessStats.Cpu cpuStats = this.row.processStats().getCpu();
                 if (cpuStats != null) {
-                    return cpuStats.percent();
+                    return cpuStats.getPercent();
                 } else {
                     return -1;
                 }
@@ -45,23 +45,13 @@ class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(USER, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
-                if (cpuStats != null) {
-                    return cpuStats.user().millis();
-                } else {
-                    return -1L;
-                }
+                return -1L;
             }
         });
         childImplementations.put(SYSTEM, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {
-                ExtendedProcessCpuStats cpuStats = this.row.extendedProcessCpuStats();
-                if (cpuStats != null) {
-                    return cpuStats.sys().millis();
-                } else {
-                    return -1L;
-                }
+                return -1L;
             }
         });
     }

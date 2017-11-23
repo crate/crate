@@ -22,9 +22,9 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.operation.reference.sys.node.SimpleNodeStatsExpression;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String, Object>> {
@@ -39,9 +39,14 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
     static final String SIZE = "size";
     static final String USED = "used";
     static final String AVAILABLE = "available";
+
+    @Deprecated // for individual devices
     static final String READS = "reads";
+    @Deprecated // for individual devices
     static final String BYTES_READ = "bytes_read";
+    @Deprecated // for individual devices
     static final String WRITES = "writes";
+    @Deprecated // for individual devices
     static final String BYTES_WRITTEN = "bytes_written";
 
     private final NodeFsTotalStatsExpression total;
@@ -59,12 +64,10 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
         total.setNextRow(this.row);
         disks.setNextRow(this.row);
         data.setNextRow(this.row);
-        return new HashMap<String, Object>() {
-            {
-                put(TOTAL, total.value());
-                put(DISKS, disks.value());
-                put(DATA, data.value());
-            }
-        };
+        return ImmutableMap.<String, Object>builder()
+            .put(TOTAL, total.value())
+            .put(DISKS, disks.value())
+            .put(DATA, data.value())
+            .build();
     }
 }

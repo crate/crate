@@ -23,7 +23,6 @@
 package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.monitor.ExtendedProcessCpuStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.process.ProcessStats;
 
@@ -34,41 +33,32 @@ class NodeProcessExpression extends NestedObjectExpression {
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
 
-    NodeProcessExpression(ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
-        addChildImplementations(processStats, cpuStats);
+    NodeProcessExpression(ProcessStats processStats) {
+        addChildImplementations(processStats);
     }
 
-    private void addChildImplementations(final ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ReferenceImplementation<Long>() {
-            @Override
-            public Long value() {
-                if (processStats != null) {
-                    return processStats.getOpenFileDescriptors();
-                } else {
-                    return -1L;
-                }
+    private void addChildImplementations(final ProcessStats processStats) {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, (ReferenceImplementation<Long>) () -> {
+            if (processStats != null) {
+                return processStats.getOpenFileDescriptors();
+            } else {
+                return -1L;
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ReferenceImplementation<Long>() {
-            @Override
-            public Long value() {
-                if (processStats != null) {
-                    return processStats.getMaxFileDescriptors();
-                } else {
-                    return -1L;
-                }
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, (ReferenceImplementation<Long>) () -> {
+            if (processStats != null) {
+                return processStats.getMaxFileDescriptors();
+            } else {
+                return -1L;
             }
         });
-        childImplementations.put(PROBE_TIMESTAMP, new ReferenceImplementation<Long>() {
-            @Override
-            public Long value() {
-                if (processStats != null) {
-                    return processStats.getTimestamp();
-                } else {
-                    return -1L;
-                }
+        childImplementations.put(PROBE_TIMESTAMP, (ReferenceImplementation<Long>) () -> {
+            if (processStats != null) {
+                return processStats.getTimestamp();
+            } else {
+                return -1L;
             }
         });
-        childImplementations.put(CPU, new NodeProcessCpuExpression(cpuStats));
+        childImplementations.put(CPU, new NodeProcessCpuExpression(processStats.getCpu()));
     }
 }

@@ -37,7 +37,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.monitor.ThreadPools;
 import io.crate.operation.reference.sys.node.NodeHeapStatsExpression;
 import io.crate.operation.reference.sys.node.NodeLoadStatsExpression;
@@ -63,6 +63,8 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.Map;
 
@@ -288,79 +290,79 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(SysNodesTableInfo.Columns.FS, NodeFsStatsExpression::new)
             .put(SysNodesTableInfo.Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
             .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().total() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.size(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_USED,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().used() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.used(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().available() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Path.available(r.fsInfo().getTotal()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_READS,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskReads() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.readOperations(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskReadSizeInBytes() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesRead(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskWrites() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.writeOperations(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN,
-                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskWriteSizeInBytes() : null))
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? FsInfoHelpers.Stats.bytesWritten(r.fsInfo().getIoStats()) : null))
             .put(SysNodesTableInfo.Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
             .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
-                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                    return input.dev();
+                protected BytesRef valueForItem(FsInfo.Path input) {
+                    return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.total();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return FsInfoHelpers.Path.size(input);
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_USED, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.used();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return FsInfoHelpers.Path.used(input);
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.available();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return FsInfoHelpers.Path.available(input);
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.diskReads();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return -1L;
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.diskReadSizeInBytes();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return -1L;
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.diskWrites();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return -1L;
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
                 @Override
-                protected Long valueForItem(ExtendedFsStats.Info input) {
-                    return input.diskWriteSizeInBytes();
+                protected Long valueForItem(FsInfo.Path input) {
+                    return -1L;
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DATA, NodeStatsFsDataExpression::new)
             .put(SysNodesTableInfo.Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
-                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                    return input.dev();
+                protected BytesRef valueForItem(FsInfo.Path input) {
+                    return BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input));
                 }
             })
             .put(SysNodesTableInfo.Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
                 @Override
-                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                    return input.path();
+                protected BytesRef valueForItem(FsInfo.Path input) {
+                    return BytesRefs.toBytesRef(input.getPath());
                 }
             })
             .build();

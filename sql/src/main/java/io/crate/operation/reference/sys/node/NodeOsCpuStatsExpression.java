@@ -70,8 +70,8 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
             @Override
             public Short innerValue() {
                 ExtendedOsStats.Cpu cpu = this.row.extendedOsStats().cpu();
-                if (cpu != null && cpu.sys() != -1) {
-                    return (short) (cpu.sys() + cpu.user());
+                if (cpu != null) {
+                    return cpu.percent();
                 } else {
                     return -1;
                 }

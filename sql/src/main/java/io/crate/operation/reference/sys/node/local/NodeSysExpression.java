@@ -33,6 +33,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
@@ -47,6 +48,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     private final JvmService jvmService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final ProcessService processService;
+    private final FsService fsService;
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
@@ -57,7 +59,8 @@ public class NodeSysExpression extends NestedObjectExpression {
                              ExtendedNodeInfo extendedNodeInfo) {
         this.osService = monitorService.osService();
         this.jvmService = monitorService.jvmService();
-        processService = monitorService.processService();
+        this.processService = monitorService.processService();
+        this.fsService = monitorService.fsService();
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
             new NodeHostnameExpression());
@@ -92,7 +95,7 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeOsExpression(extendedNodeInfo.osStats());
 
             case SysNodesTableInfo.SYS_COL_PROCESS:
-                return new NodeProcessExpression(processService.stats(), extendedNodeInfo.processCpuStats());
+                return new NodeProcessExpression(processService.stats());
 
             case SysNodesTableInfo.SYS_COL_HEAP:
                 return new NodeHeapExpression(jvmService.stats());
@@ -101,7 +104,7 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeNetworkExpression(extendedNodeInfo.networkStats());
 
             case SysNodesTableInfo.SYS_COL_FS:
-                return new NodeFsExpression(extendedNodeInfo.fsStats());
+                return new NodeFsExpression(fsService.stats());
 
             default:
                 return super.getChildImplementation(name);

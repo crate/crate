@@ -42,6 +42,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
@@ -71,6 +72,7 @@ public class NodeStatsContextFieldResolver {
     private final ProcessService processService;
     private final OsService osService;
     private final JvmService jvmService;
+    private final FsService fsService;
 
     @Inject
     @SuppressWarnings("unused")
@@ -107,6 +109,7 @@ public class NodeStatsContextFieldResolver {
         processService = monitorService.processService();
         osService = monitorService.osService();
         jvmService = monitorService.jvmService();
+        fsService = monitorService.fsService();
         this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
@@ -229,14 +232,13 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
                     context.processStats(processService.stats());
                 }
             })
             .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.extendedFsStats(extendedNodeInfo.fsStats());
+                    context.fsInfo(fsService.stats());
                 }
             }).build();
 }

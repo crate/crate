@@ -22,6 +22,10 @@
 
 package io.crate.monitor;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+
 public class ExtendedNetworkInfo {
 
     public static final Interface NA_INTERFACE = new Interface("", "");
@@ -36,12 +40,35 @@ public class ExtendedNetworkInfo {
         return primary;
     }
 
+    static Interface iface() {
+        try  {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                byte[] addr = iface.getHardwareAddress();
+                if (iface.isUp() && addr != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < addr.length; i++) {
+                        sb.append(String.format("%02x", addr[i]));
+                        if (i < addr.length - 1) {
+                            sb.append("-");
+                        }
+                    }
+                    return new Interface(iface.getName(), sb.toString().toLowerCase());
+                }
+            }
+        } catch (SocketException e) {
+            // pass
+        }
+        return NA_INTERFACE;
+    }
+
     public static class Interface {
 
         private final String name;
         private final String macAddress;
 
-        public Interface(String name, String macAddress) {
+        Interface(String name, String macAddress) {
             this.name = name;
             this.macAddress = macAddress;
         }

@@ -78,15 +78,14 @@ public class PingTask extends TimerTask {
                     Settings settings) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
-        this.extendedNodeInfo = extendedNodeInfo;
         this.pingUrl = pingUrl;
         this.settings = settings;
         this.licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
+        this.extendedNodeInfo = extendedNodeInfo;
         clusterSettings.addSettingsUpdateConsumer(SharedSettings.LICENSE_IDENT_SETTING.setting(), this::setLicenseIdent);
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getKernelData() {
+    private Map<String, String> getKernelData() {
         return extendedNodeInfo.osInfo().kernelData();
     }
 
@@ -122,27 +121,17 @@ public class PingTask extends TimerTask {
     }
 
     private Map<String, Object> getCounters() {
-        return new HashMap<String, Object>() {
-            {
-                put("success", successCounter.get());
-                put("failure", failCounter.get());
-            }
-        };
+        Map<String, Object> counter = new HashMap<>(2);
+        counter.put("success", successCounter.get());
+        counter.put("failure", failCounter.get());
+        return counter;
     }
 
     @Nullable
     @VisibleForTesting
     String getHardwareAddress() {
         String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
-        return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
-    }
-
-    private String getCrateVersion() {
-        return Version.CURRENT.number();
-    }
-
-    private String getJavaVersion() {
-        return System.getProperty("java.version");
+        return macAddress.equals("") ? null : macAddress;
     }
 
     private URL buildPingUrl() throws URISyntaxException, IOException, NoSuchAlgorithmException {
@@ -156,8 +145,8 @@ public class PingTask extends TimerTask {
         queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
         queryMap.put("hardware_address", getHardwareAddress());
-        queryMap.put("crate_version", getCrateVersion());
-        queryMap.put("java_version", getJavaVersion());
+        queryMap.put("crate_version", Version.CURRENT.number());
+        queryMap.put("java_version", System.getProperty("java.version"));
         queryMap.put("license_ident", getLicenseIdent());
 
         if (logger.isDebugEnabled()) {

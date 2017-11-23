@@ -23,20 +23,22 @@
 package io.crate.operation.reference.sys.node.local.fs;
 
 
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class NodeFsDataExpression extends SysStaticObjectArrayReference {
 
-    private final ExtendedFsStats extendedFsStats;
+    private FsInfo fsInfo;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-    NodeFsDataExpression(ExtendedFsStats extendedFsStats) {
-        this.extendedFsStats = extendedFsStats;
+    NodeFsDataExpression(FsInfo fsInfo) {
+        this.fsInfo = fsInfo;
     }
 
     @Override
@@ -48,8 +50,8 @@ class NodeFsDataExpression extends SysStaticObjectArrayReference {
     }
 
     private void addChildImplementations() {
-        for (ExtendedFsStats.Info info : extendedFsStats) {
-            childImplementations.add(new NodeFsDataChildExpression(info));
+        for (FsInfo.Path stat : fsInfo) {
+            childImplementations.add(new NodeFsDataChildExpression(stat));
         }
     }
 
@@ -58,9 +60,9 @@ class NodeFsDataExpression extends SysStaticObjectArrayReference {
         private static final String DEV = "dev";
         private static final String PATH = "path";
 
-        NodeFsDataChildExpression(final ExtendedFsStats.Info fsInfo) {
-            childImplementations.put(DEV, fsInfo::dev);
-            childImplementations.put(PATH, fsInfo::path);
+        NodeFsDataChildExpression(final FsInfo.Path path) {
+            childImplementations.put(DEV, () -> BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(path)));
+            childImplementations.put(PATH, () -> BytesRefs.toBytesRef(path.getPath()));
         }
     }
 }
