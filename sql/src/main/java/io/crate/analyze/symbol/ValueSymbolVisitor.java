@@ -31,6 +31,11 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @deprecated Please use {@link io.crate.analyze.SymbolEvaluator} which takes care of
+ *             evaluating functions and parameters in {@link Symbol}s.
+ */
+@Deprecated
 public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
 
     public final com.google.common.base.Function<Symbol, T> function =
