@@ -31,6 +31,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.MultiActionListener;
+import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.TransportShardDeleteAction;
@@ -49,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -90,17 +92,7 @@ public class DeleteByIdTask extends JobTask {
             () -> new long[]{0},
             DeleteByIdTask::updateRowCountOrFail,
             s -> new Row1(s[0]),
-            new ActionListener<Row>() {
-                @Override
-                public void onResponse(Row r) {
-                    consumer.accept(InMemoryBatchIterator.of(r, SENTINEL), null);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    consumer.accept(null, e);
-                }
-            }
+            new OneRowActionListener<>(consumer, Function.identity())
         );
         for (ShardDeleteRequest request : requests.values()) {
             deleteAction.execute(request, listener);
