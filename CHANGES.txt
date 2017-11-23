@@ -107,6 +107,9 @@ Changes
 Fixes
 =====
 
+- Handle MultiPolygon shapes in ``WITHIN`` queries correctly instead of
+  throwing an exception.
+
 - The target table name used in ``ALTER TABLE ... RENAME TO`` is now correctly
   validated.
 
