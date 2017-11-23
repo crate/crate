@@ -365,10 +365,24 @@ The number of replicas is defined like this::
 ``number_of_routing_shards``
 ----------------------------
 
-This number specifies the hashing space that is used internally to distribute
-documents across shards.
+This number specifies the hashing space that is used internally
+to distribute documents across shards. For instance, a 5 shard index with
+`number_of_routing_shards` set to `30` (`5 x 2 x 3`) could be split by a
+factor of `2` or `3`.  In other words, it could be split as follows:
 
-This is an optional setting that enables users to later on increase the number
+* `5` -> `10` -> `30`  (split by 2, then by 3)
+* `5` -> `15` -> `30` (split by 3, then by 2)
+* `5` -> `30` (split by 6)
+
+While you can set the `index.number_of_routing_shards` setting explicitly at
+index creation time, the default value depends upon the number of primary
+shards in the original index.  The default is designed to allow you to split
+by factors of 2 up to a maximum of 1024 shards.  However, the original number
+of primary shards must taken into account.  For instance, an index created
+with 5 primary shards could be split into 10, 20, 40, 80, 160, 320, or a
+maximum of 740 shards (with a single split action or multiple split actions).
+
+According to the above logic users can change the number
 of shards using :ref:`sql-alter-table`.
 
 

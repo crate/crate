@@ -97,11 +97,11 @@ into 4, 2 or 1 primary shards.
 Increase the number of shards
 .............................
 
-Increasing the number of shards is limited to tables which have been created
-with a ``number_of_routing_shards`` setting. For such tables the shards can be
-increased by a factor that depends on this setting. For example, a table with 5
+The number of shards can be increased by a factor that depends on
+``number_of_routing_shards`` setting. For example, a table with 5
 shards, with  ``number_of_routing_shards`` set to 20 can be changed to have
-either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20.
+either 10 or 20 shards. (5 x 2 (x 2)) = 20 or (5 x 4) = 20. See also
+:ref:`sql-create-table-number-of-routing-shards`.
 
 The only condition required for increasing the number of shards is to block
 operations to the table::

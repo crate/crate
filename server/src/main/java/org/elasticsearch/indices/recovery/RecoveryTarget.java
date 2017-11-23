@@ -420,7 +420,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
     @Override
     public void cleanFiles(int totalTranslogOps,
                            long globalCheckpoint,
-                           Store.MetadataSnapshot sourceMetaData,
+                           Store.MetadataSnapshot sourceMetadata,
                            ActionListener<Void> listener) {
         ActionListener.completeWith(listener, () -> {
             state().getTranslog().totalOperations(totalTranslogOps);
@@ -431,7 +431,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             final Store store = store();
             store.incRef();
             try {
-                store.cleanupAndVerify("recovery CleanFilesRequestHandler", sourceMetaData);
+                store.cleanupAndVerify("recovery CleanFilesRequestHandler", sourceMetadata);
                 final String translogUUID = Translog.createEmptyTranslog(
                     indexShard.shardPath().resolveTranslog(), globalCheckpoint, shardId, indexShard.getPendingPrimaryTerm());
                 store.associateIndexWithNewTranslog(translogUUID);

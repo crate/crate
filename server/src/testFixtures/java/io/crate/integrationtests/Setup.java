@@ -50,7 +50,7 @@ public class Setup {
                                " description string," +
                                " race object," +
                                " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
-                               ") clustered by(id) into 2 shards with(number_of_replicas=0)");
+                               ") clustered by(id) into 2 shards with(number_of_replicas=0, number_of_routing_shards=2)");
         insertLocations();
     }
 

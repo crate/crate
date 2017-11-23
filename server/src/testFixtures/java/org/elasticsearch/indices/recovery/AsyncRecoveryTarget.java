@@ -98,9 +98,9 @@ public class AsyncRecoveryTarget implements RecoveryTargetHandler {
     @Override
     public void cleanFiles(int totalTranslogOps,
                            long globalCheckpoint,
-                           Store.MetadataSnapshot sourceMetaData,
+                           Store.MetadataSnapshot sourceMetadata,
                            ActionListener<Void> listener) {
-        executor.execute(() -> target.cleanFiles(totalTranslogOps, globalCheckpoint, sourceMetaData, listener));
+        executor.execute(() -> target.cleanFiles(totalTranslogOps, globalCheckpoint, sourceMetadata, listener));
     }
 
     @Override
