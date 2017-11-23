@@ -54,6 +54,13 @@ public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void testWithinRectangleWithDatelineCrossing() throws Exception {
+        // dateline crossing happens in a geo context when a polygon rectangle is wider than 180 degrees
+        Query eqWithinQuery = convert("within(point, 'POLYGON((-95.0 10.0, -95.0 20.0, 95.0 20.0, 95.0 10.0, -95.0 10.0))')");
+        assertThat(eqWithinQuery.toString(), is("LatLonPointInPolygonQuery: field=point:[[10.0, 180.0] [20.0, 180.0] [20.0, 95.0] [10.0, 95.0] [10.0, 180.0] [10.0, -180.0] [10.0, -95.0] [20.0, -95.0] [20.0, -180.0] [10.0, -180.0] [10.0, 180.0] ]"));
+    }
+
+    @Test
     @IndexVersionCreated(Version.V_2_0_0_ID)
     public void testWithinFunctionIndexV_2_0() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");

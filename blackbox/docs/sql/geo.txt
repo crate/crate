@@ -89,6 +89,16 @@ Let's insert Austria::
     importing geo data, they may not be fully valid. In most cases they could
     be repaired using this tool: https://github.com/tudelft3d/prepair
 
+.. Note::
+
+    When using a polygon shape that resembles a rectangle, and that rectangle
+    is wider than 180 degrees the CrateDB geoshape validator will convert it
+    into a multipolygon consisting of 2 rectangular shapes covering the
+    narrower area between the 4 original points split by the dateline (+/-
+    180deg).
+
+    This is due to CrateDB operating in the geospatial context of the earth.
+
 .. Hidden: refresh countries
 
     cr> REFRESH TABLE countries;

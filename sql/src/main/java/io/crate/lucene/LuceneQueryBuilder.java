@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateArrays;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.analyze.WhereClause;
@@ -130,8 +131,10 @@ import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoPolygonQuery;
 import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Rectangle;
 import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.ShapeCollection;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -1051,8 +1054,25 @@ public class LuceneQueryBuilder {
                     context.mapperService);
 
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
+                Geometry geometry;
                 Shape shape = GeoJSONUtils.map2Shape(geoJSON);
-                Geometry geometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape);
+                if (shape instanceof ShapeCollection) {
+                    int i = 0;
+                    ShapeCollection<Shape> collection = (ShapeCollection) shape;
+                    com.vividsolutions.jts.geom.Polygon[] polygons = new com.vividsolutions.jts.geom.Polygon[collection.size()];
+                    for (Shape s : collection.getShapes()) {
+                        Geometry subGeometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(s);
+                        if (subGeometry instanceof com.vividsolutions.jts.geom.Polygon) {
+                            polygons[i++] = (com.vividsolutions.jts.geom.Polygon) subGeometry;
+                        } else {
+                            throw new InvalidShapeException("Shape collection must contain only Polygon shapes.");
+                        }
+                    }
+                    GeometryFactory geometryFactory = JtsSpatialContext.GEO.getShapeFactory().getGeometryFactory();
+                    geometry = geometryFactory.createMultiPolygon(polygons);
+                } else {
+                    geometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape);
+                }
 
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 if (geometry.isRectangle()) {
