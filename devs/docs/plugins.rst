@@ -109,53 +109,14 @@ by implementing relevant methods:
 
  - lifecycle services
  - node level modules
- - index level modules
- - shard level modules
 
-Besides of implementing own modules, a plugin can also listen to other's module
-bindings. For example, as our `CrateDB example plugin`_ does, to the binding of
-the ``ScalarFunctionModule`` in order to register scalar functions. This can be
-achieved by implementing a related ``onModule(AnyModule module)`` method::
+This enables plugin developers to access a lot of functionality. But that comes
+at the price of the API stability: Most of the components in CrateDB are
+considered internal and may change with any version, including hotfix versions.
 
-  ....
-  public void onModule(ScalarFunctionModule module) {
-      MyAwesomeScalarFunction.register(module)
-  }
-  ...
-
-Again, checkout the `CrateDB example plugin`_ to see this in action.
-
-``AbstractPlugin`` Class
-========================
-
-A good start for developing an own plugin is to extend the implementation from
-``io.crate.plugin.AbstractPlugin``, which already implements all methods
-required by the Plugin interface. So one must just overwrite the relevant
-ones::
-
-  public class MyAwesomePlugin extends AbstractPlugin {
-
-      @Override
-      public String name() {
-          return "myawesome-plugin";
-      }
-
-      @Override
-      public String description() {
-          return "A really awesome CrateDB plugin";
-      }
-
-      @Override
-      public Settings additionalSettings() {
-          Settings.Builder builder = Settings.builder();
-          // This plugin enables ``stats`` by default
-          builder.put("stats.enabled", true);
-          return builder.build();
-      }
-  }
-
-Methods ``name`` and ``description`` must be always implemented, anything else
-is already implemented by the abstract plugin class.
+The main purpose for the Plugins right now is to add additional scalar
+functions or aggregation functions. An example of a plugin that does that is
+`CrateDB example plugin`_.
 
 Installing a Plugin
 ===================
