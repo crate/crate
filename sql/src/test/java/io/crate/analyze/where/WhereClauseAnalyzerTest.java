@@ -31,6 +31,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.RowN;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -745,9 +746,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVersionOnlySupportedWithEqualOperator() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Filtering \"_version\" in WHERE clause only works using" +
-                                        " the \"=\" operator, checking for a numeric value");
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyzeSelectWhere("select * from users where _version > 1");
 
     }

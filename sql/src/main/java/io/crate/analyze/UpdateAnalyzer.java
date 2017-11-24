@@ -39,7 +39,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -68,11 +68,6 @@ import java.util.function.Predicate;
  */
 public class UpdateAnalyzer {
 
-    public static final String VERSION_SEARCH_EX_MSG =
-        "_version is not allowed in update queries without specifying a primary key";
-
-    private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
-        VERSION_SEARCH_EX_MSG);
     private static final Predicate<Reference> IS_OBJECT_ARRAY =
         input -> input != null
         && input.valueType().id() == ArrayType.ID
@@ -236,7 +231,7 @@ public class UpdateAnalyzer {
             }
 
             if (!where.docKeys().isPresent() && Symbols.containsColumn(where.query(), DocSysColumns.VERSION)) {
-                throw VERSION_SEARCH_EX;
+                throw new VersionInvalidException();
             }
 
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement =

@@ -143,8 +143,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetWithVersion() throws Exception {
         expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause " +
-                                        "if there are also equals comparisons on primary key columns");
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         e.plan("select name from users where id = 1 and _version = 1");
     }
 

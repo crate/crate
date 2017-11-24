@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -64,8 +64,6 @@ import static org.hamcrest.Matchers.not;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
-
     private final TableIdent nestedClusteredByTableIdent = new TableIdent("doc", "nestedclustered");
     private final DocTableInfo nestedClusteredByTableInfo = TestingTableInfo.builder(
         nestedClusteredByTableIdent, SHARD_ROUTING)
@@ -76,7 +74,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private final TableIdent testAliasTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "alias");
     private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
-        testAliasTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        testAliasTableIdent, new Routing(ImmutableMap.of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
@@ -480,32 +478,32 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWhereVersionUsingWrongOperator() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set text = ? where text = ? and \"_version\" >= ?",
             new Object[]{"already in panic", "don't panic", 3});
     }
 
     @Test
     public void testUpdateWhereVersionIsColumn() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set col2 = ? where _version = id",
             new Object[]{1});
     }
 
     @Test
     public void testUpdateWhereVersionInOperatorColumn() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set col2 = ? where _version in (1,2,3)",
             new Object[]{1});
     }
 
     @Test
     public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set col2 = ? where _version = 1 or _version = 2",
             new Object[]{1});
     }
@@ -513,39 +511,39 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateWhereVersionAddition() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set col2 = ? where _version + 1 = 2",
             new Object[]{1});
     }
 
     @Test
     public void testUpdateWhereVersionNotPredicate() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set text = ? where not (_version = 1 and id = 1)",
             new Object[]{"Hello"});
     }
 
     @Test
     public void testUpdateWhereVersionOrOperator() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set awesome =  true where _version = 1 or _version = 2");
     }
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
     }
 
 
     @Test
     public void testSelectWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(VERSION_EX_FROM_VALIDATOR);
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         analyze("update users set col2 = ? where _version is null",
             new Object[]{1});
     }

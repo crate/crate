@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
@@ -68,7 +69,7 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testFailurePropagationNonLocalCollectPhase() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("\"_version\" column can only be used in the WHERE clause if");
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         execute("create table users (name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into users (name) (select name from users where _version = 1)");

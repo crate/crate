@@ -27,6 +27,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -84,9 +85,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
+        expectedException.expect(VersionInvalidException.class);
+        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         e.plan("delete from users where _version is null");
     }
 }

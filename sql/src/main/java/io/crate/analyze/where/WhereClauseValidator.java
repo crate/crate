@@ -6,6 +6,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
@@ -17,6 +18,7 @@ import io.crate.sql.tree.ComparisonExpression;
 import java.util.Locale;
 import java.util.Set;
 import java.util.Stack;
+import java.util.function.Supplier;
 
 public final class WhereClauseValidator {
 
@@ -44,8 +46,6 @@ public final class WhereClauseValidator {
 
         private static final String _VERSION = "_version";
         private static final Set<String> VERSION_ALLOWED_COMPARISONS = ImmutableSet.of(EqOperator.NAME, AnyEqOperator.NAME);
-
-        private static final String VERSION_ERROR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
             "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
@@ -78,7 +78,7 @@ public final class WhereClauseValidator {
             return symbol;
         }
 
-        private boolean insideNotPredicate(Context context) {
+        private static boolean insideNotPredicate(Context context) {
             for (Function function : context.functions) {
                 if (function.info().ident().name().equals(NotPredicate.NAME)) {
                     return true;
@@ -89,27 +89,27 @@ public final class WhereClauseValidator {
 
         private void validateSysReference(Context context, String columnName) {
             if (columnName.equalsIgnoreCase(_VERSION)) {
-                validateSysReference(context, VERSION_ALLOWED_COMPARISONS, VERSION_ERROR);
+                validateSysReference(context, VERSION_ALLOWED_COMPARISONS, VersionInvalidException::new);
             } else if (columnName.equalsIgnoreCase(_SCORE)) {
-                validateSysReference(context, SCORE_ALLOWED_COMPARISONS, SCORE_ERROR);
+                validateSysReference(context, SCORE_ALLOWED_COMPARISONS, () -> new UnsupportedOperationException(SCORE_ERROR));
             } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {
                 throw new UnsupportedOperationException("The _raw column is not searchable and cannot be used inside a query");
             }
         }
 
-        private void validateSysReference(Context context, Set<String> requiredFunctionNames, String error) {
+        private static void validateSysReference(Context context, Set<String> requiredFunctionNames, Supplier<RuntimeException> error) {
             if (context.functions.isEmpty()) {
-                throw new UnsupportedOperationException(error);
+                throw error.get();
             }
             Function function = context.functions.lastElement();
             if (!requiredFunctionNames.contains(function.info().ident().name().toLowerCase(Locale.ENGLISH))
                 || insideNotPredicate(context)) {
-                throw new UnsupportedOperationException(error);
+                throw error.get();
             }
             assert function.arguments().size() == 2 : "function's number of arguments must be 2";
             Symbol right = function.arguments().get(1);
             if (!right.symbolType().isValueSymbol()) {
-                throw new UnsupportedOperationException(error);
+                throw error.get();
             }
         }
     }
