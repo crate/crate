@@ -31,7 +31,7 @@ Synopsis
 
 where ``base_column_definition``::
 
-    column_name data_type [ column_constraint [ ... ] ]
+    column_name data_type [ column_constraint [ ... ] ]  [ storage_options ]
 
 where ``generated_column_definition`` is::
 
@@ -46,6 +46,10 @@ where ``column_constraint`` is::
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
     }
+
+where ``storage_options`` is::
+
+    STORAGE WITH ( option = value_expression [, ... ] )
 
 and ``table_constraint`` is::
 
@@ -126,9 +130,14 @@ Column Constraints
 Column constraints are constraints that are applied on each column of the table
 separately.
 
-The supported column constraints are:
-
 For further details see :ref:`column_constraints`.
+
+Storage options
+...............
+
+Storage options can be applied on each column of the table separately.
+
+For further details and available options see :ref:`ddl-storage`.
 
 Parameters
 ==========

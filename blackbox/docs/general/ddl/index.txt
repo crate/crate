@@ -15,6 +15,7 @@ Data Definition
    system-columns
    generated_columns
    constraints
+   storage
    partitioned_tables
    sharding
    replication

@@ -452,6 +452,7 @@ def test_suite():
                'general/ddl/fulltext_indices.txt',
                'general/ddl/system-columns.txt',
                'general/ddl/alter_table.txt',
+               'general/ddl/storage.txt',
                'administration/runtime-config.txt',
                'general/ddl/show_create_table.txt',
                'general/user_defined_functions.txt',
