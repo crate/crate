@@ -13,6 +13,7 @@ Data Definition
    basics
    generated_columns
    constraints
+   storage
    sharding
    replication
    column_policy
