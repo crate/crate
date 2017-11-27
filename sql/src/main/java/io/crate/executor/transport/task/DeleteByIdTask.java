@@ -31,6 +31,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.executor.JobTask;
 import io.crate.executor.MultiActionListener;
+import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.TransportShardDeleteAction;
@@ -45,11 +46,11 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -91,24 +92,14 @@ public class DeleteByIdTask extends JobTask {
             () -> new long[]{0},
             DeleteByIdTask::updateRowCountOrFail,
             s -> new Row1(s[0]),
-            new ActionListener<Row>() {
-                @Override
-                public void onResponse(Row r) {
-                    consumer.accept(InMemoryBatchIterator.of(r, SENTINEL), null);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    consumer.accept(null, e);
-                }
-            }
+            new OneRowActionListener<>(consumer, Function.identity())
         );
         for (ShardDeleteRequest request : requests.values()) {
             deleteAction.execute(request, listener);
         }
     }
 
-    private static void updateRowCountOrFail(long[] rowCount, ShardResponse response) {
+    static void updateRowCountOrFail(long[] rowCount, ShardResponse response) {
         for (int i = 0; i < response.itemIndices().size(); i++) {
             ShardResponse.Failure failure = response.failures().get(i);
             if (failure == null) {
@@ -155,23 +146,34 @@ public class DeleteByIdTask extends JobTask {
     public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         HashMap<ShardId, ShardDeleteRequest> requests = new HashMap<>(bulkParams.size() * deleteById.docKeys().size());
         ArrayList<CompletableFuture<Long>> results = new ArrayList<>(bulkParams.size());
-        /* Need to generate result rowCount correctly
+        /* Need to be able to map the responses to the correct result rowCount
+         *
          * Example:
          *
-         * bulkParams: [ [1], [2], [3], [4] ]
-         *   shard0: [1, 3]
-         *   shard1: [2, 4]
+         * bulkParams: [ [1, 2], [3, 4] ]
+         *   shard0: [0, 2]
+         *   shard1: [1]
+         *   shard2: [3]
          * ->
-         *  2 requests (per shard)
-         *  4 bulkParams
-         *  4 result futures
+         *  3 requests (per shard)
+         *  2 bulkParams
+         *  2 result futures
+         *
+         *  resultIdxByLocation:
+         *      0 -> 0
+         *      1 -> 0
+         *      2 -> 1
+         *      3 -> 1
          */
         int location = 0;
         IntIntHashMap resultIdxByLocation = new IntIntHashMap(bulkParams.size());
-        for (int i = 0; i < bulkParams.size(); i++) {
-            resultIdxByLocation.put(location, i);
+        for (int resultIdx = 0; resultIdx < bulkParams.size(); resultIdx++) {
             results.add(new CompletableFuture<>());
-            location = addRequests(location, bulkParams.get(i), requests);
+            int prevLocation = location;
+            location = addRequests(location, bulkParams.get(resultIdx), requests);
+            for (int loc = prevLocation;  loc < location; loc++) {
+                resultIdxByLocation.put(loc, resultIdx);
+            }
         }
         if (requests.isEmpty()) {
             results.forEach(s -> s.complete(0L));
@@ -183,7 +185,7 @@ public class DeleteByIdTask extends JobTask {
 
                 @Override
                 public void onResponse(List<ShardResponse> responses) {
-                    long[] rowCounts = getRowCounts(responses, bulkParams, resultIdxByLocation);
+                    long[] rowCounts = getRowCounts(responses, bulkParams.size(), resultIdxByLocation);
                     for (int i = 0; i < results.size(); i++) {
                         results.get(i).complete(rowCounts[i]);
                     }
@@ -200,19 +202,17 @@ public class DeleteByIdTask extends JobTask {
         return results;
     }
 
-    private static long[] getRowCounts(List<ShardResponse> responses,
-                                       List<Row> bulkParams,
-                                       IntIntHashMap resultIdxByLocation) {
-        long[] rowCounts = new long[bulkParams.size()];
-        responses.sort(Comparator.comparingInt(o -> o.itemIndices().get(0)));
+    static long[] getRowCounts(List<ShardResponse> responses,
+                               int numResults,
+                               IntIntHashMap resultIdxByLocation) {
+        long[] rowCounts = new long[numResults];
         for (ShardResponse response : responses) {
-            int resultIdx = -1;
             for (IntCursor locCur : response.itemIndices()) {
-                if (resultIdxByLocation.containsKey(locCur.value)) {
-                    resultIdx = resultIdxByLocation.get(locCur.value);
-                }
                 ShardResponse.Failure failure = response.failures().get(locCur.index);
                 if (failure == null) {
+                    assert resultIdxByLocation.containsKey(locCur.value)
+                        : "resultIdxByLocation map must have an entry for each location";
+                    int resultIdx = resultIdxByLocation.get(locCur.value);
                     rowCounts[resultIdx] += 1;
                 }
             }
