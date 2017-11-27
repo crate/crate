@@ -85,7 +85,7 @@ public abstract class DMLProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         uidSymbol = replaceFunction.apply(uidSymbol);
     }
 }

@@ -34,17 +34,19 @@ import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.RefReplacer;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.Merge;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
@@ -233,9 +235,12 @@ class FetchOrEval implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
 
-        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, null, pageSizeHint);
+        ExecutionPlan executionPlan = source.build(
+            plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryValues);
         List<Symbol> sourceOutputs = source.outputs();
         if (sourceOutputs.equals(outputs)) {
             return executionPlan;
@@ -451,6 +456,11 @@ class FetchOrEval implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

@@ -81,7 +81,7 @@ public class UpdateProjection extends DMLProjection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         super.replaceSymbols(replaceFunction);
         for (int i = 0; i < assignments.length; i++) {
             assignments[i] = replaceFunction.apply(assignments[i]);

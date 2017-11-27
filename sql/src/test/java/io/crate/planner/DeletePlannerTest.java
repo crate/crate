@@ -32,10 +32,12 @@ import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.TestingRowConsumer;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,6 +45,7 @@ import static io.crate.testing.TestingHelpers.isDocKey;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -77,7 +80,7 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.docKeys().size(), is(2));
         List<String> docKeys = Lists.newArrayList(plan.docKeys())
             .stream()
-            .map(x -> x.getId(e.functions(), Row.EMPTY))
+            .map(x -> x.getId(e.functions(), Row.EMPTY, Collections.emptyMap()))
             .collect(Collectors.toList());
 
         assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));
@@ -85,8 +88,16 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
+        Plan plan = e.plan("delete from users where _version is null");
+
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("delete from users where _version is null");
+        plan.execute(
+            mock(DependencyCarrier.class),
+            e.getPlannerContext(clusterService.state()),
+            new TestingRowConsumer(),
+            Row.EMPTY,
+            Collections.emptyMap()
+        );
     }
 }

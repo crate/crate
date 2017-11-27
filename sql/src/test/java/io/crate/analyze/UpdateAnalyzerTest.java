@@ -43,8 +43,11 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.planner.Plan;
+import io.crate.planner.DependencyCarrier;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -67,6 +70,7 @@ import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -476,7 +480,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateWhereVersionUsingWrongOperator() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set text = ? where text = ? and \"_version\" >= ?",
+        execute(e.plan("update users set text = ? where text = ? and \"_version\" >= ?"),
             new RowN(new Object[]{"already in panic", "don't panic", 3}));
     }
 
@@ -484,21 +488,21 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateWhereVersionIsColumn() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set col2 = ? where _version = id", new Row1(1));
+        execute(e.plan("update users set col2 = ? where _version = id"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionInOperatorColumn() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set col2 = 'x' where _version in (1,2,3)");
+        execute(e.plan("update users set col2 = 'x' where _version in (1,2,3)"), Row.EMPTY);
     }
 
     @Test
     public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set col2 = ? where _version = 1 or _version = 2", new Row1(1));
+        execute(e.plan("update users set col2 = ? where _version = 1 or _version = 2"), new Row1(1));
     }
 
 
@@ -506,35 +510,44 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateWhereVersionAddition() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set col2 = ? where _version + 1 = 2", new Row1(1));
+        execute(e.plan("update users set col2 = ? where _version + 1 = 2"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionNotPredicate() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set text = ? where not (_version = 1 and id = 1)", new Row1(1));
+        execute(e.plan("update users set text = ? where not (_version = 1 and id = 1)"), new Row1(1));
     }
 
     @Test
     public void testUpdateWhereVersionOrOperator() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set awesome = true where _version = 1 or _version = 2");
+        execute(e.plan("update users set awesome = true where _version = 1 or _version = 2"), Row.EMPTY);
     }
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set awesome=true where name='Ford' and _version=0");
+        execute(e.plan("update users set awesome=true where name='Ford' and _version=0"), Row.EMPTY);
     }
-
 
     @Test
     public void testSelectWhereVersionIsNullPredicate() throws Exception {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("update users set col2 = 'x' where _version is null");
+        execute(e.plan("update users set col2 = 'x' where _version is null"), Row.EMPTY);
+    }
+
+    private void execute(Plan plan, Row params) {
+        plan.execute(
+            mock(DependencyCarrier.class),
+            e.getPlannerContext(clusterService.state()),
+            new TestingRowConsumer(),
+            params,
+            Collections.emptyMap()
+        );
     }
 }

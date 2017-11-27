@@ -25,10 +25,12 @@ package io.crate.planner.operators;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.Merge;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
@@ -53,14 +55,18 @@ public class RootRelationBoundary implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
         return Merge.ensureOnHandler(source.build(
             plannerContext,
             projectionBuilder,
             LogicalPlanner.NO_LIMIT,
             0,
             null,
-            null
+            null,
+            params,
+            subQueryValues
         ), plannerContext);
     }
 
@@ -86,6 +92,11 @@ public class RootRelationBoundary implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

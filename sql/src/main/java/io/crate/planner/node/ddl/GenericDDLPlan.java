@@ -22,32 +22,32 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.DDLStatement;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 
-import java.util.UUID;
+import java.util.Map;
 
-public class GenericDDLPlan extends UnnestablePlan {
+public class GenericDDLPlan implements Plan {
 
-    private final UUID id;
     private final DDLStatement statement;
 
-    public GenericDDLPlan(UUID jobId, DDLStatement statement) {
-        id = jobId;
+    public GenericDDLPlan(DDLStatement statement) {
         this.statement = statement;
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitGenericDDLPLan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    public DDLStatement statement() {
-        return statement;
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        executor.ddlAction().apply(statement, params)
+            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

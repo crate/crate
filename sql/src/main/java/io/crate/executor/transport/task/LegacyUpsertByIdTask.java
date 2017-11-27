@@ -24,12 +24,9 @@ package io.crate.executor.transport.task;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.Executor;
-import io.crate.executor.Task;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.IndexParts;
@@ -72,7 +69,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class LegacyUpsertByIdTask implements Task {
+public class LegacyUpsertByIdTask {
 
     private static final Logger LOGGER = Loggers.getLogger(UpdateById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
@@ -90,13 +87,14 @@ public class LegacyUpsertByIdTask implements Task {
     private final boolean isPartitioned;
     private final UUID jobId;
 
-    public LegacyUpsertByIdTask(LegacyUpsertById upsertById,
+    public LegacyUpsertByIdTask(UUID jobId,
+                                LegacyUpsertById upsertById,
                                 ClusterService clusterService,
                                 ScheduledExecutorService scheduler,
                                 Settings settings,
                                 BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction) {
-        this.jobId = upsertById.jobId();
+        this.jobId = jobId;
         this.scheduler = scheduler;
         this.upsertAction = transportShardUpsertAction;
         this.createIndicesAction = transportCreatePartitionsAction;
@@ -114,13 +112,12 @@ public class LegacyUpsertByIdTask implements Task {
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),
             upsertById.insertColumns(),
-            upsertById.jobId(),
+            jobId,
             false
         );
     }
 
-    @Override
-    public void execute(final RowConsumer consumer, Row parameters) {
+    public void execute(final RowConsumer consumer) {
         doExecute().whenComplete((r, f) -> {
             if (f == null) {
                 consumer.accept(InMemoryBatchIterator.of(new Row1((long) r.cardinality()), SENTINEL), null);
@@ -130,8 +127,7 @@ public class LegacyUpsertByIdTask implements Task {
         });
     }
 
-    @Override
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
+    public List<CompletableFuture<Long>> executeBulk() {
         final List<CompletableFuture<Long>> results = prepareResultList(numBulkResponses);
         doExecute().whenComplete((responses, f) -> {
             if (f == null) {
@@ -170,7 +166,7 @@ public class LegacyUpsertByIdTask implements Task {
             if (responses.get(i)) {
                 resultRowCount[resultIdx]++;
             } else {
-                resultRowCount[resultIdx] = Executor.ROWCOUNT_ERROR;
+                resultRowCount[resultIdx] = Row1.ERROR;
             }
         }
         return resultRowCount;

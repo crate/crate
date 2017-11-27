@@ -21,21 +21,26 @@
 
 package io.crate.planner.node.dml;
 
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.where.DocKeys;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.DeleteByIdTask;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-public class DeleteById extends UnnestablePlan {
+public class DeleteById implements Plan {
 
-    private final UUID jobId;
     private final DocTableInfo table;
     private final DocKeys docKeys;
 
-    public DeleteById(UUID jobId, DocTableInfo table, DocKeys docKeys) {
-        this.jobId = jobId;
+    public DeleteById(DocTableInfo table, DocKeys docKeys) {
         this.table = table;
         this.docKeys = docKeys;
     }
@@ -49,12 +54,33 @@ public class DeleteById extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDeleteById(this, context);
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        DeleteByIdTask task = new DeleteByIdTask(
+            plannerContext.jobId(),
+            executor.clusterService(),
+            executor.functions(),
+            executor.transportActionProvider().transportShardDeleteAction(),
+            this
+        );
+        task.execute(consumer, params, valuesBySubQuery);
     }
 
     @Override
-    public UUID jobId() {
-        return jobId;
+    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                     PlannerContext plannerContext,
+                                                     List<Row> bulkParams,
+                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+        DeleteByIdTask task = new DeleteByIdTask(
+            plannerContext.jobId(),
+            executor.clusterService(),
+            executor.functions(),
+            executor.transportActionProvider().transportShardDeleteAction(),
+            this
+        );
+        return task.executeBulk(bulkParams, valuesBySubQuery);
     }
 }

@@ -27,7 +27,9 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -131,18 +133,22 @@ public class Union implements LogicalPlan {
 
     @Override
     public ExecutionPlan build(PlannerContext plannerContext,
-                      ProjectionBuilder projectionBuilder,
-                      int limit,
-                      int offset,
-                      @Nullable OrderBy order,
-                      @Nullable Integer pageSizeHint) {
+                               ProjectionBuilder projectionBuilder,
+                               int limit,
+                               int offset,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
 
         Integer childPageSizeHint = limit != TopN.NO_LIMIT
             ? limitAndOffset(limit, offset)
             : null;
 
-        ExecutionPlan left = lhs.build(plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint);
-        ExecutionPlan right = rhs.build(plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint);
+        ExecutionPlan left = lhs.build(
+            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryValues);
+        ExecutionPlan right = rhs.build(
+            plannerContext, projectionBuilder, limit + offset, offset, null, childPageSizeHint, params, subQueryValues);
 
         left = addMergeIfNeeded(left, plannerContext);
         right = addMergeIfNeeded(right, plannerContext);
@@ -197,6 +203,17 @@ public class Union implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        if (lhs.dependencies().isEmpty() && rhs.dependencies().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        HashMap<LogicalPlan, SelectSymbol> dependencies = new HashMap<>();
+        dependencies.putAll(lhs.dependencies());
+        dependencies.putAll(rhs.dependencies());
+        return dependencies;
     }
 
     @Override

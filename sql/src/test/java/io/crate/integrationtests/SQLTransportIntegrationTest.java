@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
@@ -35,7 +34,6 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.data.Row;
-import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportShardAction;
 import io.crate.executor.transport.TransportShardDeleteAction;
 import io.crate.executor.transport.TransportShardUpsertAction;
@@ -55,6 +53,7 @@ import io.crate.operation.user.User;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.DependencyCarrier;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -428,9 +427,15 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public TestingRowConsumer execute(PlanForNode planForNode) {
-        TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
+        DependencyCarrier dependencyCarrier = internalCluster().getInstance(DependencyCarrier.class, planForNode.nodeName);
         TestingRowConsumer downstream = new TestingRowConsumer();
-        transportExecutor.execute(planForNode.plan, planForNode.plannerContext, downstream, Row.EMPTY);
+        planForNode.plan.execute(
+            dependencyCarrier,
+            planForNode.plannerContext,
+            downstream,
+            Row.EMPTY,
+            Collections.emptyMap()
+        );
         return downstream;
     }
 

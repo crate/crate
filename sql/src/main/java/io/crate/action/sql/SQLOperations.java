@@ -23,10 +23,10 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -52,7 +52,7 @@ public class SQLOperations {
 
     private final Analyzer analyzer;
     private final Planner planner;
-    private final Provider<Executor> executorProvider;
+    private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
     private final UserManager userManager;
@@ -62,7 +62,7 @@ public class SQLOperations {
     @Inject
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
-                         Provider<Executor> executorProvider,
+                         Provider<DependencyCarrier> executorProvider,
                          JobsLogs jobsLogs,
                          Settings settings,
                          ClusterService clusterService,

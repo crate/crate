@@ -28,8 +28,8 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.planner.DependencyCarrier;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -103,7 +103,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testGetParamType() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        Executor executor = Mockito.mock(Executor.class);
+        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,

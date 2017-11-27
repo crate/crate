@@ -69,7 +69,7 @@ public class GroupProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(keys, replaceFunction);
         Lists2.replaceItems(outputs, replaceFunction);
     }

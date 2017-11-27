@@ -31,10 +31,12 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
@@ -45,9 +47,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.ExplainLeaf;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.ExplainLeaf;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
@@ -157,7 +159,9 @@ class Collect implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
         RoutedCollectPhase collectPhase = createPhase(plannerContext);
         relation.tableRelation().validateOrderBy(order);
         collectPhase.orderBy(order);
@@ -248,6 +252,11 @@ class Collect implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return Collections.emptyMap();
     }
 
     @Override

@@ -109,7 +109,7 @@ public class CountPhase implements UpstreamPhase {
         distributionInfo.writeTo(out);
     }
 
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         whereClause.replace(replaceFunction);
     }
 }

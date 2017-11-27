@@ -24,8 +24,8 @@ package io.crate.executor.transport.task;
 
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.Executor;
 import io.crate.executor.MultiActionListener;
 import io.crate.executor.transport.ShardResponse;
 import org.elasticsearch.action.ActionListener;
@@ -135,7 +135,7 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
             } else {
                 // We should change this in the future to just not count the item;
                 // so that we don't return errors if parts were successful
-                rowCounts[resultIdx] = Executor.ROWCOUNT_ERROR;
+                rowCounts[resultIdx] = Row1.ERROR;
             }
         }
         return rowCounts;

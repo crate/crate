@@ -28,6 +28,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.DiscoveryNodes;
@@ -54,6 +55,7 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -129,8 +131,8 @@ public class PreExecutionBenchmark {
 
     @Benchmark
     public ExecutionPlan measurePlanSimpleSelect() {
-        return e.planner.plan(selectAnalysis.analyzedStatement(), e.getPlannerContext(ClusterState.EMPTY_STATE))
-            .build(plannerContext, null, Row.EMPTY);
+        return ((LogicalPlan) e.planner.plan(selectAnalysis.analyzedStatement(), e.getPlannerContext(ClusterState.EMPTY_STATE)))
+            .build(plannerContext, null, -1, 0, null, null, Row.EMPTY, Collections.emptyMap());
     }
 
     @Benchmark

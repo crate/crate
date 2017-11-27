@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Literal;
+import io.crate.data.Row;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -70,7 +71,9 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             TopN.NO_LIMIT,
             0,
             null,
-            null
+            null,
+            Row.EMPTY,
+            Collections.emptyMap()
         );
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) merge.subPlan();
         assertThat(collect.collectPhase().projections(), contains(

@@ -62,7 +62,7 @@ public class FilterProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         query = replaceFunction.apply(query);
         Lists2.replaceItems(outputs, replaceFunction);
     }

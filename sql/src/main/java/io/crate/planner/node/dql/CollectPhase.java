@@ -40,5 +40,5 @@ public interface CollectPhase extends UpstreamPhase {
 
     void addProjection(Projection projection);
 
-    void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
+    void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction);
 }

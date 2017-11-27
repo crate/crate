@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Reference;
+import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
@@ -39,6 +40,8 @@ import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -61,7 +64,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {
-        Merge merge = e.plan("update users set name='Vogon lyric fan'");
+        UpdatePlanner.Update plan = e.plan("update users set name='Vogon lyric fan'");
+        Merge merge = (Merge) plan.createExecutionPlan.apply(e.getPlannerContext(clusterService.state()), Row.EMPTY);
 
         Collect collect = (Collect) merge.subPlan();
 
@@ -97,7 +101,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys().size(), is(1));
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY, Collections.emptyMap()), is("1"));
     }
 
     @Test
@@ -117,7 +121,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
-        Collect collect = e.plan("update empty_parted set name='Vogon lyric fan'");
+        UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
+        Collect collect = (Collect) update.createExecutionPlan.apply(e.getPlannerContext(clusterService.state()), Row.EMPTY);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
     }
 }

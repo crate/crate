@@ -26,7 +26,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -36,7 +35,9 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.analyze.relations.SubselectRewriter;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.Symbol;
@@ -60,11 +61,13 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.operation.udf.UserDefinedFunctionService;
-import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -123,7 +126,7 @@ public class SQLExecutor {
             clusterState,
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
-            EvaluatingNormalizer.functionOnlyNormalizer(functions),
+            planner.normalizer(),
             new TransactionContext(sessionContext),
             -1,
             -1
@@ -338,7 +341,7 @@ public class SQLExecutor {
     }
 
 
-    public <T extends ExecutionPlan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
+    public <T> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(statement), transactionContext, ParameterContext.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
@@ -351,12 +354,38 @@ public class SQLExecutor {
             softLimit,
             fetchSize
         );
-        //noinspection unchecked
-        return (T) planner.plan(analysis.analyzedStatement(), plannerContext)
-            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), Row.EMPTY);
+        Plan plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+        if (plan instanceof LogicalPlan) {
+            return (T) ((LogicalPlan) plan).build(
+                plannerContext,
+                new ProjectionBuilder(functions),
+                TopN.NO_LIMIT,
+                0,
+                null,
+                null,
+                Row.EMPTY,
+                Collections.emptyMap()
+            );
+        }
+        return (T) plan;
     }
 
-    public <T extends ExecutionPlan> T plan(String stmt, Row row) {
+    public <T> T logicalPlan(String statement) {
+        AnalyzedStatement stmt = analyzer.unboundAnalyze(
+            SqlParser.createStatement(statement), sessionContext, ParamTypeHints.EMPTY);
+        if (stmt instanceof AnalyzedRelation) {
+            // unboundAnalyze currently doesn't normalize; which breaks LogicalPlan building for joins
+            // because the subRelations are not yet QueriedRelations.
+            // we eventually should integrate normalize into unboundAnalyze.
+            // But then we have to remove the whereClauseAnalyzer calls because they depend on all values being available
+            AnalyzedRelation rewrittenRelation = SubselectRewriter.rewrite(((AnalyzedRelation) stmt));
+            stmt = (AnalyzedStatement) new RelationNormalizer(functions)
+                .normalize(rewrittenRelation, transactionContext);
+        }
+        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
+    }
+
+    public <T> T plan(String stmt, Row row) {
         AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(
             SqlParser.createStatement(stmt),
             sessionContext,
@@ -372,12 +401,24 @@ public class SQLExecutor {
             0,
             0
         );
-        //noinspection unchecked
-        return (T) planner.plan(analyzedStatement, plannerContext)
-            .build(getPlannerContext(planner.currentClusterState()), new ProjectionBuilder(functions), row);
+        Plan plan = planner.plan(analyzedStatement, plannerContext);
+        if (plan instanceof LogicalPlan) {
+            return (T) ((LogicalPlan) plan).build(
+                plannerContext,
+                new ProjectionBuilder(functions),
+                TopN.NO_LIMIT,
+                0,
+                null,
+                null,
+                Row.EMPTY,
+                Collections.emptyMap()
+            );
+        }
+        return (T) plan;
     }
 
-    public <T extends ExecutionPlan> T plan(String statement) {
+
+    public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
     }
 }

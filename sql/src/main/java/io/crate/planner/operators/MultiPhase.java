@@ -28,6 +28,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
@@ -35,7 +36,6 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +47,7 @@ public class MultiPhase implements LogicalPlan {
 
     @VisibleForTesting
     final LogicalPlan source;
+
     @VisibleForTesting
     final Map<LogicalPlan, SelectSymbol> subQueries;
 
@@ -63,6 +64,7 @@ public class MultiPhase implements LogicalPlan {
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
         this.source = source;
         this.subQueries = subQueries;
+        this.subQueries.putAll(source.dependencies());
     }
 
     @Override
@@ -71,30 +73,11 @@ public class MultiPhase implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
-        ExecutionPlan executionPlan = source.build(
-            plannerContext,
-            projectionBuilder,
-            limit,
-            offset,
-            order,
-            pageSizeHint
-        );
-        Map<ExecutionPlan, SelectSymbol> subQueryPlans = new HashMap<>();
-        for (Map.Entry<LogicalPlan, SelectSymbol> entry : subQueries.entrySet()) {
-            ExecutionPlan subExecutionPlan = entry.getKey().build(
-                PlannerContext.forSubPlan(plannerContext),
-                projectionBuilder,
-                limit,
-                offset,
-                order,
-                pageSizeHint);
-            subQueryPlans.put(subExecutionPlan, entry.getValue());
-        }
-        return MultiPhasePlan.createIfNeeded(
-            executionPlan,
-            subQueryPlans
-        );
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        return source.build(
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
     }
 
     @Override
@@ -115,6 +98,11 @@ public class MultiPhase implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return subQueries;
     }
 
     @Override

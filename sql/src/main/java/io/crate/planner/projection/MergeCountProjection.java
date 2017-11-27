@@ -64,7 +64,7 @@ public class MergeCountProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
     }
 
     @Override

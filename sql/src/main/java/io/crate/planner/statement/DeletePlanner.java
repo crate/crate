@@ -29,13 +29,17 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.ParamSymbols;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
@@ -43,6 +47,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -50,6 +55,7 @@ import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.DeleteAllPartitions;
@@ -57,14 +63,18 @@ import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Objects.requireNonNull;
@@ -75,21 +85,8 @@ public final class DeletePlanner {
                                   AnalyzedDeleteStatement delete,
                                   SubqueryPlanner subqueryPlanner,
                                   PlannerContext context) {
-        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(delete);
-        if (!subQueries.isEmpty()) {
-            return (plannerCtx, projectionBuilder, params) -> {
-                ExecutionPlan rootPlan =
-                    planDelete(functions, delete, context).build(plannerCtx, projectionBuilder, params);
-                HashMap<ExecutionPlan, SelectSymbol> plannedSubqueries = new HashMap<>();
-                for (Map.Entry<LogicalPlan, SelectSymbol> entry : subQueries.entrySet()) {
-                    plannedSubqueries.put(
-                        entry.getKey().build(PlannerContext.forSubPlan(plannerCtx), projectionBuilder, params),
-                        entry.getValue());
-                }
-                return MultiPhasePlan.createIfNeeded(rootPlan, plannedSubqueries);
-            };
-        }
-        return planDelete(functions, delete, context);
+        Plan plan = planDelete(functions, delete, context);
+        return MultiPhasePlan.createIfNeeded(plan, subqueryPlanner.planSubQueries(delete));
     }
 
     private static Plan planDelete(Functions functions, AnalyzedDeleteStatement delete, PlannerContext context) {
@@ -100,34 +97,92 @@ public final class DeletePlanner {
             normalizer, delete.query(), table, context.transactionContext());
 
         if (!detailedQuery.partitions().isEmpty()) {
-            return new DeletePartitions(context.jobId(), table.ident(), detailedQuery.partitions());
+            return new DeletePartitions(table.ident(), detailedQuery.partitions());
         }
         if (detailedQuery.docKeys().isPresent()) {
-            return new DeleteById(context.jobId(), tableRel.tableInfo(), detailedQuery.docKeys().get());
+            return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         Symbol query = detailedQuery.query();
         if (table.isPartitioned() && query instanceof Input && DataTypes.BOOLEAN.value(((Input) query).value())) {
-            return new DeleteAllPartitions(
-                context.jobId(), Lists2.copyAndReplace(table.partitions(), IndexParts::toIndexName));
+            return new DeleteAllPartitions(Lists2.copyAndReplace(table.partitions(), IndexParts::toIndexName));
         }
-        return (plannerCtx, projectionBuilder, params) ->
-            deleteByQuery(functions, tableRel, detailedQuery , context, params);
+        return new Delete(tableRel, detailedQuery);
     }
 
-    private static ExecutionPlan deleteByQuery(Functions functions,
-                                               DocTableRelation table,
-                                               WhereClauseOptimizer.DetailedQuery detailedQuery,
-                                               PlannerContext context,
-                                               Row params) {
+    static class Delete implements Plan {
+
+        private final DocTableRelation table;
+        private final WhereClauseOptimizer.DetailedQuery detailedQuery;
+
+        public Delete(DocTableRelation table, WhereClauseOptimizer.DetailedQuery detailedQuery) {
+            this.table = table;
+            this.detailedQuery = detailedQuery;
+        }
+
+        @Override
+        public void execute(DependencyCarrier executor,
+                            PlannerContext plannerContext,
+                            RowConsumer consumer,
+                            Row params,
+                            Map<SelectSymbol, Object> valuesBySubQuery) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(executor.functions(), table);
+
+            Symbol query = SubQueryAndParamBinder.convert(detailedQuery.query(), params, valuesBySubQuery);
+            WhereClause where = whereClauseAnalyzer.analyze(query, plannerContext.transactionContext());
+            if (!where.partitions().isEmpty() && !where.hasQuery()) {
+                DeleteIndexRequest request = new DeleteIndexRequest(where.partitions().toArray(new String[0]));
+                request.indicesOptions(IndicesOptions.lenientExpandOpen());
+                executor.transportActionProvider().transportDeleteIndexAction()
+                    .execute(request, new OneRowActionListener<>(consumer, o -> new Row1(-1L)));
+                return;
+            }
+
+            ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                Collections.singletonList(nodeOpTree)
+            );
+            task.execute(consumer);
+        }
+
+        @Override
+        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                         PlannerContext plannerContext,
+                                                         List<Row> bulkParams,
+                                                         Map<SelectSymbol, Object> valuesBySubQuery) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(executor.functions(), table);
+            ArrayList<NodeOperationTree> nodeOperationTreeList = new ArrayList<>(bulkParams.size());
+            for (Row params : bulkParams) {
+                Symbol query = SubQueryAndParamBinder.convert(detailedQuery.query(), params, valuesBySubQuery);
+                WhereClause where = whereClauseAnalyzer.analyze(query, plannerContext.transactionContext());
+                ExecutionPlan executionPlan = deleteByQuery(table, plannerContext, where);
+                nodeOperationTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
+            }
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                nodeOperationTreeList
+            );
+            return task.executeBulk();
+        }
+    }
+
+    private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
-
-        // TODO: change API so it does only the necessary partition logic
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, table);
-        Symbol query = ParamSymbols.toLiterals(detailedQuery.query(), params);
-        WhereClause where = whereClauseAnalyzer.analyze(query, context.transactionContext());
-
         SessionContext sessionContext = context.transactionContext().sessionContext();
         Routing routing = context.allocateRouting(
             tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);

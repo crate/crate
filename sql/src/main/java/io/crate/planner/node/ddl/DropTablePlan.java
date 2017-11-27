@@ -21,21 +21,23 @@
 
 package io.crate.planner.node.ddl;
 
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.DropTableTask;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 
-import java.util.UUID;
+import java.util.Map;
 
-public class DropTablePlan extends UnnestablePlan {
+public class DropTablePlan implements Plan {
 
-    private final UUID jobId;
     private final DocTableInfo table;
     private final boolean ifExists;
 
-
-    public DropTablePlan(UUID jobId, DocTableInfo table, boolean ifExists) {
-        this.jobId = jobId;
+    public DropTablePlan(DocTableInfo table, boolean ifExists) {
         this.table = table;
         this.ifExists = ifExists;
     }
@@ -49,12 +51,12 @@ public class DropTablePlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDropTablePlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        DropTableTask task = new DropTableTask(this, executor.transportDropTableAction());
+        task.execute(consumer);
     }
 }

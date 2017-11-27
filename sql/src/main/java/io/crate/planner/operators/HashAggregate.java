@@ -26,17 +26,19 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.data.Row;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.Merge;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.MergePhase;
@@ -67,9 +69,12 @@ public class HashAggregate implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
         AggregationOutputValidator.validateOutputs(aggregates);
-        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null);
+        ExecutionPlan executionPlan = source.build(
+            plannerContext, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryValues);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
@@ -154,6 +159,11 @@ public class HashAggregate implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

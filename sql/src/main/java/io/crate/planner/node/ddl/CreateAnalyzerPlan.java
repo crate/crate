@@ -23,33 +23,37 @@
 package io.crate.planner.node.ddl;
 
 
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.elasticsearch.CreateAnalyzerTask;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.DependencyCarrier;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.UUID;
+import java.util.Map;
 
-public class CreateAnalyzerPlan extends UnnestablePlan {
+public class CreateAnalyzerPlan implements Plan {
 
-    private final UUID jobId;
     private final Settings analyzerSettings;
 
-    public CreateAnalyzerPlan(UUID jobId, Settings analyzerSettings) {
-        this.jobId = jobId;
+    public CreateAnalyzerPlan(Settings analyzerSettings) {
         this.analyzerSettings = analyzerSettings;
-    }
-
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCreateAnalyzerPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
     }
 
     public Settings createAnalyzerSettings() {
         return analyzerSettings;
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        CreateAnalyzerTask task = new CreateAnalyzerTask(
+            this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
+        task.execute(consumer);
     }
 }

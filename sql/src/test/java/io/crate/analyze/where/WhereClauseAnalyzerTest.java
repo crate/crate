@@ -54,6 +54,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -218,7 +219,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         };
         ArrayList<String> ids = new ArrayList<>();
         for (Object[] arg : args) {
-            ids.add(docKey.getId(e.functions(), new RowN(arg)));
+            ids.add(docKey.getId(e.functions(), new RowN(arg), Collections.emptyMap()));
         }
         assertThat(ids, contains("1", "2", "3"));
     }

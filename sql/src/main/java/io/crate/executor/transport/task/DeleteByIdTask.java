@@ -22,9 +22,9 @@
 
 package io.crate.executor.transport.task;
 
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.TransportShardDeleteAction;
 import io.crate.metadata.Functions;
@@ -35,20 +35,22 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class DeleteByIdTask implements Task {
+public class DeleteByIdTask {
 
     private final ShardRequestExecutor<ShardDeleteRequest> executor;
 
-    public DeleteByIdTask(ClusterService clusterService,
+    public DeleteByIdTask(UUID jobId,
+                          ClusterService clusterService,
                           Functions functions,
                           TransportShardDeleteAction deleteAction,
                           DeleteById deleteById) {
         TimeValue requestTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING
             .setting().get(clusterService.state().metaData().settings());
-        DeleteRequests deleteRequests = new DeleteRequests(deleteById.jobId(), requestTimeout);
+        DeleteRequests deleteRequests = new DeleteRequests(jobId, requestTimeout);
         executor = new ShardRequestExecutor<>(
             clusterService,
             functions,
@@ -59,14 +61,12 @@ public class DeleteByIdTask implements Task {
         );
     }
 
-    @Override
-    public void execute(final RowConsumer consumer, Row parameters) {
-        executor.execute(consumer, parameters);
+    public void execute(final RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
+        executor.execute(consumer, parameters, valuesBySubQuery);
     }
 
-    @Override
-    public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
-        return executor.executeBulk(bulkParams);
+    public final List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
+        return executor.executeBulk(bulkParams, valuesBySubQuery);
     }
 
 
@@ -88,7 +88,7 @@ public class DeleteByIdTask implements Task {
         }
 
         @Override
-        public void bind(Row parameters) {
+        public void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
         }
 
         @Override

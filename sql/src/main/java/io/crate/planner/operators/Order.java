@@ -24,11 +24,13 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.Merge;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.builder.InputColumns;
@@ -70,8 +72,11 @@ class Order implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
-        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint);
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        ExecutionPlan executionPlan = source.build(
+            plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryValues);
         if (executionPlan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {
@@ -123,6 +128,11 @@ class Order implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

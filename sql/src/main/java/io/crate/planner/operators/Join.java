@@ -34,12 +34,14 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.PlannerContext;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -304,7 +306,9 @@ public class Join implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
         /*
          * isDistributed/filterNeeded doesn't consider the joinCondition.
          * This means joins with implicit syntax result in a different plan than joins using explicit syntax.
@@ -319,8 +323,10 @@ public class Join implements LogicalPlan {
             ? limitAndOffset(limit, offset)
             : null;
 
-        ExecutionPlan left = lhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
-        ExecutionPlan right = rhs.build(plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint);
+        ExecutionPlan left = lhs.build(
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
+        ExecutionPlan right = rhs.build(
+            plannerContext, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryValues);
 
 
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
@@ -467,6 +473,14 @@ public class Join implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>();
+        deps.putAll(lhs.dependencies());
+        deps.putAll(rhs.dependencies());
+        return deps;
     }
 
     @Override

@@ -22,12 +22,17 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.operation.BaseImplementationSymbolVisitor;
+import io.crate.types.DataType;
+
+import java.util.Map;
 
 /**
  * Used to evaluate a symbol tree to a value.
@@ -36,21 +41,32 @@ import io.crate.operation.BaseImplementationSymbolVisitor;
  * - This should be preferred over {@link io.crate.operation.InputFactory} if it's not used repeatedly.
  *   (Unless column evaluation is necessary)
  *
- * This does not handle Columns/InputColumns, only Functions, Literals and ParameterSymbols
+ * This does not handle Columns/InputColumns, only Functions, Literals, ParameterSymbols and SubQuery values
  */
 public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> {
 
-    private SymbolEvaluator(Functions functions) {
+    private final Map<SelectSymbol, Object> subQueryValues;
+
+    private SymbolEvaluator(Functions functions, Map<SelectSymbol, Object> subQueryValues) {
         super(functions);
+        this.subQueryValues = subQueryValues;
     }
 
-    public static Object evaluate(Functions functions, Symbol symbol, Row params) {
-        SymbolEvaluator symbolEval = new SymbolEvaluator(functions);
+    public static Object evaluate(Functions functions,
+                                  Symbol symbol, Row params,
+                                  Map<SelectSymbol, Object> subQueryValues) {
+        SymbolEvaluator symbolEval = new SymbolEvaluator(functions, subQueryValues);
         return symbolEval.process(symbol, params).value();
     }
 
     @Override
     public Input<?> visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
         return () -> params.get(parameterSymbol.index());
+    }
+
+    @Override
+    public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
+        DataType type = selectSymbol.valueType();
+        return Literal.of(type, type.value(subQueryValues.get(selectSymbol)));
     }
 }

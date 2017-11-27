@@ -23,10 +23,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.planner.node.ddl.DeleteAllPartitions;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -34,9 +32,8 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.executor.transport.task.elasticsearch.DeletePartitionTask.TO_UNKNOWN_COUNT_ROW;
 
-public final class DeleteAllPartitionsTask implements Task {
+public final class DeleteAllPartitionsTask {
 
     private final TransportDeleteIndexAction deleteIndexAction;
     private final DeleteIndexRequest request;
@@ -52,12 +49,12 @@ public final class DeleteAllPartitionsTask implements Task {
         this.deleteIndexAction = deleteIndexAction;
     }
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer) {
         if (request.indices().length == 0) {
             consumer.accept(InMemoryBatchIterator.of(new Row1(0L), SENTINEL), null);
         } else {
-            deleteIndexAction.execute(request, new OneRowActionListener<>(consumer, TO_UNKNOWN_COUNT_ROW));
+            deleteIndexAction.execute(
+                request, new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
         }
     }
 }

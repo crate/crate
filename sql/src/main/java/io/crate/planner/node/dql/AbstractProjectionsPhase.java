@@ -101,7 +101,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         }
     }
 
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         for (Projection projection : projections) {
             projection.replaceSymbols(replaceFunction);
         }

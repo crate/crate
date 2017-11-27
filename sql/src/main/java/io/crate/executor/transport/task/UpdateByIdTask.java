@@ -23,10 +23,10 @@
 package io.crate.executor.transport.task;
 
 import io.crate.analyze.symbol.Assignments;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.Functions;
@@ -36,12 +36,15 @@ import io.crate.planner.node.dml.UpdateById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 
-public class UpdateByIdTask implements Task {
+public class UpdateByIdTask {
 
     private final ClusterService clusterService;
     private final Functions functions;
@@ -50,7 +53,8 @@ public class UpdateByIdTask implements Task {
     private final Function<Boolean, ShardUpsertRequest.Builder> createBuilder;
     private final Assignments assignments;
 
-    public UpdateByIdTask(ClusterService clusterService,
+    public UpdateByIdTask(UUID jobId,
+                          ClusterService clusterService,
                           Functions functions,
                           TransportShardUpsertAction shardUpsertAction,
                           UpdateById updateById) {
@@ -66,12 +70,11 @@ public class UpdateByIdTask implements Task {
                 continueOnError,
                 assignments.targetNames(),
                 null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE
-                updateById.jobId(),
+                jobId,
                 false
             );
     }
 
-    @Override
     public void execute(RowConsumer consumer, Row parameters) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
@@ -82,10 +85,9 @@ public class UpdateByIdTask implements Task {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        executor.execute(consumer, parameters);
+        executor.execute(consumer, parameters, Collections.emptyMap());
     }
 
-    @Override
     public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
@@ -96,7 +98,7 @@ public class UpdateByIdTask implements Task {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        return executor.executeBulk(bulkParams);
+        return executor.executeBulk(bulkParams, Collections.emptyMap());
     }
 
     private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpsertRequest> {
@@ -119,7 +121,7 @@ public class UpdateByIdTask implements Task {
         }
 
         @Override
-        public void bind(Row parameters) {
+        public void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
             assignmentSources = assignments.bindSources(table, parameters);
         }
 

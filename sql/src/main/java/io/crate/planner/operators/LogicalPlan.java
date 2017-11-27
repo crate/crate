@@ -24,8 +24,11 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -112,12 +115,9 @@ public interface LogicalPlan extends Plan {
                         int limit,
                         int offset,
                         @Nullable OrderBy order,
-                        @Nullable Integer pageSizeHint);
-
-    @Override
-    default ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params) {
-        return build(plannerContext, projectionBuilder, -1, 0, null, null);
-    }
+                        @Nullable Integer pageSizeHint,
+                        Row params,
+                        Map<SelectSymbol, Object> subQueryValues);
 
     /**
      * Used to generate optimized operators.
@@ -152,5 +152,25 @@ public interface LogicalPlan extends Plan {
 
     List<AbstractTableRelation> baseTables();
 
+    /**
+     * SubQueries that this plan depends on to be able to execute it.
+     *
+     * valuesBySubQuery in {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, Map)}
+     * must receive 1 entry per selectSymbol contained in the dependencies here.
+     *
+     * Note that currently {@link MultiPhase} is injected into the operator-tree to declare the dependencies.
+     * It's not necessary for each operator to expose it's own SelectSymbols; propagation is usually sufficient.
+     */
+    Map<LogicalPlan, SelectSymbol> dependencies();
+
     long numExpectedRows();
+
+    @Override
+    default void execute(DependencyCarrier executor,
+                         PlannerContext plannerContext,
+                         RowConsumer consumer,
+                         Row params,
+                         Map<SelectSymbol, Object> valuesBySubQuery) {
+        LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery);
+    }
 }

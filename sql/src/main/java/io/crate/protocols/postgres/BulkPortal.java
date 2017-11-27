@@ -28,13 +28,14 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.Executor;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -44,6 +45,7 @@ import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -144,17 +146,22 @@ class BulkPortal extends AbstractPortal {
         return executeBulk(portalContext.getExecutor(), plan, plannerContext, jobId, jobsLogs, bulkParams);
     }
 
-    private CompletableFuture<Void> executeBulk(Executor executor,
+    private CompletableFuture<Void> executeBulk(DependencyCarrier executor,
                                                 Plan plan,
                                                 PlannerContext plannerContext,
                                                 final UUID jobId,
                                                 final JobsLogs jobsLogs,
                                                 List<Row> bulkParams) {
-        List<CompletableFuture<Long>> futures = executor.executeBulk(plan, plannerContext, bulkParams);
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
+            executor,
+            plannerContext,
+            bulkParams,
+            Collections.emptyMap()
+        );
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
-            .thenAccept(ignored -> emitResults(jobId, jobsLogs, futures));
+            .thenAccept(ignored -> emitResults(jobId, jobsLogs, rowCounts));
     }
 
     private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
@@ -169,9 +176,9 @@ class BulkPortal extends AbstractPortal {
             ResultReceiver resultReceiver = resultReceivers.get(i);
             try {
                 Long rowCount = completedResultFuture.join();
-                cells[0] = rowCount == null ? Executor.ROWCOUNT_ERROR : rowCount;
+                cells[0] = rowCount == null ? Row1.ERROR : rowCount;
             } catch (Throwable t) {
-                cells[0] = Executor.ROWCOUNT_ERROR;
+                cells[0] = Row1.ERROR;
             }
             resultReceiver.setNextRow(row);
             resultReceiver.allFinished(false);

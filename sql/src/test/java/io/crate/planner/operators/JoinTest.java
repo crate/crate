@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.PlannerContext;
@@ -42,6 +43,7 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.is;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
@@ -72,7 +74,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         LogicalPlan operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
-        NestedLoop nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null );
+        NestedLoop nl = (NestedLoop) operator.build(
+            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
             is(DistributionType.BROADCAST)
@@ -83,7 +86,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         operator = Join.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
-        nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null );
+        nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
             is(DistributionType.SAME_NODE)

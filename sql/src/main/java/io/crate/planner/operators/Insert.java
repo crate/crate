@@ -25,7 +25,9 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -56,8 +58,11 @@ public class Insert implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
-        ExecutionPlan executionSubPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        ExecutionPlan executionSubPlan = source.build(
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
         executionSubPlan.addProjection(projection);
         ExecutionPlan executionPlan = Merge.ensureOnHandler(executionSubPlan, plannerContext);
         if (executionPlan == executionSubPlan) {
@@ -85,6 +90,11 @@ public class Insert implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

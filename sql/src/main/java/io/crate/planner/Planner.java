@@ -90,7 +90,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final CopyStatementPlanner copyStatementPlanner;
     private final EvaluatingNormalizer normalizer;
     private final LogicalPlanner logicalPlanner;
     private final Functions functions;
@@ -103,7 +102,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.clusterService = clusterService;
         this.functions = functions;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
-        this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
 
         this.awarenessAttributes =
@@ -147,7 +145,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
-        return new NoopPlan(context.jobId());
+        return new NoopPlan();
     }
 
     @Override
@@ -183,34 +181,34 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     protected Plan visitCopyFromStatement(CopyFromAnalyzedStatement analysis, PlannerContext context) {
-        return copyStatementPlanner.planCopyFrom(analysis, context);
+        return CopyStatementPlanner.planCopyFrom(analysis);
     }
 
     @Override
     protected Plan visitCopyToStatement(CopyToAnalyzedStatement analysis, PlannerContext context) {
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        return copyStatementPlanner.planCopyTo(analysis, context, logicalPlanner, subqueryPlanner);
+        return CopyStatementPlanner.planCopyTo(analysis, logicalPlanner, subqueryPlanner);
     }
 
     @Override
     public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, PlannerContext context) {
-        return new ShowCreateTablePlan(context.jobId(), statement);
+        return new ShowCreateTablePlan(statement);
     }
 
     @Override
     protected Plan visitDDLStatement(DDLStatement statement, PlannerContext context) {
-        return new GenericDDLPlan(context.jobId(), statement);
+        return new GenericDDLPlan(statement);
     }
 
     @Override
     public Plan visitDCLStatement(DCLStatement statement, PlannerContext context) {
-        return new GenericDCLPlan(context.jobId(), statement);
+        return new GenericDCLPlan(statement);
     }
 
     @Override
     public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
-            return new NoopPlan(context.jobId());
+            return new NoopPlan();
         }
         return visitDDLStatement(analysis, context);
     }
@@ -218,17 +216,17 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
-            return new NoopPlan(context.jobId());
+            return new NoopPlan();
         }
-        return new DropTablePlan(context.jobId(), analysis.table(), analysis.dropIfExists());
+        return new DropTablePlan(analysis.table(), analysis.dropIfExists());
     }
 
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noOp()) {
-            return new NoopPlan(context.jobId());
+            return new NoopPlan();
         }
-        return new GenericDDLPlan(context.jobId(), analysis);
+        return new GenericDDLPlan(analysis);
     }
 
     @Override
@@ -239,14 +237,14 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         } catch (IOException ioe) {
             throw new UnhandledServerException("Could not build analyzer Settings", ioe);
         }
-        return new CreateAnalyzerPlan(context.jobId(), analyzerSettings);
+        return new CreateAnalyzerPlan(analyzerSettings);
     }
 
     @Override
     public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, PlannerContext context) {
         Set<String> settingsToRemove = resetStatement.settingsToRemove();
         if (settingsToRemove.isEmpty()) {
-            return new NoopPlan(context.jobId());
+            return new NoopPlan();
         }
 
         Map<String, List<Expression>> nullSettings = new HashMap<>(settingsToRemove.size(), 1);
@@ -261,16 +259,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         switch (setStatement.scope()) {
             case LOCAL:
                 LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
-                return new NoopPlan(context.jobId());
+                return new NoopPlan();
             case SESSION_TRANSACTION_MODE:
                 LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
-                return new NoopPlan(context.jobId());
+                return new NoopPlan();
             case SESSION:
-                return new SetSessionPlan(
-                    context.jobId(),
-                    setStatement.settings(),
-                    context.transactionContext().sessionContext()
-                );
+                return new SetSessionPlan(setStatement.settings(), context.transactionContext().sessionContext());
             case GLOBAL:
             default:
                 if (setStatement.isPersistent()) {
@@ -288,13 +282,13 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, PlannerContext context) {
         return analysis.jobId().isPresent() ?
-            new KillPlan(context.jobId(), analysis.jobId().get()) :
-            new KillPlan(context.jobId());
+            new KillPlan(analysis.jobId().get()) :
+            new KillPlan();
     }
 
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
-        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context), context.jobId());
+        return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
     }
 
     private LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {

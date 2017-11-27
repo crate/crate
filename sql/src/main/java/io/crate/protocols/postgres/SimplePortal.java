@@ -35,10 +35,10 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.Executor;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -74,7 +74,7 @@ public class SimplePortal extends AbstractPortal {
 
     public SimplePortal(String name,
                         Analyzer analyzer,
-                        Executor executor,
+                        DependencyCarrier executor,
                         boolean isReadOnly,
                         SessionContext sessionContext) {
         super(name, analyzer, executor, isReadOnly, sessionContext);
@@ -192,7 +192,13 @@ public class SimplePortal extends AbstractPortal {
 
         if (!resumeIfSuspended()) {
             consumer = new RowConsumerToResultReceiver(resultReceiver, maxRows);
-            portalContext.getExecutor().execute(plan, plannerContext, consumer, rowParams);
+            plan.execute(
+                portalContext.getExecutor(),
+                plannerContext,
+                consumer,
+                rowParams,
+                Collections.emptyMap()
+            );
         }
         synced = true;
         return completableFuture;
@@ -212,11 +218,13 @@ public class SimplePortal extends AbstractPortal {
             defaultLimit,
             maxRows
         );
-        portalContext.getExecutor().execute(
-            planner.plan(analysis.analyzedStatement(), plannerContext),
+        Plan plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+        plan.execute(
+            portalContext.getExecutor(),
             plannerContext,
             consumer,
-            rowParams
+            rowParams,
+            Collections.emptyMap()
         );
     }
 

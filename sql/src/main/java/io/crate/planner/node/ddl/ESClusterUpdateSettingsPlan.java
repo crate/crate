@@ -21,8 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.DependencyCarrier;
 import io.crate.sql.tree.Expression;
 
 import java.util.HashMap;
@@ -30,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
+public class ESClusterUpdateSettingsPlan implements Plan {
 
     private final Map<String, List<Expression>> persistentSettings;
     private final Map<String, List<Expression>> transientSettings;
@@ -61,12 +66,13 @@ public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESClusterUpdateSettingsPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        ESClusterUpdateSettingsTask task = new ESClusterUpdateSettingsTask(
+            this, executor.transportActionProvider().transportClusterUpdateSettingsAction());
+        task.execute(consumer, params);
     }
 }

@@ -28,7 +28,6 @@ import static io.crate.analyze.TableDefinitions.shardRouting;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
 
 @SuppressWarnings("ConstantConditions")
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -99,14 +98,12 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testKillPlanAll() throws Exception {
         KillPlan killPlan = e.plan("kill all");
         assertThat(killPlan, instanceOf(KillPlan.class));
-        assertThat(killPlan.jobId(), notNullValue());
         assertThat(killPlan.jobToKill().isPresent(), is(false));
     }
 
     @Test
     public void testKillPlanJobs() throws Exception {
         KillPlan killJobsPlan = e.plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertThat(killJobsPlan.jobId(), notNullValue());
         assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
 }

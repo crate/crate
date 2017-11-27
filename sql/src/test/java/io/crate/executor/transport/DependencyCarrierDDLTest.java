@@ -30,6 +30,7 @@ import io.crate.data.Row1;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.Plan;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
@@ -56,9 +57,9 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
+public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
-    private TransportExecutor executor;
+    private DependencyCarrier executor;
 
     private final static Map<String, Object> TEST_PARTITIONED_MAPPING = ImmutableMap.<String, Object>of(
         "_meta", ImmutableMap.of(
@@ -76,7 +77,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetup() {
-        executor = internalCluster().getInstance(TransportExecutor.class);
+        executor = internalCluster().getInstance(DependencyCarrier.class);
     }
 
     @After
@@ -218,7 +219,13 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     private Bucket executePlan(Plan plan, Row params) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        executor.execute(plan, null, consumer, params);
+        plan.execute(
+            executor,
+            null,
+            consumer,
+            params,
+            Collections.emptyMap()
+        );
         return consumer.getBucket();
     }
 

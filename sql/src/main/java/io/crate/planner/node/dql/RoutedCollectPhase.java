@@ -95,7 +95,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         super.replaceSymbols(replaceFunction);
         whereClause.replace(replaceFunction);
         Lists2.replaceItems(toCollect, replaceFunction);

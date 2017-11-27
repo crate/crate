@@ -31,9 +31,7 @@ import io.crate.action.job.TransportJobAction;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingRowConsumer;
-import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.DownstreamExecutionSubContext;
 import io.crate.jobs.ExecutionSubContext;
@@ -98,7 +96,7 @@ import java.util.stream.Collectors;
  *          BatchConsumer
  * </pre>
  **/
-public class ExecutionPhasesTask implements Task {
+public class ExecutionPhasesTask {
 
     static final Logger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
@@ -140,8 +138,7 @@ public class ExecutionPhasesTask implements Task {
         }
     }
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer) {
         assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
@@ -155,8 +152,7 @@ public class ExecutionPhasesTask implements Task {
         }
     }
 
-    @Override
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
+    public List<CompletableFuture<Long>> executeBulk() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable

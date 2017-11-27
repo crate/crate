@@ -53,7 +53,7 @@ public abstract class Projection implements ExplainNode {
         return RowGranularity.CLUSTER;
     }
 
-    public abstract void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
+    public abstract void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction);
 
     public interface ProjectionFactory<T extends Projection> {
         T newInstance(StreamInput in) throws IOException;

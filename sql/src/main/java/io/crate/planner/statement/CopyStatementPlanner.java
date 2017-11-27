@@ -23,20 +23,27 @@
 package io.crate.planner.statement;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -56,7 +63,6 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -64,28 +70,101 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class CopyStatementPlanner {
+public final class CopyStatementPlanner {
 
-    private final ClusterService clusterService;
-
-    public CopyStatementPlanner(ClusterService clusterService) {
-        this.clusterService = clusterService;
+    private CopyStatementPlanner() {
     }
 
-    public Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
-        return (plannerContext, projectionBuilder, params)
-            -> planCopyFromExecution(copyFrom, context);
+    public static Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom) {
+        return new CopyFrom(copyFrom);
     }
 
-    public Plan planCopyTo(CopyToAnalyzedStatement statement, PlannerContext context, LogicalPlanner logicalPlanner, SubqueryPlanner subqueryPlanner) {
-        return (plannerContext, projectionBuilder, params)
-            -> planCopyToExecution(statement, context, logicalPlanner, subqueryPlanner, projectionBuilder, params);
+    public static Plan planCopyTo(CopyToAnalyzedStatement statement,
+                                  LogicalPlanner logicalPlanner,
+                                  SubqueryPlanner subqueryPlanner) {
+        return new CopyTo(statement, logicalPlanner, subqueryPlanner);
     }
 
-    private ExecutionPlan planCopyFromExecution(CopyFromAnalyzedStatement copyFrom, PlannerContext context) {
+    static class CopyTo implements Plan {
+
+        @VisibleForTesting
+        final CopyToAnalyzedStatement copyTo;
+
+        @VisibleForTesting
+        final LogicalPlanner logicalPlanner;
+
+        @VisibleForTesting
+        final SubqueryPlanner subqueryPlanner;
+
+        CopyTo(CopyToAnalyzedStatement copyTo, LogicalPlanner logicalPlanner, SubqueryPlanner subqueryPlanner) {
+            this.copyTo = copyTo;
+            this.logicalPlanner = logicalPlanner;
+            this.subqueryPlanner = subqueryPlanner;
+        }
+
+        @Override
+        public void execute(DependencyCarrier executor,
+                            PlannerContext plannerContext,
+                            RowConsumer consumer,
+                            Row params,
+                            Map<SelectSymbol, Object> valuesBySubQuery) {
+
+            ExecutionPlan executionPlan = planCopyToExecution(
+                copyTo, plannerContext, logicalPlanner, subqueryPlanner, executor.projectionBuilder(), params);
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                Collections.singletonList(nodeOpTree)
+            );
+            task.execute(consumer);
+        }
+    }
+
+    public static class CopyFrom implements Plan {
+
+        public final CopyFromAnalyzedStatement copyFrom;
+
+        CopyFrom(CopyFromAnalyzedStatement copyFrom) {
+            this.copyFrom = copyFrom;
+        }
+
+        @Override
+        public void execute(DependencyCarrier executor,
+                            PlannerContext plannerContext,
+                            RowConsumer consumer,
+                            Row params,
+                            Map<SelectSymbol, Object> valuesBySubQuery) {
+            ExecutionPlan plan = planCopyFromExecution(executor.clusterService().state().nodes(), copyFrom, plannerContext);
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(plan, executor.localNodeId());
+
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                Collections.singletonList(nodeOpTree)
+            );
+            task.execute(consumer);
+        }
+    }
+
+    public static ExecutionPlan planCopyFromExecution(DiscoveryNodes allNodes,
+                                                      CopyFromAnalyzedStatement copyFrom,
+                                                      PlannerContext context) {
         /*
          * Create a plan that reads json-objects-lines from a file and then executes upsert requests to index the data
          */
@@ -151,7 +230,6 @@ public class CopyStatementPlanner {
         // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
         rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
 
-        DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
@@ -234,12 +312,13 @@ public class CopyStatementPlanner {
         return table.getReference(DocSysColumns.RAW);
     }
 
-    private ExecutionPlan planCopyToExecution(CopyToAnalyzedStatement statement,
-                                              PlannerContext context,
-                                              LogicalPlanner logicalPlanner,
-                                              SubqueryPlanner subqueryPlanner,
-                                              ProjectionBuilder projectionBuilder,
-                                              Row params) {
+    @VisibleForTesting
+    static ExecutionPlan planCopyToExecution(CopyToAnalyzedStatement statement,
+                                             PlannerContext context,
+                                             LogicalPlanner logicalPlanner,
+                                             SubqueryPlanner subqueryPlanner,
+                                             ProjectionBuilder projectionBuilder,
+                                             Row params) {
         WriterProjection.OutputFormat outputFormat = statement.outputFormat();
         if (outputFormat == null) {
             outputFormat = statement.columnsDefined() ?
@@ -258,7 +337,8 @@ public class CopyStatementPlanner {
         if (logicalPlan == null) {
             return null;
         }
-        ExecutionPlan executionPlan = logicalPlan.build(context, projectionBuilder, params);
+        ExecutionPlan executionPlan = logicalPlan.build(
+            context, projectionBuilder, 0, 0, null, null, params, Collections.emptyMap());
         executionPlan.addProjection(projection);
         return Merge.ensureOnHandler(executionPlan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }

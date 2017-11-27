@@ -122,7 +122,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(columnSymbols, replaceFunction);
         if (onDuplicateKeyAssignments != null && !onDuplicateKeyAssignments.isEmpty()) {
             for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {

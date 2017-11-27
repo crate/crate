@@ -26,6 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.data.Row;
@@ -39,6 +40,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -87,7 +89,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         }
 
         /**
-         * @deprecated use {@link #getId(Functions, Row)} instead
+         * @deprecated use {@link #getId(Functions, Row, Map)} instead
          */
         @Deprecated
         public String id() {
@@ -97,17 +99,17 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return id;
         }
 
-        public String getId(Functions functions, Row params) {
+        public String getId(Functions functions, Row params, Map<SelectSymbol, Object> valuesBySubQuery) {
             return idFunction.apply(
                 Lists.transform(
                     key.subList(0, width),
-                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, params))
+                    s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, params, valuesBySubQuery))
                 ));
         }
 
-        public Optional<Long> version(Functions functions, Row params) {
+        public Optional<Long> version(Functions functions, Row params, Map<SelectSymbol, Object> subQueryValues) {
             if (withVersions && key.get(width) != null) {
-                Object val = SymbolEvaluator.evaluate(functions, key.get(width), params);
+                Object val = SymbolEvaluator.evaluate(functions, key.get(width), params, subQueryValues);
                 return Optional.of(LongType.INSTANCE.value(val));
             }
             return Optional.empty();
@@ -121,21 +123,22 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return key;
         }
 
-        public List<BytesRef> getPartitionValues(Functions functions, Row params) {
+        public List<BytesRef> getPartitionValues(Functions functions, Row params, Map<SelectSymbol, Object> valuesBySubQuery) {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
                 return Collections.emptyList();
             }
             return Lists.transform(
                 partitionIdx,
-                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, key.get(pIdx), params)));
+                pIdx -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, key.get(pIdx), params, valuesBySubQuery)));
 
         }
 
-        public String getRouting(Functions functions, Row params) {
+        public String getRouting(Functions functions, Row params, Map<SelectSymbol, Object> valuesBySubQuery) {
             if (clusteredByIdx >= 0) {
-                return BytesRefs.toString(SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params));
+                return BytesRefs.toString(
+                    SymbolEvaluator.evaluate(functions, key.get(clusteredByIdx), params, valuesBySubQuery));
             }
-            return getId(functions, params);
+            return getId(functions, params, valuesBySubQuery);
         }
     }
 

@@ -24,7 +24,6 @@ package io.crate.executor.task;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,19 +31,17 @@ import java.util.concurrent.CompletableFuture;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class NoopTask implements Task {
+public class NoopTask {
 
     public static final NoopTask INSTANCE = new NoopTask();
 
     private NoopTask() {
     }
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer) {
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 
-    @Override
     public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
         return Collections.emptyList();
     }

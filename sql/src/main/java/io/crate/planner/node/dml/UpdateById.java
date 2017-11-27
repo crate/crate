@@ -22,38 +22,32 @@
 
 package io.crate.planner.node.dml;
 
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.UpdateByIdTask;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-public final class UpdateById extends UnnestablePlan {
+public final class UpdateById implements Plan {
 
-    private final UUID jobId;
     private final DocTableInfo table;
     private final Map<Reference, Symbol> assignmentByTargetCol;
     private final DocKeys docKeys;
 
-    public UpdateById(UUID jobId, DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
-        this.jobId = jobId;
+    public UpdateById(DocTableInfo table, Map<Reference, Symbol> assignmentByTargetCol, DocKeys docKeys) {
         this.table = table;
         this.assignmentByTargetCol = assignmentByTargetCol;
         this.docKeys = docKeys;
-    }
-
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitUpdateById(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
     }
 
     public DocKeys docKeys() {
@@ -66,5 +60,36 @@ public final class UpdateById extends UnnestablePlan {
 
     public Map<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerCtx,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        UpdateByIdTask task = new UpdateByIdTask(
+            plannerCtx.jobId(),
+            executor.clusterService(),
+            executor.functions(),
+            executor.transportActionProvider().transportShardUpsertAction(),
+            this
+        );
+        task.execute(consumer, params);
+    }
+
+    @Override
+    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                     PlannerContext plannerContext,
+                                                     List<Row> bulkParams,
+                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+        UpdateByIdTask task = new UpdateByIdTask(
+            plannerContext.jobId(),
+            executor.clusterService(),
+            executor.functions(),
+            executor.transportActionProvider().transportShardUpsertAction(),
+            this
+        );
+        return task.executeBulk(bulkParams);
     }
 }

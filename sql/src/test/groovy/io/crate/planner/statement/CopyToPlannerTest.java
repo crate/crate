@@ -20,17 +20,20 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.planner.statement;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.WriterProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -61,9 +64,22 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
     }
 
+    private Merge plan(String stmt) {
+         CopyStatementPlanner.CopyTo plan = e.plan(stmt);
+         return (Merge) CopyStatementPlanner.planCopyToExecution(
+             plan.copyTo,
+             e.getPlannerContext(clusterService.state()),
+             plan.logicalPlanner,
+             plan.subqueryPlanner,
+             new ProjectionBuilder(e.functions()),
+             Row.EMPTY
+         );
+    }
+
+
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        Merge plan = e.plan("copy users (name) to directory '/tmp'");
+        Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference) node.toCollect().get(0);
@@ -75,7 +91,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithPartitionedGeneratedColumn() throws Exception {
         // test that generated partition column is NOT exported
-        Merge plan = e.plan("copy parted_generated to directory '/tmp'");
+        Merge plan = plan("copy parted_generated to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         WriterProjection projection = (WriterProjection) node.projections().get(0);

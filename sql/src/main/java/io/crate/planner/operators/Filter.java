@@ -27,10 +27,12 @@ import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.PlannerContext;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
@@ -92,8 +94,11 @@ class Filter implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
-        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        ExecutionPlan executionPlan = source.build(
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), queryClause);
         if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);
@@ -124,6 +129,11 @@ class Filter implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

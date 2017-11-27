@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -31,10 +32,14 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.ParamSymbols;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -42,7 +47,9 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -57,7 +64,12 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
@@ -74,8 +86,9 @@ public final class UpdatePlanner {
             DocTableRelation docTable = (DocTableRelation) table;
             return plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx);
         }
-        return (plannerContext, projectionBuilder, params) ->
-            sysUpdate(plannerContext, (TableRelation) table, update.assignmentByTargetCol(), update.query(), params);
+
+        return new Update((plannerContext, params) ->
+            sysUpdate(plannerContext, (TableRelation) table, update.assignmentByTargetCol(), update.query(), params));
     }
 
     private static Plan plan(DocTableRelation docTable,
@@ -89,12 +102,66 @@ public final class UpdatePlanner {
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
         if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(
-                plannerCtx.jobId(), tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get());
+            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get());
         }
 
-        return (plannerContext, projectionBuilder, params) ->
-            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, query, params);
+        return new Update((plannerContext, params) ->
+            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, query, params));
+    }
+
+    public static class Update implements Plan {
+
+        @VisibleForTesting
+        public final BiFunction<PlannerContext, Row, ExecutionPlan> createExecutionPlan;
+
+        Update(BiFunction<PlannerContext, Row, ExecutionPlan> createExecutionPlan) {
+            this.createExecutionPlan = createExecutionPlan;
+        }
+
+        @Override
+        public void execute(DependencyCarrier executor,
+                            PlannerContext plannerContext,
+                            RowConsumer consumer,
+                            Row params,
+                            Map<SelectSymbol, Object> valuesBySubQuery) {
+            ExecutionPlan executionPlan = createExecutionPlan.apply(plannerContext, params);
+            NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                Collections.singletonList(nodeOpTree)
+            );
+            task.execute(consumer);
+        }
+
+        @Override
+        public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                         PlannerContext plannerContext,
+                                                         List<Row> bulkParams,
+                                                         Map<SelectSymbol, Object> valuesBySubQuery) {
+            List<NodeOperationTree> nodeOpTreeList = new ArrayList<>(bulkParams.size());
+            for (Row params : bulkParams) {
+                ExecutionPlan executionPlan = createExecutionPlan.apply(plannerContext, params);
+                nodeOpTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
+            }
+            ExecutionPhasesTask task = new ExecutionPhasesTask(
+                plannerContext.jobId(),
+                executor.clusterService(),
+                executor.contextPreparer(),
+                executor.jobContextService(),
+                executor.indicesService(),
+                executor.transportActionProvider().transportJobInitAction(),
+                executor.transportActionProvider().transportKillJobsNodeAction(),
+                nodeOpTreeList
+            );
+            return task.executeBulk();
+        }
     }
 
     private static ExecutionPlan sysUpdate(PlannerContext plannerContext,

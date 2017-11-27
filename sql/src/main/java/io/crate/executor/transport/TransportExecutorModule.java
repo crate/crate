@@ -23,7 +23,6 @@ package io.crate.executor.transport;
 
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.TransportJobAction;
-import io.crate.executor.Executor;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
@@ -38,7 +37,6 @@ public class TransportExecutorModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TransportActionProvider.class).asEagerSingleton();
-        bind(Executor.class).to(TransportExecutor.class).asEagerSingleton();
         bind(ContextPreparer.class).asEagerSingleton();
         bind(LuceneQueryBuilder.class).asEagerSingleton();
 

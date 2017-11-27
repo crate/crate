@@ -25,12 +25,14 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.data.Row;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.Merge;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.projection.TopNProjection;
@@ -73,11 +75,14 @@ class Limit implements LogicalPlan {
                                int limitHint,
                                int offsetHint,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
         int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
 
-        ExecutionPlan executionPlan = source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint);
+        ExecutionPlan executionPlan = source.build(
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
         List<DataType> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()
@@ -118,6 +123,11 @@ class Limit implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     @Override

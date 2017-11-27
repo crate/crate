@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
-import io.crate.executor.Executor;
+import io.crate.planner.DependencyCarrier;
 
 abstract class AbstractPortal implements Portal {
 
@@ -33,7 +33,7 @@ abstract class AbstractPortal implements Portal {
     final SessionContext sessionContext;
     boolean synced = false;
 
-    AbstractPortal(String name, Analyzer analyzer, Executor executor, boolean isReadOnly, SessionContext sessionContext) {
+    AbstractPortal(String name, Analyzer analyzer, DependencyCarrier executor, boolean isReadOnly, SessionContext sessionContext) {
         this.name = name;
         this.sessionContext = sessionContext;
         portalContext = new PortalContext(analyzer, executor, isReadOnly);
@@ -62,10 +62,10 @@ abstract class AbstractPortal implements Portal {
     static class PortalContext {
 
         private final Analyzer analyzer;
-        private final Executor executor;
+        private final DependencyCarrier executor;
         private final boolean isReadOnly;
 
-        private PortalContext(Analyzer analyzer, Executor executor, boolean isReadOnly) {
+        private PortalContext(Analyzer analyzer, DependencyCarrier executor, boolean isReadOnly) {
             this.analyzer = analyzer;
             this.executor = executor;
             this.isReadOnly = isReadOnly;
@@ -75,7 +75,7 @@ abstract class AbstractPortal implements Portal {
             return analyzer;
         }
 
-        Executor getExecutor() {
+        DependencyCarrier getExecutor() {
             return executor;
         }
 

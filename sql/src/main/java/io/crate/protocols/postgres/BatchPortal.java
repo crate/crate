@@ -161,7 +161,13 @@ class BatchPortal extends AbstractPortal {
                 .whenComplete(completionCallback);
 
             RowConsumer consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
-            portalContext.getExecutor().execute(plan, plannerContext, consumer, new RowN(batchParams.toArray()));
+            plan.execute(
+                portalContext.getExecutor(),
+                plannerContext,
+                consumer,
+                new RowN(batchParams.toArray()),
+                Collections.emptyMap()
+            );
         }
         synced = true;
         return completionCallback;

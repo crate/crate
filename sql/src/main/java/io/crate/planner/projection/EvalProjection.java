@@ -54,7 +54,7 @@ public class EvalProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
     }
 

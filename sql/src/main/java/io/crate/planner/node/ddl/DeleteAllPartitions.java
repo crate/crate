@@ -22,33 +22,37 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.elasticsearch.DeleteAllPartitionsTask;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.DependencyCarrier;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
-public final class DeleteAllPartitions extends UnnestablePlan {
+public final class DeleteAllPartitions implements Plan {
 
-    private final UUID jobId;
     private final List<String> partitions;
 
-    public DeleteAllPartitions(UUID jobId, List<String> partitions) {
-        this.jobId = jobId;
+    public DeleteAllPartitions(List<String> partitions) {
         this.partitions = partitions;
-    }
-
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDeleteAllPartitions(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
     }
 
     public List<String> partitions() {
         return partitions;
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        DeleteAllPartitionsTask task = new DeleteAllPartitionsTask(
+            this, executor.transportActionProvider().transportDeleteIndexAction());
+        task.execute(consumer);
     }
 }

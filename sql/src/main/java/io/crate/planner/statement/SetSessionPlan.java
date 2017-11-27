@@ -23,41 +23,50 @@
 package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.metadata.settings.session.SessionSettingApplier;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.Expression;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-public class SetSessionPlan extends UnnestablePlan {
+import static io.crate.data.SentinelRow.SENTINEL;
 
-    private final UUID id;
+public class SetSessionPlan implements Plan {
+
+    private static final Logger LOGGER = Loggers.getLogger(SetSessionPlan.class);
+
     private final Map<String, List<Expression>> settings;
     private final SessionContext sessionContext;
 
-    public SetSessionPlan(UUID id, Map<String, List<Expression>> settings, SessionContext sessionContext) {
-        this.id = id;
+    public SetSessionPlan(Map<String, List<Expression>> settings, SessionContext sessionContext) {
         this.settings = settings;
         this.sessionContext = sessionContext;
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitSetSessionPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    public Map<String, List<Expression>> settings() {
-        return settings;
-    }
-
-    public SessionContext sessionContext() {
-        return sessionContext;
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        for (Map.Entry<String, List<Expression>> entry : settings.entrySet()) {
+            SessionSettingApplier applier = SessionSettingRegistry.getApplier(entry.getKey());
+            if (applier == null) {
+                LOGGER.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", entry.getKey());
+            } else {
+                applier.apply(params, entry.getValue(), sessionContext);
+            }
+        }
+        consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 }

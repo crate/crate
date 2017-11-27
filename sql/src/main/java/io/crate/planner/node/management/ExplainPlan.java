@@ -22,33 +22,70 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.operation.projectors.TopN;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.PlanPrinter;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.statement.CopyStatementPlanner;
 
-import java.util.UUID;
+import java.util.Map;
 
-public class ExplainPlan extends UnnestablePlan implements Plan {
+import static io.crate.data.SentinelRow.SENTINEL;
+
+public class ExplainPlan implements Plan {
 
     private final Plan subPlan;
-    private final UUID jobId;
 
-    public ExplainPlan(Plan subExecutionPlan, UUID jobId) {
+    public ExplainPlan(Plan subExecutionPlan) {
         this.subPlan = subExecutionPlan;
-        this.jobId = jobId;
-    }
-
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitExplainPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
     }
 
     public Plan subPlan() {
         return subPlan;
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        Map<String, Object> map;
+        try {
+            if (subPlan instanceof LogicalPlan) {
+                ExecutionPlan executionPlan = ((LogicalPlan) subPlan).build(
+                    plannerContext,
+                    executor.projectionBuilder(),
+                    TopN.NO_LIMIT,
+                    0,
+                    null,
+                    null,
+                    params,
+                    valuesBySubQuery);
+                map = PlanPrinter.objectMap(executionPlan);
+            } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
+                ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
+                    executor.clusterService().state().nodes(),
+                    ((CopyStatementPlanner.CopyFrom) subPlan).copyFrom,
+                    plannerContext
+                );
+                map = PlanPrinter.objectMap(executionPlan);
+            } else {
+                consumer.accept(null, new UnsupportedOperationException("EXPLAIN not supported for " + subPlan));
+                return;
+            }
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
+        }
+        consumer.accept(InMemoryBatchIterator.of(new Row1(map), SENTINEL), null);
     }
 }

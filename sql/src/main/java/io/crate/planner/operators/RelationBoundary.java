@@ -29,8 +29,8 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
-import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -99,6 +99,7 @@ public class RelationBoundary implements LogicalPlan {
         this.relation = relation;
         this.outputs = outputs;
         this.subQueries = subQueries;
+        this.subQueries.putAll(source.dependencies());
     }
 
     @Override
@@ -107,22 +108,11 @@ public class RelationBoundary implements LogicalPlan {
                                int limit,
                                int offset,
                                @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
-        Map<ExecutionPlan, SelectSymbol> subQueryPlans = new HashMap<>();
-        for (Map.Entry<LogicalPlan, SelectSymbol> entry : subQueries.entrySet()) {
-            ExecutionPlan subExecutionPlan = entry.getKey().build(
-                PlannerContext.forSubPlan(plannerContext),
-                projectionBuilder,
-                limit,
-                offset,
-                order,
-                pageSizeHint);
-            subQueryPlans.put(subExecutionPlan, entry.getValue());
-        }
-        return MultiPhasePlan.createIfNeeded(
-            source.build(plannerContext, projectionBuilder, limit, offset, order, pageSizeHint),
-            subQueryPlans
-        );
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        return source.build(
+            plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
     }
 
     @Override
@@ -147,6 +137,11 @@ public class RelationBoundary implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return subQueries;
     }
 
     @Override

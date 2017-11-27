@@ -31,8 +31,8 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
@@ -95,7 +95,7 @@ public class Session {
     private static final Statement EMPTY_STMT = SqlParser.createStatement("select '' from sys.cluster limit 0");
 
     public static final String UNNAMED = "";
-    private final Executor executor;
+    private final DependencyCarrier executor;
     private final SessionContext sessionContext;
 
     private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
@@ -112,7 +112,7 @@ public class Session {
                    Planner planner,
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
-                   Executor executor,
+                   DependencyCarrier executor,
                    SessionContext sessionContext) {
         this.analyzer = analyzer;
         this.planner = planner;

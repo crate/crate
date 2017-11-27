@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.planner
+package io.crate.planner.statement
 
 import io.crate.analyze.symbol.Literal
 import io.crate.metadata.doc.DocSysColumns
@@ -34,7 +34,8 @@ import org.apache.lucene.util.BytesRef
 import org.junit.Before
 import org.junit.Test
 
-class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
+
+class CopyStatementPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e
 
@@ -43,9 +44,18 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build()
     }
 
+    Collect plan(String statement) {
+        CopyStatementPlanner.CopyFrom plan = e.plan(statement)
+        return (Collect) CopyStatementPlanner.planCopyFromExecution(
+                clusterService.state().nodes(),
+                plan.copyFrom,
+                e.getPlannerContext(clusterService.state())
+        );
+    }
+
     @Test
     void testCopyFromPlan() throws Exception {
-        Collect plan =  e.plan("copy users from '/path/to/file.extension'")
+        Collect plan =  plan("copy users from '/path/to/file.extension'")
         assert plan.collectPhase() instanceof FileUriCollectPhase
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase()
@@ -54,7 +64,7 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     void testCopyFromNumReadersSetting() throws Exception {
-        Collect plan = e.plan("copy users from '/path/to/file.extension' with (num_readers=1)")
+        Collect plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)")
         assert plan.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase()
         assert collectPhase.nodeIds().size() == 1
@@ -62,7 +72,7 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     void testCopyFromPlanWithParameters() throws Exception {
-        Collect collect = e.plan("copy users " +
+        Collect collect = plan("copy users " +
                 "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)")
         assert collect.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)collect.collectPhase()
@@ -72,7 +82,7 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assert collectPhase.sharedStorage()
 
         // verify defaults:
-        collect = e.plan("copy users from '/path/to/file.ext'")
+        collect = plan("copy users from '/path/to/file.ext'")
         collectPhase = (FileUriCollectPhase)collect.collectPhase()
         assert collectPhase.compression() == null
         assert collectPhase.sharedStorage() == null
@@ -80,7 +90,7 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
-        Collect collect = (Collect) e.plan("copy t1 from '/path/file.ext'")
+        Collect collect = (Collect) plan("copy t1 from '/path/file.ext'")
         SourceIndexWriterProjection projection =
                 (SourceIndexWriterProjection) collect.collectPhase().projections().get(0)
         assert projection.clusteredBy() == null
@@ -89,12 +99,12 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test (expected = IllegalArgumentException.class)
     void testCopyFromPlanWithInvalidParameters() throws Exception {
-        e.plan("copy users from '/path/to/file.ext' with (bulk_size=-28)")
+        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)")
     }
 
     @Test
     void testNodeFiltersNoMatch() throws Exception {
-        Collect cm = (Collect) e.plan("copy users from '/path' with (node_filters={name='foobar'})")
+        Collect cm = (Collect) plan("copy users from '/path' with (node_filters={name='foobar'})")
         assert cm.collectPhase().nodeIds() == []
     }
 }

@@ -21,38 +21,66 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.executor.transport.kill.KillAllRequest;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.TransportKillAllNodeAction;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class KillPlan extends UnnestablePlan {
+public class KillPlan implements Plan {
 
-    private final UUID id;
     private final Optional<UUID> jobToKill;
 
-    public KillPlan(UUID id) {
-        this.id = id;
+    public KillPlan() {
         this.jobToKill = Optional.empty();
     }
 
-    public KillPlan(UUID id, UUID jobToKill) {
-        this.id = id;
+    public KillPlan(UUID jobToKill) {
         this.jobToKill = Optional.of(jobToKill);
-    }
-
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitKillPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
     }
 
     public Optional<UUID> jobToKill() {
         return jobToKill;
+    }
+
+    @VisibleForTesting
+    void execute(TransportKillAllNodeAction killAllNodeAction,
+                 TransportKillJobsNodeAction killjobsNodeAction,
+                 RowConsumer consumer) {
+        if (jobToKill.isPresent()) {
+            UUID jobId = jobToKill.get();
+            killjobsNodeAction.broadcast(
+                new KillJobsRequest(Collections.singletonList(jobId)),
+                new OneRowActionListener<>(consumer, Row1::new)
+            );
+        } else {
+            killAllNodeAction.broadcast(new KillAllRequest(), new OneRowActionListener<>(consumer, Row1::new));
+        }
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        execute(
+            executor.transportActionProvider().transportKillAllNodeAction(),
+            executor.transportActionProvider().transportKillJobsNodeAction(),
+            consumer
+        );
     }
 }

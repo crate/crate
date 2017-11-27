@@ -23,12 +23,12 @@
 package io.crate.planner;
 
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.MultiPhaseExecutor;
+import io.crate.planner.operators.LogicalPlan;
 
-import javax.annotation.Nullable;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Plan which depends on other plans to be executed first.
@@ -43,61 +43,37 @@ import java.util.UUID;
  *
  * The dependencies themselves may also be MultiPhasePlans.
  */
-public class MultiPhasePlan implements ExecutionPlan {
+public class MultiPhasePlan implements Plan {
 
-    private final ExecutionPlan rootExecutionPlan;
-    private final Map<ExecutionPlan, SelectSymbol> dependencies;
+    private final Plan rootPlan;
 
-    public static ExecutionPlan createIfNeeded(ExecutionPlan subExecutionPlan, Map<ExecutionPlan, SelectSymbol> dependencies) {
+    private final Map<LogicalPlan, SelectSymbol> dependencies;
+
+    public static Plan createIfNeeded(Plan rootPlan, Map<LogicalPlan, SelectSymbol> dependencies) {
         if (dependencies.isEmpty()) {
-            return subExecutionPlan;
+            return rootPlan;
         }
-        return new MultiPhasePlan(subExecutionPlan, dependencies);
+        return new MultiPhasePlan(rootPlan, dependencies);
     }
 
-    private MultiPhasePlan(ExecutionPlan rootExecutionPlan, Map<ExecutionPlan, SelectSymbol> dependencies) {
-        this.rootExecutionPlan = rootExecutionPlan;
+    private MultiPhasePlan(Plan rootPlan, Map<LogicalPlan, SelectSymbol> dependencies) {
+        this.rootPlan = rootPlan;
         this.dependencies = dependencies;
     }
 
-    public Map<ExecutionPlan, SelectSymbol> dependencies() {
-        return dependencies;
-    }
-
-    public ExecutionPlan rootPlan() {
-        return rootExecutionPlan;
-    }
-
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitMultiPhasePlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return rootExecutionPlan.jobId();
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        rootExecutionPlan.addProjection(projection);
-    }
-
-    @Override
-    public void addProjection(Projection projection,
-                              int unfinishedLimit,
-                              int unfinishedOffset,
-                              @Nullable PositionalOrderBy unfinishedOrderBy) {
-        rootExecutionPlan.addProjection(projection, unfinishedLimit, unfinishedOffset, unfinishedOrderBy);
-    }
-
-    @Override
-    public ResultDescription resultDescription() {
-        return rootExecutionPlan.resultDescription();
-    }
-
-    @Override
-    public void setDistributionInfo(DistributionInfo distributionInfo) {
-        rootExecutionPlan.setDistributionInfo(distributionInfo);
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        MultiPhaseExecutor.execute(dependencies, executor, plannerContext, params)
+            .whenComplete((subQueryValues, failure) -> {
+                if (failure == null) {
+                    rootPlan.execute(executor, plannerContext, consumer, params, subQueryValues);
+                } else {
+                    consumer.accept(null, failure);
+                }
+            });
     }
 }

@@ -22,10 +22,8 @@
 
 package io.crate.planner;
 
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.ESGet;
-import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.RootRelationBoundary;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -45,38 +43,31 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
-        MultiPhasePlan multiPhasePlan = e.plan("select x from t1 where a = (select b from t2)");
-        assertThat(multiPhasePlan.rootPlan(), instanceOf(QueryThenFetch.class));
-        assertThat(multiPhasePlan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
+        RootRelationBoundary plan = e.logicalPlan("select x from t1 where a = (select b from t2)");
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
     }
 
     @Test
     public void testPlanSelectOnSysTablesWithSingleRowSubselectInWhere() throws Exception {
-        MultiPhasePlan plan = e.plan("select name from sys.cluster where name = (select 'foo')");
-        assertThat(plan.rootPlan(), instanceOf(Collect.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(Collect.class)));
+        LogicalPlan plan = e.logicalPlan("select name from sys.cluster where name = (select 'foo')");
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
     }
 
     @Test
     public void testSingleRowSubSelectInSelectList() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select b from t2 limit 1) from t1");
-
-        assertThat(plan.rootPlan(), instanceOf(Collect.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
-        assertThat(((QueryThenFetch) plan.dependencies().keySet().iterator().next()).subPlan(), instanceOf(Collect.class));
+        LogicalPlan plan = e.logicalPlan("select (select b from t2 limit 1) from t1");
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
     }
 
     @Test
     public void testSingleRowSubSelectAndDocKeysInWhereClause() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
-        assertThat(plan.rootPlan(), instanceOf(ESGet.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(Collect.class)));
+        LogicalPlan plan = e.logicalPlan("select (select 'foo' from sys.cluster) from users where id = 10");
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
     }
 
     @Test
     public void testSingleRowSubSelectOfWhereInJoin() throws Exception {
-        QueryThenFetch plan = e.plan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
-        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
-        assertThat(((NestedLoop) plan.subPlan()).left(), instanceOf(MultiPhasePlan.class));
+        LogicalPlan plan = e.logicalPlan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
     }
 }

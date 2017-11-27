@@ -21,23 +21,31 @@
 
 package io.crate.planner.node.dml;
 
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.task.LegacyUpsertByIdTask;
 import io.crate.metadata.Reference;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @deprecated This should be replaced with a variant that doesn't depend on parameter values.
  *             Similar to how {@link DeleteById} and {@link UpdateById} work.
  */
 @Deprecated
-public class LegacyUpsertById extends UnnestablePlan {
+public class LegacyUpsertById implements Plan {
+
 
     /**
      * A single update item.
@@ -174,12 +182,37 @@ public class LegacyUpsertById extends UnnestablePlan {
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitLegacyUpsertById(this, context);
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerCtx,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
+            plannerCtx.jobId(),
+            this,
+            executor.clusterService(),
+            executor.scheduler(),
+            executor.settings(),
+            executor.transportActionProvider().transportShardUpsertAction()::execute,
+            executor.transportActionProvider().transportBulkCreateIndicesAction()
+        );
+        task.execute(consumer);
     }
 
     @Override
-    public UUID jobId() {
-        return jobId;
+    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                     PlannerContext plannerContext,
+                                                     List<Row> bulkParams,
+                                                     Map<SelectSymbol, Object> valuesBySubQuery) {
+        LegacyUpsertByIdTask task = new LegacyUpsertByIdTask(
+            plannerContext.jobId(),
+            this,
+            executor.clusterService(),
+            executor.scheduler(),
+            executor.settings(),
+            executor.transportActionProvider().transportShardUpsertAction()::execute,
+            executor.transportActionProvider().transportBulkCreateIndicesAction()
+        );
+        return task.executeBulk();
     }
 }

@@ -21,22 +21,38 @@
 
 package io.crate.planner.node.ddl;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.executor.transport.OneRowActionListener;
+import io.crate.metadata.Functions;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.support.IndicesOptions;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.function.Function;
 
-public class DeletePartitions extends UnnestablePlan {
+public class DeletePartitions implements Plan {
 
-    private final UUID jobId;
     private final TableIdent tableIdent;
     private final List<List<Symbol>> partitions;
 
-    public DeletePartitions(UUID jobId, TableIdent tableIdent, List<List<Symbol>> partitions) {
-        this.jobId = jobId;
+    public DeletePartitions(TableIdent tableIdent, List<List<Symbol>> partitions) {
         this.tableIdent = tableIdent;
         this.partitions = partitions;
     }
@@ -45,17 +61,34 @@ public class DeletePartitions extends UnnestablePlan {
         return partitions;
     }
 
-    @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitDeletePartitions(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return jobId;
-    }
-
     public TableIdent tableIdent() {
         return tableIdent;
+    }
+
+    @Override
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+
+        ArrayList<String> indexNames = getIndices(executor.functions(), params, valuesBySubQuery);
+        DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        executor.transportActionProvider().transportDeleteIndexAction()
+            .execute(request, new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
+    }
+
+    @VisibleForTesting
+    ArrayList<String> getIndices(Functions functions, Row parameters, Map<SelectSymbol, Object> subQueryValues) {
+        ArrayList<String> indexNames = new ArrayList<>();
+        for (List<Symbol> partitionValues : partitions) {
+            Function<Symbol, BytesRef> symbolToBytesRef =
+                s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryValues));
+            List<BytesRef> values = Lists2.copyAndReplace(partitionValues, symbolToBytesRef);
+            String indexName = IndexParts.toIndexName(tableIdent, PartitionName.encodeIdent(values));
+            indexNames.add(indexName);
+        }
+        return indexNames;
     }
 }

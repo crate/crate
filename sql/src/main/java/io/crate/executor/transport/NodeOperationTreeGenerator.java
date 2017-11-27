@@ -25,10 +25,9 @@ package io.crate.executor.transport;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.Paging;
-import io.crate.planner.Merge;
-import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
+import io.crate.planner.Merge;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -257,15 +256,6 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
     public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
         process(node.subPlan(), context);
         context.addContextPhase(node.fetchPhase());
-        return null;
-    }
-
-    @Override
-    public Void visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, NodeOperationTreeContext context) {
-        // MultiPhasePlan's should be executed by the MultiPhaseExecutor, but it doesn't remove
-        // them from the tree in order to avoid re-creating plans with the MultiPhasePlan removed,
-        // so here it's fine to just skip over the multiPhasePlan because it has already been executed
-        process(multiPhasePlan.rootPlan(), context);
         return null;
     }
 

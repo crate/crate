@@ -24,15 +24,11 @@ package io.crate.action.sql;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.executor.Executor;
-import io.crate.planner.Plan;
-import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nonnull;
 
 /**
- * Used via {@link RowConsumerToResultReceiver} to receive results from {@link Executor#execute(Plan, PlannerContext, RowConsumer, Row)}
+ * Used via {@link RowConsumerToResultReceiver} to receive results from the execution of a plan
  */
 public interface ResultReceiver extends CompletionListenable {
 

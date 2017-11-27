@@ -38,7 +38,7 @@ import java.util.stream.Collector;
 /**
  * Collectors to retrieve either {@link AllValues} or a {@link SingleValue} of the first column of each row.
  */
-class FirstColumnConsumers {
+public class FirstColumnConsumers {
 
     private static class AllValues implements Collector<Row, Collection<Object>, Object[]> {
 
@@ -121,11 +121,11 @@ class FirstColumnConsumers {
 
     }
 
-    static CollectingRowConsumer<Object[], Object> createSingleRowConsumer() {
+    public static CollectingRowConsumer<Object[], Object> createSingleRowConsumer() {
         return new CollectingRowConsumer<>(SingleValue.INSTANCE);
     }
 
-    static CollectingRowConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
+    public static CollectingRowConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
         return new CollectingRowConsumer<>(AllValues.INSTANCE);
     }
 }

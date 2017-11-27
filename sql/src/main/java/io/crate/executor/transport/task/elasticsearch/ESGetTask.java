@@ -32,7 +32,6 @@ import io.crate.collections.Lists2;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
@@ -81,7 +80,7 @@ import java.util.stream.StreamSupport;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class ESGetTask implements Task {
+public class ESGetTask {
 
     private static final Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
@@ -291,12 +290,13 @@ public class ESGetTask implements Task {
         }
     }
 
-    public ESGetTask(Functions functions,
+    public ESGetTask(UUID jobId,
+                     Functions functions,
                      ProjectorFactory projectorFactory,
                      TransportActionProvider transportActionProvider,
                      ESGet esGet,
                      JobContextService jobContextService) {
-        this.jobId = esGet.jobId();
+        this.jobId = jobId;
         this.projectorFactory = projectorFactory;
         this.transportActionProvider = transportActionProvider;
         this.esGet = esGet;
@@ -322,8 +322,7 @@ public class ESGetTask implements Task {
         fsc = getFetchSourceContext(columns);
     }
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer) {
         JobContext jobContext;
         if (esGet.docKeys().size() == 1) {
             jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), consumer);

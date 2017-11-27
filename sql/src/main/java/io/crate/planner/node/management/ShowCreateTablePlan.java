@@ -21,33 +21,46 @@
 
 package io.crate.planner.node.management;
 
+import io.crate.analyze.MetaDataToASTNodeResolver;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.planner.ExecutionPlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.PlannerContext;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.CreateTable;
+import org.apache.lucene.util.BytesRef;
 
-import java.util.UUID;
+import java.util.Map;
 
-public class ShowCreateTablePlan extends UnnestablePlan {
+import static io.crate.data.SentinelRow.SENTINEL;
 
-    private final UUID id;
+public class ShowCreateTablePlan implements Plan {
+
     private final ShowCreateTableAnalyzedStatement statement;
 
-    public ShowCreateTablePlan(UUID jobId, ShowCreateTableAnalyzedStatement statement) {
-        id = jobId;
+    public ShowCreateTablePlan(ShowCreateTableAnalyzedStatement statement) {
         this.statement = statement;
     }
 
     @Override
-    public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitShowCreateTable(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    public ShowCreateTableAnalyzedStatement statement() {
-        return statement;
+    public void execute(DependencyCarrier executor,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        Map<SelectSymbol, Object> valuesBySubQuery) {
+        Row1 row;
+        try {
+            CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(statement.tableInfo());
+            row = new Row1(new BytesRef(SqlFormatter.formatSql(createTable)));
+        } catch (Throwable t) {
+            consumer.accept(null, t);
+            return;
+        }
+        consumer.accept(InMemoryBatchIterator.of(row, SENTINEL), null);
     }
 }

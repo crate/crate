@@ -32,6 +32,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.SecureString;
 
 import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
@@ -63,7 +64,8 @@ public final class UserActions {
         if (properties != null) {
             for (String key : properties.keySet()) {
                 if (PASSWORD_PROPERTY.equals(key)) {
-                    String value = BytesRefs.toString(SymbolEvaluator.evaluate(functions, properties.get(key), parameters));
+                    String value = BytesRefs.toString(
+                        SymbolEvaluator.evaluate(functions, properties.get(key), parameters, Collections.emptyMap()));
                     return new SecureString(value.toCharArray());
                 } else {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,

@@ -20,38 +20,35 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.planner.node.ddl;
 
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.node.dql.ESGet;
+import io.crate.analyze.TableDefinitions;
+import io.crate.data.RowN;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.util.BytesRef;
-import org.junit.Before;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.contains;
+import static java.util.Collections.emptyMap;
 
-public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTest {
-
-    private SQLExecutor e;
-
-    @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
-    }
+public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testSelectSymbolsAreReplacedInSelectListOfPrimaryKeyLookups() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
-        ESGet esGet = (ESGet) plan.rootPlan();
-        SelectSymbol subSelect = (SelectSymbol) esGet.outputs().get(0);
+    public void testIndexNameGeneration() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .build();
+        DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
-        SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(esGet, subSelect);
-        replacer.onSuccess(new BytesRef("foo"));
+        Object[] args1 = {"1395874800000"};
+        assertThat(
+            plan.getIndices(e.functions(), new RowN(args1), emptyMap()),
+            Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ks3ed1o60o30c1g"));
 
-        assertThat(esGet.outputs(), contains(isLiteral("foo")));
+        Object[] args2 = {"1395961200000"};
+        assertThat(
+            plan.getIndices(e.functions(), new RowN(args2), emptyMap()),
+            Matchers.containsInAnyOrder(".partitioned.parted_pks.04732cpp6ksjcc9i60o30c1g"));
     }
+
 }

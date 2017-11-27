@@ -22,16 +22,30 @@
 
 package io.crate.planner;
 
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.data.RowConsumer;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Representation of a complete top-level plan which can be consumed by an {@link io.crate.executor.Executor}.
  */
 public interface Plan {
 
-    /**
-     * Uses current shard/routing allocation information to build a physical execution plan.
-     */
-    ExecutionPlan build(PlannerContext plannerContext, ProjectionBuilder projectionBuilder, Row params);
+    void execute(DependencyCarrier executor,
+                 PlannerContext plannerContext,
+                 RowConsumer consumer,
+                 Row params,
+                 Map<SelectSymbol, Object> valuesBySubQuery);
+
+    default List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                      PlannerContext plannerContext,
+                                                      List<Row> bulkParams,
+                                                      Map<SelectSymbol, Object> valuesBySubQuery) {
+        throw new UnsupportedOperationException(
+            "Bulk operation not supported for " + this.getClass().getSimpleName());
+    }
 }

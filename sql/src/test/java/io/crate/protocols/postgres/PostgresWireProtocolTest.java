@@ -25,13 +25,13 @@ package io.crate.protocols.postgres;
 import io.crate.Version;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.executor.Executor;
 import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DummyUserManager;
@@ -78,7 +78,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
-            () -> mock(Executor.class),
+            () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> true),
             Settings.EMPTY,
             clusterService,

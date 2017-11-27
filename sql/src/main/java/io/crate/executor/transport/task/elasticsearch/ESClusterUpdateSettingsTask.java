@@ -26,7 +26,6 @@ import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
@@ -40,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public class ESClusterUpdateSettingsTask implements Task {
+public class ESClusterUpdateSettingsTask {
 
     private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
@@ -53,7 +52,6 @@ public class ESClusterUpdateSettingsTask implements Task {
         this.transport = transport;
     }
 
-    @Override
     public void execute(RowConsumer consumer, Row parameters) {
         ClusterUpdateSettingsRequest request = buildESUpdateClusterSettingRequest(
             buildSettingsFrom(plan.persistentSettings(), parameters),

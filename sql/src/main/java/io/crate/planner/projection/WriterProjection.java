@@ -150,7 +150,7 @@ public class WriterProjection extends Projection {
     }
 
     @Override
-    public void replaceSymbols(java.util.function.Function<Symbol, Symbol> replaceFunction) {
+    public void replaceSymbols(java.util.function.Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(inputs, replaceFunction);
         for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
             entry.setValue(replaceFunction.apply(entry.getValue()));

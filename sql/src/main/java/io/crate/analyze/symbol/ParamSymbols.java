@@ -44,6 +44,10 @@ public final class ParamSymbols extends FunctionCopyVisitor<Row> {
 
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
+        return convert(parameterSymbol, params);
+    }
+
+    public static Symbol convert(ParameterSymbol parameterSymbol, Row params) {
         DataType type = parameterSymbol.valueType();
         Object value = params.get(parameterSymbol.index());
         if (type.equals(DataTypes.UNDEFINED)) {

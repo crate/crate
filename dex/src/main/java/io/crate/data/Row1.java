@@ -24,6 +24,10 @@ package io.crate.data;
 
 public class Row1 implements Row {
 
+    public static final long ERROR = -2L;
+    public static final Row1 ROW_COUNT_UNKNOWN = new Row1(-1L);
+
+
     private final Object value;
 
     public Row1(Object value) {

@@ -25,7 +25,6 @@ package io.crate.executor.transport.task.elasticsearch;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -34,7 +33,7 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 
 import java.util.function.Function;
 
-public class CreateAnalyzerTask implements Task {
+public class CreateAnalyzerTask {
 
     private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
@@ -47,8 +46,7 @@ public class CreateAnalyzerTask implements Task {
         this.transport = transport;
     }
 
-    @Override
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer) {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(plan.createAnalyzerSettings());
 

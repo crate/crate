@@ -27,11 +27,11 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
+import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -78,17 +78,16 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
-                               ProjectionBuilder projectionBuilder,
-                               int limitHint,
-                               int offsetHint,
-                               @Nullable OrderBy order,
-                               @Nullable Integer pageSizeHint) {
+    public ESGet build(PlannerContext plannerContext,
+                       ProjectionBuilder projectionBuilder,
+                       int limitHint,
+                       int offsetHint,
+                       @Nullable OrderBy order,
+                       @Nullable Integer pageSizeHint,
+                       Row params,
+                       Map<SelectSymbol, Object> subQueryValues) {
         int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
         int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
-        if (limit == 0) {
-            return new NoopPlan(plannerContext.jobId());
-        }
         return new ESGet(
             plannerContext.nextExecutionPhaseId(),
             tableRelation.tableInfo(),
@@ -96,8 +95,8 @@ public class Get implements LogicalPlan {
             docKeys,
             querySpec.orderBy(),
             limit,
-            offset,
-            plannerContext.jobId());
+            offset
+        );
     }
 
     @Override
@@ -118,6 +117,11 @@ public class Get implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.singletonList(tableRelation);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return Collections.emptyMap();
     }
 
     @Override

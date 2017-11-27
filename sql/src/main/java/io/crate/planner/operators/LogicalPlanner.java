@@ -37,7 +37,15 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RefVisitor;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.executor.MultiPhaseExecutor;
+import io.crate.executor.transport.ExecutionPlanSymbolMapper;
+import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.Functions;
+import io.crate.operation.NodeOperationTree;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SelectStatementPlanner;
@@ -46,13 +54,16 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
+import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
@@ -200,6 +211,61 @@ public class LogicalPlanner {
         return columns;
     }
 
+    public static void execute(LogicalPlan logicalPlan,
+                               DependencyCarrier executor,
+                               PlannerContext plannerContext,
+                               RowConsumer consumer,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        if (logicalPlan.dependencies().isEmpty()) {
+            doExecute(logicalPlan, executor, plannerContext, consumer, params, subQueryValues);
+        } else {
+            MultiPhaseExecutor.execute(logicalPlan.dependencies(), executor, plannerContext, params)
+                .whenComplete((valueBySubQuery, failure) -> {
+                    if (failure == null) {
+                        try {
+                            doExecute(logicalPlan, executor, plannerContext, consumer, params, valueBySubQuery);
+                        } catch (Exception e) {
+                            consumer.accept(null, e);
+                        }
+                    } else {
+                        consumer.accept(null, failure);
+                    }
+                });
+        }
+    }
+
+    private static void doExecute(LogicalPlan logicalPlan,
+                                  DependencyCarrier executor,
+                                  PlannerContext plannerContext,
+                                  RowConsumer consumer,
+                                  Row params,
+                                  Map<SelectSymbol, Object> subQueryValues) {
+        ExecutionPlan executionPlan = logicalPlan.build(
+            plannerContext, executor.projectionBuilder(), -1, 0, null, null, params, subQueryValues);
+
+        // Ideally we'd include the binding into the `build` step and avoid the after-the-fact symbol mutation
+        ExecutionPlanSymbolMapper.map(executionPlan, new SubQueryAndParamBinder(params, subQueryValues));
+
+        if (executionPlan instanceof ESGet) {
+            ((ESGet) executionPlan).execute(executor, plannerContext, consumer, params, subQueryValues);
+            return;
+        }
+
+        NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
+        ExecutionPhasesTask task = new ExecutionPhasesTask(
+            plannerContext.jobId(),
+            executor.clusterService(),
+            executor.contextPreparer(),
+            executor.jobContextService(),
+            executor.indicesService(),
+            executor.transportActionProvider().transportJobInitAction(),
+            executor.transportActionProvider().transportKillJobsNodeAction(),
+            Collections.singletonList(nodeOpTree)
+        );
+        task.execute(consumer);
+    }
+
     private class Visitor extends AnalyzedStatementVisitor<PlannerContext, LogicalPlan> {
 
 
@@ -220,7 +286,5 @@ public class LogicalPlanner {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
             return InsertFromSubQueryPlanner.plan(statement, context, LogicalPlanner.this, subqueryPlanner);
         }
-
-
     }
 }
