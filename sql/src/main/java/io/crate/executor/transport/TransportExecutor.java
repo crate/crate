@@ -74,7 +74,6 @@ import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
-import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -93,6 +92,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -104,7 +104,6 @@ import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SING
 public class TransportExecutor implements Executor {
 
     private static final Logger LOGGER = Loggers.getLogger(TransportExecutor.class);
-    private static final BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
 
     private final ThreadPool threadPool;
     private final Functions functions;
@@ -185,7 +184,7 @@ public class TransportExecutor implements Executor {
     private Task createTask(Plan plan, PlannerContext plannerCtx, List<Row> bulkParams) {
         // this is a bit in-progress here; We should be able to clean this up once all statement analyzers are unbound
 
-        if (plan instanceof Upsert || plan instanceof LegacyUpsertById) {
+        if (plan instanceof LegacyUpsertById) {
             // These are legacy plans which can already bulk specialized.
             // They should eventually be adopted, so that the Plan itself is params independent.
             return plan2TaskVisitor.process(plan.build(plannerCtx, projectionBuilder, Row.EMPTY), plannerCtx);
@@ -240,9 +239,9 @@ public class TransportExecutor implements Executor {
         }
 
         private ExecutionPhasesTask executionPhasesTask(ExecutionPlan executionPlan) {
-            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
+            NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(
                 executionPlan, clusterService.localNode().getId());
-            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
+            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTree);
             return new ExecutionPhasesTask(
                 executionPlan.jobId(),
                 clusterService,
@@ -251,7 +250,7 @@ public class TransportExecutor implements Executor {
                 indicesService,
                 transportActionProvider.transportJobInitAction(),
                 transportActionProvider.transportKillJobsNodeAction(),
-                nodeOperationTrees
+                Collections.singletonList(nodeOperationTree)
             );
         }
 
@@ -421,37 +420,4 @@ public class TransportExecutor implements Executor {
             return CompletableFuture.allOf(cfs).thenCompose(x -> process(rootExecutionPlan, context));
         }
     }
-
-    static class BulkNodeOperationTreeGenerator extends ExecutionPlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
-
-        List<NodeOperationTree> createNodeOperationTrees(ExecutionPlan executionPlan, String localNodeId) {
-            Context context = new Context(localNodeId);
-            process(executionPlan, context);
-            return context.nodeOperationTrees;
-        }
-
-        @Override
-        public Void visitUpsert(Upsert node, Context context) {
-            for (ExecutionPlan executionPlan : node.nodes()) {
-                context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(executionPlan, context.localNodeId));
-            }
-            return null;
-        }
-
-        @Override
-        protected Void visitPlan(ExecutionPlan executionPlan, Context context) {
-            context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(executionPlan, context.localNodeId));
-            return null;
-        }
-
-        static class Context {
-            private final List<NodeOperationTree> nodeOperationTrees = new ArrayList<>();
-            private final String localNodeId;
-
-            public Context(String localNodeId) {
-                this.localNodeId = localNodeId;
-            }
-        }
-    }
-
 }

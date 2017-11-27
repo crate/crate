@@ -30,7 +30,6 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.node.dml.LegacyUpsertById;
-import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -59,10 +58,6 @@ public class ExecutionPlanVisitor<C, R> {
 
     public R visitSetSessionPlan(SetSessionPlan plan, C context) {
         return visitPlan(plan, context);
-    }
-
-    public R visitUpsert(Upsert node, C context) {
-        return visitPlan(node, context);
     }
 
     public R visitCollect(Collect plan, C context) {
