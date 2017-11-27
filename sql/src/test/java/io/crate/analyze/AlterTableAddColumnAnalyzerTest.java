@@ -350,4 +350,14 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(nameGeneratedColumn.formattedGeneratedExpression(), is("concat(name, 'foo')"));
     }
 
+
+    @Test
+    public void testAddColumnWithColumnStoreDisabled() throws Exception {
+        AddColumnAnalyzedStatement analysis = e.analyze(
+            "alter table users add column string_no_docvalues string STORAGE WITH (columnstore = false)");
+        Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
+        assertThat(mapToSortedString(mapping),
+            is("_all={enabled=false}, _meta={primary_keys=[id]}, properties={id={type=long}, " +
+               "string_no_docvalues={doc_values=false, type=keyword}}"));
+    }
 }

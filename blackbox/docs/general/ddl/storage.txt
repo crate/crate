@@ -6,6 +6,8 @@
 
 Data storage options can be tuned for each column similar to how indexing is defined.
 
+.. _ddl-storage-columnstore:
+
 Column Store
 ============
 
@@ -25,7 +27,7 @@ Example:
 
     cr> CREATE TABLE t1 (
     ...   id INTEGER,
-    ...   url STRING STORAGE WITH (columnstore = false)
+    ...   url STRING INDEX OFF STORAGE WITH (columnstore = false)
     ... );
     CREATE OK, 1 row affected  (... sec)
 

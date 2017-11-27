@@ -100,7 +100,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     }
 
     private static Reference newReference(TableIdent tableIdent, String name, DataType type) {
-        return newReference(tableIdent, name, type, null, null, false);
+        return newReference(tableIdent, name, type, null, null, false, false);
     }
 
     private static Reference newReference(TableIdent tableIdent,
@@ -108,13 +108,14 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                           DataType type,
                                           @Nullable List<String> path,
                                           @Nullable ColumnPolicy policy,
-                                          Boolean partitionColumn) {
+                                          Boolean partitionColumn,
+                                          boolean columnStoreDisabled) {
         return new Reference(
             new ReferenceIdent(tableIdent, name, path),
             partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
             type,
             policy == null ? ColumnPolicy.DYNAMIC : policy,
-            Reference.IndexType.NOT_ANALYZED, true);
+            Reference.IndexType.NOT_ANALYZED, true, columnStoreDisabled);
     }
 
     private static ImmutableMap<ColumnIdent, Reference> referencesMap(List<Reference> columns) {
@@ -143,12 +144,12 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             newReference(ident, "ip_addr", DataTypes.IP),
             newReference(ident, "arr_simple", new ArrayType(DataTypes.STRING)),
             newReference(ident, "arr_geo_point", new ArrayType(DataTypes.GEO_POINT)),
-            newReference(ident, "arr_obj", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.STRICT, false),
-            newReference(ident, "arr_obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false),
-            newReference(ident, "arr_obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false),
-            newReference(ident, "obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC, false),
-            newReference(ident, "obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false),
-            newReference(ident, "obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false)
+            newReference(ident, "arr_obj", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.STRICT, false, false),
+            newReference(ident, "arr_obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false, false),
+            newReference(ident, "arr_obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false, false),
+            newReference(ident, "obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC, false, false),
+            newReference(ident, "obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false, false),
+            newReference(ident, "obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false, false)
         );
 
         DocTableInfo tableInfo = new TestDocTableInfo(
@@ -333,7 +334,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "id", DataTypes.LONG),
-            newReference(ident, "partition_column", DataTypes.STRING, null, null, true),
+            newReference(ident, "partition_column", DataTypes.STRING, null, null, true, false),
             newReference(ident, "cluster_column", DataTypes.STRING)
         );
 
@@ -435,4 +436,42 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                      ")",
             SqlFormatter.formatSql(node));
     }
+
+    @Test
+    public void testBuildCreateTableStorageDefinitions() throws Exception {
+        TableIdent ident = new TableIdent("myschema", "test");
+
+        List<Reference> columns = ImmutableList.of(
+            newReference(ident, "s", DataTypes.STRING, null, null, false, true)
+        );
+
+        DocTableInfo tableInfo = new TestDocTableInfo(
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
+            referencesMap(columns),
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            null,
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ColumnPolicy.STRICT);
+
+        CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+                     "   \"s\" STRING STORAGE WITH (\n" +
+                     "      columnstore = false\n" +
+                     "   )\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'strict',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
+    }
+
 }

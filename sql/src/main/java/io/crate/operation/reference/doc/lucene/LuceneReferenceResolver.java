@@ -106,6 +106,11 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (fieldType == null) {
             return new NullValueCollectorExpression(fqn);
         }
+        if (fieldType.hasDocValues() == false) {
+            Reference ref = DocReferences.toSourceLookup(refInfo);
+            return DocCollectorExpression.create(ref);
+        }
+
         switch (refInfo.valueType().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(fqn);

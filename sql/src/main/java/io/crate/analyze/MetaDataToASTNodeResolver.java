@@ -29,10 +29,12 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateTable;
@@ -164,6 +166,12 @@ public class MetaDataToASTNodeResolver {
                 if (info instanceof GeneratedReference) {
                     String formattedExpression = ((GeneratedReference) info).formattedGeneratedExpression();
                     expression = SqlParser.createExpression(formattedExpression);
+                }
+
+                if (info.isColumnStoreDisabled()) {
+                    GenericProperties properties = new GenericProperties();
+                    properties.add(new GenericProperty("columnstore", BooleanLiteral.fromObject(false)));
+                    constraints.add(new ColumnStorageDefinition(properties));
                 }
 
                 String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size() - 1);

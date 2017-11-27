@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.SymbolVisitor;
@@ -36,6 +35,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.Objects;
 
 public class Reference extends Symbol {
 
@@ -74,6 +74,7 @@ public class Reference extends Symbol {
     private RowGranularity granularity;
     private IndexType indexType = IndexType.NOT_ANALYZED;
     private boolean nullable = true;
+    private boolean columnStoreDisabled = false;  // are DOC_VALUES disabled?
 
     public Reference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
@@ -83,6 +84,7 @@ public class Reference extends Symbol {
         columnPolicy = ColumnPolicy.values()[in.readVInt()];
         indexType = IndexType.values()[in.readVInt()];
         nullable = in.readBoolean();
+        columnStoreDisabled = in.readBoolean();
     }
 
     public Reference() {
@@ -101,19 +103,30 @@ public class Reference extends Symbol {
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable) {
+        this(ident, granularity, type, columnPolicy, indexType, nullable, false);
+    }
+
+    public Reference(ReferenceIdent ident,
+                     RowGranularity granularity,
+                     DataType type,
+                     ColumnPolicy columnPolicy,
+                     IndexType indexType,
+                     boolean nullable,
+                     boolean columnStoreDisabled) {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
         this.columnPolicy = columnPolicy;
         this.indexType = indexType;
         this.nullable = nullable;
+        this.columnStoreDisabled = columnStoreDisabled;
     }
 
     /**
      * Returns a cloned Reference with the given ident
      */
     public Reference getRelocated(ReferenceIdent newIdent) {
-        return new Reference(newIdent, granularity, type, columnPolicy, indexType, nullable);
+        return new Reference(newIdent, granularity, type, columnPolicy, indexType, nullable, columnStoreDisabled);
     }
 
     @Override
@@ -152,30 +165,27 @@ public class Reference extends Symbol {
         return nullable;
     }
 
+    public boolean isColumnStoreDisabled() {
+        return columnStoreDisabled;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
-        Reference that = (Reference) o;
-
-        if (granularity != that.granularity) return false;
-        if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
-        if (columnPolicy.ordinal() != that.columnPolicy.ordinal()) {
-            return false;
-        }
-        if (indexType.ordinal() != that.indexType.ordinal()) {
-            return false;
-        }
-        if (type != null ? !type.equals(that.type) : that.type != null) return false;
-        if (nullable != that.nullable) return false;
-        return true;
+        Reference reference = (Reference) o;
+        return nullable == reference.nullable &&
+               columnStoreDisabled == reference.columnStoreDisabled &&
+               Objects.equals(type, reference.type) &&
+               Objects.equals(ident, reference.ident) &&
+               columnPolicy == reference.columnPolicy &&
+               granularity == reference.granularity &&
+               indexType == reference.indexType;
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hashCode(granularity, ident, type, columnPolicy, indexType);
-        return 31 * result + (nullable ? 1 : 0);
+        return Objects.hash(type, ident, columnPolicy, granularity, indexType, nullable, columnStoreDisabled);
     }
 
     @Override
@@ -194,6 +204,7 @@ public class Reference extends Symbol {
         }
         helper.add("index type", indexType.name());
         helper.add("nullable", nullable);
+        helper.add("columnstore enabled", columnStoreDisabled);
         return helper.toString();
     }
 
@@ -206,6 +217,7 @@ public class Reference extends Symbol {
         out.writeVInt(columnPolicy.ordinal());
         out.writeVInt(indexType.ordinal());
         out.writeBoolean(nullable);
+        out.writeBoolean(columnStoreDisabled);
     }
 
 

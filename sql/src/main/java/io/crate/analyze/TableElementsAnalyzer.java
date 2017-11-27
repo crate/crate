@@ -34,6 +34,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
@@ -56,6 +57,7 @@ import java.util.Locale;
 public class TableElementsAnalyzer {
 
     private static final InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
+    private static final String COLUMN_STORE_PROPERTY = "columnstore";
 
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 Row parameters,
@@ -280,6 +282,22 @@ public class TableElementsAnalyzer {
             for (Expression expression : node.columns()) {
                 String expressionName = ExpressionToStringVisitor.convert(expression, context.parameters);
                 context.analyzedTableElements.addCopyTo(expressionName, node.ident());
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitColumnStorageDefinition(ColumnStorageDefinition node, ColumnDefinitionContext context) {
+            Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(node.properties(),
+                context.parameters);
+
+            for (String property : storageSettings.names()) {
+                if (property.equals(COLUMN_STORE_PROPERTY)) {
+                    context.analyzedColumnDefinition.setColumnStore(storageSettings.getAsBoolean(property, true));
+                } else {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Invalid storage option \"%s\"", storageSettings.get(property)));
+                }
             }
             return null;
         }

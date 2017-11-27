@@ -1032,4 +1032,19 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(versionMap.get(Version.Property.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
         assertThat(versionMap.get(Version.Property.UPGRADED.toString()), nullValue());
     }
+
+    @Test
+    public void testCreateTableWithColumnStoreDisabled() throws Exception {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table columnstore_disabled (s string STORAGE WITH (columnstore = false))");
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties), is("s={doc_values=false, type=keyword}"));
+    }
+
+    @Test
+    public void testCreateTableWithColumnStoreDisabledOnInvalidDataType() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid storage option \"columnstore\" for data type \"integer\"");
+        e.analyze("create table columnstore_disabled (s int STORAGE WITH (columnstore = false))");
+    }
 }

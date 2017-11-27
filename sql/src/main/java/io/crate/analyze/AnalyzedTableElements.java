@@ -247,6 +247,7 @@ public class AnalyzedTableElements {
         }
         validateIndexDefinitions(tableIdent);
         validatePrimaryKeys(tableIdent);
+        validateColumnStorageDefinitions();
     }
 
     private void validateGeneratedColumns(TableIdent tableIdent,
@@ -358,6 +359,17 @@ public class AnalyzedTableElements {
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
+            }
+        }
+    }
+
+    private void validateColumnStorageDefinitions() {
+        for (AnalyzedColumnDefinition columnDefinition : columns) {
+            DataType dataType = DataTypes.ofMappingName(columnDefinition.dataType());
+            if (columnDefinition.isColumnStoreEnabled() == false && dataType != DataTypes.STRING) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
+                        dataType.getName()));
             }
         }
     }
