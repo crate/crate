@@ -60,7 +60,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            "limit 10 offset 20");
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
-        assertThat(orderedLimitedRelation.orderBy(), isSQL("doc.users.id, doc.users.text"));
+        assertThat(orderedLimitedRelation.orderBy(),
+            isSQL("io.crate.analyze.relations.UnionSelect.id, io.crate.analyze.relations.UnionSelect.text"));
         assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
         assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
 
@@ -68,7 +69,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         UnionSelect tableUnion = (UnionSelect) orderedLimitedRelation.childRelation();
         assertThat(tableUnion.left(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.right(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
+        assertThat(tableUnion.querySpec(),
+            isSQL("SELECT io.crate.analyze.relations.UnionSelect.id, io.crate.analyze.relations.UnionSelect.text"));
         assertThat(tableUnion.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion.right().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
     }
@@ -84,7 +86,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            "limit 10 offset 20");
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
-        assertThat(orderedLimitedRelation.orderBy(), isSQL("doc.users.text"));
+        assertThat(orderedLimitedRelation.orderBy(), isSQL("io.crate.analyze.relations.UnionSelect.text"));
         assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
         assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
 
@@ -92,11 +94,13 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         UnionSelect tableUnion1 = (UnionSelect) orderedLimitedRelation.childRelation();
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
         assertThat(tableUnion1.right(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
+        assertThat(tableUnion1.querySpec(),
+            isSQL("SELECT io.crate.analyze.relations.UnionSelect.id, io.crate.analyze.relations.UnionSelect.text"));
         assertThat(tableUnion1.right().querySpec(), isSQL("SELECT doc.users.id, doc.users.name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
-        assertThat(tableUnion2.querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
+        assertThat(tableUnion2.querySpec(),
+            isSQL("SELECT io.crate.analyze.relations.UnionSelect.id, io.crate.analyze.relations.UnionSelect.text"));
         assertThat(tableUnion2.left(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion2.right(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion2.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));

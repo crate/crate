@@ -22,6 +22,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.Fields;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
@@ -30,12 +31,14 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UnionSelect implements QueriedRelation {
 
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
+    private final Fields fields;
     private QueriedRelation left;
     private QueriedRelation right;
     private QualifiedName name;
@@ -45,6 +48,13 @@ public class UnionSelect implements QueriedRelation {
         this.right = right;
         this.distinct = distinct;
         this.name = left.getQualifiedName();
+
+        List<Field> fieldsFromLeft = left.fields();
+        fields = new Fields(fieldsFromLeft.size());
+        for (Field field : fieldsFromLeft) {
+            fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+        }
+        querySpec.outputs(new ArrayList<>(fields.asList()));
     }
 
     public boolean isDistinct() {
@@ -74,12 +84,15 @@ public class UnionSelect implements QueriedRelation {
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return left.getField(path, operation);
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
+        }
+        return fields.get(path);
     }
 
     @Override
     public List<Field> fields() {
-        return left.fields();
+        return fields.asList();
     }
 
     @Override

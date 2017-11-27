@@ -197,9 +197,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ensureUnionOutputsHaveTheSameSize(left, right);
         ensureUnionOutputsHaveCompatibleTypes(left, right);
 
-        UnionSelect unionSelect = new UnionSelect(left, right, node.isDistinct());
-        unionSelect.querySpec().outputs(new ArrayList<>(left.fields()));
-        return unionSelect;
+        return new UnionSelect(left, right, node.isDistinct());
     }
 
     private static void ensureUnionOutputsHaveTheSameSize(QueriedRelation left, QueriedRelation right) {
