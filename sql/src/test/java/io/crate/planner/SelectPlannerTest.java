@@ -446,13 +446,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSelectNonIndexedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'no_index' within grouping or aggregations");
-        e.plan("select min(substr(no_index, 0, 2)) from users");
-    }
-
-    @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
         Collect globalAggregate = e.plan(
             "select min(name) from parted where date > 1395961100000");

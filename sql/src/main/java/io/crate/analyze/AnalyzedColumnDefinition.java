@@ -42,6 +42,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
 public class AnalyzedColumnDefinition {
 
     private static final Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
@@ -78,6 +80,7 @@ public class AnalyzedColumnDefinition {
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
+    private boolean columnStore = true;
 
     @Nullable
     private String formattedGeneratedExpression;
@@ -237,6 +240,10 @@ public class AnalyzedColumnDefinition {
         } else if (dataType().equals("object")) {
             objectMapping(mapping);
         }
+
+        if (columnStore == false) {
+            mapping.put(DOC_VALUES, "false");
+        }
         return mapping;
     }
 
@@ -373,4 +380,11 @@ public class AnalyzedColumnDefinition {
         return generatedExpression;
     }
 
+    void setColumnStore(boolean columnStore) {
+        this.columnStore = columnStore;
+    }
+
+    public boolean isColumnStoreEnabled() {
+        return columnStore;
+    }
 }

@@ -6,6 +6,8 @@
 
 Data storage options can be tuned for each column similar to how indexing is defined.
 
+.. _ddl-storage-columnstore:
+
 Column Store
 ============
 
@@ -16,15 +18,16 @@ ordering possiblity as the data for one column is packed at one place. Using the
 `Column Store`_ limits the values of :ref:`data-type-string` columns to a
 maximal length of 32766 bytes.
 
-Turning off the `Column Store`_ will remove the length limitation but also will
-disable ordering functionallity.
+Turning off the `Column Store`_ in conjunction of :ref:`turning off indexing
+<sql_ddl_index_off>` will remove the length limitation but also will disable
+ordering functionallity.
 
 Example:
 ::
 
     cr> CREATE TABLE t1 (
     ...   id INTEGER,
-    ...   url STRING STORAGE WITH (columnstore = false)
+    ...   url STRING INDEX OFF STORAGE WITH (columnstore = false)
     ... );
     CREATE OK, 1 row affected  (... sec)
 

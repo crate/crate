@@ -34,6 +34,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
@@ -280,6 +281,22 @@ public class TableElementsAnalyzer {
             for (Expression expression : node.columns()) {
                 String expressionName = ExpressionToStringVisitor.convert(expression, context.parameters);
                 context.analyzedTableElements.addCopyTo(expressionName, node.ident());
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitColumnStorageDefinition(ColumnStorageDefinition node, ColumnDefinitionContext context) {
+            Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(node.properties(),
+                context.parameters);
+
+            for (String property : storageSettings.names()) {
+                if (property.equals("columnstore")) {
+                    context.analyzedColumnDefinition.setColumnStore(storageSettings.getAsBoolean(property, true));
+                } else {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Invalid storage option \"%s\"", storageSettings.get(property)));
+                }
             }
             return null;
         }

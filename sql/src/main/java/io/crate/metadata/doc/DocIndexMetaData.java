@@ -72,6 +72,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
 public class DocIndexMetaData {
 
     private static final String ID = "_id";
@@ -196,11 +198,11 @@ public class DocIndexMetaData {
     }
 
     private void addPartitioned(ColumnIdent column, DataType type, boolean isNotNull) {
-        add(column, type, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, true, isNotNull);
+        add(column, type, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, true, isNotNull, false);
     }
 
-    private void add(ColumnIdent column, DataType type, Reference.IndexType indexType, boolean isNotNull) {
-        add(column, type, ColumnPolicy.DYNAMIC, indexType, false, isNotNull);
+    private void add(ColumnIdent column, DataType type, Reference.IndexType indexType, boolean isNotNull, boolean columnStoreEnabled) {
+        add(column, type, ColumnPolicy.DYNAMIC, indexType, false, isNotNull, columnStoreEnabled);
     }
 
     private void add(ColumnIdent column,
@@ -208,11 +210,12 @@ public class DocIndexMetaData {
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean partitioned,
-                     boolean isNotNull) {
+                     boolean isNotNull,
+                     boolean columnStoreEnabled) {
         Reference info;
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression == null) {
-            info = newInfo(column, type, columnPolicy, indexType, isNotNull);
+            info = newInfo(column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
         } else {
             info = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression, isNotNull);
         }
@@ -272,8 +275,9 @@ public class DocIndexMetaData {
                               DataType type,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
-                              boolean nullable) {
-        return new Reference(refIdent(column), granularity(column), type, columnPolicy, indexType, nullable);
+                              boolean nullable,
+                              boolean columnStoreEnabled) {
+        return new Reference(refIdent(column), granularity(column), type, columnPolicy, indexType, nullable, columnStoreEnabled);
     }
 
     /**
@@ -383,6 +387,7 @@ public class DocIndexMetaData {
             boolean nullable = !notNullColumns.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
+            boolean columnsStoreDisabled = !(boolean) columnProperties.getOrDefault(DOC_VALUES, true);
             if (columnDataType == DataTypes.GEO_SHAPE) {
                 String geoTree = (String) columnProperties.get("tree");
                 String precision = (String) columnProperties.get("precision");
@@ -394,7 +399,7 @@ public class DocIndexMetaData {
                            && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
                 ColumnPolicy columnPolicy =
                     ColumnPolicy.of(columnProperties.get("dynamic"));
-                add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, false, nullable);
+                add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, false, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -408,7 +413,7 @@ public class DocIndexMetaData {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false));
+                        builder.addColumn(newInfo(newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
                     }
                 }
                 // is it an index?
@@ -417,7 +422,7 @@ public class DocIndexMetaData {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(newIdent, columnDataType, columnIndexType, nullable);
+                    add(newIdent, columnDataType, columnIndexType, nullable, columnsStoreDisabled);
                 }
             }
         }

@@ -92,9 +92,6 @@ public class GroupByConsumer {
             if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
-            } else if (symbol.indexType() == Reference.IndexType.NO) {
-                throw new IllegalArgumentException(
-                    SymbolFormatter.format("Cannot GROUP BY '%s': grouping on non-indexed columns is not possible", symbol));
             }
             return null;
         }
