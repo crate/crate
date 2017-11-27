@@ -111,16 +111,3 @@ Changes
 
 Fixes
 =====
-
-- Handle MultiPolygon shapes in ``WITHIN`` queries correctly instead of
-  throwing an exception.
-
-- Fixed an exception which occurred when using _id system column in IN or ANY
-  queries.
-
-- The target table name used in ``ALTER TABLE ... RENAME TO`` is now correctly
-  validated.
-
-- Fixed a regression that caused ``DELETE`` statements with a filter on
-  ``PRIMARY KEY`` columns that don't match to fail instead of returning with a
-  row count of 0.
