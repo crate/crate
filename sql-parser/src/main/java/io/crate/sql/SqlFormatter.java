@@ -31,6 +31,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CrateTableOption;
@@ -552,6 +553,15 @@ public final class SqlFormatter {
                     builder.append(" ");
                     node.properties().accept(this, indent);
                 }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitColumnStorageDefinition(ColumnStorageDefinition node, Integer indent) {
+            builder.append("STORAGE ");
+            if (!node.properties().isEmpty()) {
+                node.properties().accept(this, indent);
             }
             return null;
         }

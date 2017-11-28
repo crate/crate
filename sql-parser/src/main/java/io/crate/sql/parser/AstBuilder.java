@@ -53,6 +53,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
@@ -626,6 +627,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visit(context.columns().primaryExpression(), Expression.class),
             visitIfPresent(context.withProperties(), GenericProperties.class)
                 .orElse(GenericProperties.EMPTY));
+    }
+
+    @Override
+    public Node visitColumnStorageDefinition(SqlBaseParser.ColumnStorageDefinitionContext ctx) {
+        return new ColumnStorageDefinition(visitIfPresent(ctx.withProperties(), GenericProperties.class)
+            .orElse(GenericProperties.EMPTY));
     }
 
     @Override
