@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.LogicalPlan;
@@ -101,9 +100,6 @@ public class SelectStatementPlanner {
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
                 return MultiPhase.createIfNeeded(Get.create(table), table, context.subqueryPlanner);
-            }
-            if (querySpec.where().hasVersions()) {
-                throw new VersionInvalidException();
             }
             return invokeLogicalPlanner(table, context);
         }
