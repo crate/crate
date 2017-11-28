@@ -169,7 +169,7 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
             if (executionPhase instanceof UpstreamPhase &&
                 ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
                 DistributionType.SAME_NODE) {
-                return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.nodeIds());
+                return downstreamNodes.isEmpty() || downstreamNodes.containsAll(executionPhase.nodeIds());
             }
             return true;
         }
