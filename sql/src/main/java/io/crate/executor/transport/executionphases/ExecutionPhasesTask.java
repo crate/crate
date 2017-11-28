@@ -33,7 +33,7 @@ import io.crate.data.Bucket;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.DownstreamExecutionSubContext;
 import io.crate.jobs.ExecutionSubContext;
@@ -98,13 +98,14 @@ import java.util.stream.Collectors;
  *          BatchConsumer
  * </pre>
  **/
-public class ExecutionPhasesTask extends JobTask {
+public class ExecutionPhasesTask implements Task {
 
     static final Logger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
+    private final UUID jobId;
     private final ClusterService clusterService;
     private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
@@ -120,7 +121,7 @@ public class ExecutionPhasesTask extends JobTask {
                                TransportJobAction transportJobAction,
                                TransportKillJobsNodeAction transportKillJobsNodeAction,
                                List<NodeOperationTree> nodeOperationTrees) {
-        super(jobId);
+        this.jobId = jobId;
         this.clusterService = clusterService;
         this.contextPreparer = contextPreparer;
         this.jobContextService = jobContextService;
@@ -200,7 +201,7 @@ public class ExecutionPhasesTask extends JobTask {
         List<Tuple<ExecutionPhase, RowConsumer>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerConsumers, initializationTracker);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId, operationByServer.keySet());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
             localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
@@ -262,7 +263,7 @@ public class ExecutionPhasesTask extends JobTask {
 
         for (ExecutionPhase handlerPhase : handlerPhases) {
             InterceptingRowConsumer interceptingBatchConsumer =
-                new InterceptingRowConsumer(jobId(), consumerIt.next(), initializationTracker, transportKillJobsNodeAction);
+                new InterceptingRowConsumer(jobId, consumerIt.next(), initializationTracker, transportKillJobsNodeAction);
             handlerPhaseAndReceiver.add(new Tuple<>(handlerPhase, interceptingBatchConsumer));
         }
         return handlerPhaseAndReceiver;
@@ -276,7 +277,7 @@ public class ExecutionPhasesTask extends JobTask {
                                  InitializationTracker initializationTracker) {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
-            JobRequest request = new JobRequest(jobId(), localNodeId, entry.getValue());
+            JobRequest request = new JobRequest(jobId, localNodeId, entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                     new SetBucketActionListener(pageBucketReceivers, bucketIdx, initializationTracker));

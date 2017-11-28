@@ -28,7 +28,7 @@ import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public class DeletePartitionTask extends JobTask {
+public class DeletePartitionTask implements Task {
 
     static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = o -> new Row1(-1L);
 
@@ -58,7 +58,6 @@ public class DeletePartitionTask extends JobTask {
     public DeletePartitionTask(DeletePartitions deletePartitions,
                                Functions functions,
                                TransportDeleteIndexAction transport) {
-        super(deletePartitions.jobId());
         this.functions = functions;
         this.transport = transport;
         this.table = deletePartitions.tableIdent();

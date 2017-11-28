@@ -21,11 +21,14 @@
 
 package io.crate.executor;
 
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 public interface Task {
 
@@ -44,5 +47,9 @@ public interface Task {
      *
      * @throws UnsupportedOperationException if the task doesn't support bulk operations
      */
-    List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams);
+    default List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
+        UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException(
+            this.getClass().getSimpleName() + " cannot be executed as bulk operation");
+        return Lists2.copyAndReplace(bulkParams, ignored -> failedFuture(unsupportedOperationException));
+    }
 }

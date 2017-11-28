@@ -22,29 +22,26 @@
 package io.crate.executor.task;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.data.RowConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.executor.JobTask;
+import io.crate.data.RowConsumer;
+import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 /**
  * Generic task that delegates the work to {@link #function} on execute;
  */
-public class FunctionDispatchTask extends JobTask {
+public class FunctionDispatchTask implements Task {
 
 
     private final BiFunction<? super AnalyzedStatement, ? super Row, CompletableFuture<Long>> function;
     private final AnalyzedStatement statement;
 
-    public FunctionDispatchTask(UUID jobId,
-                                BiFunction<? super AnalyzedStatement, ? super Row, CompletableFuture<Long>> function,
+    public FunctionDispatchTask(BiFunction<? super AnalyzedStatement, ? super Row, CompletableFuture<Long>> function,
                                 AnalyzedStatement statement) {
-        super(jobId);
         this.function = function;
         this.statement = statement;
     }

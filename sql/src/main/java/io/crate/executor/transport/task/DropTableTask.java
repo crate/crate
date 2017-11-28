@@ -25,7 +25,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.ddl.DropTableRequest;
 import io.crate.executor.transport.ddl.DropTableResponse;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
@@ -41,7 +41,7 @@ import java.util.Locale;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class DropTableTask extends JobTask {
+public class DropTableTask implements Task {
 
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
@@ -54,7 +54,6 @@ public class DropTableTask extends JobTask {
 
     public DropTableTask(DropTablePlan plan,
                          TransportDropTableAction transportDropTableAction) {
-        super(plan.jobId());
         this.ifExists = plan.ifExists();
         this.tableInfo = plan.tableInfo();
         this.transportDropTableAction = transportDropTableAction;

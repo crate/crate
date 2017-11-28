@@ -29,8 +29,6 @@ import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.ActionListener;
 import org.junit.Test;
 
-import java.util.UUID;
-
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -42,7 +40,7 @@ public class KillTaskTest extends CrateUnitTest {
     @Test
     public void testKillTaskCallsBroadcastOnTransportKillAllNodeAction() throws Exception {
         TransportKillAllNodeAction killAllNodeAction = mock(TransportKillAllNodeAction.class);
-        KillTask task = new KillTask(killAllNodeAction, UUID.randomUUID());
+        KillTask task = new KillTask(killAllNodeAction);
 
         task.execute(new TestingRowConsumer(), Row.EMPTY);
         verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));

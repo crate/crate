@@ -26,7 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.metadata.settings.session.SessionSettingApplier;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.Expression;
@@ -35,19 +35,17 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class SetSessionTask extends JobTask {
+public class SetSessionTask implements Task {
 
     private static final Logger LOGGER = Loggers.getLogger(SetSessionTask.class);
 
     private final SessionContext sessionContext;
     private final Map<String, List<Expression>> settings;
 
-    public SetSessionTask(UUID jobId, Map<String, List<Expression>> settings, SessionContext sessionContext) {
-        super(jobId);
+    public SetSessionTask(Map<String, List<Expression>> settings, SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.settings = settings;
     }

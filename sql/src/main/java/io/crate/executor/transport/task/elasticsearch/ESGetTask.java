@@ -32,7 +32,7 @@ import io.crate.collections.Lists2;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
@@ -76,11 +76,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class ESGetTask extends JobTask {
+public class ESGetTask implements Task {
 
     private static final Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
@@ -91,6 +92,7 @@ public class ESGetTask extends JobTask {
     private final FetchSourceContext fsc;
     private final InputRow inputRow;
     private final Collection<CollectExpression<GetResponse, ?>> expressions;
+    private final UUID jobId;
 
     abstract static class JobContext<Action extends TransportAction<Request, Response>,
         Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
@@ -171,7 +173,7 @@ public class ESGetTask extends JobTask {
                 return ProjectingRowConsumer.create(
                     consumer,
                     Collections.singletonList(projection),
-                    task.jobId(),
+                    task.jobId,
                     null,
                     task.projectorFactory
                 );
@@ -294,7 +296,7 @@ public class ESGetTask extends JobTask {
                      TransportActionProvider transportActionProvider,
                      ESGet esGet,
                      JobContextService jobContextService) {
-        super(esGet.jobId());
+        this.jobId = esGet.jobId();
         this.projectorFactory = projectorFactory;
         this.transportActionProvider = transportActionProvider;
         this.esGet = esGet;
@@ -328,7 +330,7 @@ public class ESGetTask extends JobTask {
         } else {
             jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), consumer);
         }
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId);
         builder.addSubContext(jobContext);
 
         try {

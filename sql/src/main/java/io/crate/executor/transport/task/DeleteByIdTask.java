@@ -24,7 +24,7 @@ package io.crate.executor.transport.task;
 
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.TransportShardDeleteAction;
 import io.crate.metadata.Functions;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class DeleteByIdTask extends JobTask {
+public class DeleteByIdTask implements Task {
 
     private final ShardRequestExecutor<ShardDeleteRequest> executor;
 
@@ -46,7 +46,6 @@ public class DeleteByIdTask extends JobTask {
                           Functions functions,
                           TransportShardDeleteAction deleteAction,
                           DeleteById deleteById) {
-        super(deleteById.jobId());
         TimeValue requestTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING
             .setting().get(clusterService.state().metaData().settings());
         DeleteRequests deleteRequests = new DeleteRequests(deleteById.jobId(), requestTimeout);

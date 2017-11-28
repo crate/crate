@@ -26,7 +26,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.planner.node.ddl.DeleteAllPartitions;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -36,13 +36,12 @@ import org.elasticsearch.action.support.IndicesOptions;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.executor.transport.task.elasticsearch.DeletePartitionTask.TO_UNKNOWN_COUNT_ROW;
 
-public final class DeleteAllPartitionsTask extends JobTask {
+public final class DeleteAllPartitionsTask implements Task {
 
     private final TransportDeleteIndexAction deleteIndexAction;
     private final DeleteIndexRequest request;
 
     public DeleteAllPartitionsTask(DeleteAllPartitions plan, TransportDeleteIndexAction deleteIndexAction) {
-        super(plan.jobId());
         this.request = new DeleteIndexRequest(plan.partitions().toArray(new String[0]));
         /*
          * table is partitioned, in case of concurrent "delete from partitions"

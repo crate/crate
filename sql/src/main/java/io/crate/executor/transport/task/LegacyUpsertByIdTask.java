@@ -29,7 +29,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.IndexParts;
@@ -63,6 +63,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,7 +72,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class LegacyUpsertByIdTask extends JobTask {
+public class LegacyUpsertByIdTask implements Task {
 
     private static final Logger LOGGER = Loggers.getLogger(UpdateById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
@@ -87,6 +88,7 @@ public class LegacyUpsertByIdTask extends JobTask {
     private final boolean isUpdate;
     private final boolean isDebugEnabled;
     private final boolean isPartitioned;
+    private final UUID jobId;
 
     public LegacyUpsertByIdTask(LegacyUpsertById upsertById,
                                 ClusterService clusterService,
@@ -94,7 +96,7 @@ public class LegacyUpsertByIdTask extends JobTask {
                                 Settings settings,
                                 BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertAction,
                                 TransportCreatePartitionsAction transportCreatePartitionsAction) {
-        super(upsertById.jobId());
+        this.jobId = upsertById.jobId();
         this.scheduler = scheduler;
         this.upsertAction = transportShardUpsertAction;
         this.createIndicesAction = transportCreatePartitionsAction;
@@ -321,7 +323,7 @@ public class LegacyUpsertByIdTask extends JobTask {
 
     private CompletableFuture<CreatePartitionsResponse> createPendingIndices(Collection<String> indices) {
         FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = new FutureActionListener<>(r -> r);
-        createIndicesAction.execute(new CreatePartitionsRequest(indices, jobId()), listener);
+        createIndicesAction.execute(new CreatePartitionsRequest(indices, jobId), listener);
         return listener;
     }
 

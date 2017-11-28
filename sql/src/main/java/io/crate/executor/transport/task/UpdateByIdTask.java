@@ -26,7 +26,7 @@ import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.Functions;
@@ -41,7 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 
-public class UpdateByIdTask extends JobTask {
+public class UpdateByIdTask implements Task {
 
     private final ClusterService clusterService;
     private final Functions functions;
@@ -54,7 +54,6 @@ public class UpdateByIdTask extends JobTask {
                           Functions functions,
                           TransportShardUpsertAction shardUpsertAction,
                           UpdateById updateById) {
-        super(updateById.jobId());
         this.clusterService = clusterService;
         this.functions = functions;
         this.shardUpsertAction = shardUpsertAction;

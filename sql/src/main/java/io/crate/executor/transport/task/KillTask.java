@@ -24,19 +24,16 @@ package io.crate.executor.transport.task;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 
-import java.util.UUID;
-
-public class KillTask extends JobTask {
+public class KillTask implements Task {
 
     private final TransportKillAllNodeAction nodeAction;
 
-    public KillTask(TransportKillAllNodeAction nodeAction, UUID jobId) {
-        super(jobId);
+    public KillTask(TransportKillAllNodeAction nodeAction) {
         this.nodeAction = nodeAction;
     }
 

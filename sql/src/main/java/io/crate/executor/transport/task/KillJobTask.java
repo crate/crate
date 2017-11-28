@@ -25,22 +25,19 @@ import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.JobTask;
+import io.crate.executor.Task;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 
 import java.util.UUID;
 
-public class KillJobTask extends JobTask {
+public class KillJobTask implements Task {
 
     private final UUID jobToKill;
     private final TransportKillJobsNodeAction nodeAction;
 
-    public KillJobTask(TransportKillJobsNodeAction nodeAction,
-                       UUID jobId,
-                       UUID jobToKill) {
-        super(jobId);
+    public KillJobTask(TransportKillJobsNodeAction nodeAction, UUID jobToKill) {
         this.nodeAction = nodeAction;
         this.jobToKill = jobToKill;
     }

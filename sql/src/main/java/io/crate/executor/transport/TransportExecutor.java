@@ -224,7 +224,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitSetSessionPlan(SetSessionPlan plan, PlannerContext context) {
-            return new SetSessionTask(plan.jobId(), plan.settings(), plan.sessionContext());
+            return new SetSessionTask(plan.settings(), plan.sessionContext());
         }
 
         @Override
@@ -272,10 +272,8 @@ public class TransportExecutor implements Executor {
         @Override
         public Task visitKillPlan(KillPlan killPlan, PlannerContext context) {
             return killPlan.jobToKill().isPresent() ?
-                new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
-                    killPlan.jobId(),
-                    killPlan.jobToKill().get()) :
-                new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
+                new KillJobTask(transportActionProvider.transportKillJobsNodeAction(), killPlan.jobToKill().get()) :
+                new KillTask(transportActionProvider.transportKillAllNodeAction());
         }
 
         @Override
@@ -285,12 +283,12 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, PlannerContext context) {
-            return new FunctionDispatchTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
+            return new FunctionDispatchTask(ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
         public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, PlannerContext context) {
-            return new FunctionDispatchTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
+            return new FunctionDispatchTask(dclStatementDispatcher, genericDCLPlan.statement());
         }
 
         @Override
