@@ -365,6 +365,10 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
+    public R visitColumnStorageDefinition(ColumnStorageDefinition node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitGenericProperties(GenericProperties node, C context) {
         return visitNode(node, context);
     }

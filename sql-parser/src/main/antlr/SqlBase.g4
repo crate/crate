@@ -512,6 +512,7 @@ columnConstraint
     | NOT NULL                                                                       #columnConstraintNotNull
     | INDEX USING method=ident withProperties?                                       #columnIndexConstraint
     | INDEX OFF                                                                      #columnIndexOff
+    | STORAGE withProperties                                                         #columnStorageDefinition
     ;
 
 withProperties
@@ -594,7 +595,7 @@ nonReserved
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
-    | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
+    | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
@@ -786,6 +787,7 @@ OFF: 'OFF';
 FULLTEXT: 'FULLTEXT';
 PLAIN: 'PLAIN';
 INDEX: 'INDEX';
+STORAGE: 'STORAGE';
 
 DYNAMIC: 'DYNAMIC';
 STRICT: 'STRICT';
