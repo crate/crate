@@ -19,8 +19,7 @@ ordering possiblity as the data for one column is packed at one place. Using the
 maximal length of 32766 bytes.
 
 Turning off the `Column Store`_ in conjunction of :ref:`turning off indexing
-<sql_ddl_index_off>` will remove the length limitation but also will disable
-ordering functionality.
+<sql_ddl_index_off>` will remove the length limitation.
 
 Example:
 ::
@@ -32,9 +31,8 @@ Example:
     CREATE OK, 1 row affected  (... sec)
 
 Doing so will enable support for inserting strings longer than 32766 bytes into
-the ``url`` column, but will also disable the possibility to sort on the ``url``
-column and the performance for global aggregations or groupings using this
-``url`` column will decrease.
+the ``url`` column, but the performance for global aggregations, groupings and
+sorting using this ``url`` column will decrease.
 
 .. hide:
 

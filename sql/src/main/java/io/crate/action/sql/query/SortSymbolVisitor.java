@@ -140,6 +140,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                     LUCENE_TYPE_MAP.get(symbol.valueType()), false);
             }
         }
+        if (symbol.isColumnStoreDisabled()) {
+            SortField.Type type = LUCENE_TYPE_MAP.get(symbol.valueType());
+            SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
+            return customSortField(symbol.toString(), symbol, context, reducedType, type == null);
+        }
 
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
 

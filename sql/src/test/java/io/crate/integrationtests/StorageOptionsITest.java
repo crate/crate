@@ -69,10 +69,11 @@ public class StorageOptionsITest extends SQLTransportIntegrationTest {
     @Test
     public void testOrderByWithDisabledDocValues() throws Exception {
         execute("create table t1 (s string storage with (columnstore=false))");
-        execute("insert into t1 (s) values (?)", new Object[]{"foo"});
+        execute("insert into t1 (s) values (?), (?)", new Object[]{"foo", "bar"});
         refresh();
 
-        expectedException.expectMessage("Cannot ORDER BY 's': sorting on columns with disabled 'columnstore' is not possible");
-        execute("select * from t1 order by s");
+        execute("select s from t1 order by s");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("bar\n" +
+                                                                    "foo\n"));
     }
 }
