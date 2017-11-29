@@ -545,24 +545,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGroupByOnIndexOff() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'no_index': grouping on non-indexed columns is not possible");
-        e.plan("select no_index from users u group by 1");
-    }
-
-    @Test
     public void testSelectAnalyzedReferenceInFunctionGroupBy() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot GROUP BY 'text': grouping on analyzed/fulltext columns is not possible");
         e.plan("select substr(text, 0, 2) from users u group by 1");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionGroupBy() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'no_index': grouping on non-indexed columns is not possible");
-        e.plan("select substr(no_index, 0, 2) from users u group by 1");
     }
 
     @Test

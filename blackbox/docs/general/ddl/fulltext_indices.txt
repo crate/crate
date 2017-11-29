@@ -69,12 +69,6 @@ When a not indexed column is queried the query will return an error.
     cr> select * from my_table1b where first_column = 'hello';
     SQLActionException[UnhandledServerException: java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
 
-.. NOTE::
-
-    Operations such as data aggregations (:ref:`sql_dql_aggregation`), grouping
-    (:ref:`sql_dql_group_by`), and sorting (:ref:`sql_reference_order_by`)
-    only work on indexed fields.
-
 .. _sql_ddl_index_plain:
 
 Plain index (Default)

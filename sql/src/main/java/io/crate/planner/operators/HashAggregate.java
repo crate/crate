@@ -194,9 +194,6 @@ public class HashAggregate implements LogicalPlan {
                 if (indexType == Reference.IndexType.ANALYZED) {
                     throw new IllegalArgumentException(SymbolFormatter.format(
                         "Cannot select analyzed column '%s' within grouping or aggregations", symbol));
-                } else if (indexType == Reference.IndexType.NO) {
-                    throw new IllegalArgumentException(SymbolFormatter.format(
-                        "Cannot select non-indexed column '%s' within grouping or aggregations", symbol));
                 }
             }
             return null;

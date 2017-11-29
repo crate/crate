@@ -1207,4 +1207,33 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "from employees group by 1");
         assertThat(printedTable(response.rows()), is("{id1=1, id2=36}| 6\n"));
     }
+
+    @Test
+    public void testGroupByOnIndexOff() throws Exception {
+        execute("create table t1 (i int index off, s string index off)");
+        execute("insert into t1 (i, s) values (?,?)",
+            new Object[][]{
+                {1, "foo"},
+                {2, "bar"},
+                {1, "foo"}
+        });
+        refresh();
+        execute("select count(*), i, s from t1 group by i, s ");
+        assertThat(printedTable(response.rows()), is("1| 2| bar\n" +
+                                                     "2| 1| foo\n"));
+    }
+
+    @Test
+    public void testAggregateOnIndexOff() throws Exception {
+        execute("create table t1 (i int index off, s string index off)");
+        execute("insert into t1 (i, s) values (?,?)",
+            new Object[][]{
+                {1, "foo"},
+                {2, "foobar"},
+                {1, "foo"}
+        });
+        refresh();
+        execute("select sum(i), max(s) from t1");
+        assertThat(printedTable(response.rows()), is("4| foobar\n"));
+    }
 }

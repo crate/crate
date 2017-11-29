@@ -63,9 +63,6 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
             } else if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new UnsupportedOperationException(
                     SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
-            } else if (symbol.indexType() == Reference.IndexType.NO) {
-                throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
             }
             return null;
         }

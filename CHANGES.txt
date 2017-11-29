@@ -39,6 +39,9 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``ORDER BY``, ``GROUP BY`` and global aggregates on columns
+  with disabled indexing (``INDEX OFF``).
+
 - Added cgroup stats to ``sys.nodes``.
 
 - Added the ``typtype`` column to ``pg_catalog.pg_type`` for better

@@ -432,24 +432,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testOrderByOnIndexOff() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'no_index': sorting on non-indexed columns is not possible");
-        e.plan("select no_index from users u order by 1");
-    }
-
-    @Test
     public void testSelectAnalyzedReferenceInFunctionAggregation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot select analyzed column 'text' within grouping or aggregations");
         e.plan("select min(substr(text, 0, 2)) from users");
-    }
-
-    @Test
-    public void testSelectNonIndexedReferenceInFunctionAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select non-indexed column 'no_index' within grouping or aggregations");
-        e.plan("select min(substr(no_index, 0, 2)) from users");
     }
 
     @Test

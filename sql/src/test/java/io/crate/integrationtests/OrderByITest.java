@@ -26,6 +26,8 @@ import io.crate.testing.TestingHelpers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.is;
+
 public class OrderByITest extends SQLTransportIntegrationTest {
 
     @Test
@@ -53,4 +55,14 @@ public class OrderByITest extends SQLTransportIntegrationTest {
             "10.0.0.1\n"));
     }
 
+    @Test
+    public void testOrderByWithIndexOff() throws Exception {
+        execute("create table t1 (s string index off)");
+        execute("insert into t1 (s) values (?), (?)", new Object[]{"hello", "foo"});
+        refresh();
+
+        execute("select s from t1 order by s");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
+                                                                    "hello\n"));
+    }
 }
