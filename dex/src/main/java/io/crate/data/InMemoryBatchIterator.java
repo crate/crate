@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 
 /**
- * BatchIterator implementation that is backed by {@link Iterable<Row>}.
+ * BatchIterator implementation that is backed by {@link Iterable}
  */
 public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 

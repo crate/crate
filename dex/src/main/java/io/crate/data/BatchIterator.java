@@ -26,21 +26,30 @@ import java.util.concurrent.CompletionStage;
 
 
 /**
+ * <p>
  * An iterator used to navigate over data organized in batches. Though not required most
  * implementations already hold an initial batch of data ready for use and further data can be loaded asynchronously
  * via the {@link #loadNextBatch()} method.
+ * </p>
  *
+ * <p>
  * The loaded data can be accessed by moving the iterator via the movement methods {@link #moveNext()} and
  * {@link #moveToStart()} and then using the object returned by {@link #currentElement()} to access the data
  * at the current position.
+ * </p>
  *
+ * <p>
  * Once all loaded data has been consumed, more data can be loaded with {@link #loadNextBatch()} unless {@link
  * #allLoaded()} is true in which case the iterator is exhausted.
+ * </p>
  *
+ * <p>
  * A BatchIterator starts either *before* the first row or in an unloaded state.
  * This means a consumer can consume a BatchIterator like this:
+ * </p>
  *
  * <pre>
+ * {@code
  *     while (it.moveNext()) {
  *         // do something with it.currentElement()
  *     }
@@ -51,12 +60,12 @@ import java.util.concurrent.CompletionStage;
  *             // continue consumption
  *         }
  *     }
+ * }
  * </pre>
  *
  *
  * Thread-safety notes:
- *
- * Concurrent usage of a BatchIterator is not supported.
+ * Concurrent move of a BatchIterator is not supported.
  */
 public interface BatchIterator<T> extends Killable {
 

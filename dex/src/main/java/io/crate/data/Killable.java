@@ -27,13 +27,17 @@ import javax.annotation.Nonnull;
 public interface Killable {
 
     /**
+     * <p>
      * Interrupt the operation, increasing the likelihood that it will terminate early with an error.
      * This method can be called concurrently from a different thread while an operation is running.
-     *
+     * </p>
      * Implementations must:
+     * <ul>
      *
-     *  - terminate if they're otherwise waiting for input/data
-     *  - terminate expensive & long running operations within a reasonable amount of time (< 2sec)
+     *  <li>terminate if they're otherwise waiting for input/data</li>
+     *  <li>terminate expensive and long running operations within a reasonable amount of time (&lt; 2sec)</li>
+     *
+     * </ul>
      *
      * Fast operations which are already running and can complete without further input may ignore the kill.
      * Operations which have already completed may also ignore the kill.

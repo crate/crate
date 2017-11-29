@@ -89,9 +89,11 @@ public class BatchIterators {
      *
      * Example:
      * <pre>
+     * {@code
      *     inputBi: [1, 2, 3, 4, 5]
      *
      *     partition(inputBi, 2, ArrayList::new, List::add) -> [[1, 2], [3, 4], [5]]
+     * }
      * </pre>
      * @param supplier Used to create the state per partition
      * @param accumulator Used to add items to the partitions state

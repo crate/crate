@@ -39,6 +39,7 @@ import java.util.concurrent.CompletionStage;
  * to create the data for *this* BatchIterator.
  *
  * <pre>
+ * {@code
  *
  *  (encapsulated via {@link #loadNextBatch()})
  *
@@ -52,7 +53,7 @@ import java.util.concurrent.CompletionStage;
  *                  |
  *                batchAccumulator.processBatch
  *                      onResult -> fill-up data of *this* BatchIterator
- *
+ * }
  * </pre>
  */
 public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
