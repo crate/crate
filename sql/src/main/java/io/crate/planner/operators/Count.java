@@ -92,7 +92,7 @@ public class Count implements LogicalPlan {
             Collections.singletonList(plannerContext.handlerNode()),
             Collections.singletonList(DataTypes.LONG),
             Collections.singletonList(MergeCountProjection.INSTANCE),
-            DistributionInfo.DEFAULT_SAME_NODE,
+            DistributionInfo.DEFAULT_BROADCAST,
             null
         );
         return new CountPlan(countPhase, mergePhase);

@@ -112,7 +112,7 @@ public class HashAggregate implements LogicalPlan {
                 Collections.singletonList(plannerContext.handlerNode()),
                 executionPlan.resultDescription().streamOutputs(),
                 Collections.singletonList(toFinal),
-                DistributionInfo.DEFAULT_SAME_NODE,
+                DistributionInfo.DEFAULT_BROADCAST,
                 null
             ),
             LogicalPlanner.NO_LIMIT,
