@@ -1218,7 +1218,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 {1, "foo"}
         });
         refresh();
-        execute("select count(*), i, s from t1 group by i, s ");
+        execute("select count(*), i, s from t1 group by i, s order by 1");
         assertThat(printedTable(response.rows()), is("1| 2| bar\n" +
                                                      "2| 1| foo\n"));
     }
