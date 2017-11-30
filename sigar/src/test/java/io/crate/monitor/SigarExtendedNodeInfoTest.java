@@ -32,7 +32,9 @@ import org.junit.Test;
 
 import java.nio.file.Path;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 public class SigarExtendedNodeInfoTest extends CrateUnitTest {

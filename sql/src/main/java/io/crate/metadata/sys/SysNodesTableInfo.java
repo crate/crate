@@ -175,6 +175,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent OS_CGROUP_CPU_NUM_ELAPSED_PERIODS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_elapsed_periods"));
         static final ColumnIdent OS_CGROUP_CPU_NUM_TIMES_THROTTLED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_times_throttled"));
         static final ColumnIdent OS_CGROUP_CPU_TIME_THROTTLED_NANOS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "time_throttled_nanos"));
+        static final ColumnIdent OS_CGROUP_MEM = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem"));
+        static final ColumnIdent OS_CGROUP_MEM_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "control_group"));
+        static final ColumnIdent OS_CGROUP_MEM_LIMIT_BYTES = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "limit_bytes"));
+        static final ColumnIdent OS_CGROUP_MEM_USAGE_BYTES = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "usage_bytes"));
 
         public static final ColumnIdent OS_INFO = new ColumnIdent(SYS_COL_OS_INFO);
         static final ColumnIdent OS_INFO_AVAIL_PROCESSORS = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("available_processors"));
@@ -446,6 +450,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.OS_CGROUP_CPU_NUM_ELAPSED_PERIODS, DataTypes.LONG)
                 .register(Columns.OS_CGROUP_CPU_NUM_TIMES_THROTTLED, DataTypes.LONG)
                 .register(Columns.OS_CGROUP_CPU_TIME_THROTTLED_NANOS, DataTypes.LONG)
+                .register(Columns.OS_CGROUP_MEM, DataTypes.OBJECT)
+                .register(Columns.OS_CGROUP_MEM_CONTROL_GROUP, DataTypes.STRING)
+                .register(Columns.OS_CGROUP_MEM_LIMIT_BYTES, DataTypes.STRING)
+                .register(Columns.OS_CGROUP_MEM_USAGE_BYTES, DataTypes.STRING)
 
                 .register(Columns.OS_INFO, DataTypes.OBJECT)
                 .register(Columns.OS_INFO_AVAIL_PROCESSORS, DataTypes.INTEGER)

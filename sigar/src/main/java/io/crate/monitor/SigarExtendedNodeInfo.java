@@ -22,6 +22,7 @@
 
 package io.crate.monitor;
 
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
@@ -177,8 +178,10 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         Sigar sigar = sigarService.sigar();
 
         ExtendedOsStats.Cpu cpu;
+        ExtendedOsStats.CgroupMem cgroupMem = Constants.LINUX ? CgroupMemoryProbe.getCgroup() : null;
         // bypass another caching since probe is cached anyway already
         OsStats osStats = OsProbe.getInstance().osStats();
+
         try {
             CpuPerc cpuPerc = sigar.getCpuPerc();
             cpu = new ExtendedOsStats.Cpu(
@@ -192,7 +195,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
             cpu = new ExtendedOsStats.Cpu();
         }
 
-        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats);
+        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats, cgroupMem);
         stats.timestamp(System.currentTimeMillis());
 
         try {

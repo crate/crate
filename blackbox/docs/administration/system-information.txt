@@ -444,14 +444,14 @@ The table schema is as follows:
 +-------------------------------------------------+------------------------------------------------------+-------------+
 | ``os['cgroup']['cpuacct']``                     | Information about CPU accounting                     | ``OBJECT``  |
 +-------------------------------------------------+------------------------------------------------------+-------------+
-| ``os['cgroup']['cpuacct']['control_group']``    | The path to the cgroup                               | ``STRING``  |
+| ``os['cgroup']['cpuacct']['control_group']``    | The path to the cpu accounting cgroup                | ``STRING``  |
 +-------------------------------------------------+------------------------------------------------------+-------------+
 | ``os['cgroup']['cpuacct']['usage_nanos']``      | The total CPU time (in nanoseconds) consumed by      | ``LONG``    |
 |                                                 | all tasks in this cgroup.                            |             |
 +-------------------------------------------------+------------------------------------------------------+-------------+
 | ``os['cgroup']['cpu']``                         | Information about the CPU subsystem                  | ``OBJECT``  |
 +-------------------------------------------------+------------------------------------------------------+-------------+
-| ``os['cgroup']['cpu']['control_group']``        | The path to the cgroup                               | ``STRING``  |
+| ``os['cgroup']['cpu']['control_group']``        | The path to the cpu cgroup                           | ``STRING``  |
 +-------------------------------------------------+------------------------------------------------------+-------------+
 | ``os['cgroup']['cpu']['cfs_period_micros']``    | The period of time (in microseconds) the cgroup      | ``LONG``    |
 |                                                 | access to the CPU gets reallocated.                  |             |
@@ -468,6 +468,16 @@ The table schema is as follows:
 +-------------------------------------------------+------------------------------------------------------+-------------+
 | ``os['cgroup']['cpu']['time_throttled_nanos']`` | The total time (in nanoseconds) for which tasks in   | ``LONG``    |
 |                                                 | the cgroup have been throttled.                      |             |
++-------------------------------------------------+------------------------------------------------------+-------------+
+| ``os['cgroup']['mem']``                         | Information about memory resources used by tasks in  | ``OBJECT``  |
+|                                                 | a cgroup.                                            |             |
++-------------------------------------------------+------------------------------------------------------+-------------+
+| ``os['cgroup']['mem']['control_group']``        | The path to the memory cgroup                        | ``STRING``  |
++-------------------------------------------------+------------------------------------------------------+-------------+
+| ``os['cgroup']['mem']['usage_bytes']``          | The total current memory usage by processes in       | ``STRING``  |
+|                                                 | the cgroup.                                          |             |
++-------------------------------------------------+------------------------------------------------------+-------------+
+| ``os['cgroup']['mem']['limit_bytes']``          | The max. amount of user memory in the cgroup.        | ``STRING``  |
 +-------------------------------------------------+------------------------------------------------------+-------------+
 
 .. note::

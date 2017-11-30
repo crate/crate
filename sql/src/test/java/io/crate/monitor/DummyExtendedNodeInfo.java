@@ -83,8 +83,9 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
     @Override
     public ExtendedOsStats osStats() {
         ExtendedOsStats.Cpu cpuStats = new ExtendedOsStats.Cpu((short) 0, (short) 4, (short) 94, (short) 10);
+        ExtendedOsStats.CgroupMem cgroupMemStats = new ExtendedOsStats.CgroupMem();
         OsStats osStats = OsProbe.getInstance().osStats();
-        ExtendedOsStats extendedOsStats = new ExtendedOsStats(cpuStats, osStats);
+        ExtendedOsStats extendedOsStats = new ExtendedOsStats(cpuStats, osStats, cgroupMemStats);
         extendedOsStats.uptime(3600L);
         extendedOsStats.loadAverage(new double[]{1, 5, 15});
         return extendedOsStats;

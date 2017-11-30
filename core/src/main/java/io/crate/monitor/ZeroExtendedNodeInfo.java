@@ -22,6 +22,7 @@
 
 package io.crate.monitor;
 
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.monitor.os.OsProbe;
@@ -67,7 +68,8 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
     private ExtendedOsStats osStatsProbe() {
         ExtendedOsStats.Cpu cpu = new ExtendedOsStats.Cpu();
         OsStats osStats = OsProbe.getInstance().osStats();
-        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats);
+        ExtendedOsStats.CgroupMem cgroupMem = Constants.LINUX ? CgroupMemoryProbe.getCgroup() : null;
+        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats, cgroupMem);
         stats.timestamp(System.currentTimeMillis());
         return stats;
     }

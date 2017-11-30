@@ -23,6 +23,7 @@
 package io.crate.monitor;
 
 import com.google.common.annotations.VisibleForTesting;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -36,7 +37,8 @@ public class ExtendedOsStats implements Streamable {
 
     private Cpu cpu;
     private OsStats osStats;
-
+    @Nullable
+    private CgroupMem cgroupMem;
     private long timestamp;
     private long uptime = -1;
     private double[] loadAverage = new double[0];
@@ -50,9 +52,10 @@ public class ExtendedOsStats implements Streamable {
     public ExtendedOsStats() {
     }
 
-    public ExtendedOsStats(Cpu cpu, OsStats osStats) {
+    public ExtendedOsStats(Cpu cpu, OsStats osStats, @Nullable CgroupMem cgroupMem) {
         this.cpu = cpu;
         this.osStats = osStats;
+        this.cgroupMem = cgroupMem;
     }
 
     public long timestamp() {
@@ -87,8 +90,13 @@ public class ExtendedOsStats implements Streamable {
         return osStats;
     }
 
+    @Nullable
+    public CgroupMem cgroupMem() {
+        return cgroupMem;
+    }
+
     @VisibleForTesting
-    public void cpu(Cpu cpu) {
+    void cpu(Cpu cpu) {
         this.cpu = cpu;
     }
 
@@ -99,6 +107,7 @@ public class ExtendedOsStats implements Streamable {
         loadAverage = in.readDoubleArray();
         cpu = in.readOptionalStreamable(Cpu::new);
         osStats = in.readOptionalWriteable(OsStats::new);
+        cgroupMem = in.readOptionalStreamable(CgroupMem::new);
     }
 
     @Override
@@ -108,6 +117,7 @@ public class ExtendedOsStats implements Streamable {
         out.writeDoubleArray(loadAverage);
         out.writeOptionalStreamable(cpu);
         out.writeOptionalWriteable(osStats);
+        out.writeOptionalStreamable(cgroupMem);
     }
 
     public static class Cpu implements Streamable {
@@ -158,6 +168,51 @@ public class ExtendedOsStats implements Streamable {
             out.writeShort(user);
             out.writeShort(idle);
             out.writeShort(stolen);
+        }
+    }
+
+    public static class CgroupMem implements Streamable {
+
+        @Nullable
+        private String memoryControlGroup;
+        private String memoryLimitBytes;
+        private String memoryUsageBytes;
+
+        public CgroupMem() {
+            this(null, null, null);
+        }
+
+        public CgroupMem(@Nullable String memoryControlGroup, String memoryLimitBytes, String memoryUsageBytes) {
+            this.memoryControlGroup = memoryControlGroup;
+            this.memoryLimitBytes = memoryLimitBytes;
+            this.memoryUsageBytes = memoryUsageBytes;
+        }
+
+        @Nullable
+        public String memoryControlGroup() {
+            return memoryControlGroup;
+        }
+
+        public String memoryLimitBytes() {
+            return memoryLimitBytes;
+        }
+
+        public String memoryUsageBytes() {
+            return memoryUsageBytes;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            memoryControlGroup = in.readOptionalString();
+            memoryLimitBytes = in.readString();
+            memoryUsageBytes = in.readString();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeOptionalString(memoryControlGroup);
+            out.writeString(memoryLimitBytes);
+            out.writeString(memoryUsageBytes);
         }
     }
 }

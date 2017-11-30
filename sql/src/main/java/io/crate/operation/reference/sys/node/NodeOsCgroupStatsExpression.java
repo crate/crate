@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.node;
 
+import io.crate.monitor.ExtendedOsStats;
 import org.elasticsearch.monitor.os.OsStats;
 
 import java.util.Map;
@@ -31,10 +32,12 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
 
     private static final String CPUACCT = "cpuacct";
     private static final String CPU = "cpu";
+    private static final String MEM = "mem";
 
     public NodeOsCgroupStatsExpression() {
         childImplementations.put(CPUACCT, new NodeOsCgroupCpuAcctStatsExpression());
         childImplementations.put(CPU, new NodeOsCgroupCpuStatsExpression());
+        childImplementations.put(MEM, new NodeOsCgroupMemStatsExpression());
     }
 
     @Override
@@ -99,6 +102,63 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
             if (row.isComplete()) {
                 OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
                 if (cgroup != null) {
+                    return super.value();
+                }
+            }
+            return null;
+        }
+    }
+
+    private class NodeOsCgroupMemStatsExpression extends NestedNodeStatsExpression {
+
+        private static final String CONTROL_GROUP = "control_group";
+        private static final String LIMIT_BYTES = "limit_bytes";
+        private static final String USAGE_BYTES = "usage_bytes";
+
+        public NodeOsCgroupMemStatsExpression() {
+            childImplementations.put(CONTROL_GROUP, new SimpleNodeStatsExpression<String>() {
+                @Override
+                public String innerValue() {
+                    if (row.isComplete()) {
+                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
+                        if (cgroupMem != null) {
+                            return cgroupMem.memoryControlGroup();
+                        }
+                    }
+                    return null;
+                }
+            });
+            childImplementations.put(LIMIT_BYTES, new SimpleNodeStatsExpression<String>() {
+                @Override
+                public String innerValue() {
+                    if (row.isComplete()) {
+                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
+                        if (cgroupMem != null) {
+                            return cgroupMem.memoryLimitBytes();
+                        }
+                    }
+                    return null;
+                }
+            });
+            childImplementations.put(USAGE_BYTES, new SimpleNodeStatsExpression<String>() {
+                @Override
+                public String innerValue() {
+                    if (row.isComplete()) {
+                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
+                        if (cgroupMem != null) {
+                            return cgroupMem.memoryUsageBytes();
+                        }
+                    }
+                    return null;
+                }
+            });
+        }
+
+        @Override
+        public Map<String, Object> value() {
+            if (row.isComplete()) {
+                ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
+                if (cgroupMem != null) {
                     return super.value();
                 }
             }
