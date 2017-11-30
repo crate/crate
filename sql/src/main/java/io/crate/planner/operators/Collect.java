@@ -84,15 +84,13 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
  *  See also {@link LogicalPlan.Builder#build(TableStats, Set)}
  */
-class Collect implements LogicalPlan {
+class Collect extends ZeroInputPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final QueriedTableRelation relation;
     final WhereClause where;
 
-    final List<Symbol> toCollect;
     final TableInfo tableInfo;
-    private final List<AbstractTableRelation> baseTables;
     private final long numExpectedRows;
 
     public static LogicalPlan.Builder create(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
@@ -109,6 +107,9 @@ class Collect implements LogicalPlan {
                     WhereClause where,
                     Set<Symbol> usedBeforeNextFetch,
                     long numExpectedRows) {
+        super(
+            generateOutputs(toCollect, relation.tableRelation(), usedBeforeNextFetch, where),
+            Collections.singletonList(relation.tableRelation()));
 
         this.numExpectedRows = numExpectedRows;
         if (where.hasVersions()) {
@@ -116,16 +117,20 @@ class Collect implements LogicalPlan {
         }
         this.relation = relation;
         this.where = where;
-        this.baseTables = Collections.singletonList(relation.tableRelation());
-        AbstractTableRelation tableRelation = relation.tableRelation();
         this.tableInfo = relation.tableRelation().tableInfo();
+    }
+
+    private static List<Symbol> generateOutputs(List<Symbol> toCollect,
+                                                AbstractTableRelation tableRelation,
+                                                Set<Symbol> usedBeforeNextFetch,
+                                                WhereClause where) {
         if (tableRelation instanceof DocTableRelation) {
-            this.toCollect = generateToCollectWithFetch(tableInfo.ident(), toCollect, usedBeforeNextFetch);
+            return generateToCollectWithFetch(((DocTableRelation) tableRelation).tableInfo().ident(), toCollect, usedBeforeNextFetch);
         } else {
-            this.toCollect = toCollect;
             if (where.hasQuery()) {
                 NoPredicateVisitor.ensureNoMatchPredicate(where.query());
             }
+            return toCollect;
         }
     }
 
@@ -178,9 +183,9 @@ class Collect implements LogicalPlan {
             collectPhase,
             TopN.NO_LIMIT,
             0,
-            toCollect.size(),
+            outputs.size(),
             limitAndOffset,
-            PositionalOrderBy.of(order, toCollect)
+            PositionalOrderBy.of(order, outputs)
         );
     }
 
@@ -216,7 +221,7 @@ class Collect implements LogicalPlan {
                 tableFunctionRelation.functionImplementation(),
                 functionArguments,
                 Collections.emptyList(),
-                toCollect,
+                outputs,
                 where
             );
         }
@@ -230,7 +235,7 @@ class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            toCollect,
+            outputs,
             Collections.emptyList(),
             where,
             DistributionInfo.DEFAULT_BROADCAST,
@@ -239,36 +244,11 @@ class Collect implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return toCollect;
-    }
-
-    @Override
     public boolean preferShardProjections() {
         // Can't run on shard level for system tables
         // (Except tables like sys.shards, but in that case it's better to run operations per node as well,
         // because otherwise we'd use 1 thread per row which is unnecessary overhead and may use up all available threads)
         return tableInfo instanceof DocTableInfo;
-    }
-
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Collections.emptyMap();
-    }
-
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return baseTables;
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Collections.emptyMap();
     }
 
     @Override
@@ -280,7 +260,7 @@ class Collect implements LogicalPlan {
     public String toString() {
         return "Collect{" +
                tableInfo.ident() +
-               ", [" + ExplainLeaf.printList(toCollect) +
+               ", [" + ExplainLeaf.printList(outputs) +
                "], " + where +
                '}';
     }

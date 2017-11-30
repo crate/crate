@@ -22,11 +22,8 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -34,19 +31,15 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 /**
  * An operator with the primary purpose to ensure that the result is on the handler and no longer distributed.
  */
-public class RootRelationBoundary implements LogicalPlan {
-
-    @VisibleForTesting
-    final LogicalPlan source;
+public class RootRelationBoundary extends OneInputPlan {
 
     public RootRelationBoundary(LogicalPlan source) {
-        this.source = source;
+        super(source);
     }
 
     @Override
@@ -71,37 +64,8 @@ public class RootRelationBoundary implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == source) {
-            return this;
-        }
-        return new RootRelationBoundary(collapsed);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new RootRelationBoundary(newSource);
     }
 
     @Override

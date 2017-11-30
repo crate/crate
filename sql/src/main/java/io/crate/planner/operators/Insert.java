@@ -40,14 +40,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class Insert implements LogicalPlan {
+public class Insert extends OneInputPlan {
 
-    private final LogicalPlan source;
     private final QueriedRelation relation;
     private final ColumnIndexWriterProjection projection;
 
     public Insert(LogicalPlan source, QueriedRelation relation, ColumnIndexWriterProjection projection) {
-        this.source = source;
+        super(source);
         this.relation = relation;
         this.projection = projection;
     }
@@ -78,6 +77,11 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new Insert(newSource, relation, projection);
+    }
+
+    @Override
     public List<Symbol> outputs() {
         return relation.outputs();
     }
@@ -90,11 +94,6 @@ public class Insert implements LogicalPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
     }
 
     @Override

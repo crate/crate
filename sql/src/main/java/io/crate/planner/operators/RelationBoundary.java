@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.RefVisitor;
@@ -49,7 +48,7 @@ import java.util.function.Function;
  * It is used to take care of the field mapping (providing {@link LogicalPlan#expressionMapping()})
  * In addition it takes care of MultiPhase planning.
  */
-public class RelationBoundary implements LogicalPlan {
+public class RelationBoundary extends OneInputPlan {
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                              QueriedRelation relation,
@@ -83,23 +82,16 @@ public class RelationBoundary implements LogicalPlan {
         };
     }
 
-    final LogicalPlan source;
-    private final List<Symbol> outputs;
-    private final Map<Symbol, Symbol> expressionMapping;
     private final QueriedRelation relation;
-    private final Map<LogicalPlan, SelectSymbol> subQueries;
 
     private RelationBoundary(LogicalPlan source,
                              QueriedRelation relation,
                              List<Symbol> outputs,
                              Map<Symbol, Symbol> expressionMapping,
                              Map<LogicalPlan, SelectSymbol> subQueries) {
-        this.expressionMapping = expressionMapping;
-        this.source = source;
+        super(source, outputs, expressionMapping, source.baseTables(), subQueries);
+        subQueries.putAll(source.dependencies());
         this.relation = relation;
-        this.outputs = outputs;
-        this.subQueries = subQueries;
-        this.subQueries.putAll(source.dependencies());
     }
 
     @Override
@@ -116,35 +108,6 @@ public class RelationBoundary implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == source) {
-            return this;
-        }
-        return new RelationBoundary(collapsed, relation, outputs, expressionMapping, subQueries);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return subQueries;
-    }
-
-    @Override
     public long numExpectedRows() {
         return source.numExpectedRows();
     }
@@ -152,5 +115,10 @@ public class RelationBoundary implements LogicalPlan {
     @Override
     public String toString() {
         return "Boundary{" + source + '}';
+    }
+
+    @Override
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new RelationBoundary(newSource, relation, outputs, expressionMapping, dependencies);
     }
 }
