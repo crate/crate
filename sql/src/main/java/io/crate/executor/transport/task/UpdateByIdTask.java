@@ -36,7 +36,6 @@ import io.crate.planner.node.dml.UpdateById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -75,7 +74,7 @@ public class UpdateByIdTask {
             );
     }
 
-    public void execute(RowConsumer consumer, Row parameters) {
+    public void execute(RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
@@ -85,10 +84,10 @@ public class UpdateByIdTask {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        executor.execute(consumer, parameters, Collections.emptyMap());
+        executor.execute(consumer, parameters, valuesBySubQuery);
     }
 
-    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams) {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
         UpdateRequests updateRequests = new UpdateRequests(createBuilder.apply(true), updateById.table(), assignments);
         ShardRequestExecutor<ShardUpsertRequest> executor = new ShardRequestExecutor<>(
             clusterService,
@@ -98,7 +97,7 @@ public class UpdateByIdTask {
             shardUpsertAction::execute,
             updateById.docKeys()
         );
-        return executor.executeBulk(bulkParams, Collections.emptyMap());
+        return executor.executeBulk(bulkParams, valuesBySubQuery);
     }
 
     private static class UpdateRequests implements ShardRequestExecutor.RequestGrouper<ShardUpsertRequest> {
@@ -122,7 +121,7 @@ public class UpdateByIdTask {
 
         @Override
         public void bind(Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
-            assignmentSources = assignments.bindSources(table, parameters);
+            assignmentSources = assignments.bindSources(table, parameters, valuesBySubQuery);
         }
 
         @Override

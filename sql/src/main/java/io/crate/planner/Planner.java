@@ -166,7 +166,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitAnalyzedUpdateStatement(AnalyzedUpdateStatement update, PlannerContext context) {
-        return UpdatePlanner.plan(update, functions, context);
+        return UpdatePlanner.plan(
+            update, functions, context, new SubqueryPlanner(s -> logicalPlanner.planSubSelect(s, context)));
     }
 
     @Override

@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.operation.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,13 +74,10 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInAssignmentOfUpdate() throws Exception {
-        expectedException.expectMessage("Subquery not supported in this statement");
-        e.analyze("update t1 set x = (select y from t2)");
-        /*
+        AnalyzedUpdateStatement stmt = e.analyze("update t1 set x = (select y from t2)");
         assertThat(
-            stmt.nestedStatements().get(0).assignments().values().iterator().next(),
+            stmt.assignmentByTargetCol().values().iterator().next(),
             Matchers.instanceOf(SelectSymbol.class));
-            */
     }
 
     @Test

@@ -41,10 +41,9 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -65,7 +64,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateByQueryPlan() throws Exception {
         UpdatePlanner.Update plan = e.plan("update users set name='Vogon lyric fan'");
-        Merge merge = (Merge) plan.createExecutionPlan.apply(e.getPlannerContext(clusterService.state()), Row.EMPTY);
+        Merge merge = (Merge) plan.createExecutionPlan.create(
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, emptyMap());
 
         Collect collect = (Collect) merge.subPlan();
 
@@ -101,7 +101,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys().size(), is(1));
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY, Collections.emptyMap()), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(e.functions(), Row.EMPTY, emptyMap()), is("1"));
     }
 
     @Test
@@ -122,7 +122,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
         UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
-        Collect collect = (Collect) update.createExecutionPlan.apply(e.getPlannerContext(clusterService.state()), Row.EMPTY);
+        Collect collect = (Collect) update.createExecutionPlan.create(
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, emptyMap());
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
     }
 }

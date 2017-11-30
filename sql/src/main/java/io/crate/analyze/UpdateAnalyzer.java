@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -89,6 +90,8 @@ public final class UpdateAnalyzer {
         }
         AbstractTableRelation table = (AbstractTableRelation) relation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, table);
+        SubqueryAnalyzer subqueryAnalyzer =
+            new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnCtx));
         ExpressionAnalyzer sourceExprAnalyzer = new ExpressionAnalyzer(
             functions,
             txnCtx,
@@ -98,12 +101,12 @@ public final class UpdateAnalyzer {
                 relCtx.parentSources(),
                 txnCtx.sessionContext().defaultSchema()
             ),
-            null
+            subqueryAnalyzer
         );
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
 
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
-            update.assignements(), typeHints, txnCtx, table, normalizer, sourceExprAnalyzer, exprCtx);
+            update.assignements(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
         return new AnalyzedUpdateStatement(
             table,
             assignmentByTargetCol,
@@ -116,6 +119,7 @@ public final class UpdateAnalyzer {
                                                       TransactionContext txnCtx,
                                                       AbstractTableRelation table,
                                                       EvaluatingNormalizer normalizer,
+                                                      SubqueryAnalyzer subqueryAnalyzer,
                                                       ExpressionAnalyzer sourceExprAnalyzer,
                                                       ExpressionAnalysisContext exprCtx) {
         HashMap<Reference, Symbol> assignmentByTargetCol = new HashMap<>();
@@ -124,7 +128,7 @@ public final class UpdateAnalyzer {
             txnCtx,
             typeHints,
             new NameFieldProvider(table),
-            null
+            subqueryAnalyzer
         );
         targetExprAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
         assert assignments instanceof RandomAccess

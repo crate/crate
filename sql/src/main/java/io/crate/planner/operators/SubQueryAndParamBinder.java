@@ -24,11 +24,12 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.symbol.FunctionCopyVisitor;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.ParamSymbols;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.Map;
 
@@ -43,14 +44,14 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
         return binder.apply(symbol);
     }
 
-    SubQueryAndParamBinder(Row params, Map<SelectSymbol, Object> subQueryValues) {
+    public SubQueryAndParamBinder(Row params, Map<SelectSymbol, Object> subQueryValues) {
         this.params = params;
         this.subQueryValues = subQueryValues;
     }
 
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
-        return ParamSymbols.convert(parameterSymbol, params);
+        return convert(parameterSymbol, params);
     }
 
     @Override
@@ -65,5 +66,14 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     @Override
     public Symbol apply(Symbol symbol) {
         return process(symbol, null);
+    }
+
+    private static Symbol convert(ParameterSymbol parameterSymbol, Row params) {
+        DataType type = parameterSymbol.valueType();
+        Object value = params.get(parameterSymbol.index());
+        if (type.equals(DataTypes.UNDEFINED)) {
+            type = DataTypes.guessType(value);
+        }
+        return Literal.of(type, type.value(value));
     }
 }

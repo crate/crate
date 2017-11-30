@@ -75,7 +75,7 @@ public final class UpdateById implements Plan {
             executor.transportActionProvider().transportShardUpsertAction(),
             this
         );
-        task.execute(consumer, params);
+        task.execute(consumer, params, valuesBySubQuery);
     }
 
     @Override
@@ -90,6 +90,6 @@ public final class UpdateById implements Plan {
             executor.transportActionProvider().transportShardUpsertAction(),
             this
         );
-        return task.executeBulk(bulkParams);
+        return task.executeBulk(bulkParams, valuesBySubQuery);
     }
 }

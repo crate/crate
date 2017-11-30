@@ -36,6 +36,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 
@@ -897,5 +898,34 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         for (SQLBulkResponse.Result result : resp.results()) {
             assertThat(result.rowCount(), is(-2L));
         }
+    }
+
+
+    @Test
+    public void testUpdateByQueryWithSubQuery() throws Exception {
+        execute("create table t1 (x int)");
+        execute("insert into t1 (x) values (1), (2)");
+        execute("refresh table t1");
+        execute("update t1 set x = (select 3) where x = (select 1)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("refresh table t1");
+        execute("select x from t1 order by x asc");
+        assertThat(printedTable(response.rows()), is("2\n" +
+                                                     "3\n"));
+    }
+
+    @Test
+    public void testUpdateByIdWithSubQuery() throws Exception {
+        execute("create table t1 (id int primary key, name string)");
+        execute("insert into t1 (id, name) values (1, 'Arthur'), (2, 'Trillian')");
+        execute("refresh table t1");
+        execute("update t1 set name = (select 'Slartibartfast') where id = (select 1)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("refresh table t1");
+        execute("select id, name from t1 order by id asc");
+        assertThat(printedTable(response.rows()), is("1| Slartibartfast\n" +
+                                                     "2| Trillian\n"));
     }
 }

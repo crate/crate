@@ -67,6 +67,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -232,7 +233,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(DataTypes.LONG, ref.valueType());
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), Row.EMPTY);
+        Symbol[] sources = assignments.bindSources(
+            ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, emptyMap());
         assertThat(sources[0], isLiteral(9L));
     }
 
@@ -310,7 +312,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast {} to type string");
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params));
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
     }
 
     @Test
@@ -319,7 +321,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set friends=? where other_id=0");
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params));
+        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
 
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
@@ -427,7 +429,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         };
         AnalyzedUpdateStatement update = analyze("update users set new=? where id=1");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params));
+        Symbol[] sources = assignments.bindSources(
+            ((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
 
         DataType dataType = sources[0].valueType();
         assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
@@ -445,7 +448,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast [a, b] to type string");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params));
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), emptyMap());
     }
 
     @Test
@@ -547,7 +550,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             e.getPlannerContext(clusterService.state()),
             new TestingRowConsumer(),
             params,
-            Collections.emptyMap()
+            emptyMap()
         );
     }
 }

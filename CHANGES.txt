@@ -52,7 +52,7 @@ Changes
 - Added the ``typtype`` column to ``pg_catalog.pg_type`` for better
   compatibility with certain postgres client libraries.
 
-- Added support for scalar subqueries in DELETE statements.
+- Added support for scalar subqueries in DELETE and UPDATE statements.
 
 - Introduced support for UNION ALL to produce the combined result of two or
   more queries, e.g.:

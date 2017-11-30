@@ -31,7 +31,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.ParamSymbols;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -52,13 +51,17 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
@@ -69,7 +72,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.singletonList;
@@ -80,15 +82,29 @@ public final class UpdatePlanner {
     private UpdatePlanner() {
     }
 
-    public static Plan plan(AnalyzedUpdateStatement update, Functions functions, PlannerContext plannerCtx) {
+    public static Plan plan(AnalyzedUpdateStatement update,
+                            Functions functions,
+                            PlannerContext plannerCtx,
+                            SubqueryPlanner subqueryPlanner) {
         AbstractTableRelation table = update.table();
+        Plan plan;
         if (table instanceof DocTableRelation) {
             DocTableRelation docTable = (DocTableRelation) table;
-            return plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx);
+            plan = plan(docTable, update.assignmentByTargetCol(), update.query(), functions, plannerCtx);
+        } else {
+            plan = new Update((plannerContext, params, subQueryValues) ->
+                sysUpdate(
+                    plannerContext,
+                    (TableRelation) table,
+                    update.assignmentByTargetCol(),
+                    update.query(),
+                    params,
+                    subQueryValues
+                )
+            );
         }
-
-        return new Update((plannerContext, params) ->
-            sysUpdate(plannerContext, (TableRelation) table, update.assignmentByTargetCol(), update.query(), params));
+        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(update);
+        return MultiPhasePlan.createIfNeeded(plan, subQueries);
     }
 
     private static Plan plan(DocTableRelation docTable,
@@ -105,16 +121,21 @@ public final class UpdatePlanner {
             return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get());
         }
 
-        return new Update((plannerContext, params) ->
-            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, query, params));
+        return new Update((plannerContext, params, subQueryValues) ->
+            updateByQuery(functions, plannerContext, docTable, assignmentByTargetCol, query, params, subQueryValues));
+    }
+
+    @FunctionalInterface
+    public interface CreateExecutionPlan {
+        ExecutionPlan create(PlannerContext plannerCtx, Row params, Map<SelectSymbol, Object> subQueryValues);
     }
 
     public static class Update implements Plan {
 
         @VisibleForTesting
-        public final BiFunction<PlannerContext, Row, ExecutionPlan> createExecutionPlan;
+        public final CreateExecutionPlan createExecutionPlan;
 
-        Update(BiFunction<PlannerContext, Row, ExecutionPlan> createExecutionPlan) {
+        Update(CreateExecutionPlan createExecutionPlan) {
             this.createExecutionPlan = createExecutionPlan;
         }
 
@@ -124,7 +145,7 @@ public final class UpdatePlanner {
                             RowConsumer consumer,
                             Row params,
                             Map<SelectSymbol, Object> valuesBySubQuery) {
-            ExecutionPlan executionPlan = createExecutionPlan.apply(plannerContext, params);
+            ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
 
             ExecutionPhasesTask task = new ExecutionPhasesTask(
@@ -147,7 +168,7 @@ public final class UpdatePlanner {
                                                          Map<SelectSymbol, Object> valuesBySubQuery) {
             List<NodeOperationTree> nodeOpTreeList = new ArrayList<>(bulkParams.size());
             for (Row params : bulkParams) {
-                ExecutionPlan executionPlan = createExecutionPlan.apply(plannerContext, params);
+                ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
                 nodeOpTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }
             ExecutionPhasesTask task = new ExecutionPhasesTask(
@@ -168,11 +189,11 @@ public final class UpdatePlanner {
                                            TableRelation table,
                                            Map<Reference, Symbol> assignmentByTargetCol,
                                            Symbol query,
-                                           Row params) {
+                                           Row params, Map<SelectSymbol, Object> subQueryValues) {
         TableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         SysUpdateProjection updateProjection = new SysUpdateProjection(idReference.valueType(), assignmentByTargetCol);
-        WhereClause where = new WhereClause(ParamSymbols.toLiterals(query, params));
+        WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryValues));
         return createCollectAndMerge(plannerContext, tableInfo, idReference, updateProjection, where);
     }
 
@@ -181,16 +202,17 @@ public final class UpdatePlanner {
                                                DocTableRelation table,
                                                Map<Reference, Symbol> assignmentByTargetCol,
                                                Symbol query,
-                                               Row params) {
+                                               Row params,
+                                               Map<SelectSymbol, Object> subQueryValues) {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol);
-        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params);
+        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryValues);
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()), assignments.targetNames(), assignmentSources, null);
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, table);
         WhereClause where = whereClauseAnalyzer.analyze(
-            ParamSymbols.toLiterals(query, params), plannerCtx.transactionContext());
+            SubQueryAndParamBinder.convert(query, params, subQueryValues), plannerCtx.transactionContext());
         if (where.hasVersions()) {
             throw new VersionInvalidException();
         }
