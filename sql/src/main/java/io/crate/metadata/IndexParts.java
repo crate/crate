@@ -113,13 +113,6 @@ public class IndexParts {
         return this.schema.equals(schema);
     }
 
-    /**
-     * Encodes the index parts to a CrateDB index name.
-     */
-    public String toIndexName() {
-        return toIndexName(schema, table, partitionIdent);
-    }
-
     /////////////////////////
     // Static utility methods
     /////////////////////////

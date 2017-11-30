@@ -25,26 +25,22 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
 import io.crate.sql.tree.Expression;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class ESClusterUpdateSettingsPlan implements Plan {
 
     private final Map<String, List<Expression>> persistentSettings;
     private final Map<String, List<Expression>> transientSettings;
-    private final UUID jobId;
 
-    public ESClusterUpdateSettingsPlan(UUID jobId,
-                                       Map<String, List<Expression>> persistentSettings,
+    public ESClusterUpdateSettingsPlan(Map<String, List<Expression>> persistentSettings,
                                        Map<String, List<Expression>> transientSettings) {
-        this.jobId = jobId;
         this.persistentSettings = persistentSettings;
         // always override transient settings with persistent ones, so they won't get overridden
         // on cluster settings merge, which prefers the transient ones over the persistent ones
@@ -53,8 +49,8 @@ public class ESClusterUpdateSettingsPlan implements Plan {
         this.transientSettings.putAll(transientSettings);
     }
 
-    public ESClusterUpdateSettingsPlan(UUID jobId, Map<String, List<Expression>> persistentSettings) {
-        this(jobId, persistentSettings, persistentSettings); // override stale transient settings too in that case
+    public ESClusterUpdateSettingsPlan(Map<String, List<Expression>> persistentSettings) {
+        this(persistentSettings, persistentSettings); // override stale transient settings too in that case
     }
 
     public Map<String, List<Expression>> persistentSettings() {

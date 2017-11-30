@@ -252,7 +252,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         for (String setting : settingsToRemove) {
             nullSettings.put(setting, null);
         }
-        return new ESClusterUpdateSettingsPlan(context.jobId(), nullSettings, nullSettings);
+        return new ESClusterUpdateSettingsPlan(nullSettings, nullSettings);
     }
 
     @Override
@@ -269,10 +269,9 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             case GLOBAL:
             default:
                 if (setStatement.isPersistent()) {
-                    return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
+                    return new ESClusterUpdateSettingsPlan(setStatement.settings());
                 } else {
                     return new ESClusterUpdateSettingsPlan(
-                        context.jobId(),
                         Collections.emptyMap(),
                         setStatement.settings()
                     );
@@ -299,7 +298,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         }
         DocTableInfo tableInfo = analysis.tableInfo();
         LegacyUpsertById legacyUpsertById = new LegacyUpsertById(
-            context.jobId(),
             analysis.numBulkResponses(),
             tableInfo.isPartitioned(),
             analysis.bulkIndices(),

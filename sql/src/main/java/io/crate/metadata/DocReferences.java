@@ -26,8 +26,6 @@ import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 
-import java.util.function.Predicate;
-
 /**
  * Visitor to change a _doc reference into a regular column reference.
  * <p/>
@@ -60,17 +58,6 @@ public final class DocReferences {
     }
 
     /**
-     * Replace any suitable references within tree with _doc references if condition matches.
-     * Suitable references are any non-system columns from user tables with DOC granularity.
-     * <pre>
-     *     x -> _doc['x']
-     * </pre>
-     */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
-        return RefReplacer.replaceRefs(tree, r -> DocReferences.toSourceLookup(r, condition));
-    }
-
-    /**
      * Rewrite the reference to do a source lookup if possible.
      * @see #toSourceLookup(Symbol)
      *
@@ -86,21 +73,6 @@ public final class DocReferences {
         if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())) {
             return reference.getRelocated(
                 new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.Names.DOC)));
-        }
-        return reference;
-    }
-
-    /**
-     * Rewrite the reference to do a source lookup if possible and given condition matches.
-     * @see #toSourceLookup(Reference)
-     *
-     * <pre>
-     *     x -> _doc['x']
-     * </pre>
-     */
-    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
-        if (condition.test(reference)) {
-            return toSourceLookup(reference);
         }
         return reference;
     }

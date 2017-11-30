@@ -36,7 +36,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -105,7 +104,6 @@ public class LegacyUpsertById implements Plan {
     }
 
 
-    private final UUID jobId;
     private final int numBulkResponses;
     private final boolean isPartitioned;
     private final List<Item> items;
@@ -116,26 +114,17 @@ public class LegacyUpsertById implements Plan {
     @Nullable
     private final Reference[] insertColumns;
 
-    public LegacyUpsertById(UUID jobId,
-                            int numBulkResponses,
+    public LegacyUpsertById(int numBulkResponses,
                             boolean isPartitioned,
                             List<Integer> bulkIndices,
                             @Nullable String[] updateColumns,
                             @Nullable Reference[] insertColumns) {
-        this.jobId = jobId;
         this.numBulkResponses = numBulkResponses;
         this.isPartitioned = isPartitioned;
         this.bulkIndices = bulkIndices;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
-    }
-
-    public static LegacyUpsertById forUpdate(UUID jobId,
-                                             int numBulkResponses,
-                                             boolean isPartitioned,
-                                             @Nullable String[] updateColumns) {
-        return new LegacyUpsertById(jobId, numBulkResponses, isPartitioned, new ArrayList<>(), updateColumns, null);
     }
 
     @Nullable
@@ -158,14 +147,6 @@ public class LegacyUpsertById implements Plan {
 
     public List<Integer> bulkIndices() {
         return bulkIndices;
-    }
-
-    public void add(String index,
-                    String id,
-                    String routing,
-                    Symbol[] updateAssignments,
-                    @Nullable Long version) {
-        add(index, id, routing, updateAssignments, version, null);
     }
 
     public void add(String index,

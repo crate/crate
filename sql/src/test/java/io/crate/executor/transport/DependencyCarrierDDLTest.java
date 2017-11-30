@@ -29,8 +29,8 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.PartitionName;
-import io.crate.planner.Plan;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
@@ -51,7 +51,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -178,7 +177,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(true)));
         }};
 
-        ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings);
+        ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(persistentSettings);
         Bucket objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
@@ -191,7 +190,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("123s")));
         }};
 
-        node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), ImmutableMap.<String, List<Expression>>of(), transientSettings);
+        node = new ESClusterUpdateSettingsPlan(ImmutableMap.<String, List<Expression>>of(), transientSettings);
         objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
@@ -208,7 +207,7 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             put(transientSetting, ImmutableList.<Expression>of(Literal.fromObject("243s")));
         }};
 
-        node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings, transientSettings);
+        node = new ESClusterUpdateSettingsPlan(persistentSettings, transientSettings);
         objects = executePlan(node);
 
         MetaData md = client().admin().cluster().prepareState().execute().actionGet().getState().metaData();

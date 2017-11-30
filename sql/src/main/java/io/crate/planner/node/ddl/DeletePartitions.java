@@ -61,10 +61,6 @@ public class DeletePartitions implements Plan {
         return partitions;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
-    }
-
     @Override
     public void execute(DependencyCarrier executor,
                         PlannerContext plannerContext,
