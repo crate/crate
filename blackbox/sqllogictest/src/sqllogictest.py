@@ -303,6 +303,8 @@ def run_file(filename, host, port, log_level, log_file, failfast):
                         raise e
                 else:
                     logger.debug('%s; %s', cmd[1], 'Query is whitelisted', extra=attr)
+            except NotImplementedError as e:
+                logger.warn('%s; %s', s_or_q.query, e, extra=attr)
     finally:
         fh.close()
         _drop_tables(cursor)
