@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.symbol.FieldsVisitor;
@@ -43,7 +42,6 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,15 +60,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  * intermediate fetches occur by passing all columns to the nested plans
  * and setting {@code FetchMode.NEVER_CLEAR}.
  */
-public class Union implements LogicalPlan {
-
-    private final List<Symbol> unionOutputs;
-    private final LogicalPlan lhs;
-    private final LogicalPlan rhs;
-
-    private final HashMap<Symbol, Symbol> expressionMapping;
-
-    private final ArrayList<AbstractTableRelation> baseTables;
+public class Union extends TwoInputPlan {
 
     static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedColsByParent) -> {
@@ -119,16 +109,8 @@ public class Union implements LogicalPlan {
         });
     }
 
-    private Union(List<Symbol> outputs, LogicalPlan lhs, LogicalPlan rhs) {
-        this.unionOutputs = outputs;
-        this.lhs = lhs;
-        this.rhs = rhs;
-        this.baseTables = new ArrayList<>();
-        this.baseTables.addAll(lhs.baseTables());
-        this.baseTables.addAll(rhs.baseTables());
-        this.expressionMapping = new HashMap<>();
-        this.expressionMapping.putAll(lhs.expressionMapping());
-        this.expressionMapping.putAll(rhs.expressionMapping());
+    Union(List<Symbol> outputs, LogicalPlan lhs, LogicalPlan rhs) {
+        super(lhs, rhs, outputs);
     }
 
     @Override
@@ -181,28 +163,8 @@ public class Union implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan lhsCollapsed = lhs.tryCollapse();
-        LogicalPlan rhsCollapsed = rhs.tryCollapse();
-        if (lhs != lhsCollapsed || rhs != rhsCollapsed) {
-            return new Union(unionOutputs, lhsCollapsed, rhsCollapsed);
-        }
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return unionOutputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return baseTables;
+    protected LogicalPlan newInstance(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
+        return new Union(outputs, newLeftSource, newRightSource);
     }
 
     @Override

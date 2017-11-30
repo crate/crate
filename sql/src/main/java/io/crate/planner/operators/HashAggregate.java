@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -52,14 +51,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class HashAggregate implements LogicalPlan {
+public class HashAggregate extends OneInputPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
-    final LogicalPlan source;
     final List<Function> aggregates;
 
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
-        this.source = source;
+        super(source);
         this.aggregates = aggregates;
     }
 
@@ -143,7 +141,7 @@ public class HashAggregate implements LogicalPlan {
         if (collapsed == source) {
             return this;
         }
-        return new HashAggregate(collapsed, aggregates);
+        return newInstance(collapsed);
     }
 
     @Override
@@ -152,18 +150,8 @@ public class HashAggregate implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new HashAggregate(newSource, aggregates);
     }
 
     @Override

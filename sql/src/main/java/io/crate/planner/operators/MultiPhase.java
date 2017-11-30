@@ -22,12 +22,9 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
@@ -36,20 +33,13 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
-import java.util.List;
 import java.util.Map;
 
 /**
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
  * It's used to describe that other logical plans needed to be executed first.
   */
-public class MultiPhase implements LogicalPlan {
-
-    @VisibleForTesting
-    final LogicalPlan source;
-
-    @VisibleForTesting
-    final Map<LogicalPlan, SelectSymbol> subQueries;
+public class MultiPhase extends OneInputPlan {
 
     public static LogicalPlan createIfNeeded(LogicalPlan source,
                                              QueriedRelation relation,
@@ -62,9 +52,8 @@ public class MultiPhase implements LogicalPlan {
     }
 
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        this.source = source;
-        this.subQueries = subQueries;
-        this.subQueries.putAll(source.dependencies());
+        super(source, subQueries);
+        subQueries.putAll(source.dependencies());
     }
 
     @Override
@@ -81,28 +70,8 @@ public class MultiPhase implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return subQueries;
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new MultiPhase(newSource, dependencies);
     }
 
     @Override

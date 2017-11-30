@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
@@ -38,15 +37,12 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class Order implements LogicalPlan {
+class Order extends OneInputPlan {
 
-    final LogicalPlan source;
     final OrderBy orderBy;
-    private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
@@ -61,9 +57,8 @@ class Order implements LogicalPlan {
     }
 
     private Order(LogicalPlan source, OrderBy orderBy) {
-        this.source = source;
+        super(source, Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols()));
         this.orderBy = orderBy;
-        this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
     }
 
     @Override
@@ -107,37 +102,8 @@ class Order implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == source) {
-            return this;
-        }
-        return new Order(collapsed, orderBy);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new Order(newSource, orderBy);
     }
 
     @Override
