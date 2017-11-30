@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
@@ -76,20 +75,13 @@ import java.util.stream.Stream;
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-public class Join implements LogicalPlan {
+public class Join extends TwoInputPlan {
 
-    final LogicalPlan lhs;
-    final LogicalPlan rhs;
-    final List<Symbol> outputs;
     final JoinType joinType;
 
     @Nullable
     private final Symbol joinCondition;
     private final boolean isFiltered;
-
-    private final HashMap<Symbol, Symbol> expressionMapping;
-
-    private final ArrayList<AbstractTableRelation> baseTables;
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedColsByParent) -> {
@@ -282,22 +274,16 @@ public class Join implements LogicalPlan {
                  JoinType joinType,
                  @Nullable Symbol joinCondition,
                  boolean isFiltered) {
-        this.lhs = lhs;
-        this.rhs = rhs;
+        super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
         this.joinCondition = joinCondition;
         this.isFiltered = isFiltered;
         if (joinType == JoinType.SEMI) {
-            this.outputs = lhs.outputs();
+            this.outputs.addAll(lhs.outputs());
         } else {
-            this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+            this.outputs.addAll(lhs.outputs());
+            this.outputs.addAll(rhs.outputs());
         }
-        this.baseTables = new ArrayList<>();
-        this.baseTables.addAll(lhs.baseTables());
-        this.baseTables.addAll(rhs.baseTables());
-        this.expressionMapping = new HashMap<>();
-        this.expressionMapping.putAll(lhs.expressionMapping());
-        this.expressionMapping.putAll(rhs.expressionMapping());
     }
 
     @Override
@@ -451,28 +437,8 @@ public class Join implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan lhsCollapsed = lhs.tryCollapse();
-        LogicalPlan rhsCollapsed = rhs.tryCollapse();
-        if (lhs != lhsCollapsed || rhs != rhsCollapsed) {
-            return new Join(lhsCollapsed, rhsCollapsed, joinType, joinCondition, isFiltered);
-        }
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return baseTables;
+    protected LogicalPlan newInstance(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
+        return new Join(newLeftSource, newRightSource, joinType, joinCondition, isFiltered);
     }
 
     @Override

@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -44,7 +43,7 @@ import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-public class Get implements LogicalPlan {
+public class Get extends ZeroInputPlan {
 
     public static LogicalPlan create(QueriedDocTable table) {
         QuerySpec querySpec = table.querySpec();
@@ -64,15 +63,14 @@ public class Get implements LogicalPlan {
     private final DocTableRelation tableRelation;
     private final QuerySpec querySpec;
     private final DocKeys docKeys;
-    private final List<Symbol> outputs;
     private final Symbol limit;
     private final Symbol offset;
 
     private Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs, Symbol limit, Symbol offset) {
+        super(outputs, Collections.singletonList(table.tableRelation()));
         this.tableRelation = table.tableRelation();
         this.querySpec = table.querySpec();
         this.docKeys = docKeys;
-        this.outputs = outputs;
         this.limit = limit;
         this.offset = offset;
     }
@@ -99,32 +97,6 @@ public class Get implements LogicalPlan {
         );
     }
 
-    @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return Collections.singletonList(tableRelation);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Collections.emptyMap();
-    }
-
-    @Override
     public long numExpectedRows() {
         return docKeys.size();
     }

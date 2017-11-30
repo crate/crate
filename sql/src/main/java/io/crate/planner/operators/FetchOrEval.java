@@ -106,10 +106,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *                Fetch 500
  * </pre>
  */
-class FetchOrEval implements LogicalPlan {
-
-    final LogicalPlan source;
-    final List<Symbol> outputs;
+class FetchOrEval extends OneInputPlan {
 
     private final FetchMode fetchMode;
     private final boolean doFetch;
@@ -170,8 +167,7 @@ class FetchOrEval implements LogicalPlan {
     }
 
     private FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
-        this.source = source;
-        this.outputs = outputs;
+        super(source, outputs);
         this.fetchMode = fetchMode;
         this.doFetch = doFetch;
     }
@@ -435,37 +431,8 @@ class FetchOrEval implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == this) {
-            return this;
-        }
-        return new FetchOrEval(collapsed, outputs, fetchMode, doFetch);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new FetchOrEval(newSource, outputs, fetchMode, doFetch);
     }
 
     @Override

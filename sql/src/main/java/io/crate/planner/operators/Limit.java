@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
@@ -46,9 +45,8 @@ import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
-class Limit implements LogicalPlan {
+class Limit extends OneInputPlan {
 
-    final LogicalPlan source;
     final Symbol limit;
     final Symbol offset;
 
@@ -64,7 +62,7 @@ class Limit implements LogicalPlan {
     }
 
     private Limit(LogicalPlan source, Symbol limit, Symbol offset) {
-        this.source = source;
+        super(source);
         this.limit = limit;
         this.offset = offset;
     }
@@ -102,32 +100,8 @@ class Limit implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == source) {
-            return this;
-        }
-        return new Limit(collapsed, limit, offset);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new Limit(newSource, limit, offset);
     }
 
     @Override
