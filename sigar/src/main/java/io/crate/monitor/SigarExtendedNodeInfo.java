@@ -26,6 +26,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.monitor.os.OsProbe;
+import org.elasticsearch.monitor.os.OsStats;
 import org.hyperic.sigar.CpuPerc;
 import org.hyperic.sigar.FileSystem;
 import org.hyperic.sigar.FileSystemMap;
@@ -175,6 +177,8 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         Sigar sigar = sigarService.sigar();
 
         ExtendedOsStats.Cpu cpu;
+        // bypass another caching since probe is cached anyway already
+        OsStats osStats = OsProbe.getInstance().osStats();
         try {
             CpuPerc cpuPerc = sigar.getCpuPerc();
             cpu = new ExtendedOsStats.Cpu(
@@ -188,7 +192,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
             cpu = new ExtendedOsStats.Cpu();
         }
 
-        ExtendedOsStats stats = new ExtendedOsStats(cpu);
+        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats);
         stats.timestamp(System.currentTimeMillis());
 
         try {

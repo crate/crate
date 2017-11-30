@@ -22,16 +22,27 @@
 
 package io.crate.monitor;
 
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.SingleObjectCache;
+import org.elasticsearch.monitor.os.OsProbe;
+import org.elasticsearch.monitor.os.OsStats;
+
 import java.util.Collections;
 
 public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
 
+    private static final TimeValue PROBE_CACHE_TIME = TimeValue.timeValueMillis(500L);
+    private final ExtendedOsStatsCache osStatsCache;
+
     private static final ExtendedNetworkStats NETWORK_STATS = new ExtendedNetworkStats(new ExtendedNetworkStats.Tcp());
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE);
     private static final ExtendedFsStats FS_STATS = new ExtendedFsStats(new ExtendedFsStats.Info());
-    private static final ExtendedOsStats OS_STATS = new ExtendedOsStats(new ExtendedOsStats.Cpu());
     private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(Collections.<String, Object>emptyMap());
     private static final ExtendedProcessCpuStats PROCESS_CPU_STATS = new ExtendedProcessCpuStats();
+
+    public ZeroExtendedNodeInfo() {
+        this.osStatsCache = new ExtendedOsStatsCache(PROBE_CACHE_TIME, osStatsProbe());
+    }
 
     @Override
     public ExtendedNetworkStats networkStats() {
@@ -50,7 +61,15 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
 
     @Override
     public ExtendedOsStats osStats() {
-        return OS_STATS;
+        return osStatsCache.getOrRefresh();
+    }
+
+    private ExtendedOsStats osStatsProbe() {
+        ExtendedOsStats.Cpu cpu = new ExtendedOsStats.Cpu();
+        OsStats osStats = OsProbe.getInstance().osStats();
+        ExtendedOsStats stats = new ExtendedOsStats(cpu, osStats);
+        stats.timestamp(System.currentTimeMillis());
+        return stats;
     }
 
     @Override
@@ -61,5 +80,20 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
     @Override
     public ExtendedProcessCpuStats processCpuStats() {
         return PROCESS_CPU_STATS;
+    }
+
+    /**
+     * Cache for osStats()
+     */
+    private class ExtendedOsStatsCache extends SingleObjectCache<ExtendedOsStats> {
+
+        ExtendedOsStatsCache(TimeValue interval, ExtendedOsStats initValue) {
+            super(interval, initValue);
+        }
+
+        @Override
+        protected ExtendedOsStats refresh() {
+            return osStatsProbe();
+        }
     }
 }

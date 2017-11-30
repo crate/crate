@@ -24,6 +24,8 @@ package io.crate.monitor;
 
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.monitor.os.OsProbe;
+import org.elasticsearch.monitor.os.OsStats;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -81,10 +83,11 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
     @Override
     public ExtendedOsStats osStats() {
         ExtendedOsStats.Cpu cpuStats = new ExtendedOsStats.Cpu((short) 0, (short) 4, (short) 94, (short) 10);
-        ExtendedOsStats osStats = new ExtendedOsStats(cpuStats);
-        osStats.uptime(3600L);
-        osStats.loadAverage(new double[]{1, 5, 15});
-        return osStats;
+        OsStats osStats = OsProbe.getInstance().osStats();
+        ExtendedOsStats extendedOsStats = new ExtendedOsStats(cpuStats, osStats);
+        extendedOsStats.uptime(3600L);
+        extendedOsStats.loadAverage(new double[]{1, 5, 15});
+        return extendedOsStats;
     }
 
     @Override

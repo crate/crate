@@ -35,7 +35,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItems;
@@ -212,14 +213,14 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
                                            " os['cgroup']['cpu']['time_throttled_nanos']" +
                                            " from sys.nodes limit 1");
             assertThat(response.rowCount(), is(1L));
-            assertThat((String) response.rows()[0][0], containsString("/"));
-            assertThat((long) response.rows()[0][1], greaterThanOrEqualTo(-1L));
-            assertThat((String) response.rows()[0][2], containsString("/"));
-            assertThat((long) response.rows()[0][3], greaterThanOrEqualTo(-1L));
-            assertThat((long) response.rows()[0][4], greaterThanOrEqualTo(-1L));
-            assertThat((long) response.rows()[0][5], greaterThanOrEqualTo(-1L));
-            assertThat((long) response.rows()[0][6], greaterThanOrEqualTo(-1L));
-            assertThat((long) response.rows()[0][7], greaterThanOrEqualTo(-1L));
+            assertThat(response.rows()[0][0], notNullValue());
+            assertThat((long) response.rows()[0][1], greaterThanOrEqualTo(0L));
+            assertThat(response.rows()[0][2], notNullValue());
+            assertThat((long) response.rows()[0][3], greaterThanOrEqualTo(0L));
+            assertThat((long) response.rows()[0][4], anyOf(equalTo(-1L), greaterThanOrEqualTo(0L)));
+            assertThat((long) response.rows()[0][5], greaterThanOrEqualTo(0L));
+            assertThat((long) response.rows()[0][6], greaterThanOrEqualTo(0L));
+            assertThat((long) response.rows()[0][7], greaterThanOrEqualTo(0L));
         } else {
             // for all other OS cgroup fields should return `null`
             response = execute("select os['cgroup']," +

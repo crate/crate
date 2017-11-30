@@ -40,11 +40,10 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
     @Override
     public Map<String, Object> value() {
         if (row.isComplete()) {
-            OsStats.Cgroup cgroup = row.osStats().getCgroup();
-            if (cgroup == null) {
-                return null;
+            OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+            if (cgroup != null) {
+                return super.value();
             }
-            return super.value();
         }
         return null;
     }
@@ -62,11 +61,10 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         @Override
         public Map<String, Object> value() {
             if (row.isComplete()) {
-                OsStats.Cgroup cgroup = row.osStats().getCgroup();
-                if (cgroup == null) {
-                    return null;
+                OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+                if (cgroup != null) {
+                    return super.value();
                 }
-                return super.value();
             }
             return null;
         }
@@ -99,11 +97,10 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         @Override
         public Map<String, Object> value() {
             if (row.isComplete()) {
-                OsStats.Cgroup cgroup = row.osStats().getCgroup();
-                if (cgroup == null) {
-                    return null;
+                OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+                if (cgroup != null) {
+                    return super.value();
                 }
-                return super.value();
             }
             return null;
         }

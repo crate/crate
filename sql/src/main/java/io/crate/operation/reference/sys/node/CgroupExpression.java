@@ -38,11 +38,10 @@ final class CgroupExpression<R> extends RowContextCollectorExpression<NodeStatsC
     @Override
     public R value() {
         if (row.isComplete()) {
-            OsStats.Cgroup cgroup = row.osStats().getCgroup();
-            if (cgroup == null) {
-                return null;
+            OsStats.Cgroup cgroup = row.extendedOsStats().osStats().getCgroup();
+            if (cgroup != null) {
+                return getter.apply(cgroup);
             }
-            return getter.apply(cgroup);
         }
         return null;
     }

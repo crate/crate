@@ -22,10 +22,12 @@
 
 package io.crate.monitor;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.monitor.os.OsStats;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class ExtendedOsStats implements Streamable {
 
     private Cpu cpu;
+    private OsStats osStats;
 
     private long timestamp;
     private long uptime = -1;
@@ -47,8 +50,9 @@ public class ExtendedOsStats implements Streamable {
     public ExtendedOsStats() {
     }
 
-    public ExtendedOsStats(Cpu cpu) {
+    public ExtendedOsStats(Cpu cpu, OsStats osStats) {
         this.cpu = cpu;
+        this.osStats = osStats;
     }
 
     public long timestamp() {
@@ -79,6 +83,11 @@ public class ExtendedOsStats implements Streamable {
         return cpu;
     }
 
+    public OsStats osStats() {
+        return osStats;
+    }
+
+    @VisibleForTesting
     public void cpu(Cpu cpu) {
         this.cpu = cpu;
     }
@@ -89,6 +98,7 @@ public class ExtendedOsStats implements Streamable {
         uptime = in.readLong();
         loadAverage = in.readDoubleArray();
         cpu = in.readOptionalStreamable(Cpu::new);
+        osStats = in.readOptionalWriteable(OsStats::new);
     }
 
     @Override
@@ -97,6 +107,7 @@ public class ExtendedOsStats implements Streamable {
         out.writeLong(uptime);
         out.writeDoubleArray(loadAverage);
         out.writeOptionalStreamable(cpu);
+        out.writeOptionalWriteable(osStats);
     }
 
     public static class Cpu implements Streamable {
