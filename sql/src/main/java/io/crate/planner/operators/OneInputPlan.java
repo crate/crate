@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +56,16 @@ abstract class OneInputPlan extends LogicalPlanBase {
                  Map<LogicalPlan, SelectSymbol> dependencies) {
         super(outputs, expressionMapping, baseTables, dependencies);
         this.source = source;
+    }
+
+
+    @Override
+    public LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown) {
+        LogicalPlan newPlan = source.tryPushDown(pushDown);
+        if (newPlan != source) {
+            return newInstance(newPlan);
+        }
+        return this;
     }
 
     @Override

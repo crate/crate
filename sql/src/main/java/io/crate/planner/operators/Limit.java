@@ -100,6 +100,15 @@ class Limit extends OneInputPlan {
     }
 
     @Override
+    public LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            // pushing down an order past a limit is not allowed
+            return this;
+        }
+        return super.tryPushDown(pushDown);
+    }
+
+    @Override
     protected LogicalPlan newInstance(LogicalPlan newSource) {
         return new Limit(newSource, limit, offset);
     }

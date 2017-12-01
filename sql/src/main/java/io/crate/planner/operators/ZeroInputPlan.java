@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,6 +36,12 @@ abstract class ZeroInputPlan extends LogicalPlanBase {
 
     public ZeroInputPlan(List<Symbol> outputs, List<AbstractTableRelation> baseTables) {
         super(outputs, Collections.emptyMap(), baseTables, Collections.emptyMap());
+    }
+
+    @Override
+    public LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown) {
+        // We don't have any sources, so just return this instance
+        return this;
     }
 
     @Override

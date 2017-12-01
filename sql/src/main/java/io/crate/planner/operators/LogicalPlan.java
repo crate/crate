@@ -105,6 +105,30 @@ public interface LogicalPlan extends Plan {
     }
 
     /**
+     * Tries to "push-down" a LogicalPlan to this plan or the children of
+     * this plan. A push-down is an optimization which does not change the
+     * outcome of the plan but, ideally, makes it execute more efficiently.
+     *
+     * For example, pushing down an *Order*:
+     *
+     *              *Order*                      Union
+     *                 |                        /     \
+     *                 |                       /       \
+     *               Union                 *Order*  *Order*
+     *              /     \                   |        |
+     *             /       \        =>        |        |
+     *          Collect   Order             Collect  Order
+     *                      |                          |
+     *                      |                          |
+     *                   Collect                    Collect
+     *
+     * @param pushDown The LogicalPLan which gets "pushed down". {@code null} if currently
+     *                 no plan gets pushed. Still can recurse to find other push down candidates.
+     * @return A new LogicalPlan or the same plan if rewriting/optimizing is not possible.
+     */
+    LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown);
+
+    /**
      * Uses the current shard allocation information to create a physical execution plan.
      * <br />
      * {@code limit}, {@code offset}, {@code order} can be passed from one operator to another. Depending on the

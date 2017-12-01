@@ -148,7 +148,7 @@ public class Union extends TwoInputPlan {
             leftResultDesc.streamOutputs(),
             Collections.emptyList(),
             DistributionInfo.DEFAULT_BROADCAST,
-            null
+            leftResultDesc.orderBy()
         );
 
         return new UnionExecutionPlan(
@@ -160,6 +160,20 @@ public class Union extends TwoInputPlan {
             lhs.outputs().size(),
             TopN.NO_LIMIT
         );
+    }
+
+    @Override
+    public LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            LogicalPlan newLhs = lhs.tryPushDown(pushDown);
+            LogicalPlan newRhs = rhs.tryPushDown(pushDown);
+            if (newLhs != lhs && newRhs != rhs) {
+                return newInstance(newLhs, newRhs);
+            } else {
+                return this;
+            }
+        }
+        return super.tryPushDown(pushDown);
     }
 
     @Override
