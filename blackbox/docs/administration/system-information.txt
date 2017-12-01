@@ -1154,8 +1154,8 @@ executing::
 
 Copy the data from the original table to the new one by executing::
 
-  INSERT INTO table_ident_new(col1, col2, ...)
-     SELECT(col1, col2, ...) FROM table_ident;
+  INSERT INTO table_ident_new (col1, col2, ...)
+     (SELECT col1, col2, ... FROM table_ident);
 
 Make sure that you include all columns and that the columns appear in the same
 order in both lists.
