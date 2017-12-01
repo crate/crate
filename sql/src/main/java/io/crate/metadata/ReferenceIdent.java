@@ -57,16 +57,12 @@ public class ReferenceIdent {
         return tableIdent;
     }
 
-    public boolean isColumn() {
-        return columnIdent.isColumn();
-    }
-
     public ColumnIdent columnIdent() {
         return columnIdent;
     }
 
     public ReferenceIdent columnReferenceIdent() {
-        if (isColumn()) {
+        if (columnIdent.isTopLevel()) {
             return this;
         }
         return new ReferenceIdent(tableIdent, columnIdent.name());

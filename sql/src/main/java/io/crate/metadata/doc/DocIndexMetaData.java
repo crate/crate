@@ -84,7 +84,7 @@ public class DocIndexMetaData {
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(
-        Comparator.comparing(o -> o.ident().columnIdent().fqn()));
+        Comparator.comparing(o -> o.column().fqn()));
 
     // columns should be ordered
     private final ImmutableMap.Builder<ColumnIdent, Reference> referencesBuilder = ImmutableSortedMap.naturalOrder();
@@ -212,26 +212,26 @@ public class DocIndexMetaData {
                      boolean partitioned,
                      boolean isNotNull,
                      boolean columnStoreEnabled) {
-        Reference info;
+        Reference ref;
         String generatedExpression = generatedColumns.get(column.fqn());
         if (generatedExpression == null) {
-            info = newInfo(column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
+            ref = newInfo(column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
         } else {
-            info = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression, isNotNull);
+            ref = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression, isNotNull);
         }
 
         // don't add it if there is a partitioned equivalent of this column
         if (partitioned || !(partitionedBy != null && partitionedBy.contains(column))) {
-            if (info.ident().isColumn()) {
-                columnsBuilder.add(info);
+            if (ref.column().isTopLevel()) {
+                columnsBuilder.add(ref);
             }
-            referencesBuilder.put(info.ident().columnIdent(), info);
-            if (info instanceof GeneratedReference) {
-                generatedColumnReferencesBuilder.add((GeneratedReference) info);
+            referencesBuilder.put(ref.column(), ref);
+            if (ref instanceof GeneratedReference) {
+                generatedColumnReferencesBuilder.add((GeneratedReference) ref);
             }
         }
         if (partitioned) {
-            partitionedByColumnsBuilder.add(info);
+            partitionedByColumnsBuilder.add(ref);
         }
     }
 

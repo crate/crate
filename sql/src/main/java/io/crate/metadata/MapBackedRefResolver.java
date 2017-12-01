@@ -40,7 +40,7 @@ public final class MapBackedRefResolver implements ReferenceResolver<ReferenceIm
 
     static ReferenceImplementation lookupMapWithChildTraversal(Map<ReferenceIdent, ReferenceImplementation> implByIdent,
                                                                ReferenceIdent ident) {
-        if (ident.isColumn()) {
+        if (ident.columnIdent().isTopLevel()) {
             return implByIdent.get(ident);
         }
         ReferenceImplementation<?> impl = implByIdent.get(ident.columnReferenceIdent());

@@ -82,7 +82,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         ColumnIdent tmpCI = ci;
         Reference tmpRI = reference;
 
-        while (!tmpCI.isColumn() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
+        while (!tmpCI.isTopLevel() && hasMatchingParent(tmpRI, IS_OBJECT_ARRAY)) {
             if (DataTypes.isCollectionType(reference.valueType()) &&
                 Schemas.isDefaultOrCustomSchema(reference.ident().tableIdent().schema())) {
                 // Arrays inside object arrays cannot be queried to to the limitations of term queries.
@@ -138,7 +138,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
                 if (reference.valueType().equals(DataTypes.NOT_SUPPORTED)) {
                     continue;
                 }
-                ColumnIdent columnIdent = reference.ident().columnIdent();
+                ColumnIdent columnIdent = reference.column();
                 outputs.add(getField(columnIdent));
             }
         }
@@ -160,8 +160,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
      * returns true for a parent column of this one.
      * returns false if info has no parent column.
      */
-    private boolean hasMatchingParent(Reference info, Predicate<Reference> parentMatchPredicate) {
-        ColumnIdent parent = info.ident().columnIdent().getParent();
+    private boolean hasMatchingParent(Reference ref, Predicate<Reference> parentMatchPredicate) {
+        ColumnIdent parent = ref.column().getParent();
         while (parent != null) {
             Reference parentInfo = tableInfo.getReference(parent);
             if (parentMatchPredicate.test(parentInfo)) {
@@ -172,8 +172,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return false;
     }
 
-    private boolean hasNestedObjectReference(Reference info) {
-        ColumnIdent parent = info.ident().columnIdent().getParent();
+    private boolean hasNestedObjectReference(Reference ref) {
+        ColumnIdent parent = ref.column().getParent();
         if (parent != null) {
             Reference parentRef = tableInfo.getReference(parent);
             if (parentRef.valueType().id() == ObjectType.ID) {

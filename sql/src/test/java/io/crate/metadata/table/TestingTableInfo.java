@@ -222,15 +222,15 @@ public class TestingTableInfo extends DocTableInfo {
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            Reference info = new Reference(new ReferenceIdent(ident, column, path),
+            Reference ref = new Reference(new ReferenceIdent(ident, column, path),
                 rowGranularity, type, columnPolicy, indexType, nullable);
-            if (info.ident().isColumn()) {
-                columns.add(info);
+            if (ref.column().isTopLevel()) {
+                columns.add(ref);
             }
-            references.put(info.ident().columnIdent(), info);
+            references.put(ref.column(), ref);
             if (partitionBy) {
-                partitionedByColumns.add(info);
-                partitionedBy.add(info.ident().columnIdent());
+                partitionedByColumns.add(ref);
+                partitionedBy.add(ref.ident().columnIdent());
             }
             return this;
         }
@@ -245,17 +245,17 @@ public class TestingTableInfo extends DocTableInfo {
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            GeneratedReference info = new GeneratedReference(new ReferenceIdent(ident, column),
+            GeneratedReference ref = new GeneratedReference(new ReferenceIdent(ident, column),
                 rowGranularity, type, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, expression, nullable);
 
-            generatedColumns.add(info);
-            if (info.ident().isColumn()) {
-                columns.add(info);
+            generatedColumns.add(ref);
+            if (ref.column().isTopLevel()) {
+                columns.add(ref);
             }
-            references.put(info.ident().columnIdent(), info);
+            references.put(ref.column(), ref);
             if (partitionBy) {
-                partitionedByColumns.add(info);
-                partitionedBy.add(info.ident().columnIdent());
+                partitionedByColumns.add(ref);
+                partitionedBy.add(ref.column());
             }
             return this;
         }

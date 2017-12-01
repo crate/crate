@@ -209,7 +209,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         NotNullConstraintIterator(TableInfo tableInfo) {
             this.tableInfo = tableInfo;
             nullableColumns = StreamSupport.stream(tableInfo.spliterator(), false)
-                .filter(reference -> reference.ident().columnIdent().isSystemColumn() == false &&
+                .filter(reference -> reference.column().isSystemColumn() == false &&
                                      reference.valueType() != DataTypes.NOT_SUPPORTED &&
                                      reference.isNullable() == false)
                 .iterator();
@@ -236,7 +236,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 .append("_")
                 .append(this.tableInfo.ident().name())
                 .append("_")
-                .append(this.nullableColumns.next().ident().columnIdent().name())
+                .append(this.nullableColumns.next().column().name())
                 .append("_not_null")
                 .toString();
 
@@ -271,7 +271,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         ColumnsIterator(TableInfo tableInfo) {
             columns = StreamSupport.stream(tableInfo.spliterator(), false)
-                .filter(reference -> !reference.ident().columnIdent().isSystemColumn()
+                .filter(reference -> !reference.column().isSystemColumn()
                                      && reference.valueType() != DataTypes.NOT_SUPPORTED).iterator();
             this.tableInfo = tableInfo;
         }
@@ -286,11 +286,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
             if (!hasNext()) {
                 throw new NoSuchElementException("Columns iterator exhausted");
             }
-            Reference column = columns.next();
-            if (column.ident().isColumn() == false) {
-                return new ColumnContext(tableInfo, column, null);
+            Reference colRef = columns.next();
+            if (colRef.column().isTopLevel() == false) {
+                return new ColumnContext(tableInfo, colRef, null);
             }
-            return new ColumnContext(tableInfo, column, ordinal++);
+            return new ColumnContext(tableInfo, colRef, ordinal++);
         }
     }
 

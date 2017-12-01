@@ -55,11 +55,11 @@ public class ColumnRegistrar {
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type) {
-        Reference info = new Reference(new ReferenceIdent(tableIdent, column), rowGranularity, type);
-        if (info.ident().isColumn()) {
-            columnsBuilder.add(info);
+        Reference ref = new Reference(new ReferenceIdent(tableIdent, column), rowGranularity, type);
+        if (ref.column().isTopLevel()) {
+            columnsBuilder.add(ref);
         }
-        infosBuilder.put(info.ident().columnIdent(), info);
+        infosBuilder.put(ref.column(), ref);
         return this;
     }
 

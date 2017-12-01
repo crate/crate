@@ -66,7 +66,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
             if (order instanceof Reference) {
-                final ColumnIdent columnIdent = ((Reference) order).ident().columnIdent();
+                final ColumnIdent columnIdent = ((Reference) order).column();
                 if (columnIdent.isSystemColumn()) {
                     // We can't optimize the initial query because the BooleanQuery
                     // must not contain system columns.

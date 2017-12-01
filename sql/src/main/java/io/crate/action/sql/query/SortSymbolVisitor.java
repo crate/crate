@@ -130,9 +130,9 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
          * See {@link org.elasticsearch.search.sort.ScoreSortBuilder}
          */
 
-        ColumnIdent columnIdent = symbol.ident().columnIdent();
+        ColumnIdent columnIdent = symbol.column();
 
-        if (columnIdent.isColumn()) {
+        if (columnIdent.isTopLevel()) {
             if (DocSysColumns.SCORE.equals(columnIdent)) {
                 return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
             } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {

@@ -129,7 +129,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     public Boolean isRawSourceInsert() {
         if (isRawSourceInsert == null) {
             isRawSourceInsert =
-                insertColumns.length == 1 && insertColumns[0].ident().columnIdent().equals(DocSysColumns.RAW);
+                insertColumns.length == 1 && insertColumns[0].column().equals(DocSysColumns.RAW);
         }
         return isRawSourceInsert;
     }

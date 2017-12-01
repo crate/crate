@@ -297,7 +297,7 @@ public class EqualityExtractor {
             if (this == NULL_MARKER_PROXY) {
                 return "NULL";
             }
-            String s = "(" + ((Reference) origin.arguments().get(0)).ident().columnIdent().fqn() + "=" +
+            String s = "(" + ((Reference) origin.arguments().get(0)).column().fqn() + "=" +
                        ((Literal) origin.arguments().get(1)).value() + ")";
             if (current != origin) {
                 s += " TRUE";
@@ -388,7 +388,7 @@ public class EqualityExtractor {
 
         @Override
         public Symbol visitReference(Reference symbol, Context context) {
-            if (!context.comparisons.containsKey(symbol.ident().columnIdent())) {
+            if (!context.comparisons.containsKey(symbol.column())) {
                 context.seenUnknown = true;
             }
             return super.visitReference(symbol, context);
@@ -400,7 +400,7 @@ public class EqualityExtractor {
             if (functionName.equals(EqOperator.NAME)) {
                 if (function.arguments().get(0) instanceof Reference) {
                     Comparison comparison = context.comparisons.get(
-                        ((Reference) function.arguments().get(0)).ident().columnIdent());
+                        ((Reference) function.arguments().get(0)).column());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         return comparison.add(function);
@@ -411,8 +411,7 @@ public class EqualityExtractor {
                 // ref = any ([1,2,3])
                 if (function.arguments().get(0) instanceof Reference) {
                     Reference reference = (Reference) function.arguments().get(0);
-                    Comparison comparison = context.comparisons.get(
-                        reference.ident().columnIdent());
+                    Comparison comparison = context.comparisons.get(reference.column());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         return comparison.add(function);

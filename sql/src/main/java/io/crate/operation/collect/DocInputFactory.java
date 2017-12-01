@@ -78,7 +78,7 @@ public class DocInputFactory {
         Function<Object, Object> valueConversion;
         switch (dataType.id()) {
             case IpType.ID:
-                MappedFieldType mappedFieldType = fieldTypeLookup.get(ref.ident().columnIdent().fqn());
+                MappedFieldType mappedFieldType = fieldTypeLookup.get(ref.column().fqn());
                 if (mappedFieldType == null) {
                     valueConversion = dataType::value;
                 } else {

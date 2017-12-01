@@ -362,7 +362,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(16, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
         assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).valueType());
-        assertThat(md.partitionedByColumns().get(0).ident().columnIdent().fqn(), is("datum"));
+        assertThat(md.partitionedByColumns().get(0).column().fqn(), is("datum"));
 
         assertThat(md.partitionedBy().size(), is(1));
         assertThat(md.partitionedBy().get(0), is(ColumnIdent.fromPath("datum")));

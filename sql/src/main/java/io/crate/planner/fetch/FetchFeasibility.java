@@ -53,7 +53,7 @@ public final class FetchFeasibility extends SymbolVisitor<Collection<? super Sym
 
     @Override
     public Boolean visitReference(Reference ref, Collection<? super Symbol> querySymbols) {
-        if (querySymbols.contains(ref) || ref.ident().columnIdent().equals(DocSysColumns.SCORE)) {
+        if (querySymbols.contains(ref) || ref.column().equals(DocSysColumns.SCORE)) {
             return false;
         }
         return true;

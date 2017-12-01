@@ -77,11 +77,11 @@ public final class DocReferences {
         return reference;
     }
 
-    private static Reference docRefToRegularRef(Reference reference) {
-        ReferenceIdent ident = reference.ident();
-        if (!ident.isColumn() && ident.columnIdent().name().equals(DocSysColumns.Names.DOC)) {
-            return reference.getRelocated(new ReferenceIdent(ident.tableIdent(), ident.columnIdent().shiftRight()));
+    private static Reference docRefToRegularRef(Reference ref) {
+        ColumnIdent column = ref.column();
+        if (!column.isTopLevel() && column.name().equals(DocSysColumns.Names.DOC)) {
+            return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
         }
-        return reference;
+        return ref;
     }
 }

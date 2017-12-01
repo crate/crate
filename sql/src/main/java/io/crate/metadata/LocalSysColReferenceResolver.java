@@ -44,7 +44,7 @@ public class LocalSysColReferenceResolver implements ReferenceResolver<RowCollec
 
     @Override
     public RowCollectExpression<NodeStatsContext, ?> getImplementation(Reference ref) {
-        return expressionMap.get(ref.ident().columnIdent());
+        return expressionMap.get(ref.column());
     }
 
     public Collection<RowCollectExpression<NodeStatsContext, ?>> expressions() {

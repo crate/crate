@@ -64,7 +64,7 @@ abstract class AbstractInsertAnalyzer {
                 if (i >= maxInsertValues) {
                     break;
                 }
-                addColumn(columnInfo.ident().columnIdent(), context, i);
+                addColumn(columnInfo.column(), context, i);
                 i++;
             }
 
@@ -104,9 +104,9 @@ abstract class AbstractInsertAnalyzer {
         Reference reference = context.tableInfo().getReference(columnIdent);
         if (reference instanceof GeneratedReference) {
             for (Reference referencedReference : ((GeneratedReference) reference).referencedReferences()) {
-                for (Reference column : context.columns()) {
-                    if (column.equals(referencedReference) ||
-                        referencedReference.ident().columnIdent().isChildOf(column.ident().columnIdent())) {
+                for (Reference columnRef : context.columns()) {
+                    if (columnRef.equals(referencedReference) ||
+                        referencedReference.column().isChildOf(columnRef.column())) {
                         return true;
                     }
                 }

@@ -63,7 +63,7 @@ public final class Assignments {
         int i = 0;
         for (Map.Entry<Reference, ? extends Symbol> entry : assignments.entrySet()) {
             Reference key = entry.getKey();
-            targetNames[i] = key.ident().columnIdent().fqn();
+            targetNames[i] = key.column().fqn();
             assignmentSymbols[i] = entry.getValue();
             targetColumns[i] = key;
             i++;

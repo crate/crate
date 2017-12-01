@@ -481,7 +481,7 @@ public class ProjectionToProjectorVisitor
                 StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(tableIdent);
                 readCtx = inputFactory.ctxForRefs(tableDefinition.getReferenceResolver());
             }
-            assignmentCols.add(ref.ident().columnIdent());
+            assignmentCols.add(ref.column());
             Input<?> sourceInput = readCtx.add(e.getValue());
             valueInputs.add(sourceInput);
         }

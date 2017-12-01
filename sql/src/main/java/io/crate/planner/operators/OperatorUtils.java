@@ -64,7 +64,7 @@ final class OperatorUtils {
                 continue;
             }
             RefVisitor.visitRefs(symbol, r -> {
-                if (!usedColumns.contains(r) && !Symbols.containsColumn(usedColumns, r.ident().columnIdent())) {
+                if (!usedColumns.contains(r) && !Symbols.containsColumn(usedColumns, r.column())) {
                     unusedCols.add(r);
                 }
             });

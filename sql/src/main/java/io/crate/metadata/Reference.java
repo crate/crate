@@ -39,26 +39,13 @@ import java.util.Objects;
 
 public class Reference extends Symbol {
 
-    public static final Comparator<Reference> COMPARE_BY_COLUMN_IDENT = new Comparator<Reference>() {
-        @Override
-        public int compare(Reference o1, Reference o2) {
-            return o1.ident().columnIdent().compareTo(o2.ident().columnIdent());
-        }
-    };
-
-    public static final Function<? super Reference, ColumnIdent> TO_COLUMN_IDENT = new Function<Reference, ColumnIdent>() {
-        @Nullable
-        @Override
-        public ColumnIdent apply(@Nullable Reference input) {
-            return input == null ? null : input.ident.columnIdent();
-        }
-    };
+    public static final Comparator<Reference> COMPARE_BY_COLUMN_IDENT = Comparator.comparing(Reference::column);
 
     public static final Function<? super Reference, String> TO_COLUMN_NAME = new Function<Reference, String>() {
         @Nullable
         @Override
         public String apply(@Nullable Reference input) {
-            return input == null ? null : input.ident.columnIdent().sqlFqn();
+            return input == null ? null : input.column().sqlFqn();
         }
     };
 
@@ -147,6 +134,10 @@ public class Reference extends Symbol {
 
     public ReferenceIdent ident() {
         return ident;
+    }
+
+    public ColumnIdent column() {
+        return ident.columnIdent();
     }
 
     public RowGranularity granularity() {

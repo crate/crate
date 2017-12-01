@@ -76,10 +76,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             refInfo = DocReferences.toSourceLookup(refInfo);
         }
 
-        ColumnIdent columnIdent = refInfo.ident().columnIdent();
+        ColumnIdent columnIdent = refInfo.column();
         String name = columnIdent.name();
         if (RawCollectorExpression.COLUMN_NAME.equals(name)) {
-            if (columnIdent.isColumn()) {
+            if (columnIdent.isTopLevel()) {
                 return new RawCollectorExpression();
             } else {
                 // TODO: implement an Object source expression which may support subscripts

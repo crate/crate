@@ -355,7 +355,7 @@ class FetchOrEval implements LogicalPlan {
                 DocTableRelation rel = resolveDocTableRelation(output);
                 m.put(rel, new InputColumn(i, DataTypes.LONG));
             } else if (output instanceof Reference &&
-                       ((Reference) output).ident().columnIdent().equals(DocSysColumns.FETCHID)) {
+                       ((Reference) output).column().equals(DocSysColumns.FETCHID)) {
                 assert source.baseTables().size() == 1 : "There must only be one table if dealing with References";
                 AbstractTableRelation tableRelation = source.baseTables().get(0);
                 assert tableRelation instanceof DocTableRelation : "baseTable must be a DocTable if there is a fetchId";

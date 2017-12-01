@@ -98,7 +98,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             }
             assert columnReference != null : "columnReference must not be null";
             DataType returnType = columnReference.valueType();
-            assignmentColumns.add(columnReference.ident().columnIdent().fqn());
+            assignmentColumns.add(columnReference.column().fqn());
             return Literal.of(returnType, returnType.value(insertValues[columns.indexOf(columnReference)]));
         }
     }
@@ -345,7 +345,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
             Reference column = context.columns().get(i);
-            final ColumnIdent columnIdent = column.ident().columnIdent();
+            final ColumnIdent columnIdent = column.column();
             Expression expression = node.values().get(i);
             Symbol valuesSymbol = normalizer.normalize(
                 expressionAnalyzer.convert(expression, expressionAnalysisContext),
@@ -417,7 +417,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 if (valuesResolver.assignmentColumns.size() == i) {
-                    valuesResolver.assignmentColumns.add(columnName.ident().columnIdent().fqn());
+                    valuesResolver.assignmentColumns.add(columnName.column().fqn());
                 }
             }
             context.addOnDuplicateKeyAssignments(onDupKeyAssignments);
@@ -546,17 +546,17 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             valueSymbol = context.normalizer.normalize(valueSymbol, context.transactionContext);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
-                if (primaryKey.contains(reference.ident().columnIdent())) {
-                    int idx = primaryKey.indexOf(reference.ident().columnIdent());
+                if (primaryKey.contains(reference.column())) {
+                    int idx = primaryKey.indexOf(reference.column());
                     addPrimaryKeyValue(idx, value, context.primaryKeyValues);
                 }
                 ColumnIdent routingColumn = context.analyzedStatement.tableInfo().clusteredBy();
-                if (routingColumn != null && routingColumn.equals(reference.ident().columnIdent())) {
+                if (routingColumn != null && routingColumn.equals(reference.column())) {
                     context.routingValue = extractRoutingValue(routingColumn, value, context.analyzedStatement);
                 }
                 if (context.tableRelation.tableInfo().isPartitioned()
                     && context.tableRelation.tableInfo().partitionedByColumns().contains(reference)) {
-                    addGeneratedPartitionedColumnValue(reference.ident().columnIdent(), value,
+                    addGeneratedPartitionedColumnValue(reference.column(), value,
                         context.analyzedStatement.currentPartitionMap());
                 } else {
                     context.insertValues = addGeneratedColumnValue(context.analyzedStatement, reference, value, context.insertValues);

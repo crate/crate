@@ -260,7 +260,7 @@ public class SymbolPrinter {
                 context.builder.append(symbol.ident().tableIdent().sqlFqn())
                     .append(DOT);
             }
-            context.builder.append(symbol.ident().columnIdent().quotedOutputName());
+            context.builder.append(symbol.column().quotedOutputName());
             return null;
         }
 

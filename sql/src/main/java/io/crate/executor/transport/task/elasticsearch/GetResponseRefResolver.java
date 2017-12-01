@@ -57,7 +57,7 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
 
     @Override
     public CollectExpression<GetResponse, ?> getImplementation(Reference ref) {
-        ColumnIdent columnIdent = ref.ident().columnIdent();
+        ColumnIdent columnIdent = ref.column();
         columnConsumer.accept(columnIdent);
         String fqn = columnIdent.fqn();
         switch (fqn) {

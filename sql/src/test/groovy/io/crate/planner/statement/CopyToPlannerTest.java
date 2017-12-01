@@ -84,8 +84,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference) node.toCollect().get(0);
 
-        assertThat(nameRef.ident().columnIdent().name(), is(DocSysColumns.DOC.name()));
-        assertThat(nameRef.ident().columnIdent().path().get(0), is("name"));
+        assertThat(nameRef.column().name(), is(DocSysColumns.DOC.name()));
+        assertThat(nameRef.column().path().get(0), is("name"));
     }
 
     @Test

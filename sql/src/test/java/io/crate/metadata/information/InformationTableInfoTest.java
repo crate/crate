@@ -51,10 +51,10 @@ public class InformationTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             String.format(Locale.ENGLISH, "columns from iterator of table %s not in alphabetical order", tableInfo.ident().fqn()),
             tableInfo,
-            TestingHelpers.isSortedBy(Reference.TO_COLUMN_IDENT));
+            TestingHelpers.isSortedBy(Reference::column));
         assertThat(
             String.format(Locale.ENGLISH, "columns of table %s not in alphabetical order", tableInfo.ident().fqn()),
             tableInfo.columns(),
-            TestingHelpers.isSortedBy(Reference.TO_COLUMN_IDENT));
+            TestingHelpers.isSortedBy(Reference::column));
     }
 }

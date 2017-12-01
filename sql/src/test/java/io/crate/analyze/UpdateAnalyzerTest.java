@@ -215,7 +215,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, instanceOf(DynamicReference.class));
         Assert.assertEquals(DataTypes.LONG, ref.valueType());
-        assertThat(ref.ident().columnIdent().isColumn(), is(false));
+        assertThat(ref.ident().columnIdent().isTopLevel(), is(false));
         assertThat(ref.ident().columnIdent().fqn(), is("details.arms"));
     }
 

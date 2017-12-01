@@ -20,7 +20,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     private Object value;
 
     public OrderByCollectorExpression(Reference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
-        super(ref.ident().columnIdent().fqn());
+        super(ref.column().fqn());
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);

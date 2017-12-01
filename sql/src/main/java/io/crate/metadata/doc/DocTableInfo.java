@@ -401,7 +401,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
         boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
-        if (!ident.isColumn()) {
+        if (!ident.isTopLevel()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
             Reference parentInfo = null;

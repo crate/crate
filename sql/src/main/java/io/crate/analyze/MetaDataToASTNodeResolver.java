@@ -105,7 +105,7 @@ public class MetaDataToASTNodeResolver {
             List<ColumnDefinition> elements = new ArrayList<>();
             while (referenceIterator.hasNext()) {
                 Reference info = referenceIterator.next();
-                ColumnIdent ident = info.ident().columnIdent();
+                ColumnIdent ident = info.column();
                 if (ident.isSystemColumn()) continue;
                 if (parent != null && !ident.isChildOf(parent)) continue;
                 if (parent == null && !ident.path().isEmpty()) continue;
@@ -174,7 +174,7 @@ public class MetaDataToASTNodeResolver {
                     constraints.add(new ColumnStorageDefinition(properties));
                 }
 
-                String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size() - 1);
+                String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
                 ColumnDefinition column = new ColumnDefinition(columnName, expression, columnType, constraints);
                 elements.add(column);
             }
@@ -197,7 +197,7 @@ public class MetaDataToASTNodeResolver {
             if (indexColumns != null) {
                 while (indexColumns.hasNext()) {
                     IndexReference indexRef = (IndexReference) indexColumns.next();
-                    String name = indexRef.ident().columnIdent().name();
+                    String name = indexRef.column().name();
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
                     if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {
                         String analyzer = indexRef.analyzer();
@@ -278,7 +278,7 @@ public class MetaDataToASTNodeResolver {
         private List<Expression> expressionsFromReferences(List<Reference> columns) {
             List<Expression> expressions = new ArrayList<>(columns.size());
             for (Reference ident : columns) {
-                expressions.add(expressionFromColumn(ident.ident().columnIdent()));
+                expressions.add(expressionFromColumn(ident.column()));
             }
             return expressions;
         }

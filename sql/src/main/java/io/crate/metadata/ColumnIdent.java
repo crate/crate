@@ -137,7 +137,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     }
 
     public static ColumnIdent getChild(ColumnIdent parent, String name) {
-        if (parent.isColumn()) {
+        if (parent.isTopLevel()) {
             return new ColumnIdent(parent.name, name);
         }
         List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
@@ -252,7 +252,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
      * person --&gt; null
      */
     public ColumnIdent getParent() {
-        if (isColumn()) {
+        if (isTopLevel()) {
             return null;
         }
 
@@ -299,7 +299,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
      * person --&gt; person
      */
     public ColumnIdent getRoot() {
-        if (isColumn()) {
+        if (isTopLevel()) {
             return this;
         }
         return new ColumnIdent(name());
@@ -310,7 +310,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     }
 
     public String fqn() {
-        if (isColumn()) {
+        if (isTopLevel()) {
             return name;
         }
         return StringUtils.PATH_JOINER.join(name, StringUtils.PATH_JOINER.join(path));
@@ -346,7 +346,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     /**
      * @return true if this is a top level column, otherwise false
      */
-    public boolean isColumn() {
+    public boolean isTopLevel() {
         return path.isEmpty();
     }
 

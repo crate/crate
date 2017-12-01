@@ -54,7 +54,7 @@ public class NodeSysReferenceResolver implements ReferenceResolver<ReferenceImpl
     public ReferenceImplementation getImplementation(Reference refInfo) {
         ReferenceIdent ident = refInfo.ident();
         if (SysNodesTableInfo.SYS_COL_NAME.equals(ident.columnIdent().name())) {
-            if (ident.columnIdent().isColumn()) {
+            if (ident.columnIdent().isTopLevel()) {
                 return nodeSysExpression;
             }
             ReferenceImplementation impl = null;

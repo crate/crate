@@ -233,7 +233,7 @@ class InsertFromSubQueryAnalyzer {
                 "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
                 failedSource,
                 failedSource.valueType(),
-                failedTarget.ident().columnIdent().fqn(),
+                failedTarget.column().fqn(),
                 failedTarget.valueType()
             ));
         }

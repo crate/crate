@@ -218,7 +218,7 @@ class CopyAnalyzer {
                 overwrites = new HashMap<>();
                 for (Reference reference : tableRelation.tableInfo().partitionedByColumns()) {
                     if (!(reference instanceof GeneratedReference)) {
-                        overwrites.put(reference.ident().columnIdent(), reference);
+                        overwrites.put(reference.column(), reference);
                     }
                 }
                 if (overwrites.size() > 0) {

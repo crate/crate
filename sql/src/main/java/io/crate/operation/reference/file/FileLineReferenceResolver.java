@@ -42,7 +42,7 @@ public final class FileLineReferenceResolver {
     }
 
     public static LineCollectorExpression<?> getImplementation(Reference refInfo) {
-        ColumnIdent columnIdent = refInfo.ident().columnIdent();
+        ColumnIdent columnIdent = refInfo.column();
         Supplier<LineCollectorExpression<?>> supplier = EXPRESSION_BUILDER.get(columnIdent.name());
         if (supplier == null) {
             return new ColumnExtractingLineExpression(columnIdent);

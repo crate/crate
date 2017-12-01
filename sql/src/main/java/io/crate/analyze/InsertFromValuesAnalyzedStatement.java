@@ -57,7 +57,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
                 partitionMap = new HashMap<>(tableInfo.partitionedByColumns().size());
                 for (Reference partInfo : tableInfo.partitionedByColumns()) {
                     // initialize with null values for missing partitioned columns
-                    partitionMap.put(partInfo.ident().columnIdent().name(), null);
+                    partitionMap.put(partInfo.column().name(), null);
                 }
             }
         }
@@ -72,7 +72,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         Map<String, String> map = new HashMap<>(tableInfo().partitionedByColumns().size());
         for (Reference partInfo : tableInfo().partitionedByColumns()) {
             // initialize with null values for missing partitioned columns
-            map.put(partInfo.ident().columnIdent().fqn(), null);
+            map.put(partInfo.column().fqn(), null);
         }
         partitionMaps.add(map);
         return map;
@@ -87,7 +87,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         assert tableInfo != null : "tableInfo must not be null";
         List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
         for (Reference info : tableInfo.partitionedByColumns()) {
-            names.add(info.ident().columnIdent().fqn());
+            names.add(info.column().fqn());
         }
         return names;
     }
