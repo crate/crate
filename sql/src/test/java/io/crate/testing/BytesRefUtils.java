@@ -81,10 +81,8 @@ public class BytesRefUtils {
             }
             if (value instanceof Set) {
                 row[stringCollectionColumn.value] = setToStringArray(((Set<BytesRef>) value));
-            } else if (value instanceof BytesRef[]) {
-                row[stringCollectionColumn.value] = objectArrayToStringArray(((BytesRef[]) value));
             } else if (value instanceof Object[]) {
-                row[stringCollectionColumn.value] = objectArrayToStringArray(((Object[]) value));
+                row[stringCollectionColumn.value] = ensureStringValuesInArray((Object[]) value);
             }
         }
     }
@@ -135,12 +133,34 @@ public class BytesRefUtils {
         return strings;
     }
 
-    private static String[] objectArrayToStringArray(Object[] values) {
-        String[] strings = new String[values.length];
-        for (int i = 0; i < strings.length; i++) {
-            strings[i] = BytesRefs.toString(values[i]);
+    private static Object[] ensureStringValuesInArray(Object[] values) {
+        if (values.length > 0) {
+            int idx = 0;
+            Object firstNotNull = values[idx];
+            while (firstNotNull == null && idx < values.length) {
+                firstNotNull = values[idx++];
+            }
+            if (firstNotNull == null) {
+                return values;
+            } else if (firstNotNull instanceof BytesRef) {
+                // Column is ARRAY(STRING)
+                // we want to be able to cast the value in the sql response to String[]
+                String[] converted = new String[values.length];
+                for (int i = 0; i < converted.length; i++) {
+                    converted[i] = BytesRefs.toString(values[i]);
+                }
+                return converted;
+            } else if (firstNotNull instanceof Map) {
+                // Column is ARRAY(OBJECT)
+                Map[] converted = new Map[values.length];
+                for (int i = 0; i < converted.length; i++) {
+                    converted[i] = ensureStringValuesInMap((Map<String, Object>) values[i]);
+                }
+                return converted;
+            }
+            return values;
         }
-        return strings;
+        return new Object[0];
     }
 
     private static Map<String, Object> ensureStringValuesInMap(Map<String, Object> value) {
@@ -152,10 +172,8 @@ public class BytesRefUtils {
             }
             if (innerValue instanceof BytesRef) {
                 entry.setValue(BytesRefs.toString(innerValue));
-            } else if (innerValue instanceof BytesRef[]) {
-                entry.setValue(objectArrayToStringArray((BytesRef[]) innerValue));
             } else if (innerValue instanceof Object[]) {
-                entry.setValue(objectArrayToStringArray((Object[]) innerValue));
+                entry.setValue(ensureStringValuesInArray((Object[]) innerValue));
             } else if (innerValue instanceof Map) {
                 entry.setValue(ensureStringValuesInMap((Map<String, Object>) innerValue));
             }

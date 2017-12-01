@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BytesRefUtils;
 import io.crate.types.ArrayType;
@@ -34,6 +35,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -85,14 +87,18 @@ public class BytesRefUtilsTest extends CrateUnitTest {
     public void testConvertObjectValues() throws Exception {
         DataType[] dataTypes = new DataType[]{ DataTypes.OBJECT };
         Object[][] rows = new Object[1][1];
-        Map<String, Object> res = new HashMap<>();
-        res.put("str", BytesRefs.toBytesRef("string value"));
-        res.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null });
-        Map<String, Object> nested = new HashMap<>();
-        nested.put("str", BytesRefs.toBytesRef("other value"));
-        nested.put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v2"), null });
-        res.put("nested", nested);
-        rows[0][0] = res;
+        rows[0][0] = ImmutableMap.<String, Object>builder()
+            .put("str", BytesRefs.toBytesRef("string value"))
+            .put("str_array", new BytesRef[]{ BytesRefs.toBytesRef("v1"), null })
+            .put("nested", ImmutableMap.builder()
+                .put("str", BytesRefs.toBytesRef("other value"))
+                .put("str_array", new BytesRef[]{ null, BytesRefs.toBytesRef("v2") })
+                .put("obj_array", new Map[]{
+                    Collections.singletonMap("key", BytesRefs.toBytesRef("value"))
+                })
+                .build())
+            .build();
+
         BytesRefUtils.ensureStringTypesAreStrings(dataTypes, rows);
 
         Map<String, Object> result = (Map<String, Object>) rows[0][0];
@@ -101,6 +107,7 @@ public class BytesRefUtilsTest extends CrateUnitTest {
         result = (Map<String, Object>) result.get("nested");
         assertThat(result.get("str"), is("other value"));
         assertThat((String[]) result.get("str_array"), Matchers.arrayContainingInAnyOrder("v2", null));
+        assertThat(result.get("obj_array"), is(new Map[]{ Collections.singletonMap("key", "value") }));
     }
 
 }
