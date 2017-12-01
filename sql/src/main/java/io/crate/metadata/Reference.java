@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
@@ -32,7 +31,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
@@ -40,14 +38,6 @@ import java.util.Objects;
 public class Reference extends Symbol {
 
     public static final Comparator<Reference> COMPARE_BY_COLUMN_IDENT = Comparator.comparing(Reference::column);
-
-    public static final Function<? super Reference, String> TO_COLUMN_NAME = new Function<Reference, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable Reference input) {
-            return input == null ? null : input.column().sqlFqn();
-        }
-    };
 
     public enum IndexType {
         ANALYZED,
