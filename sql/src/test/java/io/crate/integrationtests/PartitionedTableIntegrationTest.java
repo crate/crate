@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -240,11 +241,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select table_schema, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
                 "from information_schema.tables where table_schema='my_schema' and table_name='parted'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
+        assertThat(printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select table_schema, table_name from information_schema.tables where table_name like '%parted%'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "my_schema| parted\n"));
 
         execute("select count(*) from my_schema.parted");
@@ -1767,7 +1768,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select o['i'], o['name'] from t");
         assertThat((Integer) response.rows()[0][0], Matchers.is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
-        assertEquals("t| 04132\n", TestingHelpers.printedTable(response.rows()));
+        assertEquals("t| 04132\n", printedTable(response.rows()));
     }
 
     @Test
@@ -1904,25 +1905,25 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("refresh table event");
         waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "NULL\n" +
             "ciao\n" +
             "hello\n"));
 
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls last");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "ciao\n" +
             "hello\n" +
             "NULL\n"));
 
         execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls first");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "NULL\n" +
             "hello\n" +
             "ciao\n"));
 
         execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls last");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "hello\n" +
             "ciao\n" +
             "NULL\n"));
@@ -1944,7 +1945,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "where data['sessionid'] is null " +
                 "order by number");
         assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "{sessionid=null}\n" +
             "NULL\n"));
 
@@ -1957,7 +1958,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "from event " +
                 "where data['sessionid'] in ('hello', 'goodbye') " +
                 "order by number DESC");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "{sessionid=hello}\n"));
     }
 
@@ -2115,5 +2116,16 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(" / by zero");
         execute("select id/0 from t1");
+    }
+
+    @Test
+    public void testSelectPartitionValueFromInformationSchema() throws Exception {
+        execute("create table t1 (p int, obj object as (p int)) " +
+                "partitioned by (p, obj['p']) " +
+                "clustered into 1 shards");
+        execute("insert into t1 (p, obj) values (1, {p=10})");
+
+        execute("select values['p'], values['obj[''p'']'] from information_schema.table_partitions");
+        assertThat(printedTable(response.rows()), is("1| 10\n"));
     }
 }
