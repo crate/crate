@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,11 +49,14 @@ abstract class TwoInputPlan extends LogicalPlanBase {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan lhsCollapsed = lhs.tryCollapse();
-        LogicalPlan rhsCollapsed = rhs.tryCollapse();
-        if (lhs != lhsCollapsed || rhs != rhsCollapsed) {
-            return newInstance(lhsCollapsed, rhsCollapsed);
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown != null) {
+            return null;
+        }
+        LogicalPlan newLhs = lhs.tryOptimize(null);
+        LogicalPlan newRhs = rhs.tryOptimize(null);
+        if (newLhs != lhs || newRhs != rhs) {
+            return updateSources(newLhs, newRhs);
         }
         return this;
     }
@@ -70,5 +74,5 @@ abstract class TwoInputPlan extends LogicalPlanBase {
      * @param newRightSource A new {@link} LogicalPlan as the right source.
      * @return A new copy of this {@link OneInputPlan} with the new sources.
      */
-    protected abstract LogicalPlan newInstance(LogicalPlan newLeftSource, LogicalPlan newRightSource);
+    protected abstract LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource);
 }

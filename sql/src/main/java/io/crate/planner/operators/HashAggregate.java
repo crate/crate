@@ -128,8 +128,12 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown != null) {
+            // can't push down anything
+            return null;
+        }
+        LogicalPlan collapsed = source.tryOptimize(null);
         if (collapsed instanceof Collect &&
             ((Collect) collapsed).tableInfo instanceof DocTableInfo &&
             aggregates.size() == 1 &&
@@ -141,7 +145,7 @@ public class HashAggregate extends OneInputPlan {
         if (collapsed == source) {
             return this;
         }
-        return newInstance(collapsed);
+        return updateSource(collapsed);
     }
 
     @Override
@@ -150,7 +154,7 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new HashAggregate(newSource, aggregates);
     }
 

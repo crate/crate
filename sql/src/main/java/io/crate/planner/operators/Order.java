@@ -37,6 +37,7 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,8 +103,45 @@ class Order extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
-        return new Order(newSource, orderBy);
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            // We can overwrite this Order with the Order being pushed down
+            // because the order of the results will be changed anyway further
+            // downstream.
+            return source.tryOptimize(pushDown);
+        }
+        if (pushDown != null) {
+            // already pushing down something else
+            return null;
+        }
+        // try pushing down this Order (if possible)
+        LogicalPlan optimize = source.tryOptimize(this);
+        if (optimize == null) {
+            return super.tryOptimize(null);
+        }
+        return optimize;
+    }
+
+    @Override
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
+        // Replaces any Symbols which were part of the old orderBy
+        // with the Symbols of the new orderBy at the same position.
+        // This ensures that the orderBy is performed performed
+        // correctly when it's sources have changed.
+        // See tryOptimize of Union
+        List<Symbol> oldOutputs = source.outputs();
+        List<Symbol> newOutputs = newSource.outputs();
+        OrderBy newOrderBy = this.orderBy.copyAndReplace(
+            (symbol) -> {
+                int idx = oldOutputs.indexOf(symbol);
+                if (idx != -1) {
+                    return newOutputs.get(idx);
+                }
+                throw new IllegalStateException("All symbols of this OrderBy should be replaceable " +
+                                                "with Symbols of the new source.");
+            }
+        );
+        return new Order(newSource, newOrderBy);
     }
 
     @Override

@@ -72,12 +72,7 @@ public class Insert extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new Insert(newSource, relation, projection);
     }
 

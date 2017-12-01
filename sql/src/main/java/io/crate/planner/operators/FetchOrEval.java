@@ -431,7 +431,18 @@ class FetchOrEval extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            LogicalPlan newPlan = source.tryOptimize(pushDown);
+            if (newPlan != null && newPlan != source) {
+                return updateSource(newPlan);
+            }
+        }
+        return super.tryOptimize(pushDown);
+    }
+
+    @Override
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new FetchOrEval(newSource, outputs, fetchMode, doFetch);
     }
 

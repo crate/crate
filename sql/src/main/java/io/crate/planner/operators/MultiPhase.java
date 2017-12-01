@@ -70,7 +70,7 @@ public class MultiPhase extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new MultiPhase(newSource, dependencies);
     }
 

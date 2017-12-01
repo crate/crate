@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -68,13 +69,12 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select id from users " +
             "union all " +
             "select id from locations " +
-            "order by id limit 1");
+            "order by id limit 2");
         assertThat(plan, instanceOf(UnionExecutionPlan.class));
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
-        assertThat(unionExecutionPlan.orderBy(), is(nullValue()));
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class)
         ));
         assertThat(unionExecutionPlan.left(), instanceOf(Collect.class));
@@ -87,12 +87,13 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select * from (select id from users order by id limit 2) a " +
             "union all " +
             "select id from locations " +
-            "order by id limit 1");
+            "order by id limit 2");
         assertThat(plan, instanceOf(UnionExecutionPlan.class));
         UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
         assertThat(unionExecutionPlan.orderBy(), is(nullValue()));
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
+            instanceOf(TopNProjection.class),
             instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class)
         ));

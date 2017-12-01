@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -57,11 +58,16 @@ abstract class OneInputPlan extends LogicalPlanBase {
         this.source = source;
     }
 
+
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan newPlan = source.tryCollapse();
-        if (source != newPlan) {
-            return newInstance(newPlan);
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown != null) {
+            // can't push down
+            return null;
+        }
+        LogicalPlan newPlan = source.tryOptimize(null);
+        if (newPlan != source) {
+            return updateSource(newPlan);
         }
         return this;
     }
@@ -87,6 +93,6 @@ abstract class OneInputPlan extends LogicalPlanBase {
      * @param newSource A new {@link LogicalPlan} as a source.
      * @return A new copy of this {@link OneInputPlan} with the new source.
      */
-    protected abstract LogicalPlan newInstance(LogicalPlan newSource);
+    protected abstract LogicalPlan updateSource(LogicalPlan newSource);
 
 }

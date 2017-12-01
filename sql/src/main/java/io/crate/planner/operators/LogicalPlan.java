@@ -105,6 +105,55 @@ public interface LogicalPlan extends Plan {
     }
 
     /**
+     * Tried to optimize the plan and its dependencies to execute more efficiently.
+     * This is done by creating optimized operators or "pushing down" parts of the
+     * plan.
+     *
+     * Optimized operators
+     *
+     * For example: Aggregate(count(*)) + Collect => Count
+     *
+     * Push Down
+     *
+     * Tries to "push-down" a LogicalPlan to this plan or the children of
+     * this plan. A push-down is an optimization which changes the plan by
+     * performing operations earlier in the plan tree. Ideally, it makes
+     * the plan execute more efficiently.
+     *
+     * For example, pushing down an *Order*:
+     *
+     *       *Order*                   Union
+     *          |                     /     \
+     *          |                    /       \
+     *        Union              *Order*  *Order*
+     *       /     \                |        |
+     *      /       \      =>       |        |
+     *   Collect   Order          Collect  Order
+     *               |                       |
+     *               |                       |
+     *            Collect                 Collect
+     *
+     * Then combining two Order(s):
+     *
+     *        Union                  Union
+     *       /     \                /     \
+     *      /       \              /       \
+     *   Order   *Order*        Order   *Order*
+     *     |        |             |        |
+     *     |        |      =>     |        |
+     *   Order   *Order*       Collect  Collect
+     *              |
+     *              |
+     *           Collect
+     *
+     * @param pushDown The LogicalPlan which gets "pushed down". {@code null} if currently
+     *                 no plan gets pushed. If null, recurses to find other push down candidates.
+     * @return A new LogicalPlan or null if rewriting/optimizing is not possible.
+     */
+    @Nullable
+    LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown);
+
+    /**
      * Uses the current shard allocation information to create a physical execution plan.
      * <br />
      * {@code limit}, {@code offset}, {@code order} can be passed from one operator to another. Depending on the
@@ -118,12 +167,6 @@ public interface LogicalPlan extends Plan {
                         @Nullable Integer pageSizeHint,
                         Row params,
                         Map<SelectSymbol, Object> subQueryValues);
-
-    /**
-     * Used to generate optimized operators.
-     * E.g. Aggregate(count(*)) + Collect -> Count
-     */
-    LogicalPlan tryCollapse();
 
     List<Symbol> outputs();
 

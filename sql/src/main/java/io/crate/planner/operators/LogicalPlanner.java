@@ -96,10 +96,11 @@ public class LogicalPlanner {
             softLimit = plannerContext.softLimit();
             fetchSize = plannerContext.fetchSize();
         }
-        return plan(
+        LogicalPlan plan = plan(
             selectSymbol.relation(),
             PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize)
-        ).tryCollapse();
+        );
+        return tryOptimize(plan);
     }
 
     public LogicalPlan plan(QueriedRelation queriedRelation,
@@ -109,10 +110,24 @@ public class LogicalPlanner {
         QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
 
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true)
-            .build(tableStats, new HashSet<>(relation.outputs()))
-            .tryCollapse();
+            .build(tableStats, new HashSet<>(relation.outputs()));
 
-        return MultiPhase.createIfNeeded(logicalPlan, relation, subqueryPlanner);
+        LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
+
+        return MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner);
+    }
+
+    /**
+     * Runs {@link LogicalPlan}.tryOptimize and returns an optimized plan.
+     * @param plan The original plan
+     * @return The optimized plan or the original if optimizing is not possible
+     */
+    private static LogicalPlan tryOptimize(LogicalPlan plan) {
+        LogicalPlan optimizedPlan = plan.tryOptimize(null);
+        if (optimizedPlan == null) {
+            return plan;
+        }
+        return optimizedPlan;
     }
 
     static LogicalPlan.Builder plan(QueriedRelation relation,

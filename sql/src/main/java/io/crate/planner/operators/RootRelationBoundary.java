@@ -64,7 +64,7 @@ public class RootRelationBoundary extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new RootRelationBoundary(newSource);
     }
 

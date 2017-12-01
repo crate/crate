@@ -437,7 +437,7 @@ public class Join extends TwoInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
+    protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
         return new Join(newLeftSource, newRightSource, joinType, joinCondition, isFiltered);
     }
 

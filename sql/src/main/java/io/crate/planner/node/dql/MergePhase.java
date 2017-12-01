@@ -74,7 +74,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
      * @param inputTypes The types of the input rows.
      * @param projections The projections to apply when merging.
      * @param distributionInfo The default strategy to use when distributing the results of the MergePhase.
-     * @param positionalOrderBy The order by positions on wich the input is pre-sorted on; setting this
+     * @param positionalOrderBy The order by positions on which the input is pre-sorted on; setting this
      *                          will result in a sorted merge.
      */
     public MergePhase(UUID jobId,

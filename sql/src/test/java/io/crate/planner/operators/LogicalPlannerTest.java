@@ -34,6 +34,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -59,12 +60,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private LogicalPlan plan(String statement) {
-        QueriedRelation relation = sqlExecutor.analyze(statement);
-        PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
-        LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-
-        return logicalPlanner.plan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+        return plan(statement, sqlExecutor, clusterService, tableStats);
     }
 
     @Test
@@ -204,6 +200,18 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "Collect[doc.t1 | [_fetchid, _score] | All]\n"));
     }
 
+    public static LogicalPlan plan(String statement,
+                                   SQLExecutor sqlExecutor,
+                                   ClusterService clusterService,
+                                   TableStats tableStats) {
+        QueriedRelation relation = sqlExecutor.analyze(statement);
+        PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+
+        return logicalPlanner.plan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+    }
+
     public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {
         return new FeatureMatcher<LogicalPlan, String>(equalTo(expectedPlan), "same output", "output ") {
 
@@ -338,6 +346,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append(count.tableRelation.tableInfo().ident());
                 sb.append(" | ");
                 sb.append(printQueryClause(symbolPrinter, count.where));
+                sb.append("]\n");
+                return sb.toString();
+            }
+            if (plan instanceof Union) {
+                Union union = (Union) plan;
+                startLine("Union[\n");
+                printPlan(union.lhs);
+                startLine("---\n");
+                printPlan(union.rhs);
                 sb.append("]\n");
                 return sb.toString();
             }

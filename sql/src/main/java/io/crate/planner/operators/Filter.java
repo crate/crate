@@ -105,7 +105,7 @@ class Filter extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new Filter(newSource, queryClause);
     }
 }

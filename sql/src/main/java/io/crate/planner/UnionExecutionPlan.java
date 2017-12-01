@@ -69,7 +69,8 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
                               int unfinishedLimit,
                               int unfinishedOffset,
                               int numOutputs,
-                              int maxRowsPerNode) {
+                              int maxRowsPerNode,
+                              @Nullable PositionalOrderBy orderBy) {
         this.left = left;
         this.right = right;
         Preconditions.checkArgument(mergePhase.numInputs() == 2,
@@ -79,6 +80,7 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
         this.unfinishedOffset = unfinishedOffset;
         this.numOutputs = numOutputs;
         this.maxRowsPerNode = maxRowsPerNode;
+        this.orderBy = orderBy;
     }
 
     public MergePhase mergePhase() {

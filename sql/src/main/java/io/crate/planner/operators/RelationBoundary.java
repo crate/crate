@@ -95,6 +95,17 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            LogicalPlan newSource = source.tryOptimize(pushDown);
+            if (newSource != null && newSource != source) {
+                return updateSource(newSource);
+            }
+        }
+        return super.tryOptimize(pushDown);
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -118,7 +129,7 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan newInstance(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new RelationBoundary(newSource, relation, outputs, expressionMapping, dependencies);
     }
 }
