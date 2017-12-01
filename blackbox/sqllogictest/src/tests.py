@@ -22,7 +22,7 @@ faulthandler.enable()
 
 # might want to change this to a blacklist at some point
 FILE_WHITELIST = [re.compile(o) for o in [
-    'select[1-4].test',
+    'select[1-5].test',
     'random/select/slt_good_\d+.test',
     'random/groupby/slt_good_\d+.test',
 ]]

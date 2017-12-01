@@ -169,17 +169,24 @@ class Query:
             if row is None:
                 rows[i] = row = 'NULL'
             fmt = self.result_formats[i % len(self.result_formats)]
-            if fmt == 'I' and row != 'NULL':
-                rows[i] = int(row)
+            if (row != 'NULL'):
+                if fmt == 'I':
+                    rows[i] = int(row)
+                elif fmt == 'R':
+                    rows[i] = float(row)
+                elif fmt == 'T':
+                    rows[i] = str(row)
 
     def execute(self, cursor):
         cursor.execute(self.query)
         rows = cursor.fetchall()
-        if self.sort == 'rowsort':
+
+        if len(rows) > 1 and self.sort == 'rowsort':
             rows = sorted(rows, key=lambda row: [str(c) for c in row])
-        elif self.sort == 'valuesort':
-            raise NotImplementedError('valuesort not implemented')
+        # flatten the row values for comparison
         rows = [col for row in rows for col in row]
+        if self.sort == 'valuesort':
+            rows = sorted(rows, key=lambda v: str(v))
         self.format_rows(rows)
         self.validate_result(rows, self.result_formats)
 
