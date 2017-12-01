@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,6 +46,16 @@ abstract class TwoInputPlan extends LogicalPlanBase {
         this.baseTables.addAll(rhs.baseTables());
         this.expressionMapping.putAll(lhs.expressionMapping());
         this.expressionMapping.putAll(rhs.expressionMapping());
+    }
+
+    @Override
+    public LogicalPlan tryPushDown(@Nullable LogicalPlan pushDown) {
+        LogicalPlan newLhs = lhs.tryPushDown(pushDown);
+        LogicalPlan newRhs = rhs.tryPushDown(pushDown);
+        if (newLhs != lhs || newRhs != rhs) {
+            return newInstance(newLhs, newRhs);
+        }
+        return this;
     }
 
     @Override

@@ -114,7 +114,9 @@ public class LogicalPlanner {
             .build(tableStats, new HashSet<>(relation.outputs()))
             .tryCollapse();
 
-        return MultiPhase.createIfNeeded(logicalPlan, relation, subqueryPlanner);
+        LogicalPlan pushDownPlan = logicalPlan.tryPushDown(null);
+
+        return MultiPhase.createIfNeeded(pushDownPlan, relation, subqueryPlanner);
     }
 
     static LogicalPlan.Builder plan(QueriedRelation relation,
