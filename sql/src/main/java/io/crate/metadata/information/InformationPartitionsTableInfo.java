@@ -24,20 +24,25 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
+import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.operation.reference.MapLookupByPathExpression;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
 import io.crate.operation.reference.partitioned.PartitionsVersionExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
 
 public class InformationPartitionsTableInfo extends InformationTableInfo {
@@ -138,8 +143,21 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 () -> RowContextCollectorExpression.objToBytesRef(r -> InformationTablesTableInfo.TABLE_TYPE))
             .put(InformationTablesTableInfo.Columns.PARTITION_IDENT,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().ident()))
-            .put(InformationTablesTableInfo.Columns.VALUES,
-                () -> RowContextCollectorExpression.forFunction(PartitionInfo::values))
+            .put(InformationTablesTableInfo.Columns.VALUES, () -> new RowContextCollectorExpression<PartitionInfo, Object>() {
+
+                @Override
+                public Object value() {
+                    return row.values();
+                }
+
+                @Override
+                public ReferenceImplementation getChildImplementation(String name) {
+                    // The input values could be of mixed types (select values['p'];  t1 (p int); t2 (p string))
+                    // The result is casted to string because streaming (via pg) doesn't support mixed types;
+                    return new MapLookupByPathExpression<>(
+                        PartitionInfo::values, Collections.singletonList(name), DataTypes.STRING::value);
+                }
+            })
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
                 () -> RowContextCollectorExpression.forFunction(PartitionInfo::numberOfShards))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
@@ -219,5 +237,16 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 References.TABLE_VERSION
             )
         );
+    }
+
+    @Nullable
+    @Override
+    public Reference getReference(ColumnIdent column) {
+        if (!column.isTopLevel() && column.name().equals(InformationTablesTableInfo.Columns.VALUES.name())) {
+            DynamicReference ref = new DynamicReference(new ReferenceIdent(ident(), column), rowGranularity());
+            ref.valueType(DataTypes.STRING);
+            return ref;
+        }
+        return super.getReference(column);
     }
 }

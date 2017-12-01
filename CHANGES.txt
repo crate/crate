@@ -126,3 +126,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed support for subscript expressions on the ``values`` column of
+  ``information_schema.table_partitions``
