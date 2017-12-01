@@ -21,21 +21,17 @@
 
 package io.crate.analyze;
 
-import com.google.common.primitives.Booleans;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
-import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
@@ -67,20 +63,6 @@ public class OrderBy implements Writeable {
 
     public Boolean[] nullsFirst() {
         return nullsFirst;
-    }
-
-    public OrderBy subset(Collection<Integer> positions) {
-        List<Symbol> orderBySymbols = new ArrayList<>(positions.size());
-        Boolean[] nullsFirst = new Boolean[positions.size()];
-        boolean[] reverseFlags = new boolean[positions.size()];
-        int pos = 0;
-        for (Integer i : positions) {
-            orderBySymbols.add(Symbols.DEEP_COPY.apply(this.orderBySymbols.get(i)));
-            nullsFirst[pos] = this.nullsFirst[i];
-            reverseFlags[pos] = this.reverseFlags[i];
-            pos++;
-        }
-        return new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
     }
 
     public OrderBy(StreamInput in) throws IOException {
@@ -125,36 +107,6 @@ public class OrderBy implements Writeable {
         while (listIt.hasNext()) {
             listIt.set(replaceFunction.apply(listIt.next()));
         }
-    }
-
-    public OrderBy merge(@Nullable OrderBy otherOrderBy) {
-        if (otherOrderBy != null) {
-            List<Symbol> newOrderBySymbols = otherOrderBy.orderBySymbols();
-            List<Boolean> newReverseFlags = new ArrayList<>(Booleans.asList(otherOrderBy.reverseFlags()));
-            List<Boolean> newNullsFirst = new ArrayList<>(Arrays.asList(otherOrderBy.nullsFirst()));
-
-            for (int i = 0; i < orderBySymbols.size(); i++) {
-                Symbol orderBySymbol = orderBySymbols.get(i);
-                int idx = newOrderBySymbols.indexOf(orderBySymbol);
-                if (idx == -1) {
-                    newOrderBySymbols.add(orderBySymbol);
-                    newReverseFlags.add(reverseFlags[i]);
-                    newNullsFirst.add(nullsFirst[i]);
-                } else {
-                    if (newReverseFlags.get(idx) != reverseFlags[i]) {
-                        throw new AmbiguousOrderByException(orderBySymbol);
-                    }
-                    if (newNullsFirst.get(idx) != nullsFirst[i]) {
-                        throw new AmbiguousOrderByException(orderBySymbol);
-                    }
-                }
-            }
-
-            this.orderBySymbols = newOrderBySymbols;
-            this.reverseFlags = Booleans.toArray(newReverseFlags);
-            this.nullsFirst = newNullsFirst.toArray(new Boolean[0]);
-        }
-        return this;
     }
 
     @Override
