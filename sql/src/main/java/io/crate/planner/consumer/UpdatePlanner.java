@@ -38,7 +38,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -68,7 +67,6 @@ import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -148,17 +146,9 @@ public final class UpdatePlanner {
             ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
 
-            ExecutionPhasesTask task = new ExecutionPhasesTask(
-                plannerContext.jobId(),
-                executor.clusterService(),
-                executor.contextPreparer(),
-                executor.jobContextService(),
-                executor.indicesService(),
-                executor.transportActionProvider().transportJobInitAction(),
-                executor.transportActionProvider().transportKillJobsNodeAction(),
-                Collections.singletonList(nodeOpTree)
-            );
-            task.execute(consumer);
+            executor.phasesTaskFactory()
+                .create(plannerContext.jobId(), singletonList(nodeOpTree))
+                .execute(consumer);
         }
 
         @Override
@@ -171,17 +161,9 @@ public final class UpdatePlanner {
                 ExecutionPlan executionPlan = createExecutionPlan.create(plannerContext, params, valuesBySubQuery);
                 nodeOpTreeList.add(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
             }
-            ExecutionPhasesTask task = new ExecutionPhasesTask(
-                plannerContext.jobId(),
-                executor.clusterService(),
-                executor.contextPreparer(),
-                executor.jobContextService(),
-                executor.indicesService(),
-                executor.transportActionProvider().transportJobInitAction(),
-                executor.transportActionProvider().transportKillJobsNodeAction(),
-                nodeOpTreeList
-            );
-            return task.executeBulk();
+            return executor.phasesTaskFactory()
+                .create(plannerContext.jobId(), nodeOpTreeList)
+                .executeBulk();
         }
     }
 

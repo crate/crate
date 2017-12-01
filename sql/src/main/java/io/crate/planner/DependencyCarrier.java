@@ -22,12 +22,12 @@
 
 package io.crate.planner;
 
-import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
+import io.crate.executor.transport.executionphases.PhasesTaskFactory;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.operation.InputFactory;
@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -52,14 +51,13 @@ import java.util.concurrent.ScheduledExecutorService;
 public class DependencyCarrier {
 
     private final Settings settings;
-    private final JobContextService jobContextService;
-    private final ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
+    private final PhasesTaskFactory phasesTaskFactory;
+    private final JobContextService jobContextService;
     private final ThreadPool threadPool;
     private final Functions functions;
     private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
     private final ClusterService clusterService;
-    private final IndicesService indicesService;
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
     private final ProjectionBuilder projectionBuilder;
@@ -67,27 +65,25 @@ public class DependencyCarrier {
 
     @Inject
     public DependencyCarrier(Settings settings,
-                             JobContextService jobContextService,
-                             ContextPreparer contextPreparer,
                              TransportActionProvider transportActionProvider,
+                             PhasesTaskFactory phasesTaskFactory,
+                             JobContextService jobContextService,
                              ThreadPool threadPool,
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
                              NodeJobsCounter nodeJobsCounter,
-                             IndicesService indicesService,
                              SystemCollectSource systemCollectSource,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction) {
         this.settings = settings;
-        this.jobContextService = jobContextService;
-        this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
+        this.phasesTaskFactory = phasesTaskFactory;
+        this.jobContextService = jobContextService;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
-        this.indicesService = indicesService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
@@ -126,10 +122,6 @@ public class DependencyCarrier {
         return transportActionProvider;
     }
 
-    public JobContextService jobContextService() {
-        return jobContextService;
-    }
-
     public ClusterService clusterService() {
         return clusterService;
     }
@@ -150,15 +142,15 @@ public class DependencyCarrier {
         return clusterService().localNode().getId();
     }
 
-    public ContextPreparer contextPreparer() {
-        return contextPreparer;
-    }
-
-    public IndicesService indicesService() {
-        return indicesService;
-    }
-
     public TransportDropTableAction transportDropTableAction() {
         return transportDropTableAction;
+    }
+
+    public JobContextService jobContextService() {
+        return jobContextService;
+    }
+
+    public PhasesTaskFactory phasesTaskFactory() {
+        return phasesTaskFactory;
     }
 }

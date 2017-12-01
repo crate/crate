@@ -34,7 +34,6 @@ import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
@@ -112,22 +111,12 @@ public final class CopyStatementPlanner {
                             RowConsumer consumer,
                             Row params,
                             Map<SelectSymbol, Object> valuesBySubQuery) {
-
             ExecutionPlan executionPlan = planCopyToExecution(
                 copyTo, plannerContext, logicalPlanner, subqueryPlanner, executor.projectionBuilder(), params);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
-
-            ExecutionPhasesTask task = new ExecutionPhasesTask(
-                plannerContext.jobId(),
-                executor.clusterService(),
-                executor.contextPreparer(),
-                executor.jobContextService(),
-                executor.indicesService(),
-                executor.transportActionProvider().transportJobInitAction(),
-                executor.transportActionProvider().transportKillJobsNodeAction(),
-                Collections.singletonList(nodeOpTree)
-            );
-            task.execute(consumer);
+            executor.phasesTaskFactory()
+                .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
+                .execute(consumer);
         }
     }
 
@@ -147,18 +136,9 @@ public final class CopyStatementPlanner {
                             Map<SelectSymbol, Object> valuesBySubQuery) {
             ExecutionPlan plan = planCopyFromExecution(executor.clusterService().state().nodes(), copyFrom, plannerContext);
             NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(plan, executor.localNodeId());
-
-            ExecutionPhasesTask task = new ExecutionPhasesTask(
-                plannerContext.jobId(),
-                executor.clusterService(),
-                executor.contextPreparer(),
-                executor.jobContextService(),
-                executor.indicesService(),
-                executor.transportActionProvider().transportJobInitAction(),
-                executor.transportActionProvider().transportKillJobsNodeAction(),
-                Collections.singletonList(nodeOpTree)
-            );
-            task.execute(consumer);
+            executor.phasesTaskFactory()
+                .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
+                .execute(consumer);
         }
     }
 

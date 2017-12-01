@@ -42,7 +42,6 @@ import io.crate.data.RowConsumer;
 import io.crate.executor.MultiPhaseExecutor;
 import io.crate.executor.transport.ExecutionPlanSymbolMapper;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.metadata.Functions;
 import io.crate.operation.NodeOperationTree;
 import io.crate.planner.DependencyCarrier;
@@ -253,17 +252,9 @@ public class LogicalPlanner {
         }
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
-        ExecutionPhasesTask task = new ExecutionPhasesTask(
-            plannerContext.jobId(),
-            executor.clusterService(),
-            executor.contextPreparer(),
-            executor.jobContextService(),
-            executor.indicesService(),
-            executor.transportActionProvider().transportJobInitAction(),
-            executor.transportActionProvider().transportKillJobsNodeAction(),
-            Collections.singletonList(nodeOpTree)
-        );
-        task.execute(consumer);
+        executor.phasesTaskFactory()
+            .create(plannerContext.jobId(), Collections.singletonList(nodeOpTree))
+            .execute(consumer);
     }
 
     private class Visitor extends AnalyzedStatementVisitor<PlannerContext, LogicalPlan> {
