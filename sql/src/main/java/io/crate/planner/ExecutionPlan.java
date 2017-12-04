@@ -25,13 +25,10 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
-import java.util.UUID;
 
 public interface ExecutionPlan {
 
     <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context);
-
-    UUID jobId();
 
     /**
      * Add a projection to the plan.

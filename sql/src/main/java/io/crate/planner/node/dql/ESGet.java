@@ -33,13 +33,13 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
-import io.crate.planner.DependencyCarrier;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
@@ -47,7 +47,6 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
@@ -167,11 +166,6 @@ public class ESGet implements Plan, ExecutionPlan {
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitESGet(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return null;
     }
 
     @Override

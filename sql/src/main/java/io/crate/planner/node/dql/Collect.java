@@ -34,7 +34,6 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 public class Collect implements ExecutionPlan, ResultDescription {
 
@@ -81,11 +80,6 @@ public class Collect implements ExecutionPlan, ResultDescription {
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollect(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return collectPhase.jobId();
     }
 
     @Override

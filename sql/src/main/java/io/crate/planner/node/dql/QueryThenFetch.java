@@ -31,7 +31,6 @@ import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
-import java.util.UUID;
 
 public class QueryThenFetch implements ExecutionPlan {
 
@@ -54,11 +53,6 @@ public class QueryThenFetch implements ExecutionPlan {
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitQueryThenFetch(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return subExecutionPlan.jobId();
     }
 
     @Override

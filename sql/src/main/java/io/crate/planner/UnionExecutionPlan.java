@@ -31,7 +31,6 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Plan for Union which uses a MergePhase to combine the results of two plans (= two inputs).
@@ -97,11 +96,6 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUnionPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return mergePhase.jobId();
     }
 
     @Override

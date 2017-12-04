@@ -35,7 +35,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public class Merge implements ExecutionPlan, ResultDescription {
 
@@ -169,11 +168,6 @@ public class Merge implements ExecutionPlan, ResultDescription {
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMerge(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return subExecutionPlan.jobId();
     }
 
     @Override

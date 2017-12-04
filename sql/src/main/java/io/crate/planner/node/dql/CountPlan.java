@@ -33,13 +33,11 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 public class CountPlan implements ExecutionPlan, ResultDescription {
 
     private final CountPhase countPhase;
     private final MergePhase mergePhase;
-    private final UUID id;
 
     private int unfinishedLimit = TopN.NO_LIMIT;
     private int unfinishedOffset = 0;
@@ -50,7 +48,6 @@ public class CountPlan implements ExecutionPlan, ResultDescription {
     public CountPlan(CountPhase countPhase, MergePhase mergePhase) {
         this.countPhase = countPhase;
         this.mergePhase = mergePhase;
-        this.id = mergePhase.jobId();
     }
 
     public CountPhase countPhase() {
@@ -65,12 +62,6 @@ public class CountPlan implements ExecutionPlan, ResultDescription {
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCountPlan(this, context);
     }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
 
     @Override
     public void addProjection(Projection projection) {

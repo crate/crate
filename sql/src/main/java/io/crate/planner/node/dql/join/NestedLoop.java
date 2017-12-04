@@ -145,12 +145,6 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
     }
 
     @Override
-    public UUID jobId() {
-        return jobId;
-    }
-
-
-    @Override
     public void addProjection(Projection projection) {
         nestedLoopPhase.addProjection(projection);
         numOutputs = projection.outputs().size();
