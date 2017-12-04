@@ -85,7 +85,7 @@ public class Union extends TwoInputPlan {
                 .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false)
                 .build(tableStats, usedFromRight);
 
-            return new Union(ttr.outputs(), lhsPlan, rhsPlan);
+            return new Union(lhsPlan, rhsPlan, ttr.outputs());
         };
     }
 
@@ -109,7 +109,7 @@ public class Union extends TwoInputPlan {
         });
     }
 
-    Union(List<Symbol> outputs, LogicalPlan lhs, LogicalPlan rhs) {
+    Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
         super(lhs, rhs, outputs);
     }
 
@@ -164,7 +164,7 @@ public class Union extends TwoInputPlan {
 
     @Override
     protected LogicalPlan newInstance(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new Union(outputs, newLeftSource, newRightSource);
+        return new Union(newLeftSource, newRightSource, outputs);
     }
 
     @Override
