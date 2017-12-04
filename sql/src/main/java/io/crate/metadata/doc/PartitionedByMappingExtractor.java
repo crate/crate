@@ -21,38 +21,27 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class PartitionedByMappingExtractor {
+public final class PartitionedByMappingExtractor {
 
-    private static final Function<List<String>, Tuple<ColumnIdent, DataType>> EXTRACTOR_FUNCTION = new Function<List<String>, Tuple<ColumnIdent, DataType>>() {
-        @Nullable
-        @Override
-        public Tuple<ColumnIdent, DataType> apply(List<String> partitioned) {
-            ColumnIdent ident = ColumnIdent.fromPath(partitioned.get(0));
-            assert ident != null : "ident must not be null";
-            DataType type = DocIndexMetaData.getColumnDataType(new MapBuilder<String, Object>().put("type", partitioned.get(1)).map());
-            return new Tuple<>(ident, type);
-        }
-    };
+    private PartitionedByMappingExtractor() {
+    }
 
     @SuppressWarnings("unchecked")
     public static Iterable<Tuple<ColumnIdent, DataType>> extractPartitionedByColumns(Map<String, Object> mapping) {
         Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
         if (metaMap != null) {
             Object partitionedByColumnsMaybe = metaMap.get("partitioned_by");
-            if (partitionedByColumnsMaybe != null && partitionedByColumnsMaybe instanceof List) {
+            if (partitionedByColumnsMaybe instanceof List) {
                 List<List<String>> partitionedByColumns = (List<List<String>>) partitionedByColumnsMaybe;
                 return extractPartitionedByColumns(partitionedByColumns);
             }
@@ -60,7 +49,16 @@ public class PartitionedByMappingExtractor {
         return ImmutableList.of();
     }
 
-    public static Iterable<Tuple<ColumnIdent, DataType>> extractPartitionedByColumns(Collection<List<String>> partitionedByList) {
-        return FluentIterable.from(partitionedByList).transform(EXTRACTOR_FUNCTION);
+    static Iterable<Tuple<ColumnIdent, DataType>> extractPartitionedByColumns(Collection<List<String>> partitionedByList) {
+        return partitionedByList.stream()
+            .map(PartitionedByMappingExtractor::toColumnIdentAndType)::iterator;
+    }
+
+    private static Tuple<ColumnIdent, DataType> toColumnIdentAndType(List<String> partitioned) {
+        String dottedColumnName = partitioned.get(0);
+        ColumnIdent column = ColumnIdent.fromPath(dottedColumnName);
+        String typeDefinition = partitioned.get(1);
+        DataType type = DocIndexMetaData.getColumnDataType(Collections.singletonMap("type", typeDefinition));
+        return new Tuple<>(column, type);
     }
 }

@@ -118,11 +118,8 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     }
 
     /**
-     * Creates ColumnIdent by creating path by splitting given string.
-     *
-     * @param path string that will be split and interpreted
-     *
-     * @return the requested ColumnIdent
+     * @param path Column name; With dot-notation to separate nested columns ('toplevel' or 'obj.child.x')
+     * @return A ColumnIdent created from the path
      */
     public static ColumnIdent fromPath(@Nullable String path) {
         if (path == null) {
