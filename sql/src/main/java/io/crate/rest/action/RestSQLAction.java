@@ -26,10 +26,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
@@ -43,6 +43,8 @@ import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.rest.CrateRestMainAction;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -149,11 +151,19 @@ public class RestSQLAction extends BaseRestHandler {
 
     @VisibleForTesting
     User userFromRequest(RestRequest request) {
-        String user = request.header(AuthSettings.HTTP_HEADER_USER);
-        if (user == null) {
-            user = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+        String username = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(
+            request.header(HttpHeaderNames.AUTHORIZATION.toString())).v1();
+
+        // Fallback to deprecated setting
+        if (username == null || username.isEmpty()) {
+            username = request.header(AuthSettings.HTTP_HEADER_USER);
         }
-        return userManager.findUser(user);
+
+        // Fallback to trusted user from configuration
+        if (username == null || username.isEmpty()) {
+            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+        }
+        return userManager.findUser(username);
     }
 
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {

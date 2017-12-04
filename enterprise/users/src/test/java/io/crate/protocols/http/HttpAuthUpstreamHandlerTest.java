@@ -18,7 +18,6 @@
 
 package io.crate.protocols.http;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.operation.auth.AlwaysOKAuthentication;
 import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.auth.Authentication;
@@ -30,6 +29,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
@@ -61,6 +61,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
+        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is("Basic"));
     }
 
     @Test
@@ -111,14 +112,13 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         assertThat(handler.authorized(), is(true));
     }
 
-
     @Test
     public void testNotNoHbaConfig() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add("X-User", "Arthur");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
         request.headers().add("X-Real-Ip", "10.1.0.100");
 
         ch.writeInbound(request);
@@ -126,7 +126,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
         assertUnauthorized(
             ch.readOutbound(),
-            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Arthur\", protocol \"http\"\n");
+            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Aladdin\", protocol \"http\"\n");
     }
 
     @Test
@@ -149,7 +149,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        String userName = HttpAuthUpstreamHandler.userFromRequest(request, session, Settings.EMPTY);
+        String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).v1();
 
         assertThat(userName, is("example.com"));
     }
@@ -163,8 +163,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add("X-User", "crate");
-
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic Y3JhdGU6");
         ch.writeInbound(request);
 
         assertTrue(handler.authorized());
@@ -177,11 +176,11 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add("X-User", "Arthur");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
 
         assertFalse(handler.authorized());
-        assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Arthur\"\n");
+        assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Aladdin\"\n");
     }
 }

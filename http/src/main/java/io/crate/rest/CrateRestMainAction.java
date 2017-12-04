@@ -33,8 +33,10 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -47,7 +49,9 @@ import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -83,6 +87,9 @@ public class CrateRestMainAction implements RestHandler {
         "/admin",
         "/_plugin"
     );
+
+    private static final SecureString EMPTY_PASSWORD = new SecureString(new char[] {});
+    private static final Tuple<String, SecureString> EMPTY_CREDENTIALS_TUPLE = new Tuple<>("", EMPTY_PASSWORD);
 
     private final Version version;
     private final ClusterName clusterName;
@@ -251,6 +258,28 @@ public class CrateRestMainAction implements RestHandler {
                 ));
             }
         }
+    }
+
+    public static Tuple<String, SecureString> extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+        if (authHeaderValue == null || authHeaderValue.isEmpty()) {
+            return EMPTY_CREDENTIALS_TUPLE;
+        }
+        String username;
+        SecureString password = EMPTY_PASSWORD;
+        String valueWithoutBasePrefix = authHeaderValue.substring(6);
+        String decodedCreds = new String(Base64.getDecoder().decode(valueWithoutBasePrefix), StandardCharsets.UTF_8);
+
+        int idx = decodedCreds.indexOf(':');
+        if (idx < 0) {
+            username = decodedCreds;
+        } else {
+            username = decodedCreds.substring(0, idx);
+            String passwdStr = decodedCreds.substring(idx + 1);
+            if (passwdStr.length() > 0) {
+                password = new SecureString(passwdStr.toCharArray());
+            }
+        }
+        return new Tuple<>(username, password);
     }
 }
 
