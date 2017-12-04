@@ -26,10 +26,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
@@ -43,11 +43,14 @@ import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
@@ -60,7 +63,9 @@ import org.elasticsearch.rest.RestStatus;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -149,11 +154,44 @@ public class RestSQLAction extends BaseRestHandler {
 
     @VisibleForTesting
     User userFromRequest(RestRequest request) {
-        String user = request.header(AuthSettings.HTTP_HEADER_USER);
-        if (user == null) {
-            user = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+        String username = extractUsernameFromHttpBasicAuthHeader(
+            request.header(HttpHeaderNames.AUTHORIZATION.toString()));
+
+        // Fallback to deprecated setting
+        if (username == null) {
+            username = request.header(AuthSettings.HTTP_HEADER_USER);
         }
-        return userManager.findUser(user);
+
+        // Fallback to trusted user from configuration
+        if (username == null) {
+            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+        }
+        return userManager.findUser(username);
+    }
+
+    private static String extractUsernameFromHttpBasicAuthHeader(String authHeaderValue) {
+        if (authHeaderValue == null) {
+            return null;
+        }
+        String[] creds = new String(
+            Base64.getDecoder().decode(authHeaderValue.replace("Basic ", "")),
+            StandardCharsets.UTF_8).split(":");
+        return creds[0];
+    }
+
+    public static Tuple<String, SecureString> extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
+        String username = null;
+        SecureString password = null;
+        if (authHeaderValue != null) {
+            String[] creds = new String(
+                Base64.getDecoder().decode(authHeaderValue.replace("Basic ", "")),
+                StandardCharsets.UTF_8).split(":");
+            username = creds[0];
+            if (creds.length > 1) {
+                password = new SecureString(creds[1].toCharArray());
+            }
+        }
+        return new Tuple<>(username, password);
     }
 
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
