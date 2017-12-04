@@ -102,9 +102,9 @@ auth:
 
 # When trust based authentication is used, the server just takes the username
 # provided by the client as is without further validation. The HTTP
-# implementation takes the value of the `X-USER` request header as the
-# username. Since a user is always required for trust based authentication, a
-# default user (in case `X-USER` is not set) can be defined as follows:
+# implementation extracts the username from the standard HTTP Basic Authentication
+# (`Authorization: Basic ...`) request header. In case the `Authorization` header is not set,
+# a default username can be specified as follows:
 #auth:
 #  trust:
 #    http_default_user: dustin

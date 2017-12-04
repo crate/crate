@@ -41,12 +41,12 @@ client implementations.
 Trust Authentication Over HTTP
 ------------------------------
 
-The HTTP implementation takes the value of the ``X-USER`` request header as the
-username.
+The HTTP implementation extracts the username from the
+`HTTP Basic Authentication`_ request header.
 
 Since a user is always required for trust authentication, it is possible to
-specify a default user in case that the ``X-USER`` header is not set. This is
-useful to allow clients which do not provide the possibility to set any
+specify a default user in case that the ``Authorization`` header is not set.
+This is useful to allow clients which do not provide the possibility to set any
 headers, for example a web browser connecting to the Admin UI.
 
 The default user can be specified via the ``auth.trust.http_default_user``
@@ -82,8 +82,11 @@ a password additionally to the username. The password is sent from the client
 to the server in **clear text**, which means that unless SSL is enabled, the
 password could potentially be read by anyone sniffing the network.
 
-Password authentication is only supported over the Postgres Protocol, not over
-HTTP connections.
+.. NOTE::
+
+   For HTTP, the password should be encoded together with the username with
+   `BASE64_` and sent together prefixed with ``Basic:`` as string value for
+   the ``Authorization`` HTTP header. See also: `HTTP Basic Authentication`_.
 
 .. NOTE::
 
@@ -121,3 +124,5 @@ connect using SSL with client certificate.
 
 .. _PBKDF2: https://en.wikipedia.org/wiki/PBKDF2
 .. _SHA-512 hash algorithm: https://en.wikipedia.org/wiki/SHA-2
+.. _HTTP Basic Authentication: https://en.wikipedia.org/wiki/Basic_access_authentication
+.. _BASE64: https://en.wikipedia.org/wiki/Base64

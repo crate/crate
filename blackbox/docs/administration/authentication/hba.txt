@@ -136,8 +136,7 @@ default.
 
 And finally the entry ``{method: password}`` means that any existing user (or
 superuser) can authenticate to CrateDB from any IP address using the
-``password`` method. Note that ``password`` authentication is only available
-via Postgres Protocol, even though no protocol is specified.
+``password`` method for both HTTP and Postgres protocols.
 
 .. NOTE::
 
