@@ -56,6 +56,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.Collections;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -100,7 +101,8 @@ public class PreExecutionBenchmark {
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
             e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
-        plannerContext = e.getPlannerContext(clusterService.state());
+        long dummySeed = 10;
+        plannerContext = e.getPlannerContext(clusterService.state(), new Random(dummySeed));
     }
 
     @TearDown

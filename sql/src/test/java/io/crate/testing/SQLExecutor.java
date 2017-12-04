@@ -88,6 +88,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_INFO;
@@ -121,10 +122,19 @@ public class SQLExecutor {
     private final SessionContext sessionContext;
     private final TransactionContext transactionContext;
 
+    /**
+     * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
+     * This can only be used if {@link com.carrotsearch.randomizedtesting.RandomizedContext} is available
+     * (e.g. TestCase using {@link com.carrotsearch.randomizedtesting.RandomizedRunner}
+     */
     public PlannerContext getPlannerContext(ClusterState clusterState) {
+        return getPlannerContext(clusterState, Randomness.get());
+    }
+
+    public PlannerContext getPlannerContext(ClusterState clusterState, Random random) {
         return new PlannerContext(
             clusterState,
-            new RoutingProvider(Randomness.get().nextInt(), new String[0]),
+            new RoutingProvider(random.nextInt(), new String[0]),
             UUID.randomUUID(),
             planner.normalizer(),
             new TransactionContext(sessionContext),
