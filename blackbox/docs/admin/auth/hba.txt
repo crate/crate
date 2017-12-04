@@ -136,8 +136,7 @@ default.
 
 And finally the entry ``{method: password}`` means that any existing user (or
 superuser) can authenticate to CrateDB from any IP address using the
-``password`` method. Note that ``password`` authentication is only available
-via Postgres Protocol, even though no protocol is specified.
+``password`` method for both HTTP and PostgreSQL wire protocol.
 
 .. NOTE::
 
@@ -149,7 +148,7 @@ Authenticating as a Superuser
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``.
 
-To enable trust auhentication for the superuser, ``crate`` must be specified in
+To enable trust authentication for the superuser, ``crate`` must be specified in
 the the ``auth.host_based`` setting, like this:
 
 .. code-block:: yaml
@@ -160,3 +159,34 @@ the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
+
+Authenticating to Admin UI
+==========================
+
+.. hide:
+
+    cr> CREATE USER admin;
+    CREATE OK, 1 row affected (... sec)
+
+When trying to access the CrateDB admin UI, authentication with the user
+defined with the :ref:`auth.trust.http_default_user
+<auth_trust_http_default_user>` setting (defaults to ``crate``) will be
+attempted initially. If this authentication attempt fails, the browser will
+open the standard popup window where the user is asked to fill in credentials.
+Depending on the HBA configuration, it may be necessary to a username and
+password, or, alternatively, a username only.
+
+Users that log in to the admin UI must be granted `DQL`` privileges at the
+``CLUSTER`` level in order to be able to access the various monitoring
+sections. For example::
+
+    cr> GRANT DQL TO admin;
+    GRANT OK, 1 row affected (... sec)
+
+For more information, consult the :ref:`privileges section
+<administration-privileges>`.
+
+.. hide:
+
+    cr> DROP USER admin;
+    DROP OK, 1 row affected (... sec)

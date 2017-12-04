@@ -61,7 +61,7 @@ Trust Authentication
 
   The default user that should be used for authentication when clients connect
   to CrateDB via HTTP protocol and they do not specify a user via the
-  ``X-USER`` request header.
+  ``Authorization`` request header.
 
 Host Based Authentication
 .........................
@@ -128,10 +128,6 @@ The meaning of the fields of the are as follows:
   | Specifies the protocol for which the authentication entry should be used.
   | If no protocol is specified, then this entry will be valid for all
   | protocols that rely on host based authentication see :ref:`auth_trust`).
-  | Certain authentication methods (e.g. ``password``) are only available over
-  | the Postgres Protocol, which means that even if no specific protocol is
-  | specified the HBA entry will only apply users connecting via the Postgres
-  | Protocol.
 
 **auth.host_based.config.${order}.ssl**
   | *Runtime:* ``no``
