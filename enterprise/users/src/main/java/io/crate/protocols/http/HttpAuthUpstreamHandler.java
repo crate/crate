@@ -26,20 +26,24 @@ import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.rest.action.RestSQLAction;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -83,7 +87,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        String username = userFromRequest(request, session, settings);
+        Tuple<String, SecureString> credentials = credentialsFromRequest(request, session, settings);
+        String username = credentials.v1();
+        SecureString password = credentials.v2();
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
@@ -95,7 +101,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                User user = authMethod.authenticate(username, null, connectionProperties);
+                User user = authMethod.authenticate(username, password, connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }
@@ -131,6 +137,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         } else {
             response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         }
+        // "Tell" the browser to open the credentials popup for AdminUI
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic");
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
@@ -140,24 +148,30 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static String userFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
-        if (request.headers().contains(AuthSettings.HTTP_HEADER_USER)) {
-            return request.headers().get(AuthSettings.HTTP_HEADER_USER);
+    static Tuple<String, SecureString> credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+        String username = null;
+        if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
+            // Prefer Http Basic Auth
+            return RestSQLAction.extractCredentialsFromHttpBasicAuthHeader(
+                request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
+        } else if (request.headers().contains(AuthSettings.HTTP_HEADER_USER)) {
+            // Fallback to deprecated setting
+            username = request.headers().get(AuthSettings.HTTP_HEADER_USER);
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
             if (session != null) {
                 try {
                     Certificate certificate = session.getPeerCertificates()[0];
-                    String commonName = SSL.extractCN(certificate);
-                    if (commonName != null) {
-                        return commonName;
-                    }
+                    username = SSL.extractCN(certificate);
                 } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException ignored) {
                     // client cert is optional
                 }
             }
-            return AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+            if (username == null) {
+                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+            }
         }
+        return new Tuple<>(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
