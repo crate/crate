@@ -22,13 +22,17 @@
 
 package io.crate.rest.action;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLOperations;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.user.UserManager;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyUserManager;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
@@ -82,7 +86,7 @@ public class RestSQLActionTest extends CrateUnitTest {
     }
 
     @Test
-    public void testUserIfHttpHeaderIsPresent() throws Exception {
+    public void testUserIfHttpBasicAuthIsPresent() {
         RestSQLAction restSQLAction = new RestSQLAction(
             Settings.EMPTY,
             restController,
@@ -91,9 +95,52 @@ public class RestSQLActionTest extends CrateUnitTest {
             circuitBreakerService
         );
         RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
-            .withHeaders(Collections.singletonMap("X-User", Collections.singletonList("other")))
+            .withHeaders(
+                Collections.singletonMap(HttpHeaderNames.AUTHORIZATION.toString(),
+                    Collections.singletonList("Basic: QWxhZGRpbjpPcGVuU2VzYW1l")))
+            .build();
+        assertThat(restSQLAction.userFromRequest(request).name(), is("Aladdin"));
+    }
+
+    @Test
+    public void testUserIfHttpUserHeaderIsPresent() {
+        RestSQLAction restSQLAction = new RestSQLAction(
+            Settings.EMPTY,
+            restController,
+            sqlOperations,
+            USER_MANAGER_PROVIDER,
+            circuitBreakerService
+        );
+        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
+            .withHeaders(Collections.singletonMap(AuthSettings.HTTP_HEADER_USER, Collections.singletonList("other")))
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("other"));
+    }
 
+    @Test
+    public void testUserIfBothHeadersArePresent() {
+        RestSQLAction restSQLAction = new RestSQLAction(
+            Settings.EMPTY,
+            restController,
+            sqlOperations,
+            USER_MANAGER_PROVIDER,
+            circuitBreakerService
+        );
+        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
+            .withHeaders(ImmutableMap.of(
+                AuthSettings.HTTP_HEADER_USER, Collections.singletonList("other"),
+                HttpHeaderNames.AUTHORIZATION.toString(), Collections.singletonList("Basic: QWxhZGRpbjpPcGVuU2VzYW1l")))
+            .build();
+
+        // HTTP Basic Auth Header has higher priority
+        assertThat(restSQLAction.userFromRequest(request).name(), is("Aladdin"));
+    }
+
+    @Test
+    public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
+        Tuple<String, SecureString> creds =
+            RestSQLAction.extractCredentialsFromHttpBasicAuthHeader("Basic: QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        assertThat(creds.v1(), is("Arthur"));
+        assertThat(creds.v2().toString(), is("Excalibur"));
     }
 }
