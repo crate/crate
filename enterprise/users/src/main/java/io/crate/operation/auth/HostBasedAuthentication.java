@@ -93,17 +93,14 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @Nullable
-    private AuthenticationMethod methodForNameAndProtocol(String method, Protocol protocol) {
+    private AuthenticationMethod methodForName(String method) {
         switch (method) {
             case (TrustAuthenticationMethod.NAME):
                 return new TrustAuthenticationMethod(userLookup);
             case (ClientCertAuth.NAME):
                 return new ClientCertAuth(userLookup);
             case (PasswordAuthenticationMethod.NAME):
-                if (Protocol.POSTGRES.equals(protocol)) {
-                    return new PasswordAuthenticationMethod(userLookup);
-                }
-                return null;
+                return new PasswordAuthenticationMethod(userLookup);
             default:
                 return null;
         }
@@ -118,7 +115,7 @@ public class HostBasedAuthentication implements Authentication {
             String methodName = entry.get()
                 .getValue()
                 .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD);
-            return methodForNameAndProtocol(methodName, connProperties.protocol());
+            return methodForName(methodName);
         }
         return null;
     }
