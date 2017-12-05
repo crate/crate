@@ -56,6 +56,9 @@ import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
+import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
+import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
@@ -143,6 +146,24 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, User user) {
+            throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, User user) {
             throwUnauthorized(user);
             return null;
         }

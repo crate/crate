@@ -189,6 +189,34 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     }
 
     @Test
+    public void testRerouteMoveShardNotAllowedAsNormalUser() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        analyze("alter table users reroute move shard 0 from 'node1' to 'node2'");
+    }
+
+    @Test
+    public void testRerouteAllocateReplicaNotAllowedAsNormalUser() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        analyze("alter table users reroute allocate replica shard 0 on 'node1'");
+    }
+
+    @Test
+    public void testRerouteCancelNotAllowedAsNormalUser() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        analyze("alter table users reroute cancel shard 0 on 'node1'");
+    }
+
+    @Test
+    public void testRerouteRetryFailedNotAllowedAsNormalUser() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(is("User \"normal\" is not authorized to execute statement"));
+        analyze("alter cluster reroute retry failed");
+    }
+
+    @Test
     public void testAlterTable() throws Exception {
         analyze("alter table users set (number_of_replicas=1)");
         assertAskedForTable(Privilege.Type.DDL, "doc.users");
