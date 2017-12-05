@@ -174,7 +174,7 @@ public class RestSQLAction extends BaseRestHandler {
             return null;
         }
         String[] creds = new String(
-            Base64.getDecoder().decode(authHeaderValue.replace("Basic: ", "")),
+            Base64.getDecoder().decode(authHeaderValue.replace("Basic ", "")),
             StandardCharsets.UTF_8).split(":");
         return creds[0];
     }
@@ -184,7 +184,7 @@ public class RestSQLAction extends BaseRestHandler {
         SecureString password = null;
         if (authHeaderValue != null) {
             String[] creds = new String(
-                Base64.getDecoder().decode(authHeaderValue.replace("Basic: ", "")),
+                Base64.getDecoder().decode(authHeaderValue.replace("Basic ", "")),
                 StandardCharsets.UTF_8).split(":");
             username = creds[0];
             if (creds.length > 1) {

@@ -97,7 +97,7 @@ public class RestSQLActionTest extends CrateUnitTest {
         RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
             .withHeaders(
                 Collections.singletonMap(HttpHeaderNames.AUTHORIZATION.toString(),
-                    Collections.singletonList("Basic: QWxhZGRpbjpPcGVuU2VzYW1l")))
+                    Collections.singletonList("Basic QWxhZGRpbjpPcGVuU2VzYW1l")))
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("Aladdin"));
     }
@@ -129,7 +129,7 @@ public class RestSQLActionTest extends CrateUnitTest {
         RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
             .withHeaders(ImmutableMap.of(
                 AuthSettings.HTTP_HEADER_USER, Collections.singletonList("other"),
-                HttpHeaderNames.AUTHORIZATION.toString(), Collections.singletonList("Basic: QWxhZGRpbjpPcGVuU2VzYW1l")))
+                HttpHeaderNames.AUTHORIZATION.toString(), Collections.singletonList("Basic QWxhZGRpbjpPcGVuU2VzYW1l")))
             .build();
 
         // HTTP Basic Auth Header has higher priority
@@ -139,7 +139,7 @@ public class RestSQLActionTest extends CrateUnitTest {
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
         Tuple<String, SecureString> creds =
-            RestSQLAction.extractCredentialsFromHttpBasicAuthHeader("Basic: QXJ0aHVyOkV4Y2FsaWJ1cg==");
+            RestSQLAction.extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
         assertThat(creds.v1(), is("Arthur"));
         assertThat(creds.v2().toString(), is("Excalibur"));
     }

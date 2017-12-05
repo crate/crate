@@ -137,6 +137,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         } else {
             response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         }
+        // "Tell" the browser to open the credentials popup for AdminUI
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic");
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 

@@ -61,6 +61,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
+        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is("Basic"));
     }
 
     @Test
@@ -117,7 +118,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic: QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
         request.headers().add("X-Real-Ip", "10.1.0.100");
 
         ch.writeInbound(request);
@@ -162,7 +163,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic: Y3JhdGU6");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic Y3JhdGU6");
         ch.writeInbound(request);
 
         assertTrue(handler.authorized());
@@ -175,7 +176,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic: QWxhZGRpbjpPcGVuU2VzYW1l");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
 
         ch.writeInbound(request);
 
