@@ -46,10 +46,12 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -98,6 +100,8 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
                 null),
             t -> null,
             t-> null,
+            Version.CURRENT,
+            BigArrays.NON_RECYCLING_INSTANCE,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
     }

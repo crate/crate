@@ -33,6 +33,10 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
+
+import javax.annotation.Nullable;
 
 public abstract class MinimumAggregation extends AggregationFunction<Comparable, Comparable> {
 
@@ -62,8 +66,11 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             estimator = SizeEstimatorFactory.create(partialType());
         }
 
+        @Nullable
         @Override
-        public Comparable newState(RamAccountingContext ramAccountingContext) {
+        public Comparable newState(RamAccountingContext ramAccountingContext,
+                                   Version indexVersionCreated,
+                                   BigArrays bigArrays) {
             return null;
         }
 
@@ -95,8 +102,11 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             size = ((FixedWidthType) partialType()).fixedSize();
         }
 
+        @Nullable
         @Override
-        public Comparable newState(RamAccountingContext ramAccountingContext) {
+        public Comparable newState(RamAccountingContext ramAccountingContext,
+                                   Version indexVersionCreated,
+                                   BigArrays bigArrays) {
             ramAccountingContext.addBytes(size);
             return null;
         }

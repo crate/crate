@@ -60,6 +60,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -110,7 +111,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new InputFactory(functions),
             EvaluatingNormalizer.functionOnlyNormalizer(functions),
             t -> null,
-            t -> null
+            t -> null,
+            BigArrays.NON_RECYCLING_INSTANCE
         );
 
         countInfo = new FunctionInfo(

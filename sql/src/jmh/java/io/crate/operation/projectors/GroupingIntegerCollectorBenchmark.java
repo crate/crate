@@ -37,9 +37,11 @@ import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.util.BigArrays;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -95,7 +97,9 @@ public class GroupingIntegerCollectorBenchmark {
             new Input[][] { new Input[] { keyInput }},
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
-            DataTypes.INTEGER
+            DataTypes.INTEGER,
+            Version.CURRENT,
+            BigArrays.NON_RECYCLING_INSTANCE
         );
     }
 

@@ -71,8 +71,10 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.types.StringType;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -100,6 +102,8 @@ public class ProjectionToProjectorVisitor
     private final EvaluatingNormalizer normalizer;
     private final Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter;
     private final Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter;
+    private final Version indexVersionCreated;
+    private final BigArrays bigArrays;
     @Nullable
     private final ShardId shardId;
 
@@ -113,6 +117,8 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter,
+                                        Version indexVersionCreated,
+                                        BigArrays bigArrays,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
@@ -124,6 +130,8 @@ public class ProjectionToProjectorVisitor
         this.normalizer = normalizer;
         this.sysUpdaterGetter = sysUpdaterGetter;
         this.staticTableDefinitionGetter = staticTableDefinitionGetter;
+        this.indexVersionCreated = indexVersionCreated;
+        this.bigArrays = bigArrays;
         this.shardId = shardId;
     }
 
@@ -136,7 +144,8 @@ public class ProjectionToProjectorVisitor
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
-                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter) {
+                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter,
+                                        BigArrays bigArrays) {
         this(clusterService,
             nodeJobsCounter,
             functions,
@@ -147,6 +156,8 @@ public class ProjectionToProjectorVisitor
             normalizer,
             sysUpdaterGetter,
             staticTableDefinitionGetter,
+            Version.CURRENT,
+            bigArrays,
             null
         );
     }
@@ -218,7 +229,9 @@ public class ProjectionToProjectorVisitor
             Iterables.toArray(ctx.expressions(), CollectExpression.class),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
-            context.ramAccountingContext
+            context.ramAccountingContext,
+            indexVersionCreated,
+            bigArrays
         );
     }
 
@@ -235,7 +248,9 @@ public class ProjectionToProjectorVisitor
             ctx.expressions(),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
-            context.ramAccountingContext);
+            context.ramAccountingContext,
+            indexVersionCreated,
+            bigArrays);
     }
 
     @Override

@@ -33,6 +33,8 @@ import io.crate.data.RowN;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -64,6 +66,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final int numKeyColumns;
     private final SizeEstimator<K> keySizeEstimator;
     private final Function<Row, K> keyExtractor;
+    private final Version indexVersionCreated;
+    private final BigArrays bigArrays;
 
     static GroupingCollector<Object> singleKey(CollectExpression<Row, ?>[] expressions,
                                                AggregateMode mode,
@@ -71,7 +75,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Input[][] inputs,
                                                RamAccountingContext ramAccountingContext,
                                                Input<?> keyInput,
-                                               DataType keyType) {
+                                               DataType keyType,
+                                               Version indexVersionCreated,
+                                               BigArrays bigArrays) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -81,7 +87,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             (key, cells) -> cells[0] = key,
             1,
             SizeEstimatorFactory.create(keyType),
-            row -> keyInput.value()
+            row -> keyInput.value(),
+            indexVersionCreated,
+            bigArrays
         );
     }
 
@@ -91,7 +99,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     Input[][] inputs,
                                                     RamAccountingContext ramAccountingContext,
                                                     List<Input<?>> keyInputs,
-                                                    List<? extends DataType> keyTypes) {
+                                                    List<? extends DataType> keyTypes,
+                                                    Version indexVersionCreated,
+                                                    BigArrays bigArrays) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -101,7 +111,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
             new MultiSizeEstimator(keyTypes),
-            row -> evalKeyInputs(keyInputs)
+            row -> evalKeyInputs(keyInputs),
+            indexVersionCreated,
+            bigArrays
         );
     }
 
@@ -127,7 +139,9 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
                               SizeEstimator<K> keySizeEstimator,
-                              Function<Row, K> keyExtractor) {
+                              Function<Row, K> keyExtractor,
+                              Version indexVersionCreated,
+                              BigArrays bigArrays) {
         this.expressions = expressions;
         this.aggregations = aggregations;
         this.mode = mode;
@@ -137,6 +151,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.numKeyColumns = numKeyColumns;
         this.keySizeEstimator = keySizeEstimator;
         this.keyExtractor = keyExtractor;
+        this.indexVersionCreated = indexVersionCreated;
+        this.bigArrays = bigArrays;
     }
 
     @Override
@@ -187,7 +203,8 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
             states[i] = mode.onRow(
-                ramAccountingContext, aggregation, aggregation.newState(ramAccountingContext), inputs[i]);
+                ramAccountingContext, aggregation,
+                aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays), inputs[i]);
         }
         // key size + 32 bytes for entry + 4 bytes for increased capacity
         ramAccountingContext.addBytes(

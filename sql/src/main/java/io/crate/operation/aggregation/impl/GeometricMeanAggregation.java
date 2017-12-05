@@ -33,10 +33,12 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
 import org.apache.commons.math3.util.FastMath;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -178,7 +180,9 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
     @Nullable
     @Override
-    public GeometricMeanState newState(RamAccountingContext ramAccountingContext) {
+    public GeometricMeanState newState(RamAccountingContext ramAccountingContext,
+                                       Version indexVersionCreated,
+                                       BigArrays bigArrays) {
         ramAccountingContext.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
         return new GeometricMeanState();
     }

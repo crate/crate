@@ -1,0 +1,13 @@
+apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+
+archivesBaseName = 'hll'
+group = 'io.crate'
+description = 'HyperLogLog for CrateDB'
+
+dependencies {
+    compile project(':sql')
+
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(':integration-testing')
+    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+}

@@ -49,6 +49,7 @@ dependencies {
     runtime project(':enterprise:users')
     runtime project(':enterprise:ssl-impl')
     runtime project(':enterprise:mqtt')
+    runtime project(':enterprise:hll')
 
     testCompile project(':integration-testing')
 
@@ -429,7 +430,8 @@ task downloadPlugins(
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
                     ':enterprise:jmx-monitoring:jar',
-                    ':enterprise:lang-js:jar']) {
+                    ':enterprise:lang-js:jar',
+                    ':enterprise:hll:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -461,6 +463,10 @@ task downloadPlugins(
             from(project(':enterprise:lang-js').tasks.jar.archivePath)
             from(project(':enterprise:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/enterprise/lang-js'
+        }
+        copy {
+            from(project(':enterprise:hll').tasks.jar.archivePath)
+            into 'plugins/enterprise/hll'
         }
     }
 }

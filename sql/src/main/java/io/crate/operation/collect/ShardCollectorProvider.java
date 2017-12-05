@@ -43,6 +43,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -63,7 +64,8 @@ public abstract class ShardCollectorProvider {
                            ThreadPool threadPool,
                            Settings settings,
                            TransportActionProvider transportActionProvider,
-                           IndexShard indexShard) {
+                           IndexShard indexShard,
+                           BigArrays bigArrays) {
         this.inputFactory = new InputFactory(functions);
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
@@ -82,6 +84,8 @@ public abstract class ShardCollectorProvider {
             shardNormalizer,
             t -> null,
             t -> null,
+            indexShard.indexSettings().getIndexVersionCreated(),
+            bigArrays,
             indexShard.shardId()
         );
     }

@@ -37,6 +37,7 @@ import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.File;
@@ -52,9 +53,10 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       Functions functions,
                                       ThreadPool threadPool,
                                       Settings settings,
-                                      TransportActionProvider transportActionProvider) {
+                                      TransportActionProvider transportActionProvider,
+                                      BigArrays bigArrays) {
         super(clusterService, nodeJobsCounter, BlobShardReferenceResolver.create(blobShard), functions,
-            threadPool, settings, transportActionProvider, blobShard.indexShard());
+            threadPool, settings, transportActionProvider, blobShard.indexShard(), bigArrays);
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
     }

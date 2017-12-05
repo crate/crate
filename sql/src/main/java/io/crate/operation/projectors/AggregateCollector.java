@@ -28,6 +28,8 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
 
 import java.util.Collections;
 import java.util.List;
@@ -46,18 +48,24 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final RamAccountingContext ramAccounting;
     private final AggregationFunction[] aggregations;
+    private final Version indexVersionCreated;
+    private final BigArrays bigArrays;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Object[]> finisher;
 
-    public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
-                              RamAccountingContext ramAccounting,
-                              AggregateMode mode,
-                              AggregationFunction[] aggregations,
-                              Input[]... inputs) {
+    AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
+                       RamAccountingContext ramAccounting,
+                       AggregateMode mode,
+                       AggregationFunction[] aggregations,
+                       Version indexVersionCreated,
+                       BigArrays bigArrays,
+                       Input[]... inputs) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.aggregations = aggregations;
+        this.indexVersionCreated = indexVersionCreated;
+        this.bigArrays = bigArrays;
         this.inputs = inputs;
         switch (mode) {
             case ITER_PARTIAL:
@@ -110,7 +118,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting);
+            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, bigArrays);
         }
         return states;
     }

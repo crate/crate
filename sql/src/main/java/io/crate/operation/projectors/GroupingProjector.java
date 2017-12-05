@@ -33,6 +33,8 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
 
 import java.util.List;
 
@@ -41,12 +43,14 @@ public class GroupingProjector implements Projector {
     private final GroupingCollector<Object> collector;
 
 
-    public GroupingProjector(List<? extends DataType> keyTypes,
-                             List<Input<?>> keyInputs,
-                             CollectExpression<Row, ?>[] collectExpressions,
-                             AggregateMode mode,
-                             AggregationContext[] aggregations,
-                             RamAccountingContext ramAccountingContext) {
+    GroupingProjector(List<? extends DataType> keyTypes,
+                      List<Input<?>> keyInputs,
+                      CollectExpression<Row, ?>[] collectExpressions,
+                      AggregateMode mode,
+                      AggregationContext[] aggregations,
+                      RamAccountingContext ramAccountingContext,
+                      Version indexVersionCreated,
+                      BigArrays bigArrays) {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
 
@@ -66,7 +70,9 @@ public class GroupingProjector implements Projector {
                 inputs,
                 ramAccountingContext,
                 keyInputs.get(0),
-                keyTypes.get(0)
+                keyTypes.get(0),
+                indexVersionCreated,
+                bigArrays
             );
         } else {
             //noinspection unchecked
@@ -77,7 +83,9 @@ public class GroupingProjector implements Projector {
                 inputs,
                 ramAccountingContext,
                 keyInputs,
-                keyTypes
+                keyTypes,
+                indexVersionCreated,
+                bigArrays
             );
         }
     }

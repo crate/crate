@@ -47,6 +47,9 @@ Breaking Changes
 Changes
 =======
 
+- Added ``hyperloglog_distinct`` aggregation function. This is an
+  enterprise-only feature.
+
 - Added ``os['cpu']['used']`` column to ``sys.nodes`` table. This replaces the
   deprecated system/user/idle/stolen values.
 

@@ -28,7 +28,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.util.BigArrays;
 import org.junit.Test;
 
 import java.util.Set;
@@ -61,7 +63,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         AggregationFunction impl
             = (AggregationFunction) functions.getBuiltin("collect_set", ImmutableList.of(DataTypes.LONG));
 
-        Object state = impl.newState(ramAccountingContext);
+        Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);

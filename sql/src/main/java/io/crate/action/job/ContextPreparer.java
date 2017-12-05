@@ -92,6 +92,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -132,7 +133,8 @@ public class ContextPreparer extends AbstractComponent {
                            TransportActionProvider transportActionProvider,
                            IndicesService indicesService,
                            Functions functions,
-                           SystemCollectSource systemCollectSource) {
+                           SystemCollectSource systemCollectSource,
+                           BigArrays bigArrays) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
         pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
@@ -155,7 +157,8 @@ public class ContextPreparer extends AbstractComponent {
             inputFactory,
             normalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition
+            systemCollectSource::tableDefinition,
+            bigArrays
         );
     }
 

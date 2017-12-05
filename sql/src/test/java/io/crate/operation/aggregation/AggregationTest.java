@@ -35,8 +35,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.util.BigArrays;
 import org.junit.Before;
 
 import java.util.Arrays;
@@ -78,7 +80,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.getBuiltin(fi.name(), fi.argumentTypes());
-        Object state = impl.newState(ramAccountingContext);
+        Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
 
         ArrayBucket bucket = new ArrayBucket(data);
 

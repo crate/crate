@@ -488,6 +488,51 @@ faster than on strings.  The advantage is that the ``arbitrary`` function does
 very little to no computation as for example ``max`` aggregation function would
 do.
 
+.. _aggregation-hll-distinct:
+
+``hyperloglog_distinct``
+========================
+
+.. note::
+
+   The ``hyperloglog_distinct`` aggregate function is an :ref:`enterprise
+   feature <enterprise_features>`.
+
+The ``hyperloglog_distinct`` aggregate function calculates an approximate count
+of distinct non-null values using the `HyperLogLog++`_ algorithm.
+
+The return value data type is always a long.
+
+The first argument can be a reference to a column of all
+:ref:`sql_ddl_datatypes_primitives`. :ref:`sql_ddl_datatypes_compound` and
+:ref:`sql_ddl_datatypes_geographic` are not supported.
+
+The optional second argument defines the used ``precision`` for the
+`HyperLogLog++`_ algorithm. This allows to trade memory for accuracy, valid
+values are ``4`` to ``18``.
+The default value for the ``precision`` which is used if the second argument is
+left out is ``14``.
+
+Examples::
+
+    cr> select hyperloglog_distinct(position) from locations;
+    +--------------------------------+
+    | hyperloglog_distinct(position) |
+    +--------------------------------+
+    | 6                              |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select hyperloglog_distinct(position, 4) from locations;
+    +-----------------------------------+
+    | hyperloglog_distinct(position, 4) |
+    +-----------------------------------+
+    | 6                                 |
+    +-----------------------------------+
+    SELECT 1 row in set (... sec)
+
 Limitations
 ===========
 
@@ -504,3 +549,4 @@ Limitations
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
+.. _HyperLogLog++: https://research.google.com/pubs/pub40671.html

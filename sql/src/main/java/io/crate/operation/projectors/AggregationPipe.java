@@ -32,6 +32,8 @@ import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,10 +44,12 @@ public class AggregationPipe implements Projector {
 
     private final AggregateCollector collector;
 
-    public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
-                           AggregateMode aggregateMode,
-                           AggregationContext[] aggregations,
-                           RamAccountingContext ramAccountingContext) {
+    AggregationPipe(List<CollectExpression<Row, ?>> expressions,
+                    AggregateMode aggregateMode,
+                    AggregationContext[] aggregations,
+                    RamAccountingContext ramAccountingContext,
+                    Version indexVersionCreated,
+                    BigArrays bigArrays) {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
         for (int i = 0; i < aggregations.length; i++) {
@@ -58,6 +62,8 @@ public class AggregationPipe implements Projector {
             ramAccountingContext,
             aggregateMode,
             functions,
+            indexVersionCreated,
+            bigArrays,
             inputs
         );
     }

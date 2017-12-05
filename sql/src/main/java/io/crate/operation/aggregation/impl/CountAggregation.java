@@ -40,9 +40,12 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.util.BigArrays;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -96,8 +99,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         return state;
     }
 
+    @Nullable
     @Override
-    public LongState newState(RamAccountingContext ramAccountingContext) {
+    public LongState newState(RamAccountingContext ramAccountingContext,
+                              Version indexVersionCreated,
+                              BigArrays bigArrays) {
         ramAccountingContext.addBytes(LongStateType.INSTANCE.fixedSize());
         return new LongState();
     }

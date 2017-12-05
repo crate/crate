@@ -31,6 +31,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.util.BigArrays;
+
+import javax.annotation.Nullable;
 
 public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
@@ -62,8 +66,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         return info.returnType();
     }
 
+    @Nullable
     @Override
-    public Comparable newState(RamAccountingContext ramAccountingContext) {
+    public Object newState(RamAccountingContext ramAccountingContext,
+                           Version indexVersionCreated,
+                           BigArrays bigArrays) {
         return null;
     }
 

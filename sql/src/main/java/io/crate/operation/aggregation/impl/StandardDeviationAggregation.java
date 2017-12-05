@@ -32,9 +32,11 @@ import io.crate.operation.aggregation.statistics.moment.StandardDeviation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -144,7 +146,9 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
     @Nullable
     @Override
-    public StdDevState newState(RamAccountingContext ramAccountingContext) {
+    public StdDevState newState(RamAccountingContext ramAccountingContext,
+                                Version indexVersionCreated,
+                                BigArrays bigArrays) {
         ramAccountingContext.addBytes(StdDevStateType.INSTANCE.fixedSize());
         return new StdDevState();
     }

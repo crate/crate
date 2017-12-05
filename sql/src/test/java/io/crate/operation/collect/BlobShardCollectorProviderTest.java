@@ -37,6 +37,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -102,7 +103,8 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 BlobIndicesService blobIndicesService = internalCluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 assertNotNull(blobShard);
-                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null, null, null, null, null);
+                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null, null, null, null, null,
+                    BigArrays.NON_RECYCLING_INSTANCE);
                 assertNotNull(collectorProvider);
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());

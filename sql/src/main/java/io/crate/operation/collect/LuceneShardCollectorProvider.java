@@ -46,6 +46,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
@@ -72,9 +73,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
-                                        IndexShard indexShard) {
+                                        IndexShard indexShard,
+                                        BigArrays bigArrays) {
         super(clusterService, nodeJobsCounter, ShardReferenceResolver.create(clusterService, schemas, indexShard),
-            functions, threadPool, settings, transportActionProvider, indexShard);
+            functions, threadPool, settings, transportActionProvider, indexShard, bigArrays);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.indexShard = indexShard;
         this.localNodeId = () -> clusterService.localNode().getId();

@@ -81,6 +81,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -174,6 +175,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final Functions functions;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeJobsCounter nodeJobsCounter;
+    private final BigArrays bigArrays;
 
     @Inject
     public ShardCollectSource(Settings settings,
@@ -189,7 +191,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
                               IndexEventListenerProxy indexEventListenerProxy,
-                              BlobIndicesService blobIndicesService) {
+                              BlobIndicesService blobIndicesService,
+                              BigArrays bigArrays) {
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.schemas = schemas;
@@ -203,6 +206,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.executor = new DirectFallbackExecutor(threadPool.executor(ThreadPool.Names.SEARCH));
         this.blobIndicesService = blobIndicesService;
         this.functions = functions;
+        this.bigArrays = bigArrays;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         nodeNormalizer = new EvaluatingNormalizer(
             functions,
@@ -220,7 +224,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             new InputFactory(functions),
             nodeNormalizer,
             systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition
+            systemCollectSource::tableDefinition,
+            bigArrays
         );
 
         indexEventListenerProxy.addLast(new LifecycleListener());
@@ -266,11 +271,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 if (isBlobIndex(indexShard.shardId().getIndexName())) {
                     BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
                     return new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
-                        threadPool, settings, transportActionProvider);
+                        threadPool, settings, transportActionProvider, bigArrays);
                 } else {
                     return new LuceneShardCollectorProvider(
                         schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
-                        threadPool, settings, transportActionProvider, indexShard);
+                        threadPool, settings, transportActionProvider, indexShard, bigArrays);
                 }
             });
             shards.put(indexShard.shardId(), providerSupplier);

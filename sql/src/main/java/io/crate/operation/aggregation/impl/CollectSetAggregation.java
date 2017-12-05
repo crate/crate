@@ -32,8 +32,11 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.util.BigArrays;
 
+import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -76,8 +79,11 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
         return state;
     }
 
+    @Nullable
     @Override
-    public Set<Object> newState(RamAccountingContext ramAccountingContext) {
+    public Set<Object> newState(RamAccountingContext ramAccountingContext,
+                                Version indexVersionCreated,
+                                BigArrays bigArrays) {
         ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashSet: 32 * 0 + 16 * 4 bytes
         return new HashSet<>();
     }
