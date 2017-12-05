@@ -61,6 +61,10 @@ import static io.netty.buffer.Unpooled.copiedBuffer;
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final Logger LOGGER = Loggers.getLogger(HttpAuthUpstreamHandler.class);
+    @VisibleForTesting
+    static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"Please provide credentials " +
+                                                         "(password maybe empty if trust authentication " +
+                                                         "is configured for your user)\")";
     private final Authentication authService;
     private Settings settings;
     private boolean authorized;
