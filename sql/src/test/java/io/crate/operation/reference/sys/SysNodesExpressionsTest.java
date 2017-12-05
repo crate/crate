@@ -289,6 +289,18 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testOsCgroup() {
+        Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        io.crate.operation.reference.NestedObjectExpression os =
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+        Map<String, Object> v = os.value();
+        Map<String, Object> cgroup = (Map<String, Object>) v.get("cgroup");
+        assertThat(mapToSortedString(cgroup), is("cpu={cfs_period_micros=80, cfs_quota_micros=50, control_group=/cpu, " +
+            "num_elapsed_periods=1, num_times_throttled=2, time_throttled_nanos=3}, cpuacct={control_group=/cpuacct, " +
+            "usage_nanos=100}, mem={control_group=/, limit_bytes=2048, usage_bytes=1024}"));
+    }
+
+    @Test
     public void testProcess() throws Exception {
         Reference refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression processRef = (io.crate.operation.reference.NestedObjectExpression)

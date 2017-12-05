@@ -32,6 +32,7 @@ class NodeOsExpression extends NestedObjectExpression {
     private static final String UPTIME = "uptime";
     private static final String TIMESTAMP = "timestamp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
+    private static final String CGROUP = "cgroup";
 
     NodeOsExpression(ExtendedOsStats extendedOsStats) {
         addChildImplementations(extendedOsStats);
@@ -55,5 +56,6 @@ class NodeOsExpression extends NestedObjectExpression {
         });
         childImplementations.put(PROBE_TIMESTAMP, extendedOsStats::timestamp);
         childImplementations.put(CPU, new NodeOsCpuExpression(extendedOsStats.cpu()));
+        childImplementations.put(CGROUP, new NodeOsCgroupExpression(extendedOsStats));
     }
 }

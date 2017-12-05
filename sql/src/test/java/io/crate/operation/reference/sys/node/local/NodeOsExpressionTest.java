@@ -25,6 +25,7 @@ package io.crate.operation.reference.sys.node.local;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.monitor.os.OsStats;
 import org.junit.Test;
 
 import static org.mockito.Mockito.mock;
@@ -33,8 +34,10 @@ public class NodeOsExpressionTest extends CrateUnitTest {
 
     @Test
     public void testOsTimestampNotEvaluatedTwice() throws Exception {
-        ExtendedOsStats osStats = mock(ExtendedOsStats.class);
-        NodeOsExpression nodeOsExpression = new NodeOsExpression(osStats);
+        ExtendedOsStats.Cpu cpu = mock(ExtendedOsStats.Cpu.class);
+        OsStats osStats = mock(OsStats.class);
+        ExtendedOsStats extendedOsStats = new ExtendedOsStats(cpu, osStats, null);
+        NodeOsExpression nodeOsExpression = new NodeOsExpression(extendedOsStats);
         ReferenceImplementation timestampExpr = nodeOsExpression.getChildImplementation("timestamp");
         Long ts1 = (Long) timestampExpr.value();
         Thread.sleep(10L);

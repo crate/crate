@@ -24,7 +24,6 @@ package io.crate.monitor;
 
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.os.OsStats;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -82,9 +81,14 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
 
     @Override
     public ExtendedOsStats osStats() {
+        OsStats.Cpu cpu = new OsStats.Cpu((short) 50, new double[]{0.1, 0.2, 0.3});
+        OsStats.Mem mem = new OsStats.Mem(2048L, 1024L);
+        OsStats.Swap swap = new OsStats.Swap(512L, 256L);
+        OsStats.Cgroup.CpuStat cpuStat= new OsStats.Cgroup.CpuStat(1L, 2L, 3L);
+        OsStats.Cgroup cgroup = new OsStats.Cgroup("/cpuacct", 100L, "/cpu", 80L, 50L, cpuStat);
         ExtendedOsStats.Cpu cpuStats = new ExtendedOsStats.Cpu((short) 0, (short) 4, (short) 94, (short) 10);
-        ExtendedOsStats.CgroupMem cgroupMemStats = new ExtendedOsStats.CgroupMem();
-        OsStats osStats = OsProbe.getInstance().osStats();
+        ExtendedOsStats.CgroupMem cgroupMemStats = new ExtendedOsStats.CgroupMem("/", "2048", "1024");
+        OsStats osStats = new OsStats(1000L, cpu, mem, swap, cgroup);
         ExtendedOsStats extendedOsStats = new ExtendedOsStats(cpuStats, osStats, cgroupMemStats);
         extendedOsStats.uptime(3600L);
         extendedOsStats.loadAverage(new double[]{1, 5, 15});
