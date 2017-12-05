@@ -114,7 +114,6 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SingleColumnTableType;
@@ -613,18 +612,6 @@ public class ExpressionAnalyzer {
             Symbol leftSymbol = process(node.getLeft(), context);
             Symbol arraySymbol = process(node.getRight(), context);
 
-            DataType arraySymbolType = arraySymbol.valueType();
-
-            if (!DataTypes.isCollectionType(arraySymbolType)) {
-                throw new IllegalArgumentException(
-                    SymbolFormatter.format("invalid array expression: '%s'", arraySymbol));
-            }
-
-            DataType rightInnerType = ((CollectionType) arraySymbolType).innerType();
-            if (rightInnerType != null && rightInnerType.equals(DataTypes.OBJECT)) {
-                throw new IllegalArgumentException("ANY on object arrays is not supported");
-            }
-
             ComparisonExpression.Type operationType = node.getType();
             String operatorName = AnyOperator.OPERATOR_PREFIX + operationType.getValue();
             return allocateFunction(
@@ -638,18 +625,12 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = process(node.getValue(), context);
+            Symbol arraySymbol = process(node.getValue(), context);
             Symbol leftSymbol = process(node.getPattern(), context);
-            DataType rightType = rightSymbol.valueType();
-
-            if (!DataTypes.isCollectionType(rightType)) {
-                throw new IllegalArgumentException(
-                    SymbolFormatter.format("invalid array expression: '%s'", rightSymbol));
-            }
 
             String operatorName = node.inverse() ? AnyNotLikeOperator.NAME : AnyLikeOperator.NAME;
 
-            ImmutableList<Symbol> arguments = ImmutableList.of(leftSymbol, rightSymbol);
+            ImmutableList<Symbol> arguments = ImmutableList.of(leftSymbol, arraySymbol);
 
             return allocateFunction(
                 operatorName,

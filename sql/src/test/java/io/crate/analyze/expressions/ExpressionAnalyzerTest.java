@@ -44,6 +44,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.operator.any.AnyEqOperator;
+import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.scalar.conditional.CoalesceFunction;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
@@ -65,6 +67,7 @@ import java.util.EnumSet;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -306,5 +309,17 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
         Symbol x = expressions.asSymbol("5 between 1 and 10");
         assertThat(x, isLiteral(true));
+    }
+
+    @Test
+    public void testParameterExpressionInAny() throws Exception {
+        Symbol s = expressions.asSymbol("5 = ANY(?)");
+        assertThat(s, isFunction(AnyEqOperator.NAME, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+    }
+
+    @Test
+    public void testParameterExpressionInLikeAny() throws Exception {
+        Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
+        assertThat(s, isFunction(AnyLikeOperator.NAME, isLiteral(5L), instanceOf(ParameterSymbol.class)));
     }
 }

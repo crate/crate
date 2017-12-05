@@ -845,8 +845,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testArrayCompareInvalidArray() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid array expression: 'name'");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast name to type [undefined_table, undefined_set, undefined_array]");
         analyze("select * from users where 'George' = ANY (name)");
     }
 
@@ -1028,8 +1028,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testAnyLikeInvalidArray() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid array expression: 'name'");
+        expectedException.expect(ConversionException.class);
+        expectedException.expectMessage("Cannot cast name to type [undefined_table, undefined_set, undefined_array]");
         analyze("select * from users where 'awesome' LIKE ANY (name)");
     }
 

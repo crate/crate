@@ -161,8 +161,11 @@ public abstract class AnyOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
+            DataType<?> innerType = ((CollectionType) dataTypes.get(1)).innerType();
+            checkArgument(innerType.equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
+            checkArgument(!innerType.equals(DataTypes.OBJECT),
+                "ANY on object arrays is not supported");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
         }
     }
