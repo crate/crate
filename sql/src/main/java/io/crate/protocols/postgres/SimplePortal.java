@@ -168,7 +168,7 @@ public class SimplePortal extends AbstractPortal {
             planner.currentClusterState(),
             routingProvider,
             jobId,
-            planner.normalizer(),
+            planner.functions(),
             transactionContext,
             defaultLimit,
             maxRows
@@ -213,7 +213,7 @@ public class SimplePortal extends AbstractPortal {
             planner.currentClusterState(),
             routingProvider,
             jobId,
-            planner.normalizer(),
+            planner.functions(),
             transactionContext,
             defaultLimit,
             maxRows

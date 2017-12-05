@@ -36,7 +36,6 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
@@ -90,7 +89,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final EvaluatingNormalizer normalizer;
     private final LogicalPlanner logicalPlanner;
     private final Functions functions;
 
@@ -102,7 +100,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.clusterService = clusterService;
         this.functions = functions;
         this.logicalPlanner = new LogicalPlanner(functions, tableStats);
-        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
 
         this.awarenessAttributes =
             AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.get(settings);
@@ -117,10 +114,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     public String[] getAwarenessAttributes() {
         return awarenessAttributes;
-    }
-
-    public EvaluatingNormalizer normalizer() {
-        return normalizer;
     }
 
     public ClusterState currentClusterState() {
@@ -366,6 +359,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
         }
         return indices;
+    }
+
+    public Functions functions() {
+        return functions;
     }
 }
 

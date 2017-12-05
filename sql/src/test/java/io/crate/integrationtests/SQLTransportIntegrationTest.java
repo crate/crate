@@ -50,10 +50,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.operation.user.User;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
@@ -415,7 +415,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             planner.currentClusterState(),
             routingProvider,
             UUID.randomUUID(),
-            planner.normalizer(),
+            planner.functions(),
             transactionContext,
             0,
             0

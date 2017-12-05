@@ -129,7 +129,7 @@ class BulkPortal extends AbstractPortal {
             planner.currentClusterState(),
             routingProvider,
             jobId,
-            planner.normalizer(),
+            planner.functions(),
             transactionContext,
             0,
             maxRows

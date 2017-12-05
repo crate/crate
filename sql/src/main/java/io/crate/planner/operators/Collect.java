@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -162,7 +163,7 @@ class Collect implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
-        RoutedCollectPhase collectPhase = createPhase(plannerContext);
+        RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryValues);
         relation.tableRelation().validateOrderBy(order);
         collectPhase.orderBy(order);
         int limitAndOffset = limitAndOffset(limit, offset);
@@ -187,15 +188,20 @@ class Collect implements LogicalPlan {
         }
     }
 
-    private RoutedCollectPhase createPhase(PlannerContext plannerContext) {
+    private RoutedCollectPhase createPhase(PlannerContext plannerContext, Row params, Map<SelectSymbol, Object> subQueryValues) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (relation.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();
             List<Symbol> args = tableFunctionRelation.function().arguments();
             ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
             for (Symbol arg : args) {
-                // It's not possible to use columns as argument to a table function and subqueries are currently not allowed either.
-                functionArguments.add((Literal) plannerContext.normalizer().normalize(arg, plannerContext.transactionContext()));
+                // It's not possible to use columns as argument to a table function, so it's safe to evaluate at this point.
+                functionArguments.add(
+                    Literal.of(
+                        arg.valueType(),
+                        SymbolEvaluator.evaluate(plannerContext.functions(), arg, params, subQueryValues)
+                    )
+                );
             }
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),

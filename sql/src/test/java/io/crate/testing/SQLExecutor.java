@@ -136,7 +136,7 @@ public class SQLExecutor {
             clusterState,
             new RoutingProvider(random.nextInt(), new String[0]),
             UUID.randomUUID(),
-            planner.normalizer(),
+            functions,
             new TransactionContext(sessionContext),
             -1,
             -1
@@ -359,7 +359,7 @@ public class SQLExecutor {
             planner.currentClusterState(),
             routingProvider,
             jobId,
-            planner.normalizer(),
+            functions,
             transactionContext,
             softLimit,
             fetchSize
@@ -406,7 +406,7 @@ public class SQLExecutor {
             planner.currentClusterState(),
             routingProvider,
             UUID.randomUUID(),
-            planner.normalizer(),
+            functions,
             transactionContext,
             0,
             0

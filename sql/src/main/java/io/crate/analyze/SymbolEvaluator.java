@@ -53,7 +53,8 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     }
 
     public static Object evaluate(Functions functions,
-                                  Symbol symbol, Row params,
+                                  Symbol symbol,
+                                  Row params,
                                   Map<SelectSymbol, Object> subQueryValues) {
         SymbolEvaluator symbolEval = new SymbolEvaluator(functions, subQueryValues);
         return symbolEval.process(symbol, params).value();

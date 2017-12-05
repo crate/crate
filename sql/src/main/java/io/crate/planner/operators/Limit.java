@@ -45,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.crate.analyze.SymbolEvaluator.evaluate;
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 class Limit implements LogicalPlan {
 
@@ -78,8 +80,10 @@ class Limit implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
-        int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
-        int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
+        int limit = firstNonNull(
+            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryValues)), NO_LIMIT);
+        int offset = firstNonNull(
+            DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryValues)), 0);
 
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);

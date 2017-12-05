@@ -1,7 +1,6 @@
 package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RoutingProvider;
@@ -33,12 +32,10 @@ import static org.hamcrest.core.Is.is;
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private EvaluatingNormalizer normalizer;
 
     @Before
     public void prepare() {
         e = SQLExecutor.builder(clusterService).build();
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions());
     }
 
     @Test
@@ -85,7 +82,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             UUID.randomUUID(),
-            normalizer,
+            e.functions(),
             new TransactionContext(SessionContext.create()),
             0,
             0);

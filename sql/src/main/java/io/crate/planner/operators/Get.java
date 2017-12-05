@@ -27,14 +27,17 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -43,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static io.crate.analyze.SymbolEvaluator.evaluate;
 
 public class Get implements LogicalPlan {
 
@@ -73,8 +77,8 @@ public class Get implements LogicalPlan {
         this.querySpec = table.querySpec();
         this.docKeys = docKeys;
         this.outputs = outputs;
-        this.limit = limit;
-        this.offset = offset;
+        this.limit = firstNonNull(limit, Literal.of(TopN.NO_LIMIT));
+        this.offset = firstNonNull(offset, Literal.of(0));
     }
 
     @Override
@@ -86,8 +90,8 @@ public class Get implements LogicalPlan {
                        @Nullable Integer pageSizeHint,
                        Row params,
                        Map<SelectSymbol, Object> subQueryValues) {
-        int limit = firstNonNull(plannerContext.toInteger(this.limit), LogicalPlanner.NO_LIMIT);
-        int offset = firstNonNull(plannerContext.toInteger(this.offset), 0);
+        int limit = DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryValues));
+        int offset = DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryValues));
         return new ESGet(
             plannerContext.nextExecutionPhaseId(),
             tableRelation.tableInfo(),

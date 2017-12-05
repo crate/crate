@@ -23,20 +23,16 @@
 package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class PlannerContext {
@@ -50,7 +46,7 @@ public class PlannerContext {
             context.clusterState,
             context.routingProvider,
             UUID.randomUUID(),
-            context.normalizer,
+            context.functions,
             context.transactionContext,
             softLimit,
             fetchSize
@@ -58,12 +54,12 @@ public class PlannerContext {
     }
 
     private final UUID jobId;
-    private final EvaluatingNormalizer normalizer;
     private final TransactionContext transactionContext;
     private final int softLimit;
     private final int fetchSize;
     private final RoutingBuilder routingBuilder;
     private final RoutingProvider routingProvider;
+    private final Functions functions;
     private final ClusterState clusterState;
     private int executionPhaseId = 0;
     private final String handlerNode;
@@ -71,32 +67,19 @@ public class PlannerContext {
     public PlannerContext(ClusterState clusterState,
                           RoutingProvider routingProvider,
                           UUID jobId,
-                          EvaluatingNormalizer normalizer,
+                          Functions functions,
                           TransactionContext transactionContext,
                           int softLimit,
                           int fetchSize) {
         this.routingProvider = routingProvider;
+        this.functions = functions;
         this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
         this.clusterState = clusterState;
         this.jobId = jobId;
-        this.normalizer = normalizer;
         this.transactionContext = transactionContext;
         this.softLimit = softLimit;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
-    }
-
-    public EvaluatingNormalizer normalizer() {
-        return normalizer;
-    }
-
-    @Nullable
-    public Integer toInteger(@Nullable Symbol symbol) {
-        if (symbol == null) {
-            return null;
-        }
-        Input input = (Input) (normalizer.normalize(symbol, transactionContext));
-        return DataTypes.INTEGER.value(input.value());
     }
 
     public int softLimit() {
@@ -138,5 +121,9 @@ public class PlannerContext {
 
     public ReaderAllocations buildReaderAllocations() {
         return routingBuilder.buildReaderAllocations();
+    }
+
+    public Functions functions() {
+        return functions;
     }
 }
