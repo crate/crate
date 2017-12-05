@@ -341,6 +341,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append("]\n");
                 return sb.toString();
             }
+            if (plan instanceof Get) {
+                Get get = (Get) plan;
+                startLine("Get[");
+                sb.append(get.tableRelation.tableInfo().ident());
+                sb.append(" | ");
+                addSymbolsList(get.outputs());
+                sb.append(" | ");
+                sb.append(get.docKeys);
+                return sb.toString();
+            }
             return printPlan(plan);
         }
 

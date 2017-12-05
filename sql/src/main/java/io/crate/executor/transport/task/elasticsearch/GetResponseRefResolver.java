@@ -22,20 +22,20 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.analyze.symbol.ValueSymbolVisitor;
-import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
+import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+
+import static io.crate.metadata.RowContextCollectorExpression.forFunction;
 
 /**
  * ReferenceResolver implementation which can be used to retrieve {@link CollectExpression}s to extract values from
@@ -43,46 +43,37 @@ import java.util.function.Consumer;
  */
 public class GetResponseRefResolver implements ReferenceResolver<CollectExpression<GetResponse, ?>> {
 
-    private final Consumer<ColumnIdent> columnConsumer;
-    private final DocTableInfo docTableInfo;
-    private final Map<String, DocKeys.DocKey> ids2Keys;
+    private final List<ColumnIdent> partitionedByColumns;
 
-    GetResponseRefResolver(Consumer<ColumnIdent> columnConsumer,
-                           DocTableInfo docTableInfo,
-                           Map<String, DocKeys.DocKey> ids2Keys) {
-        this.columnConsumer = columnConsumer;
-        this.docTableInfo = docTableInfo;
-        this.ids2Keys = ids2Keys;
+    public GetResponseRefResolver(List<ColumnIdent> partitionedByColumns) {
+        this.partitionedByColumns = partitionedByColumns;
     }
 
     @Override
     public CollectExpression<GetResponse, ?> getImplementation(Reference ref) {
         ColumnIdent columnIdent = ref.column();
-        columnConsumer.accept(columnIdent);
         String fqn = columnIdent.fqn();
         switch (fqn) {
             case DocSysColumns.Names.VERSION:
-                return RowContextCollectorExpression.forFunction(GetResponse::getVersion);
+                return forFunction(GetResponse::getVersion);
 
             case DocSysColumns.Names.ID:
                 return RowContextCollectorExpression.objToBytesRef(GetResponse::getId);
 
             case DocSysColumns.Names.RAW:
-                return RowContextCollectorExpression.forFunction(r -> r.getSourceAsBytesRef().toBytesRef());
+                return forFunction(r -> r.getSourceAsBytesRef().toBytesRef());
 
             case DocSysColumns.Names.DOC:
-                return RowContextCollectorExpression.forFunction(GetResponse::getSource);
+                return forFunction(GetResponse::getSource);
 
             default:
-                if (docTableInfo.isPartitioned() && docTableInfo.partitionedBy().contains(columnIdent)) {
-                    int pkPos = docTableInfo.primaryKey().indexOf(columnIdent);
-                    if (pkPos >= 0) {
-                        return RowContextCollectorExpression.forFunction(
-                            response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
-                    }
+                int idx = partitionedByColumns.indexOf(columnIdent);
+                if (idx > -1) {
+                    return forFunction(
+                        getResp -> ref.valueType().value(
+                            PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx)));
                 }
-
-                return RowContextCollectorExpression.forFunction(response -> {
+                return forFunction(response -> {
                     Map<String, Object> sourceAsMap = response.getSourceAsMap();
                     return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
                 });

@@ -24,17 +24,13 @@ package io.crate.planner;
 
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.executionphases.PhasesTaskFactory;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.sources.SystemCollectSource;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -53,7 +49,6 @@ public class DependencyCarrier {
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
     private final PhasesTaskFactory phasesTaskFactory;
-    private final JobContextService jobContextService;
     private final ThreadPool threadPool;
     private final Functions functions;
     private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
@@ -61,7 +56,6 @@ public class DependencyCarrier {
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
     private final ProjectionBuilder projectionBuilder;
-    private final ProjectionToProjectorVisitor projectorFactory;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -79,27 +73,13 @@ public class DependencyCarrier {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
-        this.jobContextService = jobContextService;
         this.threadPool = threadPool;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
         projectionBuilder = new ProjectionBuilder(functions);
-        projectorFactory = new ProjectionToProjectorVisitor(
-            clusterService,
-            nodeJobsCounter,
-            functions,
-            threadPool,
-            settings,
-            transportActionProvider,
-            new InputFactory(functions),
-            normalizer,
-            systemCollectSource::getRowUpdater,
-            systemCollectSource::tableDefinition
-        );
     }
 
     public DDLStatementDispatcher ddlAction() {
@@ -112,10 +92,6 @@ public class DependencyCarrier {
 
     public Functions functions() {
         return functions;
-    }
-
-    public ProjectorFactory projectorFactory() {
-        return projectorFactory;
     }
 
     public TransportActionProvider transportActionProvider()  {
@@ -144,10 +120,6 @@ public class DependencyCarrier {
 
     public TransportDropTableAction transportDropTableAction() {
         return transportDropTableAction;
-    }
-
-    public JobContextService jobContextService() {
-        return jobContextService;
     }
 
     public PhasesTaskFactory phasesTaskFactory() {

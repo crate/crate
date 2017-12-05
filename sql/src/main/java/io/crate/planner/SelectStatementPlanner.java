@@ -31,10 +31,8 @@ import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.planner.consumer.FetchMode;
-import io.crate.planner.operators.Get;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.planner.operators.MultiPhase;
 import io.crate.planner.operators.RootRelationBoundary;
 
 public class SelectStatementPlanner {
@@ -99,14 +97,7 @@ public class SelectStatementPlanner {
         @Override
         public LogicalPlan visitQueriedDocTable(QueriedDocTable table, Context context) {
             QuerySpec querySpec = table.querySpec();
-            PlannerContext plannerContext = context.plannerContext;
-            plannerContext.applySoftLimit(querySpec);
-            if (querySpec.hasAggregates() || (!querySpec.groupBy().isEmpty())) {
-                return invokeLogicalPlanner(table, context);
-            }
-            if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
-                return MultiPhase.createIfNeeded(Get.create(table), table, context.subqueryPlanner);
-            }
+            context.plannerContext.applySoftLimit(querySpec);
             return invokeLogicalPlanner(table, context);
         }
 

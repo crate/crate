@@ -23,83 +23,113 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.PKLookupPhase;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
-import static com.google.common.base.MoreObjects.firstNonNull;
-import static io.crate.analyze.SymbolEvaluator.evaluate;
 
 public class Get implements LogicalPlan {
 
-    public static LogicalPlan create(QueriedDocTable table) {
-        QuerySpec querySpec = table.querySpec();
-        Optional<DocKeys> optKeys = querySpec.where().docKeys();
-        assert !querySpec.hasAggregates() : "Can't create Get logical plan for queries with aggregates";
-        assert querySpec.groupBy().isEmpty() : "Can't create Get logical plan for queries with group by";
-        assert optKeys.isPresent() : "Can't create Get logial plan without docKeys";
-
-        DocKeys docKeys = optKeys.get();
-        if (docKeys.withVersions()) {
-            throw new VersionInvalidException();
-        }
-        table.tableRelation().validateOrderBy(querySpec.orderBy());
-        return new Get(table, docKeys, querySpec.outputs(), querySpec.limit(), querySpec.offset());
-    }
-
-    private final DocTableRelation tableRelation;
-    private final QuerySpec querySpec;
-    private final DocKeys docKeys;
+    final DocTableRelation tableRelation;
+    final DocKeys docKeys;
     private final List<Symbol> outputs;
-    private final Symbol limit;
-    private final Symbol offset;
 
-    private Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs, Symbol limit, Symbol offset) {
+    Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs) {
         this.tableRelation = table.tableRelation();
-        this.querySpec = table.querySpec();
         this.docKeys = docKeys;
         this.outputs = outputs;
-        this.limit = firstNonNull(limit, Literal.of(TopN.NO_LIMIT));
-        this.offset = firstNonNull(offset, Literal.of(0));
     }
 
     @Override
-    public ESGet build(PlannerContext plannerContext,
-                       ProjectionBuilder projectionBuilder,
-                       int limitHint,
-                       int offsetHint,
-                       @Nullable OrderBy order,
-                       @Nullable Integer pageSizeHint,
-                       Row params,
-                       Map<SelectSymbol, Object> subQueryValues) {
-        int limit = DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.limit, params, subQueryValues));
-        int offset = DataTypes.INTEGER.value(evaluate(plannerContext.functions(), this.offset, params, subQueryValues));
-        return new ESGet(
-            plannerContext.nextExecutionPhaseId(),
-            tableRelation.tableInfo(),
-            outputs,
-            docKeys,
-            querySpec.orderBy(),
-            limit,
-            offset
+    public ExecutionPlan build(PlannerContext plannerContext,
+                               ProjectionBuilder projectionBuilder,
+                               int limitHint,
+                               int offsetHint,
+                               @Nullable OrderBy order,
+                               @Nullable Integer pageSizeHint,
+                               Row params,
+                               Map<SelectSymbol, Object> subQueryValues) {
+        HashMap<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode = new HashMap<>();
+        DocTableInfo docTableInfo = tableRelation.tableInfo();
+        for (DocKeys.DocKey docKey : docKeys) {
+            String id = docKey.getId(plannerContext.functions(), params, subQueryValues);
+            if (id == null) {
+                continue;
+            }
+            List<BytesRef> partitionValues = docKey.getPartitionValues(plannerContext.functions(), params, subQueryValues);
+            String indexName = indexName(docTableInfo, partitionValues);
+
+            String routing = docKey.getRouting(plannerContext.functions(), params, subQueryValues);
+            ShardRouting shardRouting;
+            try {
+                shardRouting = plannerContext.resolveShard(indexName, id, routing);
+            } catch (IndexNotFoundException e) {
+                if (docTableInfo.isPartitioned()) {
+                    continue;
+                }
+                throw e;
+            }
+            String currentNodeId = shardRouting.currentNodeId();
+            if (currentNodeId == null) {
+                // If relocating is fast enough this will work, otherwise it will result in a shard failure which
+                // will cause a statement retry
+                currentNodeId = shardRouting.relocatingNodeId();
+                if (currentNodeId == null) {
+                    throw new ShardNotFoundException(shardRouting.shardId());
+                }
+            }
+            Map<ShardId, List<PKAndVersion>> idsByShard = idsByShardByNode.get(currentNodeId);
+            if (idsByShard == null) {
+                idsByShard = new HashMap<>();
+                idsByShardByNode.put(currentNodeId, idsByShard);
+            }
+            List<PKAndVersion> pkAndVersions = idsByShard.get(shardRouting.shardId());
+            if (pkAndVersions == null) {
+                pkAndVersions = new ArrayList<>();
+                idsByShard.put(shardRouting.shardId(), pkAndVersions);
+            }
+            long version = docKey
+                .version(plannerContext.functions(), params, subQueryValues)
+                .orElse(Versions.MATCH_ANY);
+            pkAndVersions.add(new PKAndVersion(id, version));
+        }
+        return new Collect(
+            new PKLookupPhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                docTableInfo.partitionedBy(),
+                outputs,
+                idsByShardByNode
+            ),
+            TopN.NO_LIMIT,
+            0,
+            outputs.size(),
+            docKeys.size(),
+            null
         );
     }
 
@@ -131,5 +161,14 @@ public class Get implements LogicalPlan {
     @Override
     public long numExpectedRows() {
         return docKeys.size();
+    }
+
+    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> partitionValues) {
+        if (tableInfo.isPartitioned()) {
+            assert partitionValues != null : "values must not be null";
+            return new PartitionName(tableInfo.ident(), partitionValues).asIndexName();
+        } else {
+            return tableInfo.ident().indexName();
+        }
     }
 }

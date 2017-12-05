@@ -41,7 +41,6 @@ import io.crate.operation.scalar.arithmetic.MapFunction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,17 +151,6 @@ public class EvaluatingNormalizer {
             function = processAndMaybeCopy(function, context);
             FunctionImplementation implementation = functions.getQualified(function.info().ident());
             return implementation.normalizeSymbol(function, context);
-        }
-    }
-
-    /**
-     * Normalizes all symbols of a List in place
-     *
-     * @param symbols the list to be normalized
-     */
-    public void normalizeInplace(@Nonnull List<Symbol> symbols, @Nullable TransactionContext context) {
-        for (int i = 0; i < symbols.size(); i++) {
-            symbols.set(i, normalize(symbols.get(i), context));
         }
     }
 

@@ -32,7 +32,6 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -48,12 +47,12 @@ import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.EvalProjection;
 import io.crate.planner.projection.FetchProjection;
@@ -79,10 +78,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isFetchRef;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -134,45 +133,46 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id = 1");
-        assertThat(esGet.tableInfo().ident().name(), is("users"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1L));
-        assertThat(esGet.outputs().size(), is(1));
+        LogicalPlan plan = e.logicalPlan("select name from users where id = 1");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name]\n" +
+            "Get[doc.users | name | DocKeys{1}"));
     }
 
     @Test
     public void testGetWithVersion() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        e.plan("select name from users where id = 1 and _version = 1");
+        LogicalPlan plan = e.logicalPlan("select name from users where id = 1 and _version = 1");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name]\n" +
+            "Get[doc.users | name | DocKeys{1, 1}"));
     }
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
-        ESGet esGet = e.plan("select name from bystring where name = 'one'");
-        assertThat(esGet.tableInfo().ident().name(), is("bystring"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey("one"));
-        assertThat(esGet.outputs().size(), is(1));
+        LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name]\n" +
+            "Get[doc.bystring | name | DocKeys{'one'}"
+        ));
     }
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
-        ESGet esGet = e.plan("select name, date from parted_pks where id = 1 and date = 0");
-        assertThat(esGet.tableInfo().ident().name(), is("parted_pks"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1, 0L));
-
-        //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName()));
-        assertEquals(DataTypes.STRING, esGet.outputTypes().get(0));
-        assertEquals(DataTypes.TIMESTAMP, esGet.outputTypes().get(1));
+        LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name, date]\n" +
+            "Get[doc.parted_pks | name, date | DocKeys{1, 0}"
+        ));
     }
 
     @Test
     public void testMultiGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id in (1, 2)");
-        assertThat(esGet.docKeys().size(), is(2));
-        assertThat(esGet.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
+        LogicalPlan plan = e.logicalPlan("select name from users where id in (1, 2)");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[name]\n" +
+            "Get[doc.users | name | DocKeys{1; 2}"
+        ));
     }
-
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {

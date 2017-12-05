@@ -32,6 +32,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.ShardRouting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,5 +120,9 @@ final class RoutingBuilder {
                 }
             }
         }
+    }
+
+    public ShardRouting resolveShard(String indexName, String id, String routing) {
+        return routingProvider.forId(clusterState, indexName, id, routing);
     }
 }

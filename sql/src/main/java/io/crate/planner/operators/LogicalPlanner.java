@@ -53,7 +53,6 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.Collection;
@@ -245,11 +244,6 @@ public class LogicalPlanner {
 
         // Ideally we'd include the binding into the `build` step and avoid the after-the-fact symbol mutation
         ExecutionPlanSymbolMapper.map(executionPlan, new SubQueryAndParamBinder(params, subQueryValues));
-
-        if (executionPlan instanceof ESGet) {
-            ((ESGet) executionPlan).execute(executor, plannerContext, consumer, params, subQueryValues);
-            return;
-        }
 
         NodeOperationTree nodeOpTree = NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
         executor.phasesTaskFactory()

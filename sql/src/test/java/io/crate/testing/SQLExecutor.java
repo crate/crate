@@ -380,7 +380,7 @@ public class SQLExecutor {
         return (T) plan;
     }
 
-    public <T> T logicalPlan(String statement) {
+    public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyzer.unboundAnalyze(
             SqlParser.createStatement(statement), sessionContext, ParamTypeHints.EMPTY);
         if (stmt instanceof AnalyzedRelation) {

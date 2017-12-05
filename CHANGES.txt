@@ -39,6 +39,9 @@ Breaking Changes
 Changes
 =======
 
+- Subqueries which filter on primary key columns now have the same realtime
+  semantics as the equivalent top-level queries.
+
 - Added support to change the password of existing users using ``ALTER USER``.
 
 - Added support for disabling the column store per ``STRING`` column on table

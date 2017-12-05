@@ -25,6 +25,7 @@ import io.crate.Streamer;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.PKLookupPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
@@ -58,6 +59,11 @@ public class StreamerVisitor {
         @Override
         public Streamer<?>[] visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
             return DataTypes.getStreamers(phase.outputTypes());
+        }
+
+        @Override
+        public Streamer<?>[] visitPKLookup(PKLookupPhase pkLookupPhase, Void context) {
+            return DataTypes.getStreamers(pkLookupPhase.outputTypes());
         }
 
         @Override

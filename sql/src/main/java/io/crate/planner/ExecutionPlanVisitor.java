@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import org.elasticsearch.common.Nullable;
@@ -56,10 +55,6 @@ public class ExecutionPlanVisitor<C, R> {
 
     public R visitMerge(Merge merge, C context) {
         return visitPlan(merge, context);
-    }
-
-    public R visitESGet(ESGet esGet, C context) {
-        return visitPlan(esGet, context);
     }
 
     public R visitUnionPlan(UnionExecutionPlan unionExecutionPlan, C context) {

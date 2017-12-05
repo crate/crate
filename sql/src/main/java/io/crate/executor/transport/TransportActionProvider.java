@@ -31,8 +31,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshot
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 
@@ -44,8 +42,6 @@ public class TransportActionProvider {
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
     private final Provider<TransportShardDeleteAction> transportShardDeleteActionProvider;
 
-    private final Provider<TransportGetAction> transportGetActionProvider;
-    private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
     private final Provider<TransportShardUpsertAction> transportShardUpsertActionProvider;
     private final Provider<TransportCreatePartitionsAction> transportBulkCreateIndicesActionProvider;
 
@@ -63,8 +59,6 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
                                    Provider<TransportShardDeleteAction> transportShardDeleteActionProvider,
-                                   Provider<TransportGetAction> transportGetActionProvider,
-                                   Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
                                    Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider,
                                    Provider<TransportJobAction> transportJobInitActionProvider,
@@ -77,8 +71,6 @@ public class TransportActionProvider {
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
-        this.transportGetActionProvider = transportGetActionProvider;
-        this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
         this.transportKillAllNodeActionProvider = transportKillAllNodeActionProvider;
         this.transportFetchNodeActionProvider = transportFetchNodeActionProvider;
@@ -101,14 +93,6 @@ public class TransportActionProvider {
 
     public TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction() {
         return transportClusterUpdateSettingsActionProvider.get();
-    }
-
-    public TransportGetAction transportGetAction() {
-        return transportGetActionProvider.get();
-    }
-
-    public TransportMultiGetAction transportMultiGetAction() {
-        return transportMultiGetActionProvider.get();
     }
 
     public TransportShardUpsertAction transportShardUpsertAction() {

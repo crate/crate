@@ -23,15 +23,12 @@
 package io.crate.executor.transport;
 
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.where.DocKeys;
-import io.crate.collections.Lists2;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
@@ -92,16 +89,6 @@ public class ExecutionPlanSymbolMapper extends ExecutionPlanVisitor<Function<? s
         process(union.left(), mapper);
         process(union.right(), mapper);
         union.mergePhase().replaceSymbols(mapper);
-        return null;
-    }
-
-    @Override
-    public Void visitESGet(ESGet esGet, Function<? super Symbol, ? extends Symbol> mapper) {
-        Lists2.replaceItems(esGet.outputs(), mapper);
-        Lists2.replaceItems(esGet.sortSymbols(), mapper);
-        for (DocKeys.DocKey current : esGet.docKeys()) {
-            Lists2.replaceItems(current.values(), mapper);
-        }
         return null;
     }
 }

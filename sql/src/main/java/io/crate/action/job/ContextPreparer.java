@@ -47,12 +47,14 @@ import io.crate.jobs.CountContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.NestedLoopContext;
+import io.crate.jobs.PKLookupContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.NodeOperation;
+import io.crate.operation.PKLookupOperation;
 import io.crate.operation.Paging;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.JobCollectContext;
@@ -75,6 +77,7 @@ import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.PKLookupPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
@@ -88,6 +91,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -114,6 +118,7 @@ public class ContextPreparer extends AbstractComponent {
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
     private final ProjectorFactory projectorFactory;
+    private final PKLookupOperation pkLookupOperation;
 
     @Inject
     public ContextPreparer(Settings settings,
@@ -125,6 +130,7 @@ public class ContextPreparer extends AbstractComponent {
                            ThreadPool threadPool,
                            DistributingDownstreamFactory distributingDownstreamFactory,
                            TransportActionProvider transportActionProvider,
+                           IndicesService indicesService,
                            Functions functions,
                            SystemCollectSource systemCollectSource) {
         super(settings);
@@ -133,6 +139,7 @@ public class ContextPreparer extends AbstractComponent {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
+        this.pkLookupOperation = new PKLookupOperation(indicesService);
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
@@ -533,6 +540,27 @@ public class ContextPreparer extends AbstractComponent {
                 consumer,
                 indexShardMap,
                 phase.whereClause()
+            ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitPKLookup(PKLookupPhase pkLookupPhase, PreparerContext context) {
+            RowConsumer rowConsumer = ProjectingRowConsumer.create(
+                context.getRowConsumer(pkLookupPhase, 0),
+                pkLookupPhase.projections(),
+                pkLookupPhase.jobId(),
+                RamAccountingContext.forExecutionPhase(circuitBreaker, pkLookupPhase),
+                projectorFactory
+            );
+            context.registerSubContext(new PKLookupContext(
+                pkLookupPhase.phaseId(),
+                inputFactory,
+                pkLookupOperation,
+                pkLookupPhase.partitionedByColumns(),
+                pkLookupPhase.toCollect(),
+                pkLookupPhase.getIdsByShardId(clusterService.localNode().getId()),
+                rowConsumer
             ));
             return true;
         }

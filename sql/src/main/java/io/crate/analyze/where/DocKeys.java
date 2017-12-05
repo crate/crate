@@ -25,12 +25,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
+import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import org.apache.lucene.util.BytesRef;
@@ -43,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
@@ -56,47 +56,9 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     public class DocKey {
 
         private final List<Symbol> key;
-        private String id;
 
         private DocKey(int pos) {
             key = docKeys.get(pos);
-        }
-
-        @Deprecated
-        public Optional<Long> version() {
-            if (withVersions && key.get(width) != null) {
-                return Optional.of((Long) ((Literal) key.get(width)).value());
-            }
-            return Optional.empty();
-        }
-
-        public String routing() {
-            if (clusteredByIdx >= 0) {
-                return ValueSymbolVisitor.STRING.process(key.get(clusteredByIdx));
-            } else {
-                return id();
-            }
-
-        }
-
-        public Optional<List<BytesRef>> partitionValues() {
-            if (partitionIdx == null || partitionIdx.isEmpty()) {
-                return Optional.empty();
-            }
-            List<BytesRef> values = Lists.transform(
-                partitionIdx, pIdx -> ValueSymbolVisitor.BYTES_REF.process(key.get(pIdx)));
-            return Optional.of(values);
-        }
-
-        /**
-         * @deprecated use {@link #getId(Functions, Row, Map)} instead
-         */
-        @Deprecated
-        public String id() {
-            if (id == null) {
-                id = idFunction.apply(pkValues(key));
-            }
-            return id;
         }
 
         public String getId(Functions functions, Row params, Map<SelectSymbol, Object> valuesBySubQuery) {
@@ -113,10 +75,6 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
                 return Optional.of(LongType.INSTANCE.value(val));
             }
             return Optional.empty();
-        }
-
-        private List<BytesRef> pkValues(List<Symbol> key) {
-            return Lists.transform(key.subList(0, width), ValueSymbolVisitor.BYTES_REF.function);
         }
 
         public List<Symbol> values() {
@@ -193,5 +151,13 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
                                                         DocKeys.class.getSimpleName() + "$iterator");
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        return "DocKeys{" + docKeys.stream()
+            .map(ExplainLeaf::printList)
+            .sorted()
+            .collect(Collectors.joining("; ")) + '}';
     }
 }

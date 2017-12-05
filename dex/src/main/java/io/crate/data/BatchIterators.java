@@ -24,6 +24,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
@@ -138,6 +139,20 @@ public class BatchIterators {
             @Override
             public A currentElement() {
                 return element;
+            }
+        };
+    }
+
+    public static <I, O> BatchIterator<O> map(BatchIterator<I> bi, Function<? super I, ? extends O> mapper) {
+        return new MappedForwardingBatchIterator<I, O>() {
+            @Override
+            public O currentElement() {
+                return mapper.apply(bi.currentElement());
+            }
+
+            @Override
+            protected BatchIterator<I> delegate() {
+                return bi;
             }
         };
     }

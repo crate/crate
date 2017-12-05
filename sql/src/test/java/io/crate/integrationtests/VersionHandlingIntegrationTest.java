@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
@@ -164,18 +165,17 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testSelectWhereVersionWithPrimaryKey() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        execute("select _version from test where col1 = 1 and _version = 50");
+        execute("insert into test (col1, col2) values (1, 'foo')");
+        execute("select _version from test where col1 = 1 and _version = 1");
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
     public void testSelectGroupByVersion() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureYellow();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
-        execute("select col2 from test where col1 = 1 and _version = 50 group by col2");
+        execute("insert into test (col1, col2) values (1, 'bar'), (2, 'bar')");
+        execute("refresh table test");
+        execute("select col2, count(*) from test where col1 = 1 and _version = 1 group by col2");
+        assertThat(printedTable(response.rows()), is("bar| 1\n"));
     }
 }

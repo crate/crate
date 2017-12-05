@@ -26,7 +26,6 @@ import com.google.common.collect.Lists;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
@@ -43,13 +42,12 @@ import java.util.List;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class GetResponseRefResolverTest extends CrateUnitTest {
 
     private static final BytesReference SOURCE = new BytesArray("{\"x\": 1}".getBytes());
     private static final GetResponseRefResolver REF_RESOLVER =
-        new GetResponseRefResolver(c -> {}, mock(DocTableInfo.class), Collections.emptyMap());
+        new GetResponseRefResolver(Collections.emptyList());
     private static final GetResponse GET_RESPONSE =
         new GetResponse(new GetResult("t1", "d", "abc", 1L, true, SOURCE, Collections.emptyMap()));
 

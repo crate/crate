@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.PKLookupPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
@@ -53,7 +54,8 @@ public interface ExecutionPhase extends Writeable {
         FETCH(FetchPhase::new),
         NESTED_LOOP(NestedLoopPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
-            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); });
+            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
+        PKLookup(PKLookupPhase::new);
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
 

@@ -32,7 +32,9 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.ShardRouting;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class PlannerContext {
@@ -95,7 +97,7 @@ public class PlannerContext {
     }
 
     void applySoftLimit(QuerySpec querySpec) {
-        if (softLimit != 0 && querySpec.limit() == null) {
+        if (softLimit > 0 && querySpec.limit() == null) {
             querySpec.limit(Literal.of((long) softLimit));
         }
     }
@@ -117,6 +119,10 @@ public class PlannerContext {
                                    RoutingProvider.ShardSelection shardSelection,
                                    SessionContext sessionContext) {
         return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionContext);
+    }
+
+    public ShardRouting resolveShard(String indexName, String id, @Nullable String routing) {
+        return routingBuilder.resolveShard(indexName, id, routing);
     }
 
     public ReaderAllocations buildReaderAllocations() {

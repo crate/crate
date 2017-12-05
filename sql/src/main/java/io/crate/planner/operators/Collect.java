@@ -29,6 +29,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -37,6 +38,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -94,6 +96,10 @@ class Collect implements LogicalPlan {
     private final long numExpectedRows;
 
     public static LogicalPlan.Builder create(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
+        if (where.docKeys().isPresent() && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
+            DocKeys docKeys = where.docKeys().get();
+            return ((tableStats, usedBeforeNextFetch) -> new Get(((QueriedDocTable) relation), docKeys, toCollect));
+        }
         return (tableStats, usedColumns) -> new Collect(
             relation, toCollect, where, usedColumns, tableStats.numDocs(relation.tableRelation().tableInfo().ident()));
     }
