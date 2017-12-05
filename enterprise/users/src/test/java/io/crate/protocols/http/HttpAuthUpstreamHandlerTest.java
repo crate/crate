@@ -44,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.EnumSet;
 
+import static io.crate.protocols.http.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,7 +62,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
         assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
-        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is("Basic"));
+        assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE), is(WWW_AUTHENTICATE_REALM_MESSAGE));
     }
 
     @Test
