@@ -61,6 +61,10 @@ import static io.netty.buffer.Unpooled.copiedBuffer;
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final Logger LOGGER = Loggers.getLogger(HttpAuthUpstreamHandler.class);
+    @VisibleForTesting
+    static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"Please provide credentials " +
+                                                         "(password maybe empty if trust authentication " +
+                                                         "is configured for your user)\")";
     private final Authentication authService;
     private Settings settings;
     private boolean authorized;
@@ -138,7 +142,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         }
         // "Tell" the browser to open the credentials popup for AdminUI
-        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, "Basic");
+        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, WWW_AUTHENTICATE_REALM_MESSAGE);
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
