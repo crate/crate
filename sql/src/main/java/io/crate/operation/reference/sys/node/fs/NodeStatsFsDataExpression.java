@@ -22,33 +22,32 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.sys.node.NodeStatsArrayTypeExpression;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
-public class NodeStatsFsDataExpression extends NodeStatsArrayTypeExpression<ExtendedFsStats.Info, Map<String, Object>> {
+public class NodeStatsFsDataExpression extends NodeStatsArrayTypeExpression<FsInfo.Path, Map<String, Object>> {
 
     public NodeStatsFsDataExpression() {
     }
 
     @Override
-    protected List<ExtendedFsStats.Info> items() {
-        return Lists.newArrayList(this.row.extendedFsStats());
+    protected List<FsInfo.Path> items() {
+        return Lists.newArrayList(this.row.fsInfo());
     }
 
     @Override
-    protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
-        return new HashMap<String, Object>() {
-            {
-                put(NodeFsStatsExpression.DEV, input.dev());
-                put(NodeFsStatsExpression.PATH, input.path());
-            }
-        };
+    protected Map<String, Object> valueForItem(final FsInfo.Path input) {
+        return ImmutableMap.<String, Object>builder()
+            .put(NodeFsStatsExpression.DEV, BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(input)))
+            .put(NodeFsStatsExpression.PATH, BytesRefs.toBytesRef(input.getPath()))
+            .build();
     }
 }
-

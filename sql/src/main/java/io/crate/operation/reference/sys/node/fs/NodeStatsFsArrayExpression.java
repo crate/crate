@@ -23,15 +23,15 @@
 package io.crate.operation.reference.sys.node.fs;
 
 import com.google.common.collect.Lists;
-import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.sys.node.NodeStatsArrayTypeExpression;
+import org.elasticsearch.monitor.fs.FsInfo;
 
 import java.util.List;
 
-public abstract class NodeStatsFsArrayExpression<R> extends NodeStatsArrayTypeExpression<ExtendedFsStats.Info, R> {
+public abstract class NodeStatsFsArrayExpression<R> extends NodeStatsArrayTypeExpression<FsInfo.Path, R> {
 
     @Override
-    protected List<ExtendedFsStats.Info> items() {
-        return Lists.newArrayList(this.row.extendedFsStats());
+    protected List<FsInfo.Path> items() {
+        return Lists.newArrayList(this.row.fsInfo());
     }
 }

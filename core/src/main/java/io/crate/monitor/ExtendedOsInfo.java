@@ -22,17 +22,30 @@
 
 package io.crate.monitor;
 
+import com.google.common.collect.ImmutableMap;
+
 import java.util.Map;
 
 public class ExtendedOsInfo {
 
-    private final Map<String, Object> kernelData;
+    private final Map<String, String> kernelData;
 
-    public ExtendedOsInfo(Map<String, Object> kernelData) {
-        this.kernelData = kernelData;
+    public ExtendedOsInfo(SysInfoUtil.SysInfo sysInfo) {
+        kernelData = ImmutableMap.<String, String>builder()
+            .put("Arch", sysInfo.arch())
+            .put("Description", sysInfo.description())
+            .put("Machine", sysInfo.machine())
+            .put("Name", sysInfo.name())
+            .put("PatchLevel", sysInfo.patchLevel())
+            .put("Vendor", sysInfo.vendor())
+            .put("VendorCodeName", sysInfo.vendorCodeName())
+            .put("VendorName", sysInfo.vendorName())
+            .put("VendorVersion", sysInfo.vendorVersion())
+            .put("Version", sysInfo.version())
+            .build();
     }
 
-    public Map<String, Object> kernelData() {
+    public Map<String, String> kernelData() {
         return kernelData;
     }
 }

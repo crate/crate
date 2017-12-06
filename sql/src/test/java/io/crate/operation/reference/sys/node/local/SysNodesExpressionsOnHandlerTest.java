@@ -27,24 +27,21 @@ import io.crate.Version;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.StaticTableReferenceResolver;
+import io.crate.operation.reference.sys.node.DummyStatsProvider;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.process.ProcessService;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,10 +52,16 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.StringContains.containsString;
 
+
+/**
+ * Tests for Node{Os,Fs,Mem,...}Expression which are used for sys.nodes table.
+ */
 @SuppressWarnings("unchecked")
 public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
@@ -67,10 +70,11 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
     private final NodeStatsContext context = new NodeStatsContext(true);
 
     private CollectExpression collectExpression;
-    private NodeEnvironment nodeEnvironment;
+    private DummyStatsProvider statsProvider;
 
     @Before
     public void setup() throws IOException {
+        statsProvider = new DummyStatsProvider();
         context.id(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"));
         context.name(BytesRefs.toBytesRef("crate1"));
         context.hostname(BytesRefs.toBytesRef("crate1.example.com"));
@@ -81,31 +85,17 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
             put("http", 4200);
             put("transport", 4300);
         }});
-        context.timestamp(System.currentTimeMillis());
-
+        context.timestamp(statsProvider.probeTimestamp());
         JvmService jvmService = new JvmService(Settings.EMPTY);
         context.jvmStats(jvmService.stats());
         OsService osService = new OsService(Settings.EMPTY);
         context.osInfo(osService.info());
         context.osStats(osService.stats());
-
-        ProcessService processService = new ProcessService(Settings.EMPTY);
-        context.processStats(processService.stats());
-
-        Settings settings = Settings.builder()
-            .put("path.home", createTempDir()).build();
-        Environment environment = new Environment(settings);
-        nodeEnvironment = new NodeEnvironment(settings, environment);
-        ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo(nodeEnvironment);
+        context.processStats(statsProvider.processStats());
+        context.fsInfo(statsProvider.fsInfo());
+        ExtendedNodeInfo extendedNodeInfo = new ExtendedNodeInfo();
         context.extendedOsStats(extendedNodeInfo.osStats());
         context.networkStats(extendedNodeInfo.networkStats());
-        context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-        context.extendedFsStats(extendedNodeInfo.fsStats());
-    }
-
-    @After
-    public void closeResources() throws Exception {
-        nodeEnvironment.close();
     }
 
     @Test
@@ -115,9 +105,16 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression.setNextRow(context);
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        assertThat(v.get("1"), is(1D));
-        assertThat(v.get("5"), is(5D));
-        assertThat(v.get("15"), is(15D));
+        assertNull(v.get("something"));
+        if (isRunningOnWindows()) {
+            assertThat(v.get("1"), is(-1.0d));
+            assertThat(v.get("5"), is(-1.0d));
+            assertThat(v.get("15"), is(-1.0d));
+        } else {
+            assertThat((double) v.get("1"), greaterThanOrEqualTo(0.0d));
+            assertThat((double) v.get("5"), greaterThanOrEqualTo(0.0d));
+            assertThat((double) v.get("15"), greaterThanOrEqualTo(0.0d));
+        }
     }
 
     @Test
@@ -200,37 +197,34 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression.setNextRow(context);
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        String total = mapToSortedString((Map<String, Object>) v.get("total"));
-        assertThat(total, is("available=86016, bytes_read=84, bytes_written=84, reads=84, size=86016, used=86016, writes=84"));
+        Map<String, Object> total = (Map<String, Object>) v.get("total");
+        assertThat(total.get("size"), is(2048L));
+        assertThat(total.get("used"), is(1024L));
+        assertThat(total.get("available"), is(1024L));
+        if (statsProvider.hasIoStats()) {
+            assertThat(total.get("reads"), is(2L));
+            assertThat(total.get("bytes_written"), is(0L));
+            assertThat(total.get("writes"), is(2L));
+            assertThat(total.get("bytes_written"), is(0L));
+        } else {
+            assertThat(total.get("reads"), is(-1L));
+            assertThat(total.get("bytes_written"), is(-1L));
+            assertThat(total.get("writes"), is(-1L));
+            assertThat(total.get("bytes_written"), is(-1L));
+        }
         Object[] disks = (Object[]) v.get("disks");
-        assertThat(disks.length, is(2));
-        Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat(disk0.get("dev"), is(BytesRefs.toBytesRef("/dev/sda1")));
-        assertThat(disk0.get("size"), is(42L));
-
-        Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat(disk1.get("dev"), is(BytesRefs.toBytesRef("/dev/sda2")));
-        assertThat(disk0.get("used"), is(42L));
+        assertThat(disks.length, greaterThanOrEqualTo(1));
+        for (int i = 0; i < disks.length; i++) {
+            assertNotNull(((Map<String, Object>) disks[i]).get("dev"));
+            assertThat(((Map<String, Object>) disks[i]).get("size"), is(1024L));
+        }
 
         Object[] data = (Object[]) v.get("data");
-        assertThat(data.length, is(2));
-        assertThat(
-            ((Map<String, Object>) data[0]).get("dev"),
-            is(BytesRefs.toBytesRef("/dev/sda1"))
-        );
-        assertThat(
-            ((Map<String, Object>) data[0]).get("path"),
-            is(BytesRefs.toBytesRef("/foo"))
-        );
-
-        assertThat(
-            ((Map<String, Object>) data[1]).get("dev"),
-            is(BytesRefs.toBytesRef("/dev/sda2"))
-        );
-        assertThat(
-            ((Map<String, Object>) data[1]).get("path"),
-            is(BytesRefs.toBytesRef("/bar"))
-        );
+        assertEquals(data.length, disks.length);
+        for (int i = 0; i < data.length; i++) {
+            assertNotNull(((Map<String, Object>) data[i]).get("dev"));
+            assertNotNull(((Map<String, Object>) data[i]).get("path"));
+        }
 
         refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
         collectExpression = resolver.getImplementation(refInfo);
@@ -261,8 +255,8 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         Map<String, Object> networkStats = (Map<String, Object>) collectExpression.value();
         assertThat(mapToSortedString(networkStats),
             is("probe_timestamp=0, tcp={" +
-               "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
+               "connections={accepted=0, curr_established=0, dropped=0, embryonic_dropped=0, initiated=0}, " +
+               "packets={errors_received=0, received=0, retransmitted=0, rst_sent=0, sent=0}" +
                "}"));
     }
 
@@ -275,8 +269,8 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
         assertThat(tcpStats, instanceOf(Map.class));
         assertThat(mapToSortedString(tcpStats),
-            is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+            is("connections={accepted=0, curr_established=0, dropped=0, embryonic_dropped=0, initiated=0}, " +
+               "packets={errors_received=0, received=0, retransmitted=0, rst_sent=0, sent=0}"));
     }
 
     @Test
@@ -285,16 +279,21 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression = resolver.getImplementation(refInfo);
         collectExpression.setNextRow(context);
 
-        Map<String, Short> expectedCpu = new HashMap<>(5);
-        expectedCpu.put("system", (short) 0);
-        expectedCpu.put("user", (short) 4);
-        expectedCpu.put("idle", (short) 94);
-        expectedCpu.put("used", (short) 4);
-        expectedCpu.put("stolen", (short) 10);
-
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        assertThat(v.get("uptime"), is(3600000L));
-        assertThat(v.get("cpu"), Matchers.is(expectedCpu));
+        if (Constants.LINUX) {
+            assertThat((long) v.get("uptime"), greaterThan(1000L));
+        }
+        // Windows and macOS require a sys call for "uptime",
+        // Sometimes syscalls work, sometimes not, e.g. starting tests with Powershell works
+        // TODO: Figure out why. For now, just ignore other OSs than Linux
+        // assertThat(v.get("uptime"), is(-1L));
+
+        String cpu = mapToSortedString((Map<String, Object>) v.get("cpu"));
+        assertThat(cpu, containsString("system=-1"));
+        assertThat(cpu, containsString("user=-1"));
+        assertThat(cpu, containsString("idle=-1"));
+        assertThat(cpu, containsString("stolen=-1"));
+        assertThat(cpu, containsString("used=")); // "used" is greater than -1
     }
 
     @Test
@@ -303,17 +302,13 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression = resolver.getImplementation(refInfo);
         collectExpression.setNextRow(context);
 
-        Map<String, Object> expectedCpu = new HashMap<>(4);
-        expectedCpu.put("percent", (short) 50);
-        expectedCpu.put("system", 1000L);
-        expectedCpu.put("user", 500L);
-
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        if (isRunningOnWindows() == false) {
-            assertThat((long) v.get("open_file_descriptors"), greaterThan(2L));
-            assertThat((long) v.get("max_open_file_descriptors"), greaterThan(2L));
-        }
-        assertThat(v.get("cpu"), Matchers.is(expectedCpu));
+        assertThat(v.get("open_file_descriptors"), is(1L));
+        assertThat(v.get("max_open_file_descriptors"), is(2L));
+        Map<String, Object> cpu = (Map<String, Object>) v.get("cpu");
+        assertThat(cpu.get("percent"), is((short) 50));
+        assertThat(cpu.get("system"), is(-1L));
+        assertThat(cpu.get("user"), is(-1L));
     }
 
     @Test

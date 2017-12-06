@@ -22,10 +22,11 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
-import io.crate.monitor.ExtendedFsStats;
+import com.google.common.collect.ImmutableMap;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.sys.node.SimpleNodeStatsExpression;
+import org.elasticsearch.monitor.fs.FsInfo;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression.AVAILABLE;
@@ -41,21 +42,19 @@ public class NodeFsTotalStatsExpression extends SimpleNodeStatsExpression<Map<St
     public NodeFsTotalStatsExpression() {
     }
 
-    private Map<String, Long> getTotals() {
-        Map<String, Long> totals = new HashMap<>();
-        ExtendedFsStats.Info totalInfo = this.row.extendedFsStats().total();
-        totals.put(SIZE, totalInfo.total() == -1 ? -1 : totalInfo.total() * 1024);
-        totals.put(USED, totalInfo.used() == -1 ? -1 : totalInfo.used() * 1024);
-        totals.put(AVAILABLE, totalInfo.available() == -1 ? -1 : totalInfo.available() * 1024);
-        totals.put(READS, totalInfo.diskReads());
-        totals.put(BYTES_READ, totalInfo.diskReadSizeInBytes());
-        totals.put(WRITES, totalInfo.diskWrites());
-        totals.put(BYTES_WRITTEN, totalInfo.diskWriteSizeInBytes());
-        return totals;
-    }
-
     @Override
     public Map<String, Long> innerValue() {
-        return getTotals();
+        FsInfo info = this.row.fsInfo();
+        FsInfo.Path path = info.getTotal();
+        FsInfo.IoStats ioStats = info.getIoStats();
+        return ImmutableMap.<String, Long>builder()
+            .put(SIZE, FsInfoHelpers.Path.size(path))
+            .put(USED, FsInfoHelpers.Path.used(path))
+            .put(AVAILABLE, FsInfoHelpers.Path.available(path))
+            .put(READS, FsInfoHelpers.Stats.readOperations(ioStats))
+            .put(BYTES_READ, FsInfoHelpers.Stats.bytesRead(ioStats))
+            .put(WRITES, FsInfoHelpers.Stats.writeOperations(ioStats))
+            .put(BYTES_WRITTEN, FsInfoHelpers.Stats.bytesWritten(ioStats))
+            .build();
     }
 }

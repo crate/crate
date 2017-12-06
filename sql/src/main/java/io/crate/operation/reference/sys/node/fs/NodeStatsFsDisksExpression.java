@@ -22,39 +22,41 @@
 
 package io.crate.operation.reference.sys.node.fs;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.FsInfoHelpers;
 import io.crate.operation.reference.sys.node.NodeStatsArrayTypeExpression;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.monitor.fs.FsInfo;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
-public class NodeStatsFsDisksExpression extends NodeStatsArrayTypeExpression<ExtendedFsStats.Info, Map<String, Object>> {
+public class NodeStatsFsDisksExpression extends NodeStatsArrayTypeExpression<FsInfo.Path, Map<String, Object>> {
 
     public NodeStatsFsDisksExpression() {
     }
 
     @Override
-    protected List<ExtendedFsStats.Info> items() {
-        return Lists.newArrayList(this.row.extendedFsStats());
+    protected List<FsInfo.Path> items() {
+        return Lists.newArrayList(this.row.fsInfo());
     }
 
     @Override
-    protected Map<String, Object> valueForItem(final ExtendedFsStats.Info input) {
-        return new HashMap<String, Object>() {
-            {
-                put(NodeFsStatsExpression.DEV, input.dev());
-                put(NodeFsStatsExpression.SIZE, input.total());
-                put(NodeFsStatsExpression.USED, input.used());
-                put(NodeFsStatsExpression.AVAILABLE, input.available());
-                put(NodeFsStatsExpression.READS, input.diskReads());
-                put(NodeFsStatsExpression.BYTES_READ, input.diskReadSizeInBytes());
-                put(NodeFsStatsExpression.WRITES, input.diskWrites());
-                put(NodeFsStatsExpression.BYTES_WRITTEN, input.diskWriteSizeInBytes());
-            }
-        };
+    protected Map<String, Object> valueForItem(final FsInfo.Path path) {
+        return ImmutableMap.<String, Object>builder()
+            .put(NodeFsStatsExpression.DEV, BytesRefs.toBytesRef(FsInfoHelpers.Path.dev(path)))
+
+            .put(NodeFsStatsExpression.SIZE, FsInfoHelpers.Path.size(path))
+            .put(NodeFsStatsExpression.USED, FsInfoHelpers.Path.used(path))
+            .put(NodeFsStatsExpression.AVAILABLE, FsInfoHelpers.Path.available(path))
+
+            .put(NodeFsStatsExpression.READS, -1L)
+            .put(NodeFsStatsExpression.BYTES_READ, -1L)
+            .put(NodeFsStatsExpression.WRITES, -1L)
+            .put(NodeFsStatsExpression.BYTES_WRITTEN, -1L)
+
+            .build();
     }
 }
-

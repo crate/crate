@@ -424,21 +424,6 @@ task collectEnterpriseModules(dependsOn: [':enterprise:users:jar', ':enterprise:
 collectEnterpriseModules.outputs.file ('enterprise')
 
 
-// Enable dynamic loading of sigar; (There is no fixed compile-time-dependency)
-// It's known to cause trouble on specific platform, so it's important
-// that the JAR can be removed without breaking CrateDB
-task collectOSSModules(dependsOn: [':sigar:jar']) {
-    doLast {
-        copy {
-            from(project(':sigar').tasks.jar.archivePath)
-            from(project(':sigar').projectDir.path + "/lib")
-            into 'oss_modules/sigar'
-        }
-    }
-}
-collectOSSModules.outputs.file ('oss_modules')
-
-
 task downloadPlugins(
         dependsOn: ['downloadAdminUI',
                     ':es:es-repository-hdfs:jar',
@@ -514,7 +499,7 @@ task downloadAdminUI {
 }
 
 
-processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules, collectOSSModules)
+processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateDB'
@@ -550,8 +535,7 @@ sourceSets {
 }
 
 clean.dependsOn(['cleanDownloadPlugins',
-                 'cleanCollectEnterpriseModules',
-                 'cleanCollectOSSModules'])
+                 'cleanCollectEnterpriseModules'])
 
 
 def extractTopfolder(File src, String trg) {

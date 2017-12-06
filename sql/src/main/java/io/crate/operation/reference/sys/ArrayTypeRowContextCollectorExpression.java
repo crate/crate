@@ -34,6 +34,7 @@ public abstract class ArrayTypeRowContextCollectorExpression<RowType, IterType, 
     protected abstract ReturnType valueForItem(IterType input);
 
     @Override
+    @SuppressWarnings("unchecked")
     public ReturnType[] value() {
         List<IterType> items = items();
         ReturnType[] returnItems = (ReturnType[]) new Object[items.size()];
@@ -43,4 +44,3 @@ public abstract class ArrayTypeRowContextCollectorExpression<RowType, IterType, 
         return returnItems;
     }
 }
-
