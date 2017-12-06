@@ -309,11 +309,11 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> v = os.value();
         if (Constants.LINUX) {
             assertThat((long) v.get("uptime"), greaterThan(1000L));
-        } else {
-            // Windows and macOS require a sys call for "uptime"
-            // but since syscalls are not allowed we get -1
-            assertThat(v.get("uptime"), is(-1L));
         }
+        // Windows and macOS require a sys call for "uptime",
+        // Sometimes syscalls work, sometimes not, e.g. starting tests with Powershell works
+        // TODO: Figure out why. For now, just ignore other OSs than Linux
+        // assertThat(v.get("uptime"), is(-1L));
 
         String cpu = mapToSortedString((Map<String, Object>) v.get("cpu"));
         assertThat(cpu, containsString("system=-1"));

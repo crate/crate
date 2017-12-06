@@ -29,6 +29,7 @@ import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.local.LocalDiscovery;
@@ -156,6 +157,14 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
             nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = os.value();
+        if (Constants.LINUX) {
+            assertThat((long) v.get("uptime"), greaterThan(1000L));
+        }
+        // Windows and macOS require a sys call for "uptime",
+        // Sometimes syscalls work, sometimes not, e.g. starting tests with Powershell works
+        // TODO: Figure out why. For now, just ignore other OSs than Linux
+        // assertThat(v.get("uptime"), is(-1L));
+
         String cpu = mapToSortedString((Map<String, Object>) v.get("cpu"));
         assertThat(cpu, StringContains.containsString("idle=-1"));
         assertThat(cpu, StringContains.containsString("stolen=-1"));
