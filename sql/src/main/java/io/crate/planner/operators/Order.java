@@ -37,6 +37,7 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,7 +57,7 @@ class Order extends OneInputPlan {
         };
     }
 
-    private Order(LogicalPlan source, OrderBy orderBy) {
+    Order(LogicalPlan source, OrderBy orderBy) {
         super(source, Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols()));
         this.orderBy = orderBy;
     }
@@ -103,7 +104,23 @@ class Order extends OneInputPlan {
 
     @Override
     protected LogicalPlan newInstance(LogicalPlan newSource) {
-        return new Order(newSource, orderBy);
+        // Replaces any Symbols which were part of the old orderBy
+        // with the Symbols of the new orderBy at the same position.
+        // This ensures that the orderBy is performed correctly when
+        // its sources have changed.
+        // See tryPushDown of Union
+        List<Symbol> oldOutputs = source.outputs();
+        List<Symbol> newOutputs = newSource.outputs();
+        OrderBy newOrderBy = this.orderBy.copyAndReplace(
+            (symbol) -> {
+                int idx = oldOutputs.indexOf(symbol);
+                if (idx != -1) {
+                    return newOutputs.get(idx);
+                }
+                return symbol;
+            }
+        );
+        return new Order(newSource, newOrderBy);
     }
 
     @Override

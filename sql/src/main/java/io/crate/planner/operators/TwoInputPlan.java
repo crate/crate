@@ -48,6 +48,18 @@ abstract class TwoInputPlan extends LogicalPlanBase {
     }
 
     @Override
+    public LogicalPlan tryPushDown(PushDownDefinition pushDownDef) {
+        pushDownDef.accept(this);
+        LogicalPlan newLhs = lhs.tryPushDown(pushDownDef);
+        LogicalPlan newRhs = rhs.tryPushDown(pushDownDef);
+        LogicalPlan returnPlan = this;
+        if (lhs != newLhs || rhs != newRhs) {
+            returnPlan = newInstance(newLhs, newRhs);
+        }
+        return pushDownDef.insertPushDownPlan(this, returnPlan);
+    }
+
+    @Override
     public LogicalPlan tryCollapse() {
         LogicalPlan lhsCollapsed = lhs.tryCollapse();
         LogicalPlan rhsCollapsed = rhs.tryCollapse();

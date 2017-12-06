@@ -38,6 +38,13 @@ abstract class ZeroInputPlan extends LogicalPlanBase {
     }
 
     @Override
+    public LogicalPlan tryPushDown(PushDownDefinition  pushDownDef) {
+        // We don't have any sources, so just return this instance
+        pushDownDef.accept(this);
+        return pushDownDef.insertPushDownPlan(this, this);
+    }
+
+    @Override
     public LogicalPlan tryCollapse() {
         // We don't have any sources, so just return this instance
         return this;

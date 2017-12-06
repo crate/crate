@@ -148,7 +148,7 @@ public class Union extends TwoInputPlan {
             leftResultDesc.streamOutputs(),
             Collections.emptyList(),
             DistributionInfo.DEFAULT_BROADCAST,
-            null
+            leftResultDesc.orderBy()
         );
 
         return new UnionExecutionPlan(

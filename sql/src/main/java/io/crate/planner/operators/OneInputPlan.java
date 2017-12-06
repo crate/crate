@@ -57,6 +57,21 @@ abstract class OneInputPlan extends LogicalPlanBase {
         this.source = source;
     }
 
+
+    @Override
+    public LogicalPlan tryPushDown(PushDownDefinition pushDownDef) {
+        pushDownDef.accept(this);
+        LogicalPlan newSource = source.tryPushDown(pushDownDef);
+        if (pushDownDef.pushDown(this)) {
+            return newSource;
+        }
+        LogicalPlan returnPlan = this;
+        if (source != newSource) {
+            returnPlan = newInstance(newSource);
+        }
+        return pushDownDef.insertPushDownPlan(this, returnPlan);
+    }
+
     @Override
     public LogicalPlan tryCollapse() {
         LogicalPlan newPlan = source.tryCollapse();
