@@ -54,6 +54,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class RoutedCollectPhaseTest extends CrateUnitTest {
 
@@ -134,5 +135,26 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             normalizer, new TransactionContext(SessionContext.create()));
 
         assertThat(normalizedCollect.nodePageSizeHint(), is(10));
+    }
+
+    @Test
+    public void testNormalizeNoop() throws Exception {
+        RoutedCollectPhase collect = new RoutedCollectPhase(
+            UUID.randomUUID(),
+            1,
+            "collect",
+            new Routing(Collections.emptyMap()),
+            RowGranularity.DOC,
+            Collections.singletonList(Literal.of(10)),
+            Collections.emptyList(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_SAME_NODE,
+            null
+        );
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        RoutedCollectPhase normalizedCollect = collect.normalize(
+            normalizer, new TransactionContext(SessionContext.create()));
+        
+        assertThat(normalizedCollect, sameInstance(collect));
     }
 }
