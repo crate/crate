@@ -89,7 +89,7 @@ public class NodeSettingsTest extends CrateUnitTest {
             .put("node.data", true)
             .put(PATH_HOME_SETTING.getKey(), createConfigPath())
             // Avoid connecting to other test nodes
-            .put("network.publish_host", "127.0.0.111");
+            .put("discovery.type", "single-node");
 
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), Collections.emptyMap());
         node = new CrateNode(environment);
