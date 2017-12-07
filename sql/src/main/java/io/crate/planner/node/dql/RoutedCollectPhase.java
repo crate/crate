@@ -293,6 +293,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 distributionInfo,
                 user
             );
+            result.nodePageSizeHint(nodePageSizeHint);
             result.orderBy(orderBy);
         }
         return result;

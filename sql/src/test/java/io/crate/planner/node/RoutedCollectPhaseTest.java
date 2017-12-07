@@ -112,4 +112,27 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
 
         assertThat(normalizedCollect.orderBy(), notNullValue());
     }
+
+    @Test
+    public void testNormalizePreservesNodePageSizeHint() throws Exception {
+        Symbol toInt10 = CastFunctionResolver.generateCastFunction(Literal.of(10L), DataTypes.INTEGER, false);
+        RoutedCollectPhase collect = new RoutedCollectPhase(
+            UUID.randomUUID(),
+            1,
+            "collect",
+            new Routing(Collections.emptyMap()),
+            RowGranularity.DOC,
+            Collections.singletonList(toInt10),
+            Collections.emptyList(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_SAME_NODE,
+            null
+        );
+        collect.nodePageSizeHint(10);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        RoutedCollectPhase normalizedCollect = collect.normalize(
+            normalizer, new TransactionContext(SessionContext.create()));
+
+        assertThat(normalizedCollect.nodePageSizeHint(), is(10));
+    }
 }
