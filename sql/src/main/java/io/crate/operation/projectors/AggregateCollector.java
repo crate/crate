@@ -54,7 +54,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Object[]> finisher;
 
-    AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
+    public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                        RamAccountingContext ramAccounting,
                        AggregateMode mode,
                        AggregationFunction[] aggregations,
