@@ -143,4 +143,12 @@ public class RestSQLActionTest extends CrateUnitTest {
         assertThat(creds.v1(), is("Arthur"));
         assertThat(creds.v2().toString(), is("Excalibur"));
     }
+
+    @Test
+    public void testExtractUsernamePasswordWithSemiColonsFromHttpBasicAuthHeader() {
+        Tuple<String, SecureString> creds =
+            RestSQLAction.extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
+        assertThat(creds.v1(), is("Arthur"));
+        assertThat(creds.v2().toString(), is(":test:password:"));
+    }
 }
