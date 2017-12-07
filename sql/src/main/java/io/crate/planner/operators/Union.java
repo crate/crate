@@ -228,7 +228,12 @@ public class Union implements LogicalPlan {
         ResultDescription resultDescription = plan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()) {
             // Do a merge because we have to apply a limit/offset projection
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+            //
+            // Note: Currently, this is performed on the handler node. It would be possible to
+            // do this on another involved node instead but we don't do that for now because
+            // the Merge of the union itself is always performed on the handler. So the
+            // performance gain would be small.
+            return Merge.ensureOnHandler(plan, plannerContext);
         }
         return plan;
     }
