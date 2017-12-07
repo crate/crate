@@ -4,7 +4,7 @@ argh==0.26.2
 Babel==2.4.0
 colorama==0.3.9
 crash==0.22.3
-crate==0.20.1
+crate==0.21.0
 
 # don't pin crate-docs-theme to a version number so the docs pick up whatever
 # the latest theme happens to be. these packages are installed into a venv, so
