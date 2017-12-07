@@ -40,6 +40,7 @@ import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
@@ -228,7 +229,36 @@ public class Union implements LogicalPlan {
         ResultDescription resultDescription = plan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()) {
             // Do a merge because we have to apply a limit/offset projection
-            plan = Merge.ensureOnHandler(plan, plannerContext);
+            List<Projection> projections = Collections.singletonList(ProjectionBuilder.topNOrEvalIfNeeded(
+                resultDescription.limit(),
+                resultDescription.offset(),
+                resultDescription.numOutputs(),
+                resultDescription.streamOutputs()
+            ));
+
+
+            MergePhase mergePhase = new MergePhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "pre-union-merge",
+                resultDescription.nodeIds().size(),
+                1,
+                Collections.singletonList(resultDescription.nodeIds().iterator().next()),
+                resultDescription.streamOutputs(),
+                projections,
+                DistributionInfo.DEFAULT_BROADCAST,
+                resultDescription.orderBy()
+            );
+
+            return new Merge(
+                plan,
+                mergePhase,
+                TopN.NO_LIMIT,
+                resultDescription.offset(),
+                resultDescription.numOutputs(),
+                resultDescription.limit(),
+                resultDescription.orderBy()
+            );
         }
         return plan;
     }
