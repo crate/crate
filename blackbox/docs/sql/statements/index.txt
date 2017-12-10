@@ -7,40 +7,40 @@ SQL Statements
 .. toctree::
     :maxdepth: 1
 
-    alter_table
-    alter_cluster
-    alter_user
-    copy_from
-    copy_to
-    create_analyzer
-    create_blob_table
-    create_function
-    create_ingest_rule
-    create_repository
-    create_snapshot
-    create_table
-    create_user
+    alter-table
+    alter-cluster
+    alter-user
+    copy-from
+    copy-to
+    create-analyzer
+    create-blob-table
+    create-function
+    create-ingest-rule
+    create-repository
+    create-snapshot
+    create-table
+    create-user
     delete
     deny
-    drop_function
-    drop_ingest_rule
-    drop_repository
-    drop_snapshot
-    drop_table
-    drop_user
+    drop-function
+    drop-ingest-rule
+    drop-repository
+    drop-snapshot
+    drop-table
+    drop-user
     explain
     grant
     insert
     kill
     optimize
     refresh
-    restore_snapshot
+    restore-snapshot
     revoke
     select
     set
-    set_transaction
-    show_columns
-    show_create_table
-    show_schemas
-    show_tables
+    set-transaction
+    show-columns
+    show-create-table
+    show-schemas
+    show-tables
     update

@@ -62,7 +62,7 @@ Command Line Options
 +------------------+----------------------------------------------------------+
 | ``-v``           | Print version information                                |
 +------------------+----------------------------------------------------------+
-| ``-C``           | Set a CrateDB :ref:`configuration <configuration>` value |
+| ``-C``           | Set a CrateDB :ref:`configuration <config>` value        |
 |                  | (overrides configuration file)                           |
 +------------------+----------------------------------------------------------+
 | ``-D``           | Set a Java system property value                         |

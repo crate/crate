@@ -1,4 +1,4 @@
-.. _administration_ssl:
+.. _admin_ssl:
 
 ================================
 Secured Communications (SSL/TLS)
@@ -17,7 +17,7 @@ Note that once SSL is enabled for HTTP connections, only connections using
 HTTPS are allowed. Same applies to secure MQTT connections.
 This is in contrast to the PostgreSQL Wire Protocol, which still allows
 non-encrypted connections when SSL is enabled. If you want to enforce SSL
-usage, please consult the :ref:`administration_hba`.
+usage, please consult the :ref:`admin_hba`.
 
 .. NOTE::
 

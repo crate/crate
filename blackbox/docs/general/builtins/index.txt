@@ -1,5 +1,5 @@
 .. highlight:: psql
-.. _sql_functions_operators:
+.. -sql-functions-operators:
 
 ================================
 Built-in Functions and Operators
@@ -18,7 +18,7 @@ Operators are reserved keywords that are primarily used in a
   scalar
   aggregation
   arithmetic
-  table_functions
+  table-functions
   operators
-  array_comparisons
-  subquery_expressions
+  array-comparisons
+  subquery-expressions

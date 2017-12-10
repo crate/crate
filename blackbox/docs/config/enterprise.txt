@@ -91,8 +91,8 @@ their fields (``user``, ``address``, ``method``, ``protocol``, ``ssl``).
   | lookup order will remain independent from the insertion order of the
   | entries.
 
-The :ref:`administration_hba` setting is a list of predicates that users can
-specify to restrict or allow access to CrateDB.
+The :ref:`admin_hba` setting is a list of predicates that users can specify to
+restrict or allow access to CrateDB.
 
 The meaning of the fields of the are as follows:
 

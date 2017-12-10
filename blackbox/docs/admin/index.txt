@@ -1,4 +1,4 @@
-.. _administration_features:
+.. _admin:
 
 ==============
 Administration
@@ -13,7 +13,7 @@ Administration
     runtime-config
     user-management
     privileges
-    authentication/index
+    auth/index
     ssl
     ingestion/index
     information-schema

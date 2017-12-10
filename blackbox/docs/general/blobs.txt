@@ -52,7 +52,7 @@ custom path globally for all blob tables::
 
   blobs.path: /path/to/blob/data
 
-Also see :ref:`configuration`.
+Also see :ref:`config`.
 
 Per Blob Table Setting
 ----------------------

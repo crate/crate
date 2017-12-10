@@ -30,7 +30,7 @@ Trust Method
 When the ``trust`` authentication method is used, the server just takes the
 username provided by the client as is without further validation. This is
 useful for any setup where access is controlled by other means, like network
-restrictions as implemented by :ref:`administration_hba`.
+restrictions as implemented by :ref:`admin_hba`.
 
 Trust Authentication Over Postgres Protocol
 -------------------------------------------
@@ -111,13 +111,11 @@ applies to the postgres wire protocol, as there the username isn't optional.
 Please consult the relevant client documentations for instructions on how to
 connect using SSL with client certificate.
 
-
 .. SEEALSO::
 
-  :ref:`administration_hba`
+  :ref:`admin_hba`
 
-  :doc:`/administration/ssl`
-
+  :ref:`admin_ssl`
 
 .. _PBKDF2: https://en.wikipedia.org/wiki/PBKDF2
 .. _SHA-512 hash algorithm: https://en.wikipedia.org/wiki/SHA-2

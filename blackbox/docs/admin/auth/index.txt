@@ -1,3 +1,5 @@
+.. _admin_auth:
+
 ==============
 Authentication
 ==============

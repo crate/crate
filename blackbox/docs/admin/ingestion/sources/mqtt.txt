@@ -40,10 +40,9 @@ Configuration
 
 This ingestion source adds a few additional settings that you can configure.
 
-These node settings can be :ref:`configured like usual <configuration>`, via
-the ``crate.yml`` configuration file or as command line parameters using the
-``-C`` option.
-
+These node settings can be :ref:`configured like usual <config>`, via the
+``crate.yml`` configuration file or as command line parameters using the ``-C``
+option.
 
 Node Settings
 -------------
@@ -91,7 +90,7 @@ connections will not be supported anymore.
 
 .. SEEALSO::
 
-  :ref:`administration_ssl`
+  :ref:`admin_ssl`
 
 .. _ingest_mqtt_usage:
 

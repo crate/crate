@@ -8,5 +8,5 @@ General SQL
     :maxdepth: 1
 
     constraints
-    value_expressions
-    lexical_structure
+    value-expressions
+    lexical-structure
