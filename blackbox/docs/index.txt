@@ -19,14 +19,14 @@ massive amounts of machine data in real-time.
 .. toctree::
    :maxdepth: 2
 
-   release_notes/index
+   release-notes/index
    run
-   configuration/index
+   config/index
    general/index
    sql/index
    protocols/index
    enterprise/index
-   administration/index
+   admin/index
    appendix/index
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/

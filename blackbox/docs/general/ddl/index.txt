@@ -13,14 +13,14 @@ Data Definition
    basics
    data-types
    system-columns
-   generated_columns
+   generated-columns
    constraints
    storage
-   partitioned_tables
+   partitioned-tables
    sharding
    replication
-   column_policy
-   fulltext_indices
+   column-policy
+   fulltext-indices
    analyzers
-   show_create_table
-   alter_table
+   show-create-table
+   alter-table

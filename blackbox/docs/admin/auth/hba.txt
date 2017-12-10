@@ -1,4 +1,4 @@
-.. _administration_hba:
+.. _admin_hba:
 
 ===============================
 Host Based Authentication (HBA)

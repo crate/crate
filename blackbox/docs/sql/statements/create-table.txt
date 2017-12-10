@@ -481,4 +481,4 @@ The column policy is defined like this::
           clauses.
 
 For futher details and examples see :ref:`column_policy` or
-:ref:`configuration`.
+:ref:`config`.

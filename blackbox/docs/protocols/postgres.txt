@@ -16,7 +16,7 @@ CrateDB contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
 ``5432`` by default. To use a custom port, set the corresponding
-:ref:`conf_ports` in the :doc:`Configuration <../configuration/index>`.
+:ref:`conf_ports` in the :ref:`Configuration <config>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
 supported, the actual SQL statements have to be supported by CrateDB's SQL
@@ -55,18 +55,16 @@ that SSL is not available.
 
 .. SEEALSO::
 
-  :doc:`/administration/ssl`
-
+  :ref:`admin_ssl`
 
 Authentication
 ..............
 
 If the `Enterprise Edition`_ is enabled, authentication methods can be
-configured using :ref:`administration_hba`.
+configured using :ref:`admin_hba`.
 
 If the enterprise functionality is disabled, all "start up" requests are
 answered with an ``AuthenticationOK`` response.
-
 
 ParameterStatus
 ...............
@@ -82,7 +80,6 @@ This contains the current ``CrateDB`` version number.
 This information is useful for clients to detect that they're connecting to
 ``CrateDB`` instead of a PostgreSQL instance.
 
-
 Database selection
 ..................
 
@@ -90,7 +87,6 @@ Since CrateDB uses schemas instead of databases, the ``database`` parameter
 sets the default schema name for future queries. If no schema is specified, the
 schema ``doc`` will be used as default. Additionally, the only supported charset
 is ``UTF8``.
-
 
 Simple Query
 ------------

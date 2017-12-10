@@ -12,7 +12,7 @@ Current features:
 
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
-- :doc:`/administration/index`: manage your database with authentication, and
+- :ref:`admin_auth`: manage your database with authentication, and
   more
 - System information functions: :ref:`CURRENT_USER <current_user>`,
   :ref:`USER <user>`, :ref:`SESSION_USER <session_user>`

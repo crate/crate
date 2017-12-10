@@ -157,7 +157,7 @@ Changes
    <sql_reference_subselect>` for details.
 
  - Added support for host based authentication (HBA).
-   Please see :ref:`Host Based Authentication <administration_hba>`.
+   Please see :ref:`Host Based Authentication <admin_hba>`.
 
  - Added support for renaming tables using the `ALTER ... RENAME TO ...`
    statement.
@@ -292,7 +292,7 @@ address (meaning it will only be accessible on ``localhost``). See
 
 If you want to keep the original behaviour (i.e. bind to every available
 network interface) you must add the following line to your
-:ref:`configuration` file::
+:ref:`config` file::
 
     network.host: 0.0.0.0
 
