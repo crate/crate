@@ -36,8 +36,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.planner.Merge;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CollectPhase;
@@ -55,13 +55,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.transport.LocalTransportAddress;
-import org.elasticsearch.test.ClusterServiceUtils;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
@@ -88,16 +81,6 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        ClusterState state =
-            ClusterState.builder(ClusterName.DEFAULT)
-                        .nodes(DiscoveryNodes.builder()
-                                             .add(new DiscoveryNode("noop_id", LocalTransportAddress.buildUnique(),
-                                                                    Version.CURRENT))
-                                             .localNodeId("noop_id")
-                              )
-                        .build();
-        ClusterServiceUtils.setState(clusterService, state);
-
         e  = SQLExecutor.builder(
             clusterService)
             .enableDefaultTables()
@@ -163,7 +146,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(localMerge.numUpstreams(), is(2));
         assertThat(localMerge.nodeIds().size(), is(1));
-        assertThat(Iterables.getOnlyElement(localMerge.nodeIds()), is("noop_id"));
+        assertThat(Iterables.getOnlyElement(localMerge.nodeIds()), is(NODE_ID));
         assertEquals(mergePhase.outputTypes(), localMerge.inputTypes());
 
         assertThat(localMerge.projections(), empty());

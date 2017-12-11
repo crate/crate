@@ -47,21 +47,21 @@ public final class TableDefinitions {
     public static final Routing SHARD_ROUTING = shardRouting("t1");
 
     private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+        .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+        .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
         .map());
 
 
     private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(
         TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
-            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
+            .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
+            .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
             .map());
 
     public static Routing shardRouting(String tableName) {
         return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+            .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
+            .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
             .map());
     }
 

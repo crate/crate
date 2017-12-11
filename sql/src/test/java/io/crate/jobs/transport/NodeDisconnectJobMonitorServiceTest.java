@@ -80,7 +80,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             mock(TransportKillJobsNodeAction.class));
 
         monitorService.onNodeDisconnected(new DiscoveryNode(
-            "node",
+            NODE_ID,
             LocalTransportAddress.buildUnique(),
             Version.CURRENT));
 

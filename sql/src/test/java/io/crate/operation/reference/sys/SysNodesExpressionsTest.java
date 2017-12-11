@@ -134,7 +134,7 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Reference refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> id =
             (ReferenceImplementation<BytesRef>) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
-        assertEquals(new BytesRef("node"), id.value());
+        assertEquals(new BytesRef("n1"), id.value());
     }
 
     @Test

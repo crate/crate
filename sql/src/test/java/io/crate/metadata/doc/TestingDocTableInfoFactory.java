@@ -23,24 +23,38 @@
 package io.crate.metadata.doc;
 
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 
 import java.util.Map;
 
 public class TestingDocTableInfoFactory implements DocTableInfoFactory {
 
     private final Map<TableIdent, DocTableInfo> tables;
+    private final InternalDocTableInfoFactory internalFactory;
 
     public TestingDocTableInfoFactory(Map<TableIdent, DocTableInfo> tables) {
         this.tables = tables;
+        this.internalFactory = null;
+    }
+
+    public TestingDocTableInfoFactory(Map<TableIdent, DocTableInfo> tables,
+                                      Functions functions,
+                                      IndexNameExpressionResolver indexNameExpressionResolver) {
+        this.tables = tables;
+        this.internalFactory = new InternalDocTableInfoFactory(functions, indexNameExpressionResolver);
     }
 
     @Override
     public DocTableInfo create(TableIdent ident, ClusterState state) {
         DocTableInfo tableInfo = tables.get(ident);
         if (tableInfo == null) {
-            throw new TableUnknownException(ident);
+            if (internalFactory == null) {
+                throw new TableUnknownException(ident);
+            }
+            return internalFactory.create(ident, state);
         }
         return tableInfo;
     }

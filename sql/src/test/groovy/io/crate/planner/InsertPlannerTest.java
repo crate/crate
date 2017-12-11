@@ -46,32 +46,16 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.EmptyClusterInfoService;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
-import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
-import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -82,10 +66,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService, 2)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .addTable("create table users (id long primary key, name string, date timestamp) clustered into 4 shards")
             .build();
     }
 
@@ -259,9 +243,6 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryESGet() throws Exception {
-        ClusterState prevState = clusterService.state();
-        ClusterState state = buildClusterStateWithUsersIndex(prevState);
-        ClusterServiceUtils.setState(clusterService, state);
         Merge merge = e.plan(
             "insert into users (date, id, name) (select date, id, name from users where id=1)");
         Collect queryAndFetch = (Collect) merge.subPlan();
@@ -278,52 +259,6 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
-    }
-
-    private ClusterState buildClusterStateWithUsersIndex(ClusterState prevState) {
-        /*
-          So far we relied on dummy getRouting implementations on {@link io.crate.metadata.table.TestingTableInfo}
-          so that we could test the plan creation. The actual clusterState never contained any meta data
-          (= no tables; no shard routing table)
-
-          This adds the users table to the cluster state (though without mapping)
-          We should eventually integrate this into {@link SQLExecutor} so that the clusterState is consistent
-          with the table definitions
-         */
-        IndexMetaData indexMetaData = IndexMetaData.builder("users")
-            .settings(Settings.builder().put("index.version.created", Version.CURRENT))
-            .numberOfShards(2)
-            .numberOfReplicas(0)
-            .build();
-
-        DiscoveryNodes.Builder nodeBuilder = DiscoveryNodes.builder()
-            .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(), Version.CURRENT))
-            .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(), Version.CURRENT))
-            .localNodeId("n1");
-
-        AllocationService allocationService = new AllocationService(
-            Settings.EMPTY,
-            new AllocationDeciders(
-                Settings.EMPTY,
-                singletonList(new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()))
-            ),
-            new TestGatewayAllocator(),
-            new BalancedShardsAllocator(Settings.EMPTY),
-            EmptyClusterInfoService.INSTANCE
-        );
-        ClusterState state = ClusterState.builder(prevState)
-            .nodes(nodeBuilder)
-            .metaData(MetaData.builder(prevState.metaData())
-                .put(indexMetaData, true)
-            )
-            .routingTable(
-                RoutingTable.builder(prevState.routingTable())
-                    .addAsNew(indexMetaData)
-                    .build())
-            .build();
-
-        state = allocationService.reroute(state, "assign shards");
-        return state;
     }
 
     @Test

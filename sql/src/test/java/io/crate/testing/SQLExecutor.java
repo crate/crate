@@ -22,10 +22,15 @@
 
 package io.crate.testing;
 
+import com.google.common.base.Preconditions;
+import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -45,6 +50,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.executor.transport.RepositoryService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
@@ -70,18 +76,35 @@ import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.EmptyClusterInfoService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
+import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
 import java.io.File;
 import java.io.IOException;
@@ -104,6 +127,8 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONL
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Collections.singletonList;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -150,15 +175,78 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
+        private final TestingDocTableInfoFactory testingDocTableInfoFactory;
+        private final AnalysisRegistry analysisRegistry;
+        private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
+        private final AllocationService allocationService;
+        private final UserDefinedFunctionService udfService;
         private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
 
         private TableStats tableStats = new TableStats();
 
         public Builder(ClusterService clusterService) {
+            this(clusterService, 1);
+        }
+
+        public Builder(ClusterService clusterService, int numNodes) {
+            Preconditions.checkArgument(numNodes >= 1, "Must have at least 1 node");
+            addNodesToClusterState(clusterService, numNodes);
             this.clusterService = clusterService;
             schemaInfoByName.put("sys", new SysSchemaInfo());
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             functions = getFunctions();
+
+            testingDocTableInfoFactory = new TestingDocTableInfoFactory(
+                docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
+            udfService = new UserDefinedFunctionService(clusterService, functions);
+            schemaInfoByName.put(
+                defaultSchema,
+                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, testingDocTableInfoFactory)
+            );
+            Schemas schemas = new Schemas(
+                Settings.EMPTY,
+                schemaInfoByName,
+                clusterService,
+                new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
+            );
+            File tempDir = createTempDir();
+            analysisRegistry = new AnalysisRegistry(
+                new Environment(Settings.builder()
+                    .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
+                    .build()),
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                Collections.emptyMap()
+            );
+            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
+                schemas,
+                new FulltextAnalyzerResolver(clusterService, analysisRegistry),
+                functions,
+                new NumberOfShards(clusterService)
+            );
+            allocationService = new AllocationService(
+                Settings.EMPTY,
+                new AllocationDeciders(
+                    Settings.EMPTY,
+                    singletonList(new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()))
+                ),
+                new TestGatewayAllocator(),
+                new BalancedShardsAllocator(Settings.EMPTY),
+                EmptyClusterInfoService.INSTANCE
+            );
+        }
+
+        private void addNodesToClusterState(ClusterService clusterService, int numNodes) {
+            DiscoveryNodes.Builder builder = DiscoveryNodes.builder();
+            for (int i = 1; i <= numNodes; i++) {
+                builder.add(new DiscoveryNode("n" + i, LocalTransportAddress.buildUnique(), Version.CURRENT));
+            }
+            builder.localNodeId("n1");
+            ClusterServiceUtils.setState(
+                clusterService,
+                ClusterState.builder(clusterService.state()).nodes(builder).build());
         }
 
         public Builder setDefaultSchema(String schema) {
@@ -171,6 +259,9 @@ public class SQLExecutor {
          * <p>
          * Note that these tables do have a static routing which doesn't necessarily match the nodes that
          * are part of the clusterState of the {@code clusterService} provided to the builder.
+         *
+         * Note that these tables are not part of the clusterState and rely on a stubbed getRouting
+         * Using {@link #addTable(String)} is preferred for this reason.
          * </p>
          */
         public Builder enableDefaultTables() {
@@ -194,22 +285,18 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
-            schemaInfoByName.put(
-                defaultSchema,
-                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService,
-                    new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemaInfoByName.put(
                     BlobSchemaInfo.NAME,
                     new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
-            File tempDir = createTempDir();
+            // Can't use the schemas instance from the constructor because
+            // schemaInfoByName can receive new items and Schemas creates a new map internally; so mutations are not visible
             Schemas schemas = new Schemas(
                 Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
+                new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
             );
             return new SQLExecutor(
                 functions,
@@ -217,16 +304,7 @@ public class SQLExecutor {
                     schemas,
                     functions,
                     clusterService,
-                    new AnalysisRegistry(
-                        new Environment(Settings.builder()
-                            .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
-                            .build()),
-                        Collections.emptyMap(),
-                        Collections.emptyMap(),
-                        Collections.emptyMap(),
-                        Collections.emptyMap(),
-                        Collections.emptyMap()
-                    ),
+                    analysisRegistry,
                     new RepositoryService(
                         clusterService,
                         mock(TransportDeleteRepositoryAction.class),
@@ -267,8 +345,45 @@ public class SQLExecutor {
             return this;
         }
 
+        /**
+         * Adds a table to the schemas.
+         * Note that these tables won't be part of the clusterState.
+         * Using {@link #addTable(String)} is preferred for this reason
+         */
         public Builder addDocTable(DocTableInfo table) {
             docTables.put(table.ident(), table);
+            return this;
+        }
+
+        /**
+         * Add a table to the clusterState
+         */
+        public Builder addTable(String createTableStmt) throws IOException {
+            CreateTable stmt = (CreateTable) SqlParser.createStatement(createTableStmt);
+            CreateTableAnalyzedStatement analyzedStmt = createTableStatementAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY, new TransactionContext(SessionContext.create()));
+
+            if (analyzedStmt.isPartitioned()) {
+                // this is simply not implemented: We'd have to add the template instead of adding indexMetaData
+                throw new UnsupportedOperationException("Cannot add partitioned table");
+            }
+            ClusterState prevState = clusterService.state();
+            IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStmt.tableIdent().name())
+                .settings(
+                    Settings.builder()
+                        .put(analyzedStmt.tableParameter().settings())
+                        .put(SETTING_VERSION_CREATED, prevState.nodes().getSmallestNonClientNodeVersion())
+                        .build()
+                )
+                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()))
+                .build();
+
+            ClusterState state = ClusterState.builder(prevState)
+                .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))
+                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetaData).build())
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
             return this;
         }
 
@@ -289,6 +404,10 @@ public class SQLExecutor {
 
     public static Builder builder(ClusterService clusterService) {
         return new Builder(clusterService);
+    }
+
+    public static Builder builder(ClusterService clusterService, int numNodes) {
+        return new Builder(clusterService, numNodes);
     }
 
     private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, RelationAnalyzer relAnalyzer, SessionContext sessionContext) {

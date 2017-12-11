@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
-    public static final String NODE_ID = "node";
+    public static final String NODE_ID = "n1";
 
     private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = ImmutableSet.of();
 

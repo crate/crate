@@ -95,12 +95,12 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         assertThat(readerAllocations.indices().get(0), is("t1"));
         assertThat(readerAllocations.nodeReaders().size(), is(2));
 
-        IntSet n1 = readerAllocations.nodeReaders().get("nodeOne");
+        IntSet n1 = readerAllocations.nodeReaders().get("n1");
         assertThat(n1.size(), is(2));
         assertThat(n1.contains(1), is(true));
         assertThat(n1.contains(2), is(true));
 
-        IntSet n2 = readerAllocations.nodeReaders().get("nodeTwo");
+        IntSet n2 = readerAllocations.nodeReaders().get("n2");
         assertThat(n2.size(), is(2));
         assertThat(n2.contains(3), is(true));
         assertThat(n2.contains(4), is(true));

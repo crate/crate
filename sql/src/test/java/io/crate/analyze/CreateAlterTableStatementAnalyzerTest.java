@@ -43,10 +43,7 @@ import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,16 +76,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
             .build();
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
-            .nodes(DiscoveryNodes.builder()
-                .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(), org.elasticsearch.Version.CURRENT))
-                .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(), org.elasticsearch.Version.CURRENT))
-                .add(new DiscoveryNode("n3",LocalTransportAddress.buildUnique(), org.elasticsearch.Version.CURRENT))
-                .localNodeId("n1")
-            )
             .metaData(metaData)
             .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService, 3).enableDefaultTables().build();
     }
 
     @Test

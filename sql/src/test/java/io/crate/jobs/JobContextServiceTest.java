@@ -77,7 +77,7 @@ public class JobContextServiceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(contexts.iterator().hasNext(), is(false));
 
-        contexts = jobContextService.getJobIdsByCoordinatorNode("node").collect(Collectors.toList());
+        contexts = jobContextService.getJobIdsByCoordinatorNode("n1").collect(Collectors.toList());
         assertThat(contexts, contains(ctx.jobId()));
     }
 
