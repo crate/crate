@@ -148,7 +148,7 @@ Authenticating as a Superuser
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``.
 
-To enable trust auhentication for the superuser, ``crate`` must be specified in
+To enable trust authentication for the superuser, ``crate`` must be specified in
 the the ``auth.host_based`` setting, like this:
 
 .. code-block:: yaml
@@ -159,3 +159,33 @@ the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
+
+Authenticating to Admin UI
+==========================
+
+.. hide:
+
+    cr> CREATE USER admin;
+    CREATE OK, 1 row affected (... sec)
+
+When trying to access the Admin UI of CrateDB, initially an authentication with
+the user defined with the
+:ref:`auth.trust.http_default_user <auth_trust_http_default_user>` setting
+(defaults to ``crate``) will be attempted. If this authentication attempt
+fails, then the browser will open the standard popup window where the user is
+asked to fill in credentials. Depending on the HBA configuration it maybe not
+be necessary to provide a password but only a username. Users that log in to
+the Admin UI must be granted `DQL`` privileges at ``CLUSTER`` level in order to
+be able to access the various monitoring sections. For example::
+
+    cr> GRANT DQL TO admin;
+    GRANT OK, 1 row affected (... sec)
+
+For further info please refer to the
+:ref:`privileges section <administration-privileges>`.
+
+
+.. hide:
+
+    cr> DROP USER admin;
+    DROP OK, 1 row affected (... sec)

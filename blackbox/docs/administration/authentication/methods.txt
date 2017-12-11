@@ -49,6 +49,8 @@ specify a default user in case that the ``Authorization`` header is not set.
 This is useful to allow clients which do not provide the possibility to set any
 headers, for example a web browser connecting to the Admin UI.
 
+.. _auth_trust_http_default_user:
+
 The default user can be specified via the ``auth.trust.http_default_user``
 setting like this:
 
