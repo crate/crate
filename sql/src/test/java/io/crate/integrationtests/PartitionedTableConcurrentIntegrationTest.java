@@ -40,6 +40,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -341,6 +343,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         int numCols = 5;
         String[] buckets = new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
         final CountDownLatch countDownLatch = new CountDownLatch(buckets.length);
+        AtomicInteger numSuccessfulInserts = new AtomicInteger(0);
         for (String bucket : buckets) {
             Object[][] bulkArgs = new Object[bulkSize][];
             for (int i = 0; i < bulkSize; i++) {
@@ -349,6 +352,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
             new Thread(() -> {
                 try {
                     execute("insert into dyn_parted (id, bucket, data) values (?, ?, ?)", bulkArgs, TimeValue.timeValueSeconds(10));
+                    numSuccessfulInserts.incrementAndGet();
                 } finally {
                     countDownLatch.countDown();
                 }
@@ -356,8 +360,11 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         }
 
         countDownLatch.await();
+        // on a reasonable fast machine all inserts always work.
+        assertThat("At least one insert must work without timeout", numSuccessfulInserts.get(), Matchers.greaterThanOrEqualTo(1));
+
         execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
-        assertThat(response.rows()[0][0], is(3L + numCols * buckets.length));
+        assertThat(response.rows()[0][0], is(3L + numCols * numSuccessfulInserts.get()));
     }
 
     @Test
