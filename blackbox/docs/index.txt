@@ -21,10 +21,10 @@ massive amounts of machine data in real-time.
 
    run
    config/index
-   interfaces/index
    general/index
    admin/index
    sql/index
+   interfaces/index
    enterprise/index
    appendix/index
 
