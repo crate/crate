@@ -15,8 +15,8 @@ The documentation is structured as follows:
 | Configuration          | Full documentation for configuration settings,     |
 |                        | split into sections by topic.                      |
 +------------------------+----------------------------------------------------+
-| Client/Server Protocol | Documentation for client/server protocols, split   |
-|                        | into documents by protocol.                        |
+| Client Interfaces      | Documentation for client interfaces, split         |
+|                        | into documents by interface.                       |
 +------------------------+----------------------------------------------------+
 | General Use            | Primary documentation for any feature primarily of |
 |                        | use to a general user, split into sections by      |

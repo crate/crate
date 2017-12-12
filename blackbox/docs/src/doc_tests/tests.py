@@ -436,7 +436,7 @@ def test_suite():
     s = docsuite('../../general/blobs.txt', parser=bash_parser, setUp=setUp)
     s.layer = crate_layer
     docs_suite.addTest(s)
-    for fn in ('protocols/http.txt',):
+    for fn in ('interfaces/http.txt',):
         s = docsuite('../../' + fn,
                      parser=bash_parser,
                      setUp=setUpLocations,
@@ -473,7 +473,7 @@ def test_suite():
                'general/builtins/table-functions.txt',
                'admin/system-information.txt',
                'general/dql/selects.txt',
-               'protocols/postgres.txt'):
+               'interfaces/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
                      tearDown=tearDownLocationsAndQuotes)
