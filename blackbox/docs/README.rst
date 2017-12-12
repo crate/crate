@@ -8,7 +8,7 @@ Top-Level Structure
 The documentation is structured as follows:
 
 +------------------------+----------------------------------------------------+
-| Section Title          |  Description                                       |
+| Section Title          | Description                                        |
 +========================+====================================================+
 | Running CrateDB        | Documentation for the ``crate`` command.           |
 +------------------------+----------------------------------------------------+
