@@ -26,21 +26,19 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-import java.util.List;
-
 public class AlterUser extends Statement {
 
-    private final List<Assignment> assignments;
+    private final GenericProperties genericProperties;
     private final String name;
 
-    public AlterUser(String name, List<Assignment> assignments) {
-        Preconditions.checkNotNull(assignments, "assignments are null");
-        this.assignments = assignments;
+    public AlterUser(String name, GenericProperties genericProperties) {
+        Preconditions.checkNotNull(genericProperties, "assignments are null");
+        this.genericProperties = genericProperties;
         this.name = name;
     }
 
-    public List<Assignment> assignments() {
-        return assignments;
+    public GenericProperties genericProperties() {
+        return genericProperties;
     }
 
     public String name() {
@@ -54,20 +52,20 @@ public class AlterUser extends Statement {
 
         AlterUser alterUser = (AlterUser) o;
 
-        if (!assignments.equals(alterUser.assignments)) return false;
+        if (!genericProperties.equals(alterUser.genericProperties)) return false;
         return name.equals(alterUser.name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, assignments);
+        return Objects.hashCode(name, genericProperties);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
-            .add("assignments", assignments)
+            .add("properties", genericProperties)
             .toString();
     }
 

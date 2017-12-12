@@ -781,7 +781,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterUser(SqlBaseParser.AlterUserContext context) {
         return new AlterUser(
             getIdentText(context.name),
-            visit(context.assignment(), Assignment.class)
+            (GenericProperties) visit(context.genericProperties())
         );
     }
 

@@ -75,12 +75,12 @@ statement returns an error::
 To alter the password for an existing user from the CrateDB database cluster use
 the :ref:`ref-alter-user` SQL statement::
 
-    cr> ALTER USER user_a SET password = 'pass';
+    cr> ALTER USER user_a SET (password = 'pass');
     ALTER OK, 1 row affected (... sec)
 
 The password can be reset (cleared) if specified as ``NULL``::
 
-    cr> ALTER USER user_a SET password = NULL;
+    cr> ALTER USER user_a SET (password = NULL);
     ALTER OK, 1 row affected (... sec)
 
 

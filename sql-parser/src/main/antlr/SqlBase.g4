@@ -53,7 +53,7 @@ statement
     | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
     | ALTER TABLE alterTableDefinition REROUTE rerouteOption                         #alterTableReroute
     | ALTER CLUSTER REROUTE RETRY FAILED                                             #alterClusterRerouteRetryFailed
-    | ALTER USER name=ident SET assignment (',' assignment)*                         #alterUser
+    | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET SESSION CHARACTERISTICS AS TRANSACTION setExpr (setExpr)*                  #setSessionTransactionMode
     | SET (SESSION | LOCAL)? qname
