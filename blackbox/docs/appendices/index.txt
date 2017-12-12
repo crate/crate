@@ -1,8 +1,10 @@
 .. _appendix:
 
-========
-Appendix
-========
+==========
+Appendices
+==========
+
+This section of the documentation provides supplementary information.
 
 .. rubric:: Table of Contents
 

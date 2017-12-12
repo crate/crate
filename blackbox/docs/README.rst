@@ -33,7 +33,7 @@ The documentation is structured as follows:
 | Enterprise Features    | A list of each enterprise feature, with a link     |
 |                        | to the primary documentation.                      |
 +------------------------+----------------------------------------------------+
-| Appendix               | Supplementary information.                         |
+| Appendices             | Supplementary information.                         |
 |                        |                                                    |
 |                        | This also includes collection of release notes,    |
 |                        | one document per release. Each document should     |
