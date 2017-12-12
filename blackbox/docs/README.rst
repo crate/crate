@@ -26,7 +26,7 @@ The documentation is structured as follows:
 |                        | interest to a database administrator, split into   |
 |                        | sections by topic.                                 |
 +------------------------+----------------------------------------------------+
-| SQL Syntax             | Full documentation for SQL syntax settings, split  |
+| SQL Syntax             | Full documentation for SQL syntax, split           |
 |                        | into general SQL topics and SQL statements, one    |
 |                        | document per statement.                            |
 +------------------------+----------------------------------------------------+
