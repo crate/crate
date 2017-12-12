@@ -2,6 +2,9 @@
 General Use
 ===========
 
+This section of the documentation covers any feature primarily of interest to a
+general user.
+
 .. rubric:: Table of Contents
 
 .. toctree::
