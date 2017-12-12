@@ -9,5 +9,6 @@ Appendix
 .. toctree::
     :maxdepth: 1
 
+    release-notes/index
     sql-compliance
     supported-features
