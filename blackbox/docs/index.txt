@@ -22,11 +22,11 @@ massive amounts of machine data in real-time.
    release-notes/index
    run
    config/index
-   general/index
-   sql/index
    protocols/index
-   enterprise/index
+   general/index
    admin/index
+   sql/index
+   enterprise/index
    appendix/index
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/
