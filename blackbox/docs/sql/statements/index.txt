@@ -7,8 +7,8 @@ SQL Statements
 .. toctree::
     :maxdepth: 1
 
-    alter-table
     alter-cluster
+    alter-table
     alter-user
     copy-from
     copy-to

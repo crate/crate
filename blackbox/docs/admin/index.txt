@@ -10,14 +10,14 @@ Administration
     :maxdepth: 2
     :titlesonly:
 
+    system-information
+    information-schema
     runtime-config
     user-management
     privileges
     auth/index
     ssl
     ingestion/index
-    information-schema
-    system-information
     optimization
     jobs-management
     monitoring
