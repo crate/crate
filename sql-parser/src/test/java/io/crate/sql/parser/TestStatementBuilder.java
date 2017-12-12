@@ -1131,8 +1131,15 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterUser() throws Exception {
-        printStatement("alter user crate set password = 'password'");
-        printStatement("alter user crate set password = null");
+        printStatement("alter user crate set (password = 'password')");
+        printStatement("alter user crate set (password = null)");
+    }
+
+    @Test
+    public void testAlterUserWithMissingProperties() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("mismatched input '<EOF>' expecting 'SET'"));
+        printStatement("alter user crate");
     }
 
     @Test

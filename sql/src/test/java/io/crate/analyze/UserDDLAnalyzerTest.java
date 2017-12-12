@@ -79,14 +79,14 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAlterUserWithPassword() throws Exception {
-        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET PASSWORD = 'ROOT'");
+        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = 'ROOT')");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.properties().get("password"), is(Literal.of("ROOT")));
     }
 
     @Test
     public void testAlterUserResetPassword() throws Exception {
-        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET PASSWORD = NULL");
+        AlterUserAnalyzedStatement analysis = e.analyze("ALTER USER ROOT SET (PASSWORD = NULL)");
         assertThat(analysis.userName(), is("root"));
         assertThat(analysis.properties().get("password"), is(Literal.of(DataTypes.UNDEFINED, null)));
     }

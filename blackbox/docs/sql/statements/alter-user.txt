@@ -17,7 +17,7 @@ Synopsis
 
 ::
 
-    ALTER USER
+    ALTER USER username
       SET ( user_parameter = value [, ...] )
 
 
@@ -31,6 +31,11 @@ user.
 
 Arguments
 =========
+
+``USERNAME``
+------------
+
+The name by which the user is identified inside the database.
 
 ``SET``
 -------

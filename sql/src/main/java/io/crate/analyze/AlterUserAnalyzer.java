@@ -24,15 +24,14 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterUser;
-import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.Nullable;
 
@@ -71,12 +70,11 @@ public class AlterUserAnalyzer {
         );
 
         Map<String, Symbol> rows = new HashMap<>();
-        List<Assignment> assignments = node.assignments();
+        GenericProperties genericProperties = node.genericProperties();
 
-        for (Assignment assignment : assignments) {
-            Symbol valueSymbol = expressionAnalyzer.convert(assignment.expression(), exprContext);
-            String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            rows.put(settingName, valueSymbol);
+        for (Map.Entry<String, Expression> expr : genericProperties.properties().entrySet()) {
+            Symbol valueSymbol = expressionAnalyzer.convert(expr.getValue(), exprContext);
+            rows.put(expr.getKey(), valueSymbol);
         }
 
         return new AlterUserAnalyzedStatement(node.name(), rows);
