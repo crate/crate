@@ -10,10 +10,6 @@ The documentation is structured as follows:
 +------------------------+----------------------------------------------------+
 | Section Title          |  Description                                       |
 +========================+====================================================+
-| Release Notes          | A collection of release notes, one document per    |
-|                        | release. Each document should contain upgrade      |
-|                        | information as well as a list of changes.          |
-+------------------------+----------------------------------------------------+
 | Running CrateDB        | Documentation for the ``crate`` command.           |
 +------------------------+----------------------------------------------------+
 | Configuration          | Full documentation for configuration settings,     |
@@ -38,6 +34,11 @@ The documentation is structured as follows:
 |                        | to the primary documentation.                      |
 +------------------------+----------------------------------------------------+
 | Appendix               | Supplementary information.                         |
+|                        |                                                    |
+|                        | This also includes collection of release notes,    |
+|                        | one document per release. Each document should     |
+|                        | contain upgrade information as well as a list of   |
+|                        | changes.                                           |
 +------------------------+----------------------------------------------------+
 
 How to Document a Feature

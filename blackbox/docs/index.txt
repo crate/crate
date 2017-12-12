@@ -19,7 +19,6 @@ massive amounts of machine data in real-time.
 .. toctree::
    :maxdepth: 2
 
-   release-notes/index
    run
    config/index
    protocols/index
