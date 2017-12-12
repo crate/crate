@@ -60,4 +60,22 @@ public class WhereClauseTest {
         assertThat(whereLiteralFalse.noMatch(), is(whereReplaced.noMatch()));
         assertThat(whereLiteralFalse.query(), is(whereReplaced.query()));
     }
+
+    @Test
+    public void testMerge() {
+        WhereClause whereLiteralTrue = new WhereClause(Literal.BOOLEAN_TRUE);
+        WhereClause whereLiteralFalse = new WhereClause(Literal.BOOLEAN_FALSE);
+        Symbol query1 = sqlExpressions.asSymbol("x = 1");
+        WhereClause where1 = new WhereClause(query1);
+        Symbol query2 = sqlExpressions.asSymbol("x = 2");
+        WhereClause where2 = new WhereClause(query2);
+        Symbol queryMerged = sqlExpressions.asSymbol("x = 1 and x =2");
+        WhereClause whereMerged = new WhereClause(queryMerged);
+
+        assertThat(whereLiteralFalse.mergeWhere(whereLiteralTrue), is(WhereClause.NO_MATCH));
+        assertThat(whereLiteralTrue.mergeWhere(whereLiteralTrue), is(WhereClause.MATCH_ALL));
+        assertThat(where1.mergeWhere(whereLiteralTrue), is(where1));
+        assertThat(where1.mergeWhere(whereLiteralFalse), is(WhereClause.NO_MATCH));
+        assertThat(where2.mergeWhere(where1), is(whereMerged));
+    }
 }
