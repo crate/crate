@@ -19,7 +19,7 @@ The documentation is structured as follows:
 |                        | into documents by interface.                       |
 +------------------------+----------------------------------------------------+
 | General Use            | Primary documentation for any feature primarily of |
-|                        | use to a general user, split into sections by      |
+|                        | interest to a general user, split into sections by |
 |                        | topic.                                             |
 +------------------------+----------------------------------------------------+
 | Administration         | Primary documentation for any feature primarily of |
