@@ -4,6 +4,9 @@
 Client Interfaces
 =================
 
+There are two ways for clients to talk to CrateDB. This section of the documentation covers both from a
+client implementation perspective.
+
 .. SEEALSO::
 
    `Connecting to CrateDB`_ — Includes an introduction to the web admin

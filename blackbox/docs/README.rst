@@ -15,9 +15,6 @@ The documentation is structured as follows:
 | Configuration          | Full documentation for configuration settings,     |
 |                        | split into sections by topic.                      |
 +------------------------+----------------------------------------------------+
-| Client Interfaces      | Documentation for client interfaces, split         |
-|                        | into documents by interface.                       |
-+------------------------+----------------------------------------------------+
 | General Use            | Primary documentation for any feature primarily of |
 |                        | interest to a general user, split into sections by |
 |                        | topic.                                             |
@@ -29,6 +26,9 @@ The documentation is structured as follows:
 | SQL Syntax             | Full documentation for SQL syntax, split           |
 |                        | into general SQL topics and SQL statements, one    |
 |                        | document per statement.                            |
++------------------------+----------------------------------------------------+
+| Client Interfaces      | Documentation for client interfaces, split         |
+|                        | into documents by interface.                       |
 +------------------------+----------------------------------------------------+
 | Enterprise Features    | A list of each enterprise feature, with a link     |
 |                        | to the primary documentation.                      |
