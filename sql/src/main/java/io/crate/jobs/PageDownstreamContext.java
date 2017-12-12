@@ -176,9 +176,14 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private void mergeBuckets() {
         List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
         for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
-            buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
+            if (entry.getValue() != null) {
+                buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
+            }
         }
-        bucketsByIdx.clear();
+        // replace existing buckets with empty ones
+        for (Integer integer : bucketsByIdx.keySet()) {
+            bucketsByIdx.put(integer, null);
+        }
         pagingIterator.merge(buckets);
     }
 
