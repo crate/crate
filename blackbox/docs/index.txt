@@ -21,7 +21,7 @@ massive amounts of machine data in real-time.
 
    run
    config/index
-   protocols/index
+   interfaces/index
    general/index
    admin/index
    sql/index

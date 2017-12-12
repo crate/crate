@@ -2,9 +2,9 @@
 
 .. _sql_http_endpoint:
 
-=================
-SQL HTTP Endpoint
-=================
+=============
+HTTP Endpoint
+=============
 
 .. rubric:: Table of Contents
 
