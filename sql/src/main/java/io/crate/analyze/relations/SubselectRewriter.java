@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
@@ -37,7 +36,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
-import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -198,24 +196,13 @@ public final class SubselectRewriter {
         }
         return new QuerySpec()
             .outputs(parentQSpec.outputs())
-            .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
+            .where(childQSpec.where().mergeWhere(parentQSpec.where()))
             .orderBy(newOrderBy)
             .offset(Limits.mergeAdd(childQSpec.offset(), parentQSpec.offset()))
             .limit(Limits.mergeMin(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
             .having(pushHaving(childQSpec.having(), parentQSpec.having()))
             .hasAggregates(childQSpec.hasAggregates() || parentQSpec.hasAggregates());
-    }
-
-
-    private static WhereClause mergeWhere(WhereClause where1, WhereClause where2) {
-        if (!where1.hasQuery() || where1 == WhereClause.MATCH_ALL) {
-            return where2;
-        } else if (!where2.hasQuery() || where2 == WhereClause.MATCH_ALL) {
-            return where1;
-        }
-
-        return new WhereClause(AndOperator.join(ImmutableList.of(where2.query(), where1.query())));
     }
 
     /**

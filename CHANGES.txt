@@ -21,6 +21,14 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused incorrect results for collapsable subselects which
+  contained a ``WHERE`` clause that results in no match. E.g. ::
+
+    SELECT * FROM (
+      SELECT * FROM t
+      WHERE false
+    ) vt
+
 - Fixed a performance regression introduced in ``2.2.0`` that caused ``SELECT``
   statements with ``ORDER BY`` and ``LIMIT`` to execute way slower than before
 
