@@ -23,7 +23,7 @@ The documentation is structured as follows:
 |                        | topic.                                             |
 +------------------------+----------------------------------------------------+
 | Administration         | Primary documentation for any feature primarily of |
-|                        | use to a database administrator, split into        |
+|                        | interest to a database administrator, split into   |
 |                        | sections by topic.                                 |
 +------------------------+----------------------------------------------------+
 | SQL Syntax             | Full documentation for SQL syntax settings, split  |
