@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
@@ -39,15 +38,13 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-class Filter implements LogicalPlan {
+class Filter extends OneInputPlan {
 
-    final LogicalPlan source;
     final QueryClause queryClause;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, @Nullable QueryClause queryClause) {
@@ -84,7 +81,7 @@ class Filter implements LogicalPlan {
     }
 
     private Filter(LogicalPlan source, QueryClause queryClause) {
-        this.source = source;
+        super(source);
         this.queryClause = queryClause;
     }
 
@@ -108,37 +105,7 @@ class Filter implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan tryCollapse() {
-        LogicalPlan collapsed = source.tryCollapse();
-        if (collapsed == source) {
-            return this;
-        }
-        return new Filter(collapsed, queryClause);
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        // We don't have any cardinality estimates
-        return source.numExpectedRows();
+    protected LogicalPlan newInstance(LogicalPlan newSource) {
+        return new Filter(newSource, queryClause);
     }
 }

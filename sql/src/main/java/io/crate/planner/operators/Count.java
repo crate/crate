@@ -27,7 +27,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -44,26 +43,21 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**
  * An optimized version for "select count(*) from t where ..."
  */
-public class Count implements LogicalPlan {
+public class Count extends ZeroInputPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
     final AbstractTableRelation<TableInfo> tableRelation;
     final WhereClause where;
 
-    private final List<Symbol> outputs;
-    private final List<AbstractTableRelation> baseTables;
-
     Count(Function countFunction, AbstractTableRelation<TableInfo> tableRelation, WhereClause where) {
-        this.outputs = Collections.singletonList(countFunction);
+        super(Collections.singletonList(countFunction), Collections.singletonList(tableRelation));
         this.tableRelation = tableRelation;
-        this.baseTables = Collections.singletonList(tableRelation);
         this.where = where;
     }
 
@@ -101,31 +95,6 @@ public class Count implements LogicalPlan {
             null
         );
         return new CountPlan(countPhase, mergePhase);
-    }
-
-    @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return baseTables;
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Collections.emptyMap();
     }
 
     @Override

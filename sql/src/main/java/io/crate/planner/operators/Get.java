@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -52,16 +51,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Get implements LogicalPlan {
+public class Get extends ZeroInputPlan {
 
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
-    private final List<Symbol> outputs;
 
     Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs) {
+        super(outputs, Collections.singletonList(table.tableRelation()));
         this.tableRelation = table.tableRelation();
         this.docKeys = docKeys;
-        this.outputs = outputs;
     }
 
     @Override
@@ -133,32 +131,6 @@ public class Get implements LogicalPlan {
         );
     }
 
-    @Override
-    public LogicalPlan tryCollapse() {
-        return this;
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return Collections.singletonList(tableRelation);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return Collections.emptyMap();
-    }
-
-    @Override
     public long numExpectedRows() {
         return docKeys.size();
     }
