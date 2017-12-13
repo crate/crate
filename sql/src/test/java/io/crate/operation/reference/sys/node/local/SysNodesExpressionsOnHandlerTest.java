@@ -110,6 +110,10 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
             assertThat(v.get("1"), is(-1.0d));
             assertThat(v.get("5"), is(-1.0d));
             assertThat(v.get("15"), is(-1.0d));
+        } else if (isRunningOnMacOSX()) {
+            assertThat((double) v.get("1"), greaterThanOrEqualTo(0.0d));
+            assertThat(v.get("5"), is(-1.0d));
+            assertThat(v.get("15"), is(-1.0d));
         } else {
             assertThat((double) v.get("1"), greaterThanOrEqualTo(0.0d));
             assertThat((double) v.get("5"), greaterThanOrEqualTo(0.0d));
