@@ -27,10 +27,7 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.executionphases.PhasesTaskFactory;
-import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.operation.NodeJobsCounter;
-import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -61,13 +58,10 @@ public class DependencyCarrier {
     public DependencyCarrier(Settings settings,
                              TransportActionProvider transportActionProvider,
                              PhasesTaskFactory phasesTaskFactory,
-                             JobContextService jobContextService,
                              ThreadPool threadPool,
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
-                             NodeJobsCounter nodeJobsCounter,
-                             SystemCollectSource systemCollectSource,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction) {
         this.settings = settings;
