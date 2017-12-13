@@ -1,6 +1,6 @@
-============
-Table Basics
-============
+===============
+Creating Tables
+===============
 
 .. rubric:: Table of Contents
 
