@@ -117,10 +117,6 @@ Changes
 
 - Table ``information_schema.table_constraints`` is now returning ``NOT_NULL``
 
-- Fixed an issue that caused an error ``Primary key value must not be NULL``
-  to be thrown when trying to insert rows in a table that has a generated
-  column which is used both in ``PARTITION_BY`` and ``PRIMARY KEY``.
-
 - Added support to manually control the allocation of shards using
   ``ALTER TABLE REROUTE``.
   Supported reroute-options: MOVE, ALLOCATE REPLICA, CANCEL
