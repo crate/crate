@@ -57,18 +57,6 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
             SymbolFormatter.format("Unable to get value from symbol: %s", symbol));
     }
 
-
-    /**
-     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
-     */
-    @Deprecated
-    public static final ValueSymbolVisitor<Object> VALUE = new ValueSymbolVisitor<Object>() {
-        @Override
-        public Object visitLiteral(Literal symbol, Void context) {
-            return symbol.value();
-        }
-    };
-
     /**
      * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
      */

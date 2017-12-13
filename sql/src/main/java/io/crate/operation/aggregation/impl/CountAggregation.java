@@ -26,15 +26,14 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
-import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
@@ -118,11 +117,12 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
 
         if (function.arguments().size() == 1) {
-            if (function.arguments().get(0).symbolType().isValueSymbol()) {
-                if (ValueSymbolVisitor.VALUE.process(function.arguments().get(0)) == null) {
+            Symbol arg = function.arguments().get(0);
+            if (arg instanceof Input) {
+                if (((Input) arg).value() == null) {
                     return Literal.of(0L);
                 } else {
-                    return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
+                    return new Function(COUNT_STAR_FUNCTION, ImmutableList.of());
                 }
             }
         }

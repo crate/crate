@@ -25,8 +25,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.Version;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.where.DocKeys;
+import io.crate.collections.Lists2;
 import io.crate.core.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
@@ -47,6 +48,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.BaseMatcher;
@@ -186,19 +188,6 @@ public class TestingHelpers {
     }
 
 
-    private static final com.google.common.base.Function<Object, Object> bytesRefToString =
-        new com.google.common.base.Function<Object, Object>() {
-
-            @Nullable
-            @Override
-            public Object apply(@Nullable Object input) {
-                if (input instanceof BytesRef) {
-                    return ((BytesRef) input).utf8ToString();
-                }
-                return input;
-            }
-        };
-
     public static Matcher<Row> isNullRow() {
         return isRow((Object) null);
     }
@@ -207,7 +196,7 @@ public class TestingHelpers {
         if (cells == null) {
             cells = new Object[]{null};
         }
-        final List<Object> expected = Lists.transform(Arrays.asList(cells), bytesRefToString);
+        final List<Object> expected = Lists.transform(Arrays.asList(cells), BytesRefs::toString);
         return new TypeSafeDiagnosingMatcher<Row>() {
             @Override
             protected boolean matchesSafely(Row item, Description mismatchDescription) {
@@ -217,7 +206,7 @@ public class TestingHelpers {
                     return false;
                 }
                 for (int i = 0; i < item.numColumns(); i++) {
-                    Object actual = bytesRefToString.apply(item.get(i));
+                    String actual = BytesRefs.toString(item.get(i));
                     if (!Objects.equals(expected.get(i), actual)) {
                         mismatchDescription.appendText("value at pos ")
                             .appendValue(i)
@@ -248,10 +237,18 @@ public class TestingHelpers {
         return new TypeSafeDiagnosingMatcher<DocKeys.DocKey>() {
             @Override
             protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
-                List objects = Lists.transform(
-                    Lists.transform(item.values(), ValueSymbolVisitor.VALUE.function), bytesRefToString);
-                if (!expected.equals(objects)) {
-                    mismatchDescription.appendText("is DocKey with values: ").appendValue(objects);
+                List<Object> docKeyValues = Lists2.copyAndReplace(
+                    item.values(),
+                    s -> {
+                        Object val = ((Literal) s).value();
+                        if (val instanceof BytesRef) {
+                            val = ((BytesRef) val).utf8ToString();
+                        }
+                        return val;
+                    }
+                );
+                if (!expected.equals(docKeyValues)) {
+                    mismatchDescription.appendText("is DocKey with values: ").appendValue(docKeyValues);
                     return false;
                 }
                 return true;
