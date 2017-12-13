@@ -23,8 +23,6 @@ package io.crate.analyze.symbol;
 
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.types.CollectionType;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
@@ -61,17 +59,6 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
      * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
      */
     @Deprecated
-    public static final ValueSymbolVisitor<BytesRef> BYTES_REF = new ValueSymbolVisitor<BytesRef>() {
-        @Override
-        public BytesRef visitLiteral(Literal symbol, Void context) {
-            return DataTypes.STRING.value(symbol.value());
-        }
-    };
-
-    /**
-     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
-     */
-    @Deprecated
     public static final ValueSymbolVisitor<String> STRING = new ValueSymbolVisitor<String>() {
         @Override
         public String visitLiteral(Literal symbol, Void context) {
@@ -96,16 +83,4 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
             return strings;
         }
     };
-
-    /**
-     * @deprecated Symbols must be evaluated using {@link io.crate.analyze.SymbolEvaluator}
-     */
-    @Deprecated
-    public static final ValueSymbolVisitor<Long> LONG = new ValueSymbolVisitor<Long>() {
-        @Override
-        public Long visitLiteral(Literal symbol, Void context) {
-            return DataTypes.LONG.value(symbol.value());
-        }
-    };
-
 }
