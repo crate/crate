@@ -10,7 +10,7 @@ Data Definition
 .. toctree::
    :maxdepth: 2
 
-   basics
+   create-table
    data-types
    system-columns
    generated-columns

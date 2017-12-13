@@ -443,7 +443,7 @@ def test_suite():
                      tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('general/ddl/basics.txt',
+    for fn in ('general/ddl/create-table.txt',
                'general/ddl/generated-columns.txt',
                'general/ddl/constraints.txt',
                'general/ddl/sharding.txt',
