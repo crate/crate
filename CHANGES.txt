@@ -21,34 +21,3 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that caused an Exception to be thrown when trying to query
-  ``thread_pools['name']`` field of system table ``sys.nodes`` and
-  ``settings['write']['wait_for_active_shards']`` from table
-  ``information_schema.tables``.
-
-- Removed the horizontal scroll from the console editor.
-
-- Console results pagination is now reset to 1 after each execution.
-
-- Calculate "idle" process CPU usage correctly and show it in the
-  "CrateDB CPU Usage" graph.
-
-- Fixed an issue that caused the Admin UI to not display any tables when the
-  file system data are not available.
-
-- Refresh Cluster Info after query execution in the console, to ensure that
-  the cluster info is always up to date.
-
-- Fixed an issue that caused incorrect results for collapsable subselects which
-  contained a ``WHERE`` clause that results in no match. E.g. ::
-
-    SELECT * FROM (
-      SELECT * FROM t
-      WHERE false
-    ) vt
-
-- Fixed a performance regression introduced in ``2.2.0`` that caused ``SELECT``
-  statements with ``ORDER BY`` and ``LIMIT`` to execute way slower than before
-
-- Fixed support for subscript expressions on the ``values`` column of
-  ``information_schema.table_partitions``
