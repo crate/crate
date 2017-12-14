@@ -23,6 +23,8 @@
 package io.crate.operation.reference.sys.node;
 
 import io.crate.monitor.ExtendedOsStats;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.os.OsStats;
 
 import java.util.Map;
@@ -57,7 +59,7 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         private static final String USAGE_NANOS = "usage_nanos";
 
         public NodeOsCgroupCpuAcctStatsExpression() {
-            childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuAcctControlGroup));
+            childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute((r) -> BytesRefs.toBytesRef(r.getCpuAcctControlGroup())));
             childImplementations.put(USAGE_NANOS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuAcctUsageNanos));
         }
 
@@ -83,7 +85,7 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         private static final String TIME_THROTTLED_NANOS = "time_throttled_nanos";
 
         public NodeOsCgroupCpuStatsExpression() {
-            childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuControlGroup));
+            childImplementations.put(CONTROL_GROUP, CgroupExpression.forAttribute((r) -> BytesRefs.toBytesRef(r.getCpuControlGroup())));
             childImplementations.put(CFS_PERIOD_MICROS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuCfsPeriodMicros));
             childImplementations.put(CFS_QUOTA_MICROS, CgroupExpression.forAttribute(OsStats.Cgroup::getCpuCfsQuotaMicros));
             childImplementations.put(NUM_ELAPSED_PERIODS, CgroupExpression.forAttribute(
@@ -116,37 +118,37 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         private static final String USAGE_BYTES = "usage_bytes";
 
         public NodeOsCgroupMemStatsExpression() {
-            childImplementations.put(CONTROL_GROUP, new SimpleNodeStatsExpression<String>() {
+            childImplementations.put(CONTROL_GROUP, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public String innerValue() {
+                public BytesRef innerValue() {
                     if (row.isComplete()) {
                         ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
                         if (cgroupMem != null) {
-                            return cgroupMem.memoryControlGroup();
+                            return BytesRefs.toBytesRef(cgroupMem.memoryControlGroup());
                         }
                     }
                     return null;
                 }
             });
-            childImplementations.put(LIMIT_BYTES, new SimpleNodeStatsExpression<String>() {
+            childImplementations.put(LIMIT_BYTES, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public String innerValue() {
+                public BytesRef innerValue() {
                     if (row.isComplete()) {
                         ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
                         if (cgroupMem != null) {
-                            return cgroupMem.memoryLimitBytes();
+                            return BytesRefs.toBytesRef(cgroupMem.memoryLimitBytes());
                         }
                     }
                     return null;
                 }
             });
-            childImplementations.put(USAGE_BYTES, new SimpleNodeStatsExpression<String>() {
+            childImplementations.put(USAGE_BYTES, new SimpleNodeStatsExpression<BytesRef>() {
                 @Override
-                public String innerValue() {
+                public BytesRef innerValue() {
                     if (row.isComplete()) {
                         ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
                         if (cgroupMem != null) {
-                            return cgroupMem.memoryUsageBytes();
+                            return BytesRefs.toBytesRef(cgroupMem.memoryUsageBytes());
                         }
                     }
                     return null;
