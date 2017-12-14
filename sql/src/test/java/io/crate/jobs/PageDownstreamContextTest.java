@@ -32,8 +32,8 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.Loggers;
@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -185,5 +186,48 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         // Must not timeout
         listenerReleased.get(1, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testNonSequentialBucketIds() throws Exception {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+        PageDownstreamContext ctx = getPageDownstreamContext(
+            batchConsumer,
+            PassThroughPagingIterator.oneShot(),
+            3
+        );
+
+        final PageResultListener mockListener = mock(PageResultListener.class);
+
+        Bucket b1 = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
+        ctx.setBucket(0, b1, true, mockListener);
+
+        Bucket b2 = new CollectionBucket(Collections.singletonList(new Object[] { "bar" }));
+        ctx.setBucket(3, b2, true, mockListener);
+
+        Bucket b3 = new CollectionBucket(Collections.singletonList(new Object[] { "universe" }));
+        CheckPageResultListener checkPageResultListener = new CheckPageResultListener();
+        ctx.setBucket(42, b3, false, checkPageResultListener);
+        assertThat(checkPageResultListener.needMoreResult, is(true));
+        ctx.setBucket(42, b3, true, checkPageResultListener);
+        assertThat(checkPageResultListener.needMoreResult, is(false));
+
+        List<Object[]> result = batchConsumer.getResult();
+        assertThat(result.toArray(), arrayContainingInAnyOrder(
+            new Object[] {"foo"},
+            new Object[] {"bar"},
+            new Object[] {"universe"},
+            new Object[] {"universe"}
+        ));
+    }
+
+    private static class CheckPageResultListener implements PageResultListener {
+
+        private boolean needMoreResult;
+
+        @Override
+        public void needMore(boolean needMore) {
+            needMoreResult = needMore;
+        }
     }
 }
