@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Version;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -82,12 +83,11 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         Map<String, Object> threadPool = null;
         for (Object t : threadPools) {
             Map<String, Object> map = (Map<String, Object>) t;
-            if (map.get("name").equals("generic")) {
+            if (((BytesRef) map.get("name")).utf8ToString().equals("generic")) {
                 threadPool = map;
                 break;
             }
         }
-        assertThat((String) threadPool.get("name"), is("generic"));
         assertThat((Integer) threadPool.get("active"), greaterThanOrEqualTo(0));
         assertThat((Long) threadPool.get("rejected"), greaterThanOrEqualTo(0L));
         assertThat((Integer) threadPool.get("largest"), greaterThanOrEqualTo(0));

@@ -21,6 +21,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an Exception to be thrown when trying to query
+  ``thread_pools['name']`` field of system table ``sys.nodes`` and
+  ``settings['write']['wait_for_active_shards']`` from table
+  ``information_schema.tables``.
+
 - Removed the horizontal scroll from the console editor.
 
 - Console results pagination is now reset to 1 after each execution.
