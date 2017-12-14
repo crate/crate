@@ -22,8 +22,21 @@
 
 package io.crate.operation;
 
-
+/**
+ * An interface to signal more paging data is needed.
+ * The PageResultListener has to take action which ensures that
+ * {@link io.crate.jobs.PageBucketReceiver#setBucket(int, io.crate.data.Bucket, boolean, PageResultListener)}
+ * or
+ * {@link io.crate.jobs.PageBucketReceiver#failure(int, Throwable)}
+ * is called when more data is needed.
+ */
 public interface PageResultListener {
 
+    /**
+     * Indicates that more data is needed. The implementation has to trigger an action to request
+     * more data if {@code needMore} is true.
+     * Used together with {@link io.crate.jobs.PageBucketReceiver}.
+     * @param needMore True if more data is needed and should be requested, false otherwise.
+     */
     void needMore(boolean needMore);
 }
