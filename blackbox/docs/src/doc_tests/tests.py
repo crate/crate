@@ -465,7 +465,7 @@ def test_suite():
                'general/dql/fulltext.txt',
                'general/ddl/data-types.txt',
                'general/occ.txt',
-               'admin/information-schema.txt',
+               'general/information-schema.txt',
                'general/ddl/partitioned-tables.txt',
                'general/builtins/aggregation.txt',
                'general/builtins/arithmetic.txt',
