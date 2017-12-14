@@ -21,6 +21,19 @@ Changes
 Fixes
 =====
 
+- Removed the horizontal scroll from the console editor.
+
+- Console results pagination is now reset to 1 after each execution.
+
+- Calculate "idle" process CPU usage correctly and show it in the
+  "CrateDB CPU Usage" graph.
+
+- Fixed an issue that caused the Admin UI to not display any tables when the
+  file system data are not available.
+
+- Refresh Cluster Info after query execution in the console, to ensure that
+  the cluster info is always up to date.
+
 - Fixed an issue that caused incorrect results for collapsable subselects which
   contained a ``WHERE`` clause that results in no match. E.g. ::
 
