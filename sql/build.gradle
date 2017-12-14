@@ -37,19 +37,13 @@ dependencies {
     }
 }
 //noinspection GroovyAssignabilityCheck
-task jarTest (type: Jar) {
-    from sourceSets.test.output
+task testOutputJar (type: Jar) {
     classifier = 'sql-testing'
-}
-
-jmhJar {
-    append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
-    append 'META-INF/services/org.apache.lucene.codecs.Codec'
-    append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
+    from sourceSets.test.output
 }
 
 artifacts {
-    testOutput jarTest
+    testOutput testOutputJar
 }
 
 test {

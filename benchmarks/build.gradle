@@ -1,0 +1,44 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+// generate uberjar with all benchmarks
+apply plugin: 'application'
+
+archivesBaseName = 'crate-benchmarks'
+mainClassName = 'org.openjdk.jmh.Main'
+
+test.enabled = false
+
+dependencies {
+    compile project(':sql')
+    compile project(path: ':sql', configuration: 'testOutput')
+    compile project(path: ':dex', configuration: 'testOutput')
+    compile project(path: ':enterprise:hll')
+    compile project(':integration-testing')
+
+    compile 'org.openjdk.jmh:jmh-core:1.19'
+    compile 'org.openjdk.jmh:jmh-generator-annprocess:1.19'
+    compile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    compile "org.elasticsearch:securemock:${versions.securemock}"
+
+    // Dependencies of JMH
+    runtime 'net.sf.jopt-simple:jopt-simple:4.6'
+    runtime 'org.apache.commons:commons-math3:3.2'
+}
+
+shadowJar {
+    append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
+    append 'META-INF/services/org.apache.lucene.codecs.Codec'
+    append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
+    exclude('com/carrotsearch/randomizedtesting/**')
+
+    // We keep the benchmarks in the test sources instead of main, because
+    // IntelliJ doesn't pick up the `:sql / testOutput` dependencies otherwise
+    // So test.output contains the benchmarks which we want to have in the jar
+    from sourceSets.test.output
+}
+
+task jmhJar (
+    dependsOn: shadowJar,
+    description: 'Generates an uberjar with the microbenchmarks and all dependencies',
+    group: 'Benchmark'
+)

@@ -2,24 +2,28 @@
 Benchmarks
 ==========
 
-Micro benchmarks are written using `JMH`_. They can be executed using ``gradle``::
+Micro benchmarks are written using `JMH`_. They can be executed by using the ``jmhJar``.
 
-    $ ./gradlew :core:jmh
-    $ ./gradlew :sql:jmh
+Build the jar::
 
-By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
-execute them.
+    $ ./gradlew :benchmarks:jmhJar
 
-If you want to execute specific benchmarks you can use the jar::
+Then run the benchmarks::
 
-    $ ./gradlew :sql:jmhJar
-    $ java -jar sql/build/libs/crate-sql-jmh.jar <benchmarkMethodName>
+    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar
 
-Results will be generated into ``$buildDir/reports/jmh``.
+This will execute all benchmarks which are in ``benchmarks/src/test/java``.
+
+If you want to execute specific benchmarks you can provide a filter argument::
+
+    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar <benchmarkMethodName>
+
+To save the results to a file use the ``-rf`` and ``-rff`` options::
+
+    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar -rf json -rff benchmarks/build/jmh.json
 
 If you're writing new benchmarks take a look at this `JMH introduction`_ and
 those `JMH samples`_.
-
 
 End-to-end Benchmarks
 =====================

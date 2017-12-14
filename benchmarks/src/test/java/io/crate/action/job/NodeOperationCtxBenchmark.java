@@ -32,7 +32,8 @@ import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 
+
 @BenchmarkMode({Mode.AverageTime, Mode.SingleShotTime})
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Fork(value = 5)
@@ -57,13 +59,12 @@ import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 @State(Scope.Benchmark)
 public class NodeOperationCtxBenchmark {
 
-    private TestThreadPool threadPool;
+    private ThreadPool threadPool;
     private Collection<NodeOperation> nodeOperations;
 
     @Setup
     public void setupNodeOperations() {
-        threadPool = new TestThreadPool("testing");
-
+        threadPool = new ThreadPool(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "benchmarkNode").build());
         DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
         ClusterService clusterService = createClusterService(Settings.EMPTY, threadPool, localNode);
         SQLExecutor e = SQLExecutor.builder(clusterService, 1, new Random()).build();

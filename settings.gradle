@@ -25,4 +25,5 @@ include 'es',
         'enterprise:ssl-impl',
         'enterprise:mqtt',
         'enterprise:hll',
-        'http'
+        'http',
+        'benchmarks'
