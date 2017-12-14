@@ -23,9 +23,11 @@
 package io.crate.monitor;
 
 import com.google.common.base.Objects;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -36,16 +38,16 @@ import java.util.Map;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
-public class ThreadPools implements Streamable, Iterable<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> {
+public class ThreadPools implements Streamable, Iterable<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>> {
 
-    private final Map<String, ThreadPoolExecutorContext> contexts;
+    private final Map<BytesRef, ThreadPoolExecutorContext> contexts;
 
     public static ThreadPools newInstance(ThreadPool threadPool) {
         ThreadPools threadPools = ThreadPools.newInstance();
         for (ThreadPool.Info info : threadPool.info()) {
             String name = info.getName();
             ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
-            threadPools.add(name, ThreadPoolExecutorContext.newInstance(executor));
+            threadPools.add(BytesRefs.toBytesRef(name), ThreadPoolExecutorContext.newInstance(executor));
         }
         return threadPools;
     }
@@ -58,7 +60,7 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
         this.contexts = new HashMap<>();
     }
 
-    public void add(String threadPool, ThreadPoolExecutorContext context) {
+    public void add(BytesRef threadPool, ThreadPoolExecutorContext context) {
         this.contexts.put(threadPool, context);
     }
 
@@ -66,7 +68,7 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
     public void readFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
         for (int i = 0; i < size; i++) {
-            String key = in.readString();
+            BytesRef key = in.readBytesRef();
             ThreadPoolExecutorContext value = new ThreadPoolExecutorContext();
             value.readFrom(in);
             contexts.put(key, value);
@@ -76,8 +78,8 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(size());
-        for (Map.Entry<String, ThreadPoolExecutorContext> entry : contexts.entrySet()) {
-            out.writeString(entry.getKey());
+        for (Map.Entry<BytesRef, ThreadPoolExecutorContext> entry : contexts.entrySet()) {
+            out.writeBytesRef(entry.getKey());
             entry.getValue().writeTo(out);
         }
     }
@@ -87,7 +89,7 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
     }
 
     @Override
-    public Iterator<Map.Entry<String, ThreadPoolExecutorContext>> iterator() {
+    public Iterator<Map.Entry<BytesRef, ThreadPoolExecutorContext>> iterator() {
         return contexts.entrySet().iterator();
     }
 

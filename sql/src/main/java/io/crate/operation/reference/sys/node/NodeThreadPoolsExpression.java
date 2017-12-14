@@ -25,6 +25,7 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.Lists;
 import io.crate.monitor.ThreadPools;
 import io.crate.operation.reference.sys.ArrayTypeRowContextCollectorExpression;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.HashMap;
@@ -33,7 +34,7 @@ import java.util.Map;
 
 
 public class NodeThreadPoolsExpression
-    extends ArrayTypeRowContextCollectorExpression<NodeStatsContext, Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, Object> {
+    extends ArrayTypeRowContextCollectorExpression<NodeStatsContext, Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, Object> {
 
     private static final String POOL_NAME = "name";
     private static final String ACTIVE = "active";
@@ -47,12 +48,12 @@ public class NodeThreadPoolsExpression
     }
 
     @Override
-    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
+    protected List<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>> items() {
         return Lists.newArrayList(this.row.threadPools());
     }
 
     @Override
-    protected Object valueForItem(final Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+    protected Object valueForItem(final Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
         return new HashMap<String, Object>() {
             {
                 put(POOL_NAME, BytesRefs.toBytesRef(input.getKey()));

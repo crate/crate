@@ -24,19 +24,20 @@ package io.crate.operation.reference.sys.node;
 
 import com.google.common.collect.Lists;
 import io.crate.monitor.ThreadPools;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.Map;
 
 
 public abstract class NodeStatsThreadPoolExpression<R>
-    extends NodeStatsArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
+    extends NodeStatsArrayTypeExpression<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>, R> {
 
     protected NodeStatsThreadPoolExpression() {
     }
 
     @Override
-    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
+    protected List<Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext>> items() {
         return Lists.newArrayList(this.row.threadPools());
     }
 }

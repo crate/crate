@@ -24,8 +24,8 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.monitor.ThreadPools;
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.monitor.ThreadPools;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
@@ -154,7 +154,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
                 10 * i + 4,
                 100L * i + 1L,
                 100L * i + 2L);
-            pools1.add(String.format("threadpool-%d", i), ctx);
+            pools1.add(BytesRefs.toBytesRef(String.format("threadpool-%d", i)), ctx);
         }
 
         ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();

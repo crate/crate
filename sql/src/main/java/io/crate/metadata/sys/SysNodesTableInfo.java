@@ -243,43 +243,43 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(SysNodesTableInfo.Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
                 @Override
-                protected BytesRef valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return BytesRefs.toBytesRef(input.getKey());
+                protected BytesRef valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getKey();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().activeCount();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
-                protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().rejectedCount();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().largestPoolSize();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
                 @Override
-                protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Long valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().completedTaskCount();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().poolSize();
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
                 @Override
-                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                protected Integer valueForItem(Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
                     return input.getValue().queueSize();
                 }
             })
