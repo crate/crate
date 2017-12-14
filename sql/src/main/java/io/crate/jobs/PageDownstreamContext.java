@@ -37,7 +37,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +55,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
+    private final Set<Integer> buckets;
     private final Set<Integer> exhausted;
     private final PagingIterator<Integer, Row> pagingIterator;
     private final Map<Integer, PageResultListener> listenersByBucketIdx;
@@ -81,6 +81,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
+        this.buckets = new HashSet<>(numBuckets);
         traceEnabled = logger.isTraceEnabled();
         this.exhausted = new HashSet<>(numBuckets);
         this.pagingIterator = pagingIterator;
@@ -96,7 +97,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
-        synchronized (listenersByBucketIdx) {
+        synchronized (buckets) {
             for (PageResultListener resultListener : listenersByBucketIdx.values()) {
                 resultListener.needMore(false);
             }
@@ -111,7 +112,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
-        synchronized (listenersByBucketIdx) {
+        synchronized (buckets) {
+            buckets.add(bucketIdx);
             if (lastThrowable == null) {
                 listenersByBucketIdx.put(bucketIdx, pageResultListener);
             } else {
@@ -175,14 +177,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     private void mergeBuckets() {
         List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
-        for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
-            if (entry.getValue() != null) {
+        synchronized (lock) {
+            for (Map.Entry<Integer, Bucket> entry : bucketsByIdx.entrySet()) {
                 buckets.add(new KeyIterable<>(entry.getKey(), entry.getValue()));
             }
-        }
-        // replace existing buckets with empty ones
-        for (Integer integer : bucketsByIdx.keySet()) {
-            bucketsByIdx.put(integer, null);
+            bucketsByIdx.clear();
         }
         pagingIterator.merge(buckets);
     }
@@ -200,29 +199,24 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void fetchExhausted(Integer exhaustedBucket) {
-        for (Integer bucketIdx : bucketsByIdx.keySet()) {
-            if (!bucketIdx.equals(exhaustedBucket)) {
-                setToEmptyBucket(bucketIdx);
+        synchronized (buckets) {
+            for (Integer bucketIdx : buckets) {
+                if (!bucketIdx.equals(exhaustedBucket)) {
+                    setToEmptyBucket(bucketIdx);
+                }
             }
+            PageResultListener pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
+            pageResultListener.needMore(true);
         }
-        PageResultListener pageResultListener;
-        synchronized (listenersByBucketIdx) {
-            pageResultListener = listenersByBucketIdx.remove(exhaustedBucket);
-        }
-        pageResultListener.needMore(true);
     }
 
     private void fetchFromUnExhausted() {
-        synchronized (listenersByBucketIdx) {
-            Iterator<Map.Entry<Integer, PageResultListener>> iterator = listenersByBucketIdx.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<Integer, PageResultListener> element = iterator.next();
-                Integer key = element.getKey();
-                PageResultListener resultListener = element.getValue();
-                if (exhausted.contains(key)) {
-                    setToEmptyBucket(key);
+        synchronized (buckets) {
+            for (Integer bucketIdx : buckets) {
+                if (exhausted.contains(bucketIdx)) {
+                    setToEmptyBucket(bucketIdx);
                 } else {
-                    iterator.remove();
+                    PageResultListener resultListener = listenersByBucketIdx.remove(bucketIdx);
                     resultListener.needMore(true);
                 }
             }
