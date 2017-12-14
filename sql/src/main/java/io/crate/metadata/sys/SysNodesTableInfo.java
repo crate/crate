@@ -241,10 +241,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .put(SysNodesTableInfo.Columns.HEAP, NodeHeapStatsExpression::new)
             .put(SysNodesTableInfo.Columns.VERSION, NodeVersionStatsExpression::new)
             .put(SysNodesTableInfo.Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
-            .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<String>() {
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<BytesRef>() {
                 @Override
-                protected String valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                    return input.getKey();
+                protected BytesRef valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return BytesRefs.toBytesRef(input.getKey());
                 }
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {

@@ -92,6 +92,9 @@ public class BytesRefUtils {
             Object value = row[stringColumn.value];
             if (value instanceof BytesRef) {
                 row[stringColumn.value] = ((BytesRef) value).utf8ToString();
+            } else if (value instanceof String) {
+                throw new IllegalArgumentException("Column: " + stringColumn.index + " cannot be of type String, " +
+                                                   "BytesRef should be used instead");
             }
         }
     }
@@ -157,6 +160,9 @@ public class BytesRefUtils {
                     converted[i] = ensureStringValuesInMap((Map<String, Object>) values[i]);
                 }
                 return converted;
+            } else if (firstNotNull instanceof String) {
+                throw new IllegalArgumentException("Column: " + idx + " cannot be of type String, " +
+                                                   "BytesRef should be used instead");
             }
             return values;
         }

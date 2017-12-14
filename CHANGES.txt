@@ -47,6 +47,11 @@ Breaking Changes
 Changes
 =======
 
+- Fixed an issue that caused an Exception to be thrown when trying to query
+  ``thread_pools['name']`` field of system table ``sys.nodes`` and
+  ``settings['write']['wait_for_active_shards']`` from table
+  ``information_schema.tables``
+
 - Added new "password" authentication method which is available for connections
   via the PostgreSQL wire protocol and HTTP. This method allows clients to
   authenticate using a valid database user and its password. For HTTP, the

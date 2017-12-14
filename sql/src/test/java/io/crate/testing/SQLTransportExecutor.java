@@ -599,7 +599,12 @@ public class SQLTransportExecutor {
 
         @Override
         public void allFinished(boolean interrupted) {
-            listener.onResponse(createSqlResponse());
+            try {
+                SQLResponse response = createSqlResponse();
+                listener.onResponse(response);
+            } catch (Exception e) {
+                listener.onFailure(e);
+            }
             super.allFinished(interrupted);
         }
 

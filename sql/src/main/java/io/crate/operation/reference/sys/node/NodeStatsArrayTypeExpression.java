@@ -29,7 +29,15 @@ public abstract class NodeStatsArrayTypeExpression<I, R>
 
     @Override
     public R[] value() {
-        return row.isComplete() ? super.value() : null;
+        if (row.isComplete() == false) {
+            return null;
+        }
+
+        R[] value = super.value();
+        assert value.length == 0 || !(value[0] instanceof String) :
+            "Sys table expressions should not be of type String";
+
+        return value;
     }
 }
 

@@ -206,7 +206,9 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String WAIT_FOR_ACTIVE_SHARDS = "wait_for_active_shards";
 
         private void addChildImplementations() {
-            childImplementations.put(WAIT_FOR_ACTIVE_SHARDS, new TableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS));
+            childImplementations.put(
+                WAIT_FOR_ACTIVE_SHARDS,
+                new BytesRefTableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS));
         }
     }
 
