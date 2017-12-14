@@ -43,6 +43,7 @@ import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
@@ -79,7 +80,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .metaData(metaData)
             .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService, 3).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService, 3, Randomness.get()).enableDefaultTables().build();
     }
 
     @Test

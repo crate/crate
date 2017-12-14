@@ -46,6 +46,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -67,7 +68,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2)
+        e = SQLExecutor.builder(clusterService, 2, Randomness.get())
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
             .addTable("create table users (id long primary key, name string, date timestamp) clustered into 4 shards")
             .build();

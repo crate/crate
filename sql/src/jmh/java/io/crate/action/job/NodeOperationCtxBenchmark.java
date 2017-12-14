@@ -29,10 +29,9 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.planner.ExecutionPlan;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -46,7 +45,10 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import java.util.Collection;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 
 @BenchmarkMode({Mode.AverageTime, Mode.SingleShotTime})
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -61,15 +63,13 @@ public class NodeOperationCtxBenchmark {
     @Setup
     public void setupNodeOperations() {
         threadPool = new TestThreadPool("testing");
-        SQLExecutor e = SQLExecutor.builder(
-            new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
-                new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
-                threadPool,
-                () -> DiscoveryNodes.newNode("benchmarkNode")))
-            .build();
+
+        DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
+        ClusterService clusterService = createClusterService(Settings.EMPTY, threadPool, localNode);
+        SQLExecutor e = SQLExecutor.builder(clusterService, 1, new Random()).build();
         ExecutionPlan executionPlan = e.plan("select name from sys.cluster group by name");
 
-        NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(executionPlan, "noop_id");
+        NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(executionPlan, "n1");
         nodeOperations = nodeOperationTree.nodeOperations();
     }
 
@@ -81,7 +81,7 @@ public class NodeOperationCtxBenchmark {
 
     @Benchmark
     public Iterable<? extends IntCursor> measureCreateNodeOperationCtxPlusFindLeafs() {
-        ContextPreparer.NodeOperationCtx ctx = new ContextPreparer.NodeOperationCtx("noop_id", nodeOperations);
+        ContextPreparer.NodeOperationCtx ctx = new ContextPreparer.NodeOperationCtx("n1", nodeOperations);
         return ctx.findLeafs();
     }
 }

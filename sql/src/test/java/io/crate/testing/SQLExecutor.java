@@ -146,6 +146,7 @@ public class SQLExecutor {
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
     private final TransactionContext transactionContext;
+    private final Random random;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -180,15 +181,13 @@ public class SQLExecutor {
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final AllocationService allocationService;
         private final UserDefinedFunctionService udfService;
+        private final Random random;
         private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
 
         private TableStats tableStats = new TableStats();
 
-        public Builder(ClusterService clusterService) {
-            this(clusterService, 1);
-        }
-
-        public Builder(ClusterService clusterService, int numNodes) {
+        private Builder(ClusterService clusterService, int numNodes, Random random) {
+            this.random = random;
             Preconditions.checkArgument(numNodes >= 1, "Must have at least 1 node");
             addNodesToClusterState(clusterService, numNodes);
             this.clusterService = clusterService;
@@ -321,7 +320,8 @@ public class SQLExecutor {
                     tableStats
                 ),
                 new RelationAnalyzer(functions, schemas),
-                new SessionContext(defaultSchema, null, s -> {}, t -> {})
+                new SessionContext(defaultSchema, null, s -> {}, t -> {}),
+                random
             );
         }
 
@@ -403,20 +403,26 @@ public class SQLExecutor {
     }
 
     public static Builder builder(ClusterService clusterService) {
-        return new Builder(clusterService);
+        return new Builder(clusterService, 1, Randomness.get());
     }
 
-    public static Builder builder(ClusterService clusterService, int numNodes) {
-        return new Builder(clusterService, numNodes);
+    public static Builder builder(ClusterService clusterService, int numNodes, Random random) {
+        return new Builder(clusterService, numNodes, random);
     }
 
-    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner, RelationAnalyzer relAnalyzer, SessionContext sessionContext) {
+    private SQLExecutor(Functions functions,
+                        Analyzer analyzer,
+                        Planner planner,
+                        RelationAnalyzer relAnalyzer,
+                        SessionContext sessionContext,
+                        Random random) {
         this.functions = functions;
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
         this.transactionContext = new TransactionContext(sessionContext);
+        this.random = random;
     }
 
     public Functions functions() {
@@ -473,7 +479,7 @@ public class SQLExecutor {
     public <T> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(statement), transactionContext, ParameterContext.EMPTY);
-        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);
+        RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), new String[0]);
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
             routingProvider,
