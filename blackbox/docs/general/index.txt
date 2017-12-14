@@ -19,3 +19,4 @@ general user.
    user-defined-functions.txt
    blobs
    occ
+   information-schema
