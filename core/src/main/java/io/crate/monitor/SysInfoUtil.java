@@ -306,7 +306,8 @@ public class SysInfoUtil {
      * Taken from
      * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2585
      */
-    private void parseGenericVendor(File releaseFile) {
+    @VisibleForTesting
+    void parseGenericVendor(File releaseFile) {
         // file contains only single line
         consumeFile(releaseFile, line -> {
             if (line.isEmpty()) {
@@ -327,7 +328,11 @@ public class SysInfoUtil {
                 start = i;
                 while (Character.isDigit(c) || c == 46) { // ".".charAt(0) = 46
                     ++len;
-                    c = sequence[++i];
+                    if (++i < sequence.length) {
+                        c = sequence[i];
+                    } else {
+                        break;
+                    }
                 }
 
                 if (len > 0) {

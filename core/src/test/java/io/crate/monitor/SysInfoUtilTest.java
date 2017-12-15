@@ -97,9 +97,13 @@ public class SysInfoUtilTest extends CrateUnitTest {
         assertThat(util.info().version(), is("16.6.0"));
     }
 
+    private SysInfoUtil genericSysInfoUtil() {
+        return new SysInfoUtil("Linux", "3.10.0-693.2.2.el7.x86_64", "x86_64");
+    }
+
     @Test
     public void testParseRedHatVendor() throws IOException {
-        SysInfoUtil util = new SysInfoUtil("Linux", "3.10.0-693.2.2.el7.x86_64", "x86_64");
+        SysInfoUtil util = genericSysInfoUtil();
 
         Path centosRelease = LuceneTestCase.createTempFile();
         List<String> lines = Collections.singletonList("CentOS Linux release 7.4.1708 (Core)\n");
@@ -115,6 +119,43 @@ public class SysInfoUtilTest extends CrateUnitTest {
         util.parseRedHatVendor(rhRelease.toFile());
         assertThat(util.info().vendorVersion(), is("Enterprise Linux 6"));
         assertThat(util.info().vendorCodeName(), is("Santiago"));
+    }
+
+    @Test
+    public void testGenericVendor() throws IOException {
+        SysInfoUtil util = genericSysInfoUtil();
+        // when creating the SysInfoUtil instance the information is already gathered from the OS the test is running on.
+        String fallbackVendorVersion = util.info().vendorVersion();
+
+        Path genericVendorFile = LuceneTestCase.createTempFile();
+        List<String> lines = Collections.singletonList("");
+        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
+        util.parseGenericVendor(genericVendorFile.toFile());
+        assertEquals(util.info().vendorVersion(), fallbackVendorVersion);
+
+        util = genericSysInfoUtil();
+        lines = Collections.singletonList("8.10");
+        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
+        util.parseGenericVendor(genericVendorFile.toFile());
+        assertThat(util.info().vendorVersion(), is("8.10"));
+
+        util = genericSysInfoUtil();
+        lines = Collections.singletonList("jessie 8.10");
+        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
+        util.parseGenericVendor(genericVendorFile.toFile());
+        assertThat(util.info().vendorVersion(), is("8.10"));
+
+        util = genericSysInfoUtil();
+        lines = Collections.singletonList("8.10 jessie");
+        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
+        util.parseGenericVendor(genericVendorFile.toFile());
+        assertThat(util.info().vendorVersion(), is("8.10"));
+        util = genericSysInfoUtil();
+
+        lines = Collections.singletonList("buster/sid");
+        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
+        util.parseGenericVendor(genericVendorFile.toFile());
+        assertEquals(util.info().vendorVersion(), fallbackVendorVersion);
     }
 
     @Test
