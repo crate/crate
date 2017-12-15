@@ -4,8 +4,6 @@ apply plugin: 'groovy'
 archivesBaseName = 'crate-sql'
 
 configurations {
-    benchmarksCompile.extendsFrom testCompile
-    benchmarksRuntime.extendsFrom testRuntime, benchmarksCompile
     // export of test so that other modules can use the utilities there as well.
     testOutput
 }
