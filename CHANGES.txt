@@ -47,6 +47,8 @@ Breaking Changes
 Changes
 =======
 
+- Update Admin UI to use new CPU metrics for graphs.
+
 - Added new "password" authentication method which is available for connections
   via the PostgreSQL wire protocol and HTTP. This method allows clients to
   authenticate using a valid database user and its password. For HTTP, the
