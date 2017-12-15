@@ -44,7 +44,7 @@ public class ExtendedNodeInfo {
 
     private static final ExtendedNetworkStats NETWORK_STATS = new ExtendedNetworkStats(new ExtendedNetworkStats.Tcp());
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.iface());
-    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(SysInfoUtil.sysInfo());
+    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(SysInfo.gather());
     private static final double[] NA_LOAD = new double[]{ -1, -1, -1 };
 
     private final ExtendedOsStatsCache osStatsCache;
@@ -77,7 +77,7 @@ public class ExtendedNodeInfo {
         return new ExtendedOsStats(System.currentTimeMillis(),
             cpu,
             cpuProbe.getLoadAverage() == null ? NA_LOAD : cpuProbe.getLoadAverage(),
-            SysInfoUtil.getSystemUptime(),
+            SysInfo.getSystemUptime(),
             osStats,
             cgroupMem);
     }

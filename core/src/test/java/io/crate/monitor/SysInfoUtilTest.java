@@ -23,16 +23,9 @@
 package io.crate.monitor;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.LuceneTestCase;
 import org.hamcrest.core.AnyOf;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.core.AnyOf.anyOf;
@@ -40,128 +33,119 @@ import static org.hamcrest.core.Is.is;
 
 public class SysInfoUtilTest extends CrateUnitTest {
 
+    private static final SysInfo.Builder SYSINFO_BUILDER = new SysInfo.Builder();
     private static final AnyOf<String> X86_64 = anyOf(is("x86_64"), is("amd64"), is("x64"));
+
+    private void assertVendorVersionFromGenericLine(String line, String expectedVersionString) {
+        SysInfo sysInfo = new SysInfo();
+        SYSINFO_BUILDER.parseGenericVendorLine(sysInfo, line);
+        assertEquals(sysInfo.vendorVersion(), expectedVersionString);
+    }
 
     @Test
     public void testParseKeyValue() {
-        assertThat(SysInfoUtil.parseKeyValue("KEY=\"val\"ue\""), is(new String[]{"KEY", "val\"ue"}));
-        assertThat(SysInfoUtil.parseKeyValue("KEY=\"value\""), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfoUtil.parseKeyValue("KEY=value"), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfoUtil.parseKeyValue("KEY="), is(new String[]{"KEY", ""}));
-        assertThat(SysInfoUtil.parseKeyValue("KEY"), is(new String[]{"KEY", ""}));
-        assertThat(SysInfoUtil.parseKeyValue(""), is(new String[]{"", ""}));
+        assertThat(SysInfo.Builder.parseKeyValue("KEY=\"val\"ue\""), is(new String[]{"KEY", "val\"ue"}));
+        assertThat(SysInfo.Builder.parseKeyValue("KEY=\"value\""), is(new String[]{"KEY", "value"}));
+        assertThat(SysInfo.Builder.parseKeyValue("KEY=value"), is(new String[]{"KEY", "value"}));
+        assertThat(SysInfo.Builder.parseKeyValue("KEY="), is(new String[]{"KEY", ""}));
+        assertThat(SysInfo.Builder.parseKeyValue("KEY"), is(new String[]{"KEY", ""}));
+        assertThat(SysInfo.Builder.parseKeyValue(""), is(new String[]{"", ""}));
     }
 
     @Test
     public void testWindows() {
-        SysInfoUtil util = new SysInfoUtil("Windows 10", "10.0", "x86_64");
-        assertThat(util.info().arch(), is("x86_64"));
-        assertThat(util.info().description(), is("Microsoft Windows 10"));
-        assertThat(util.info().machine(), X86_64);
-        assertThat(util.info().name(), is("Win32"));
-        assertThat(util.info().patchLevel(), is(""));
-        assertThat(util.info().vendor(), is("Microsoft"));
-        assertThat(util.info().vendorCodeName(), is(""));
-        assertThat(util.info().vendorName(), is("Windows 10"));
-        assertThat(util.info().vendorVersion(), is("10"));
-        assertThat(util.info().version(), is("10.0"));
+        SysInfo sysInfo = new SysInfo.Builder()
+            .withName("Windows 10")
+            .withVersion("10.0")
+            .withArch("x86_64")
+            .gather();
+        assertThat(sysInfo.arch(), is("x86_64"));
+        assertThat(sysInfo.description(), is("Microsoft Windows 10"));
+        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.name(), is("Win32"));
+        assertThat(sysInfo.patchLevel(), is(""));
+        assertThat(sysInfo.vendor(), is("Microsoft"));
+        assertThat(sysInfo.vendorCodeName(), is(""));
+        assertThat(sysInfo.vendorName(), is("Windows 10"));
+        assertThat(sysInfo.vendorVersion(), is("10"));
+        assertThat(sysInfo.version(), is("10.0"));
     }
 
     @Test
     public void testMacOS() {
-        SysInfoUtil util = new SysInfoUtil("Mac OS", "10.12.6", "x86_64");
-        assertThat(util.info().arch(), is("x86_64"));
-        assertThat(util.info().description(), is("Mac OS X (Sierra)"));
-        assertThat(util.info().machine(), X86_64);
-        assertThat(util.info().name(), is("MacOSX"));
-        assertThat(util.info().patchLevel(), is(""));
-        assertThat(util.info().vendor(), is("Apple"));
-        assertThat(util.info().vendorCodeName(), is("Sierra"));
-        assertThat(util.info().vendorName(), is("Mac OS X"));
-        assertThat(util.info().vendorVersion(), is("10.12"));
-        assertThat(util.info().version(), is("10.12.6"));
+        SysInfo sysInfo = new SysInfo.Builder()
+            .withName("Mac OS")
+            .withVersion("10.12.6")
+            .withArch("x86_64")
+            .gather();
+        assertThat(sysInfo.arch(), is("x86_64"));
+        assertThat(sysInfo.description(), is("Mac OS X (Sierra)"));
+        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.name(), is("MacOSX"));
+        assertThat(sysInfo.patchLevel(), is(""));
+        assertThat(sysInfo.vendor(), is("Apple"));
+        assertThat(sysInfo.vendorCodeName(), is("Sierra"));
+        assertThat(sysInfo.vendorName(), is("Mac OS X"));
+        assertThat(sysInfo.vendorVersion(), is("10.12"));
+        assertThat(sysInfo.version(), is("10.12.6"));
     }
 
     @Test
     public void testDarwin() {
-        SysInfoUtil util = new SysInfoUtil("Darwin", "16.6.0", "x86_64");
-        assertThat(util.info().arch(), is("x86_64"));
-        assertThat(util.info().description(), is("Mac OS X (Sierra)"));
-        assertThat(util.info().machine(), X86_64);
-        assertThat(util.info().name(), is("MacOSX"));
-        assertThat(util.info().patchLevel(), is(""));
-        assertThat(util.info().vendor(), is("Apple"));
-        assertThat(util.info().vendorCodeName(), is("Sierra"));
-        assertThat(util.info().vendorName(), is("Mac OS X"));
-        assertThat(util.info().vendorVersion(), is("16.6"));
-        assertThat(util.info().version(), is("16.6.0"));
-    }
-
-    private SysInfoUtil genericSysInfoUtil() {
-        return new SysInfoUtil("Linux", "3.10.0-693.2.2.el7.x86_64", "x86_64");
-    }
-
-    @Test
-    public void testParseRedHatVendor() throws IOException {
-        SysInfoUtil util = genericSysInfoUtil();
-
-        Path centosRelease = LuceneTestCase.createTempFile();
-        List<String> lines = Collections.singletonList("CentOS Linux release 7.4.1708 (Core)\n");
-        Files.write(centosRelease, lines, StandardCharsets.UTF_8);
-        util.parseRedHatVendor(centosRelease.toFile());
-        assertThat(util.info().vendorVersion(), is("7.4.1708"));
-        assertThat(util.info().vendor(), is("CentOS"));
-        assertThat(util.info().vendorCodeName(), is("Core"));
-
-        Path rhRelease = LuceneTestCase.createTempFile();
-        lines = Collections.singletonList("Red Hat Enterprise Linux Server release 6.7 (Santiago)\n");
-        Files.write(rhRelease, lines, StandardCharsets.UTF_8);
-        util.parseRedHatVendor(rhRelease.toFile());
-        assertThat(util.info().vendorVersion(), is("Enterprise Linux 6"));
-        assertThat(util.info().vendorCodeName(), is("Santiago"));
+        SysInfo sysInfo = new SysInfo.Builder()
+            .withName("Darwin")
+            .withVersion("16.6.0")
+            .withArch("x86_64")
+            .gather();
+        assertThat(sysInfo.arch(), is("x86_64"));
+        assertThat(sysInfo.description(), is("Mac OS X (Sierra)"));
+        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.name(), is("MacOSX"));
+        assertThat(sysInfo.patchLevel(), is(""));
+        assertThat(sysInfo.vendor(), is("Apple"));
+        assertThat(sysInfo.vendorCodeName(), is("Sierra"));
+        assertThat(sysInfo.vendorName(), is("Mac OS X"));
+        assertThat(sysInfo.vendorVersion(), is("16.6"));
+        assertThat(sysInfo.version(), is("16.6.0"));
     }
 
     @Test
-    public void testGenericVendor() throws IOException {
-        SysInfoUtil util = genericSysInfoUtil();
-        // when creating the SysInfoUtil instance the information is already gathered from the OS the test is running on.
-        String fallbackVendorVersion = util.info().vendorVersion();
+    public void testParseRedHatVendorCentOs() {
+        SysInfo sysInfo = new SysInfo();
+        String release = "CentOS Linux release 7.4.1708 (Core)";
+        SYSINFO_BUILDER.parseRedHatVendorLine(sysInfo, release);
+        assertThat(sysInfo.vendor(), is("CentOS"));
+        assertThat(sysInfo.vendorCodeName(), is("Core"));
+    }
 
-        Path genericVendorFile = LuceneTestCase.createTempFile();
-        List<String> lines = Collections.singletonList("");
-        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
-        util.parseGenericVendor(genericVendorFile.toFile());
-        assertEquals(util.info().vendorVersion(), fallbackVendorVersion);
+    @Test
+    public void testParseRedHatVendorRhel() {
+        SysInfo sysInfo = new SysInfo();
+        String release = "Red Hat Enterprise Linux Server release 6.7 (Santiago)";
+        SYSINFO_BUILDER.parseGenericVendorLine(sysInfo, release);
+        assertThat(sysInfo.vendorVersion(), is("6.7")); // required for parseRedHatVendorLine()
+        SYSINFO_BUILDER.parseRedHatVendorLine(sysInfo, release);
+        assertThat(sysInfo.vendorVersion(), is("Enterprise Linux 6"));
+        assertThat(sysInfo.vendorCodeName(), is("Santiago"));
+    }
 
-        util = genericSysInfoUtil();
-        lines = Collections.singletonList("8.10");
-        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
-        util.parseGenericVendor(genericVendorFile.toFile());
-        assertThat(util.info().vendorVersion(), is("8.10"));
-
-        util = genericSysInfoUtil();
-        lines = Collections.singletonList("jessie 8.10");
-        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
-        util.parseGenericVendor(genericVendorFile.toFile());
-        assertThat(util.info().vendorVersion(), is("8.10"));
-
-        util = genericSysInfoUtil();
-        lines = Collections.singletonList("8.10 jessie");
-        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
-        util.parseGenericVendor(genericVendorFile.toFile());
-        assertThat(util.info().vendorVersion(), is("8.10"));
-        util = genericSysInfoUtil();
-
-        lines = Collections.singletonList("buster/sid");
-        Files.write(genericVendorFile, lines, StandardCharsets.UTF_8);
-        util.parseGenericVendor(genericVendorFile.toFile());
-        assertEquals(util.info().vendorVersion(), fallbackVendorVersion);
+    @Test
+    public void testGenericVendor() {
+        assertVendorVersionFromGenericLine("", "");
+        assertVendorVersionFromGenericLine("8", "8");
+        assertVendorVersionFromGenericLine("8.10", "8.10");
+        assertVendorVersionFromGenericLine("8.10.1", "8.10.1");
+        assertVendorVersionFromGenericLine("buster/sid", "");
+        assertVendorVersionFromGenericLine("jessie", "");
+        assertVendorVersionFromGenericLine("jessie 8.10", "8.10");
+        assertVendorVersionFromGenericLine("9.1 stretch", "9.1");
+        assertVendorVersionFromGenericLine("9.1.x", "9.1.");
     }
 
     @Test
     public void testFailedSysCall() {
         // by default sys call filter is enabled, so any Runtime.getRuntime().exec(...) will fail
-        List<String> result = SysInfoUtil.sysCall(new String[]{"undefined"}, "default");
+        List<String> result = SysInfo.sysCall(new String[]{"undefined"}, "default");
         assertThat(result.get(0), is("default"));
     }
 }
