@@ -59,7 +59,6 @@ public class CreateUserAnalyzer {
     }
 
     public CreateUserAnalyzedStatement analyze(CreateUser node, ParamTypeHints typeHints, TransactionContext txnContext) {
-        Map<String, Expression> properties = node.properties().properties();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             txnContext,
@@ -70,6 +69,7 @@ public class CreateUserAnalyzer {
 
         Map<String, Symbol> rows = new HashMap<>();
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+        Map<String, Expression> properties = node.properties().properties();
         for (Map.Entry<String, Expression> exprEntry : properties.entrySet()) {
             Symbol valueSymbol = expressionAnalyzer.convert(exprEntry.getValue(), exprCtx);
             rows.put(exprEntry.getKey(), valueSymbol);

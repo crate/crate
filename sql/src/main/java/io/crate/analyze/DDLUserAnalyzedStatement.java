@@ -23,22 +23,20 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
 import java.util.function.Consumer;
 
-public abstract class DDLUserAnalyzedStatement implements DDLStatement {
+abstract class DDLUserAnalyzedStatement implements DDLStatement {
 
     private final String userName;
     private final Map<String, Symbol> properties;
 
-    public DDLUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
+    DDLUserAnalyzedStatement(String userName, Map<String, Symbol> properties) {
         this.userName = userName;
         this.properties = properties;
     }
 
-    @Nullable
     public Map<String, Symbol> properties() {
         return properties;
     }

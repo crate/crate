@@ -262,7 +262,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
             SecureHash secureHash;
             try {
-                secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
+                secureHash = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }
@@ -273,7 +273,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         public CompletableFuture<Long> visitAlterUserStatement(AlterUserAnalyzedStatement analysis, Row parameters) {
             SecureHash secureHash;
             try {
-                secureHash = UserActions.generateSecureHash(analysis, parameters, functions);
+                secureHash = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }

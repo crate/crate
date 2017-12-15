@@ -23,14 +23,19 @@
 package io.crate.user;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.SecureString;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.Collections;
+
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
 
 public class UserActionsTest extends CrateUnitTest {
 
@@ -40,12 +45,10 @@ public class UserActionsTest extends CrateUnitTest {
     );
 
     @Test
-    public void testGenerateSecureHash() throws Exception {
-        CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement(
-            "foo",
-            ImmutableMap.of("password", Literal.of("password")));
-
-        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY, functions);
+    public void testSecureHashIsGeneratedFromPasswordProperty() throws Exception {
+        SecureHash secureHash = UserActions.generateSecureHash(
+            Collections.singletonMap("password", Literal.of("password")), Row.EMPTY, functions);
+        assertThat(secureHash, Matchers.notNullValue());
 
         SecureString password = new SecureString("password".toCharArray());
         assertTrue(secureHash.verifyHash(password));
@@ -53,17 +56,15 @@ public class UserActionsTest extends CrateUnitTest {
 
     @Test
     public void testNoSecureHashIfPasswordPropertyNotPresent() throws Exception {
-        CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", ImmutableMap.of());
-        SecureHash secureHash = UserActions.generateSecureHash(statement, Row.EMPTY, functions);
+        SecureHash secureHash = UserActions.generateSecureHash(emptyMap(), Row.EMPTY, functions);
         assertNull(secureHash);
     }
 
     @Test
-    public void testNoSecureHashIfPasswordPropertyIsEmpty() throws Exception {
+    public void testPasswordMustNotBeEmptyErrorIsRaisedIfPasswordIsEmpty() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Password must not be empty");
-        CreateUserAnalyzedStatement statement = new CreateUserAnalyzedStatement("foo", ImmutableMap.of("password", Literal.of("")));
-        UserActions.generateSecureHash(statement, Row.EMPTY, functions);
+        UserActions.generateSecureHash(singletonMap("password", Literal.of("")), Row.EMPTY, functions);
     }
 
     @Test

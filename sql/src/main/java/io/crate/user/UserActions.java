@@ -23,7 +23,6 @@
 package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.DDLUserAnalyzedStatement;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
@@ -31,6 +30,7 @@ import io.crate.metadata.Functions;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.SecureString;
 
+import javax.annotation.Nullable;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.Locale;
@@ -41,40 +41,39 @@ public final class UserActions {
     private UserActions() {
     }
 
-    public static SecureHash generateSecureHash(DDLUserAnalyzedStatement statement,
+    @Nullable
+    public static SecureHash generateSecureHash(Map<String, Symbol> userStmtProperties,
                                                 Row parameters,
                                                 Functions functions) throws GeneralSecurityException, IllegalArgumentException {
-        try (SecureString pw = getUserPasswordProperty(statement.properties(), parameters, functions)) {
-            SecureHash secureHash = null;
+        try (SecureString pw = getUserPasswordProperty(userStmtProperties, parameters, functions)) {
             if (pw != null) {
                 if (pw.length() == 0) {
                     throw new IllegalArgumentException("Password must not be empty");
                 }
-                secureHash = SecureHash.of(pw);
+                return SecureHash.of(pw);
             }
-            return secureHash;
+            return null;
         }
     }
 
     @VisibleForTesting
-    static SecureString getUserPasswordProperty(Map<String, Symbol> properties,
+    @Nullable
+    static SecureString getUserPasswordProperty(Map<String, Symbol> userStmtProperties,
                                                 Row parameters,
                                                 Functions functions) throws IllegalArgumentException {
         final String PASSWORD_PROPERTY = "password";
-        if (properties != null) {
-            for (String key : properties.keySet()) {
-                if (PASSWORD_PROPERTY.equals(key)) {
-                    String value = BytesRefs.toString(
-                        SymbolEvaluator.evaluate(functions, properties.get(key), parameters, Collections.emptyMap()));
-                    if (value != null) {
-                        return new SecureString(value.toCharArray());
-                    }
-                    // Password will be reset
-                    return null;
-                } else {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "\"%s\" is not a valid user property", key));
+        for (String key : userStmtProperties.keySet()) {
+            if (PASSWORD_PROPERTY.equals(key)) {
+                String value = BytesRefs.toString(
+                    SymbolEvaluator.evaluate(functions, userStmtProperties.get(key), parameters, Collections.emptyMap()));
+                if (value != null) {
+                    return new SecureString(value.toCharArray());
                 }
+                // Password will be reset
+                return null;
+            } else {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "\"%s\" is not a valid user property", key));
             }
         }
         return null;

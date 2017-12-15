@@ -23,13 +23,12 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
-import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
 
 public class CreateUserAnalyzedStatement extends DDLUserAnalyzedStatement {
 
-    public CreateUserAnalyzedStatement(String userName, @Nullable Map<String, Symbol> properties) {
+    public CreateUserAnalyzedStatement(String userName, Map<String, Symbol> properties) {
         super(userName, properties);
     }
 
