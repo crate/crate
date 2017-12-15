@@ -142,5 +142,8 @@ Changes
   actual arguments first. This fixes compatibility issues with some drivers.
   This works for the most common use cases except for DDL statements.
 
+- Update Crash to 0.23.0, which added support for password authentication and
+  pasting multiple statements at one.
+
 Fixes
 =====
