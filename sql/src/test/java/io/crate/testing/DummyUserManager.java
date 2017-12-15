@@ -42,17 +42,17 @@ public class DummyUserManager implements UserManager {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
         return null;
     }
 
     @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+    public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
         return null;
     }
 
     @Override
-    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
         return null;
     }
 

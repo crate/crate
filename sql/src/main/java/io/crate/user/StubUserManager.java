@@ -37,21 +37,21 @@ import java.util.concurrent.CompletableFuture;
 public class StubUserManager implements UserManager {
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("CREATE USER is only supported in enterprise version")
         );
     }
 
     @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+    public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("DROP USER is only supported in enterprise version")
         );
     }
 
     @Override
-    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
         return CompletableFutures.failedFuture(
             new UnsupportedFeatureException("ALTER USER is only supported in enterprise version")
         );

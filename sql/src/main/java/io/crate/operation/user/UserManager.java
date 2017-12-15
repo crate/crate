@@ -35,29 +35,33 @@ import java.util.concurrent.CompletableFuture;
 public interface UserManager extends UserLookup {
 
     /**
-     * creates a user
+     * Create a user.
+     * This never raises but always returns a failed future in error cases.
      *
      * @param userName name of the user to create
-     * @param secureHash the password-hash consisting of a SHA-512 hash, salt and num. iterations
-     * @return a future which returns the number of rows when the User is created
+     * @return 1 if the user was created, otherwise a failed future.
      */
-    CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash);
+    CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw);
 
     /**
-     * deletes a user
-     * @param userName name of the user to drop
-     * @return a future which returns the number of rows when the User is dropped
-     */
-    CompletableFuture<Long> dropUser(String userName, boolean ifExists);
-
-    /**
-     * Modifies a user
+     * Delete a user.
+     * This never raises but always returns a failed future in error cases.
      *
-     * @param userName name of the existing user to modify
-     * @param secureHash the password-hash consisting of a SHA-512 hash, salt and num. iterations
-     * @return a future which returns the number of rows when the User is modified
+     * @param userName the user to drop
+     * @return 1 if dropped, 0 if not found and {@code suppressNotFoundError} is true.
+     *         Otherwise a failure
      */
-    CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash);
+    CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError);
+
+    /**
+     * Modifies a user.
+     * This never raises but always returns a failed future in error cases.
+     *
+     * @param userName of the existing user to modify
+     * @param newHashedPw new password; if null the password is removed from the user
+     * @return 1 if the user has been updated, otherwise a failed future.
+     */
+    CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw);
 
     /**
      * Apply given list of {@link Privilege}s for each given user

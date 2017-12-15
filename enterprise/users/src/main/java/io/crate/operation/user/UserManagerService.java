@@ -133,43 +133,42 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist()) {
                 throw new UserAlreadyExistsException(userName);
             }
             return 1L;
         });
-        transportCreateUserAction.execute(new CreateUserRequest(userName, secureHash), listener);
+        transportCreateUserAction.execute(new CreateUserRequest(userName, hashedPw), listener);
         return listener;
     }
 
     @Override
-    public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+    public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
         ENSURE_DROP_USER_NOT_SUPERUSER.accept(findUser(userName));
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
-            //noinspection PointlessBooleanExpression
             if (r.doesUserExist() == false) {
-                if (ifExists) {
+                if (suppressNotFoundError) {
                     return 0L;
                 }
                 throw new UserUnknownException(userName);
             }
             return 1L;
         });
-        transportDropUserAction.execute(new DropUserRequest(userName, ifExists), listener);
+        transportDropUserAction.execute(new DropUserRequest(userName, suppressNotFoundError), listener);
         return listener;
     }
 
     @Override
-    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash secureHash) {
+    public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
             if (r.doesUserExist() == false) {
                 throw new UserUnknownException(userName);
             }
             return 1L;
         });
-        transportAlterUserAction.execute(new AlterUserRequest(userName, secureHash), listener);
+        transportAlterUserAction.execute(new AlterUserRequest(userName, newHashedPw), listener);
         return listener;
     }
 

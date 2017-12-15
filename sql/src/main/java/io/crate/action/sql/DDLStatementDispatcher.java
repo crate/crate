@@ -271,13 +271,13 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         public CompletableFuture<Long> visitAlterUserStatement(AlterUserAnalyzedStatement analysis, Row parameters) {
-            SecureHash secureHash;
+            SecureHash newPassword;
             try {
-                secureHash = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
+                newPassword = UserActions.generateSecureHash(analysis.properties(), parameters, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
                 return failedFuture(e);
             }
-            return userManager.alterUser(analysis.userName(), secureHash);
+            return userManager.alterUser(analysis.userName(), newPassword);
         }
 
         @Override
