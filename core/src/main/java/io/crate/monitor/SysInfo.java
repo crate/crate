@@ -48,13 +48,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * SysInfo as it was returned by Sigar
+ * A class that provides system information as similarly as possible as it was returned by Sigar.
  * https://github.com/hyperic/sigar/blob/ad47dc3b494e9293d1f087aebb099bdba832de5e/include/sigar.h#L937-L946
  *
  * The main usage of this class is to gather kernel information that is sent via the UDC ping.
  * This is usually done by calling {@link SysInfo#gather()}.
  * Additionally it contains {@link #getSystemUptime()} to obtain the system uptime for Linux, Windows and macOS.
- *
  */
 public class SysInfo {
 
@@ -173,16 +172,16 @@ public class SysInfo {
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2733
          */
         private final List<LinuxVendorInfo> LINUX_VENDORS = ImmutableList.<LinuxVendorInfo>builder()
-            .add(new LinuxVendorInfo("Fedora", "/etc/fedora-release", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("SuSE", "/etc/SuSE-release", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("Gentoo", "/etc/gentoo-release", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("Slackware", "/etc/slackware-release", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("Mandrake", "/etc/mandrake-release", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("VMware", "/proc/vmware/version", this::parseGenericVendor))
-            .add(new LinuxVendorInfo("XenSource", "/etc/xensource-inventory", this::parseXenVendor))
-            .add(new LinuxVendorInfo("Red Hat", "/etc/redhat-release", this::parseRedHatVendor))
-            .add(new LinuxVendorInfo("lsb", "/etc/lsb-release", this::parseLsbVendor))
-            .add(new LinuxVendorInfo("Debian", "/etc/debian_version", this::parseGenericVendor))
+            .add(new LinuxVendorInfo("Fedora", "/etc/fedora-release", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("SuSE", "/etc/SuSE-release", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("Gentoo", "/etc/gentoo-release", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("Slackware", "/etc/slackware-release", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("Mandrake", "/etc/mandrake-release", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("VMware", "/proc/vmware/version", this::parseGenericVendorFile))
+            .add(new LinuxVendorInfo("XenSource", "/etc/xensource-inventory", this::parseXenVendorFile))
+            .add(new LinuxVendorInfo("Red Hat", "/etc/redhat-release", this::parseRedHatVendorFile))
+            .add(new LinuxVendorInfo("lsb", "/etc/lsb-release", this::parseLsbVendorFile))
+            .add(new LinuxVendorInfo("Debian", "/etc/debian_version", this::parseGenericVendorFile))
             .build();
 
         private class LinuxVendorInfo {
@@ -223,9 +222,9 @@ public class SysInfo {
             sysinfo.version = version;
 
             if (name.startsWith("Windows")) {
-                gatherWindows(sysinfo, name);
+                gatherWindowsInfo(sysinfo, name);
             } else if (name.startsWith("Mac") || name.startsWith("Darwin")) {
-                gatherMacOs(sysinfo, name, version);
+                gatherMacOsInfo(sysinfo, name, version);
             } else if (name.startsWith("Linux") || name.startsWith("SunOS")) {
                 gatherLinuxInfo(sysinfo, name);
             }
@@ -236,9 +235,9 @@ public class SysInfo {
          * Taken from
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2717
          */
-        private void parseXenVendor(SysInfo sysinfo, File releaseFile) {
-            consumeFile(releaseFile, line -> {
-                String[] kv = parseKeyValue(line);
+        private void parseXenVendorFile(SysInfo sysinfo, File releaseFile) {
+            consumeFileGracefully(releaseFile, line -> {
+                String[] kv = parseKeyValuePair(line);
                 switch (kv[0]) {
                     case("KERNEL_VERSION"):
                         sysinfo.version = kv[1];
@@ -260,9 +259,9 @@ public class SysInfo {
          * $ cat /etc/redhat-release
          * CentOS Linux release 7.4.1708 (Core)
          */
-        private void parseRedHatVendor(SysInfo sysinfo, File releaseFile) {
-            parseGenericVendor(sysinfo, releaseFile);
-            consumeFile(releaseFile, line -> parseRedHatVendorLine(sysinfo, line));
+        private void parseRedHatVendorFile(SysInfo sysinfo, File releaseFile) {
+            parseGenericVendorFile(sysinfo, releaseFile);
+            consumeFileGracefully(releaseFile, line -> parseRedHatVendorLine(sysinfo, line));
         }
 
         @VisibleForTesting
@@ -290,9 +289,9 @@ public class SysInfo {
          * Taken from
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2701
          */
-        private void parseLsbVendor(SysInfo sysinfo, File releaseFile) {
-            consumeFile(releaseFile, line -> {
-                String[] kv = parseKeyValue(line);
+        private void parseLsbVendorFile(SysInfo sysinfo, File releaseFile) {
+            consumeFileGracefully(releaseFile, line -> {
+                String[] kv = parseKeyValuePair(line);
                 switch (kv[0]) {
                     case("DISTRIB_ID"):
                         sysinfo.vendor = kv[1];
@@ -313,9 +312,9 @@ public class SysInfo {
          * Taken from
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2585
          */
-        private void parseGenericVendor(SysInfo sysinfo, File releaseFile) {
+        private void parseGenericVendorFile(SysInfo sysinfo, File releaseFile) {
             // file contains only single line
-            consumeFile(releaseFile, line -> parseGenericVendorLine(sysinfo, line));
+            consumeFileGracefully(releaseFile, line -> parseGenericVendorLine(sysinfo, line));
         }
 
         @VisibleForTesting
@@ -358,7 +357,7 @@ public class SysInfo {
          * vendorCodename is not yet implemented
          * https://en.wikipedia.org/wiki/List_of_Microsoft_codenames
          */
-        private static void gatherWindows(SysInfo sysinfo, String osName) {
+        private static void gatherWindowsInfo(SysInfo sysinfo, String osName) {
             sysinfo.name = "Win32";
             sysinfo.vendor = "Microsoft";
             sysinfo.vendorName = osName;
@@ -370,7 +369,7 @@ public class SysInfo {
          * Taken from
          * https://github.com/hyperic/sigar/blob/ad47dc3b494e9293d1f087aebb099bdba832de5e/src/os/darwin/darwin_sigar.c#L3614
          */
-        private static void gatherMacOs(SysInfo sysinfo, String osName, String osVersion) {
+        private static void gatherMacOsInfo(SysInfo sysinfo, String osName, String osVersion) {
             String[] versions = osVersion.split("\\.");
             if (osName.startsWith("Mac")) {
                 sysinfo.vendorCodeName = MACOS_VERSIONS.getOrDefault(Integer.parseInt(versions[1]), "Unknown");
@@ -414,7 +413,7 @@ public class SysInfo {
             }
         }
 
-        private static void consumeFile(File fn, Consumer<String> consumer) {
+        private static void consumeFileGracefully(File fn, Consumer<String> consumer) {
             if (fn.exists()) {
                 try {
                     Files.readAllLines(fn.toPath()).forEach(consumer);
@@ -425,7 +424,7 @@ public class SysInfo {
         }
 
         @VisibleForTesting
-        static String[] parseKeyValue(String line) {
+        static String[] parseKeyValuePair(String line) {
             String[] kv = line.split("=");
             if (kv.length == 2) {
                 if (kv[1].startsWith("\"")) {

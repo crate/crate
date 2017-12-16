@@ -44,12 +44,12 @@ public class SysInfoUtilTest extends CrateUnitTest {
 
     @Test
     public void testParseKeyValue() {
-        assertThat(SysInfo.Builder.parseKeyValue("KEY=\"val\"ue\""), is(new String[]{"KEY", "val\"ue"}));
-        assertThat(SysInfo.Builder.parseKeyValue("KEY=\"value\""), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfo.Builder.parseKeyValue("KEY=value"), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfo.Builder.parseKeyValue("KEY="), is(new String[]{"KEY", ""}));
-        assertThat(SysInfo.Builder.parseKeyValue("KEY"), is(new String[]{"KEY", ""}));
-        assertThat(SysInfo.Builder.parseKeyValue(""), is(new String[]{"", ""}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"val\"ue\""), is(new String[]{"KEY", "val\"ue"}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"value\""), is(new String[]{"KEY", "value"}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=value"), is(new String[]{"KEY", "value"}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY="), is(new String[]{"KEY", ""}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY"), is(new String[]{"KEY", ""}));
+        assertThat(SysInfo.Builder.parseKeyValuePair(""), is(new String[]{"", ""}));
     }
 
     @Test
