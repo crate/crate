@@ -232,6 +232,111 @@ public class SysInfo {
         }
 
         /**
+         * Windows versions
+         * https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
+         *
+         * vendorCodename is not yet implemented
+         * https://en.wikipedia.org/wiki/List_of_Microsoft_codenames
+         */
+        private static void gatherWindowsInfo(SysInfo sysinfo, String osName) {
+            sysinfo.name = "Win32";
+            sysinfo.vendor = "Microsoft";
+            sysinfo.vendorName = osName;
+            sysinfo.vendorVersion = osName.substring(8); // "Windows ".length()
+            sysinfo.description = String.format(Locale.ROOT, "%s %s", sysinfo.vendor, sysinfo.vendorName);
+        }
+
+        /**
+         * Taken from
+         * https://github.com/hyperic/sigar/blob/ad47dc3b494e9293d1f087aebb099bdba832de5e/src/os/darwin/darwin_sigar.c#L3614
+         */
+        private static void gatherMacOsInfo(SysInfo sysinfo, String osName, String osVersion) {
+            String[] versions = osVersion.split("\\.");
+            if (osName.startsWith("Mac")) {
+                sysinfo.vendorCodeName = MACOS_VERSIONS.getOrDefault(Integer.parseInt(versions[1]), "Unknown");
+            } else if (osName.startsWith("Darwin")) {
+                sysinfo.vendorCodeName = DARWIN_VERSIONS.getOrDefault(Integer.parseInt(versions[0]), "Unknown");
+            }
+
+            sysinfo.name = "MacOSX";
+            sysinfo.vendor = "Apple";
+            sysinfo.vendorName = "Mac OS X";
+            sysinfo.vendorVersion = versions[0] + "." + versions[1];
+            sysinfo.description = String.format(Locale.ROOT, "%s (%s)", sysinfo.vendorName, sysinfo.vendorCodeName);
+        }
+
+        /**
+         * Taken from
+         * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2747
+         */
+        private void gatherLinuxInfo(SysInfo sysinfo, String osName) {
+            sysinfo.name = "Linux";
+            sysinfo.vendorName = osName;
+            sysinfo.patchLevel = "unknown";
+
+            LinuxVendorInfo vendorInfo = null;
+            for (LinuxVendorInfo vi: LINUX_VENDORS) {
+                if (vi.releaseFile.exists()) {
+                    vendorInfo = vi;
+                    break;
+                }
+            }
+
+            if (vendorInfo != null) {
+                sysinfo.vendor = vendorInfo.name;
+                vendorInfo.parseFunction.accept(sysinfo, vendorInfo.releaseFile);
+            } else {
+                sysinfo.vendor = "Unknown";
+            }
+
+            if (sysinfo.description.isEmpty()) {
+                sysinfo.description = String.format(Locale.ROOT, "%s %s", sysinfo.vendor, sysinfo.vendorVersion);
+            }
+        }
+
+        /**
+         * Taken from
+         * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2585
+         */
+        private void parseGenericVendorFile(SysInfo sysinfo, File releaseFile) {
+            // file contains only single line
+            consumeFileGracefully(releaseFile, line -> parseGenericVendorLine(sysinfo, line));
+        }
+
+        @VisibleForTesting
+        void parseGenericVendorLine(SysInfo sysinfo, String line) {
+            if (line.isEmpty()) {
+                return;
+            }
+            int start;
+            int len = 0;
+            char c;
+            char[] sequence = line.toCharArray();
+            for (int i = 0; i < sequence.length; i++) {
+                c = sequence[i];
+                while (Character.isWhitespace(c)) {
+                    c = sequence[++i];
+                }
+                if (!Character.isDigit(c)) {
+                    continue;
+                }
+                start = i;
+                while (Character.isDigit(c) || c == 46) { // ".".charAt(0) = 46
+                    ++len;
+                    if (++i < sequence.length) {
+                        c = sequence[i];
+                    } else {
+                        break;
+                    }
+                }
+                if (len > 0) {
+                    sysinfo.vendorVersion = line.substring(start, start + len);
+                    return;
+                }
+            }
+        }
+
+        /**
          * Taken from
          * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2717
          */
@@ -306,111 +411,6 @@ public class SysInfo {
                         // ignore key
                 }
             });
-        }
-
-        /**
-         * Taken from
-         * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2585
-         */
-        private void parseGenericVendorFile(SysInfo sysinfo, File releaseFile) {
-            // file contains only single line
-            consumeFileGracefully(releaseFile, line -> parseGenericVendorLine(sysinfo, line));
-        }
-
-        @VisibleForTesting
-        void parseGenericVendorLine(SysInfo sysinfo, String line) {
-            if (line.isEmpty()) {
-                return;
-            }
-            int start;
-            int len = 0;
-            char c;
-            char[] sequence = line.toCharArray();
-            for (int i = 0; i < sequence.length; i++) {
-                c = sequence[i];
-                while (Character.isWhitespace(c)) {
-                    c = sequence[++i];
-                }
-                if (!Character.isDigit(c)) {
-                    continue;
-                }
-                start = i;
-                while (Character.isDigit(c) || c == 46) { // ".".charAt(0) = 46
-                    ++len;
-                    if (++i < sequence.length) {
-                        c = sequence[i];
-                    } else {
-                        break;
-                    }
-                }
-                if (len > 0) {
-                    sysinfo.vendorVersion = line.substring(start, start + len);
-                    return;
-                }
-            }
-        }
-
-        /**
-         * Windows versions
-         * https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
-         *
-         * vendorCodename is not yet implemented
-         * https://en.wikipedia.org/wiki/List_of_Microsoft_codenames
-         */
-        private static void gatherWindowsInfo(SysInfo sysinfo, String osName) {
-            sysinfo.name = "Win32";
-            sysinfo.vendor = "Microsoft";
-            sysinfo.vendorName = osName;
-            sysinfo.vendorVersion = osName.substring(8); // "Windows ".length()
-            sysinfo.description = String.format(Locale.ROOT, "%s %s", sysinfo.vendor, sysinfo.vendorName);
-        }
-
-        /**
-         * Taken from
-         * https://github.com/hyperic/sigar/blob/ad47dc3b494e9293d1f087aebb099bdba832de5e/src/os/darwin/darwin_sigar.c#L3614
-         */
-        private static void gatherMacOsInfo(SysInfo sysinfo, String osName, String osVersion) {
-            String[] versions = osVersion.split("\\.");
-            if (osName.startsWith("Mac")) {
-                sysinfo.vendorCodeName = MACOS_VERSIONS.getOrDefault(Integer.parseInt(versions[1]), "Unknown");
-            } else if (osName.startsWith("Darwin")) {
-                sysinfo.vendorCodeName = DARWIN_VERSIONS.getOrDefault(Integer.parseInt(versions[0]), "Unknown");
-            }
-
-            sysinfo.name = "MacOSX";
-            sysinfo.vendor = "Apple";
-            sysinfo.vendorName = "Mac OS X";
-            sysinfo.vendorVersion = versions[0] + "." + versions[1];
-            sysinfo.description = String.format(Locale.ROOT, "%s (%s)", sysinfo.vendorName, sysinfo.vendorCodeName);
-        }
-
-        /**
-         * Taken from
-         * https://github.com/hyperic/sigar/blob/master/src/os/linux/linux_sigar.c#L2747
-         */
-        private void gatherLinuxInfo(SysInfo sysinfo, String osName) {
-            sysinfo.name = "Linux";
-            sysinfo.vendorName = osName;
-            sysinfo.patchLevel = "unknown";
-
-            LinuxVendorInfo vendorInfo = null;
-            for (LinuxVendorInfo vi: LINUX_VENDORS) {
-                if (vi.releaseFile.exists()) {
-                    vendorInfo = vi;
-                    break;
-                }
-            }
-
-            if (vendorInfo != null) {
-                sysinfo.vendor = vendorInfo.name;
-                vendorInfo.parseFunction.accept(sysinfo, vendorInfo.releaseFile);
-            } else {
-                sysinfo.vendor = "Unknown";
-            }
-
-            if (sysinfo.description.isEmpty()) {
-                sysinfo.description = String.format(Locale.ROOT, "%s %s", sysinfo.vendor, sysinfo.vendorVersion);
-            }
         }
 
         private static void consumeFileGracefully(File fn, Consumer<String> consumer) {
