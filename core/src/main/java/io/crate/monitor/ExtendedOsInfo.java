@@ -30,7 +30,7 @@ public class ExtendedOsInfo {
 
     private final Map<String, String> kernelData;
 
-    public ExtendedOsInfo(SysInfoUtil.SysInfo sysInfo) {
+    public ExtendedOsInfo(SysInfo sysInfo) {
         kernelData = ImmutableMap.<String, String>builder()
             .put("Arch", sysInfo.arch())
             .put("Description", sysInfo.description())

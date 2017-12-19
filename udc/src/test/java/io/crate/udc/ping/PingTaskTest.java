@@ -27,7 +27,7 @@ import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ExtendedOsInfo;
-import io.crate.monitor.SysInfoUtil;
+import io.crate.monitor.SysInfo;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -98,7 +98,7 @@ public class PingTaskTest extends CrateUnitTest {
 
         extendedNodeInfo = mock(ExtendedNodeInfo.class);
         when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
-        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(SysInfoUtil.sysInfo()));
+        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(SysInfo.gather()));
     }
 
     @Test
