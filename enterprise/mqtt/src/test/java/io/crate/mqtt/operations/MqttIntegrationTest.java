@@ -37,8 +37,9 @@ public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final Logger LOGGER = Loggers.getLogger(MqttIntegrationTest.class);
     private static final String PORT_RANGE = "11883-11983";
-    Client MQTT_CLIENT;
     private int port;
+
+    Client mqttClient;
 
     Client createMqttClient() {
         LOGGER.info("Creating local MQTT client on port {}", port);
@@ -51,14 +52,14 @@ public abstract class MqttIntegrationTest extends SQLTransportIntegrationTest {
         BoundTransportAddress boundAddress = instance.getBoundAddress();
         TransportAddress address = boundAddress.publishAddress();
         port = address.getPort();
-        MQTT_CLIENT = createMqttClient();
-        MQTT_CLIENT.connect();
+        mqttClient = createMqttClient();
+        mqttClient.connect();
     }
 
     @After
     public void disconnectMqttClient() throws Exception {
-        MQTT_CLIENT.disconnect();
-        MQTT_CLIENT.close();
+        mqttClient.disconnect();
+        mqttClient.close();
     }
 
     @Override

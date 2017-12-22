@@ -30,8 +30,8 @@ public class MqttPingIntegrationTest extends MqttIntegrationTest {
 
     @Test
     public void testPing() throws Exception {
-        MQTT_CLIENT.sendMessage(MqttMessages.newPingRequest(MqttQoS.AT_LEAST_ONCE));
-        MqttMessage response = MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(MqttMessages.newPingRequest(MqttQoS.AT_LEAST_ONCE));
+        MqttMessage response = mqttClient.lastReceivedMessage();
         assertThat(response.fixedHeader().messageType(), is(MqttMessageType.PINGRESP));
     }
 }

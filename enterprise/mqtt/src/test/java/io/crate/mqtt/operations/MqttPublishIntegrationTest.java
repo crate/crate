@@ -38,10 +38,10 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 " WHERE topic = ? INTO mqtt.raw", new Object[]{"t1"});
 
         // MQTT CONNECT
-        MQTT_CLIENT.sendMessage(MqttMessages.connectBuilder()
-                .clientId(MQTT_CLIENT.clientId())
+        mqttClient.sendMessage(MqttMessages.connectBuilder()
+                .clientId(mqttClient.clientId())
                 .build());
-        MqttConnAckMessage response = (MqttConnAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        MqttConnAckMessage response = (MqttConnAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().connectReturnCode(),
                 is(MqttConnectReturnCode.CONNECTION_ACCEPTED));
     }
@@ -70,19 +70,19 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 .retained(false)
                 .payload(Unpooled.copiedBuffer("Hello World".getBytes()))
                 .build();
-        MQTT_CLIENT.sendMessage(mqttPublishMessage);
+        mqttClient.sendMessage(mqttPublishMessage);
 
         expectedException.expectMessage("MQTT client did not receive message in time");
-        MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.lastReceivedMessage();
     }
 
     @Test
     public void testPublishQoS1WithNonJsonPayload() throws Exception {
         MqttMessage message = publishMessage("hello world");
-        MQTT_CLIENT.sendMessage(message);
+        mqttClient.sendMessage(message);
 
         expectedException.expectMessage("MQTT client did not receive message in time");
-        MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.lastReceivedMessage();
     }
 
     @Test
@@ -95,52 +95,52 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 .payload(Unpooled.copiedBuffer("{\"ts\":1498797237000}".getBytes()))
                 .messageId(mId);
 
-        MQTT_CLIENT.sendMessage(message.build());
-        MqttPubAckMessage response = (MqttPubAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(message.build());
+        MqttPubAckMessage response = (MqttPubAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().messageId(), is(mId));
 
         // resend same message with isDup = false
-        MQTT_CLIENT.sendMessage(message.build());
+        mqttClient.sendMessage(message.build());
         expectedException.expectMessage("MQTT client did not receive message in time");
-        MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.lastReceivedMessage();
     }
 
     @Test
     public void testPublishQos1WithDUPFlag() throws Exception {
         // isDup = false
         MqttPublishMessage message = publishMessage("{\"ts\":1498797237000}");
-        MQTT_CLIENT.sendMessage(message);
-        MqttPubAckMessage response = (MqttPubAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(message);
+        MqttPubAckMessage response = (MqttPubAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().messageId(), is(message.variableHeader().packetId()));
 
         // isDup = true
         message = publishMessage("{\"ts\":1498797237000}");
-        MQTT_CLIENT.sendMessage(message);
-        response = (MqttPubAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(message);
+        response = (MqttPubAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().messageId(), is(message.variableHeader().packetId()));
     }
 
     @Test
     public void testPublishQoS1WithJsonPayload() throws Exception {
         MqttPublishMessage message = publishMessage("{}");
-        MQTT_CLIENT.sendMessage(message);
-        MqttPubAckMessage response = (MqttPubAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(message);
+        MqttPubAckMessage response = (MqttPubAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().messageId(), is(message.variableHeader().packetId()));
     }
 
     @Test
     public void testMessageInserted() throws Exception {
         MqttPublishMessage message = publishMessage("{\"ts\":1498797237000}");
-        MQTT_CLIENT.sendMessage(message);
-        MqttPubAckMessage mqttResponse = (MqttPubAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(message);
+        MqttPubAckMessage mqttResponse = (MqttPubAckMessage) mqttClient.lastReceivedMessage();
         assertThat(mqttResponse.variableHeader().messageId(), is(message.variableHeader().packetId()));
 
         execute("SELECT client_id, packet_id, topic, payload, ts " +
                 "FROM mqtt.raw " +
                 "WHERE client_id = ? AND packet_id = ?",
-            new Object[]{MQTT_CLIENT.clientId(), message.variableHeader().packetId()});
+            new Object[]{mqttClient.clientId(), message.variableHeader().packetId()});
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(MQTT_CLIENT.clientId()));
+        assertThat(response.rows()[0][0], is(mqttClient.clientId()));
         assertThat(response.rows()[0][1], is(message.variableHeader().packetId()));
         assertThat(response.rows()[0][2], is(message.variableHeader().topicName()));
         assertThat(response.rows()[0][3], notNullValue());
@@ -159,10 +159,10 @@ public class MqttPublishIntegrationTest extends MqttIntegrationTest {
                 " WHERE topic = ? INTO mqtt_with_bad_schema", new Object[]{"t1"});
 
         MqttPublishMessage message = publishMessage("{\"ts\":1498797237000}");
-        MQTT_CLIENT.sendMessage(message);
+        mqttClient.sendMessage(message);
         expectedException.expectMessage("MQTT client did not receive message in time (2000ms).");
         // we shouldn't have received an ack after sending the message as the execution of the rule rule_on_table_with_bad_schema
         // fails
-        MQTT_CLIENT.lastReceivedMessage(2000);
+        mqttClient.lastReceivedMessage(2000);
     }
 }

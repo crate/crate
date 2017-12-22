@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_ACCEPTED;
@@ -48,8 +49,8 @@ public class MqttConnectIntegrationTest extends MqttIntegrationTest {
     public void testConnectWithoutClientId() throws Exception {
         MqttMessage connectMessage = connectMessage("", false);
 
-        MQTT_CLIENT.sendMessage(connectMessage);
-        MqttConnAckMessage response = (MqttConnAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(connectMessage);
+        MqttConnAckMessage response = (MqttConnAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().connectReturnCode(), is(CONNECTION_REFUSED_IDENTIFIER_REJECTED));
     }
 
@@ -57,8 +58,8 @@ public class MqttConnectIntegrationTest extends MqttIntegrationTest {
     public void testConnectWithoutClientIdButCleanSession() throws Exception {
         MqttMessage connectMessage = connectMessage("", true);
 
-        MQTT_CLIENT.sendMessage(connectMessage);
-        MqttConnAckMessage response = (MqttConnAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(connectMessage);
+        MqttConnAckMessage response = (MqttConnAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().connectReturnCode(), is(CONNECTION_ACCEPTED));
     }
 
@@ -66,8 +67,8 @@ public class MqttConnectIntegrationTest extends MqttIntegrationTest {
     public void testConnect() throws Exception {
         MqttMessage connectMessage = connectMessage("c1", true);
 
-        MQTT_CLIENT.sendMessage(connectMessage);
-        MqttConnAckMessage response = (MqttConnAckMessage) MQTT_CLIENT.lastReceivedMessage();
+        mqttClient.sendMessage(connectMessage);
+        MqttConnAckMessage response = (MqttConnAckMessage) mqttClient.lastReceivedMessage();
         assertThat(response.variableHeader().connectReturnCode(), is(CONNECTION_ACCEPTED));
     }
 
@@ -79,37 +80,25 @@ public class MqttConnectIntegrationTest extends MqttIntegrationTest {
         for(int i = 0; i < 50; i++) {
             String clientName = String.format("c%s", i);
             executorService.submit(() -> {
-                Client mqttClientThread = null;
-                try {
-                    mqttClientThread = createMqttClient();
-                    mqttClientThread.connect();
-
+                try (Client mqttClient = createMqttClient()) {
+                    mqttClient.connect();
                     MqttMessage connectMessage = connectMessage(clientName, true);
+                    mqttClient.sendMessage(connectMessage);
 
-                    mqttClientThread.sendMessage(connectMessage);
-
-                    MqttConnAckMessage response = (MqttConnAckMessage) mqttClientThread.lastReceivedMessage();
+                    MqttConnAckMessage response = (MqttConnAckMessage) mqttClient.lastReceivedMessage();
                     assertThat(response.variableHeader().connectReturnCode(), is(CONNECTION_ACCEPTED));
-                    mqttClientThread.close();
                 } catch (Throwable t) {
                     lastThrowed.set(t);
-                    if (mqttClientThread != null) {
-                        try {
-                            mqttClientThread.close();
-                        } catch (InterruptedException e) {
-                            // don't care
-                        }
-                    }
                 }
             });
         }
 
         executorService.shutdown();
+        executorService.awaitTermination(10, TimeUnit.SECONDS);
 
         Throwable throwable = lastThrowed.get();
         if (throwable != null) {
             throw throwable;
         }
     }
-
 }
