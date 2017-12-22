@@ -132,7 +132,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
     @Rule
-    public Timeout globalTimeout = new Timeout(300000); // 5 minutes timeout
+    public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
