@@ -23,33 +23,33 @@ package io.crate.analyze;
 
 import io.crate.data.Row;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
 
-import javax.annotation.Nullable;
 import java.util.Locale;
 
-public class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
+public final class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     private static final SafeExpressionToStringVisitor INSTANCE = new SafeExpressionToStringVisitor();
 
     private SafeExpressionToStringVisitor() {
     }
 
-    public static String convert(Node node, @Nullable Row context) {
-        return INSTANCE.process(node, context);
+    public static String convert(Expression expression, Row parameters) {
+        return INSTANCE.process(expression, parameters);
     }
 
     @Override
-    protected String visitStringLiteral(StringLiteral node, Row parameters) {
-        return node.getValue();
+    protected String visitStringLiteral(StringLiteral literal, Row parameters) {
+        return literal.getValue();
     }
 
     @Override
-    public String visitParameterExpression(ParameterExpression node, Row parameters) {
-        Object value = parameters.get(node.index());
+    public String visitParameterExpression(ParameterExpression parameterExpr, Row parameters) {
+        Object value = parameters.get(parameterExpr.index());
         if (value instanceof BytesRef) {
             return ((BytesRef) value).utf8ToString();
         }
@@ -61,6 +61,7 @@ public class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     @Override
     protected String visitNode(Node node, Row context) {
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't handle %s.", node));
+        throw new IllegalArgumentException(
+            String.format(Locale.ENGLISH, "Expected a String literal or a ParameterExpression. Can't handle %s.", node));
     }
 }
