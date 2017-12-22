@@ -25,51 +25,38 @@ package io.crate.testing;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Bucket;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.CollectionBucket;
-import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.Exceptions;
 
-import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class TestingRowConsumer implements RowConsumer, Killable {
+public final class TestingRowConsumer implements RowConsumer {
 
-    private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
+    private final CollectingRowConsumer<?, List<Object[]>> consumer;
 
     static CompletionStage<?> moveToEnd(BatchIterator<Row> it) {
         return BatchIterators.collect(it, Collectors.counting());
     }
 
+    public TestingRowConsumer() {
+        consumer = new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList()));
+    }
+
     @Override
     public void accept(BatchIterator<Row> it, Throwable failure) {
-        if (failure == null) {
-            BatchIterators.collect(it, Collectors.mapping(Row::materialize, Collectors.toList()))
-                .whenComplete((r, t) -> {
-                    if (t == null) {
-                        result.complete(r);
-                    } else {
-                        result.completeExceptionally(t);
-                    }
-                    it.close();
-                });
-        } else {
-            if (it != null) {
-                it.close();
-            }
-            result.completeExceptionally(failure);
-        }
+        consumer.accept(it, failure);
     }
 
     public List<Object[]> getResult() throws Exception {
         try {
-            return result.get(10, TimeUnit.SECONDS);
+            return consumer.resultFuture().get(10, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause != null) {
@@ -77,14 +64,6 @@ public class TestingRowConsumer implements RowConsumer, Killable {
             }
             throw e;
         }
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        if (throwable == null) {
-            throwable = new InterruptedException("Operation aborted");
-        }
-        result.completeExceptionally(throwable);
     }
 
     public Bucket getBucket() throws Exception {
