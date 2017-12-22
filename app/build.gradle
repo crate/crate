@@ -314,7 +314,7 @@ def libs = project.configurations.runtime.filter{ !it.path.startsWith("$rootDir/
 task chooseReleaseNotes(dependsOn: [':core:getVersion']) {
     doLast {
         def version = project(':core').getVersion.version
-        def releaseNotesDir = "$rootDir/blackbox/docs/release_notes"
+        def releaseNotesDir = "$rootDir/blackbox/docs/appendices/release-notes"
         def releaseNotesFile = version.replaceAll('-.*', '') + '.txt'
         if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
             copy {
