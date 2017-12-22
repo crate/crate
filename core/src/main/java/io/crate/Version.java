@@ -40,8 +40,8 @@ public class Version {
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
 
-    public static final boolean SNAPSHOT = false;
-    public static final Version CURRENT = new Version(2030099, SNAPSHOT, org.elasticsearch.Version.V_5_6_3_UNRELEASED);
+    public static final boolean SNAPSHOT = true;
+    public static final Version CURRENT = new Version(2030199, SNAPSHOT, org.elasticsearch.Version.V_5_6_3_UNRELEASED);
 
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
