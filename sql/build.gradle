@@ -23,7 +23,7 @@ dependencies {
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
     // Needed by aws-java-sdk-s3 in Java 9
-    compile "javax.xml:jaxb-api:${versions.jaxb_api}"
+    compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
     testCompile project(':integration-testing')
     testCompile project(path: ':dex', configuration: 'testOutput')
