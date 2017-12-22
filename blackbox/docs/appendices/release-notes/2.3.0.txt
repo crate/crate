@@ -1,0 +1,174 @@
+.. _version_2.3.0:
+
+=============
+Version 2.3.0
+=============
+
+Released on 2017/12/22.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_1.1.3` or higher before you upgrade to 2.3.0.
+
+   You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
+   version will require a `full restart upgrade`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Changelog
+=========
+
+Breaking Changes
+----------------
+
+- Certain metrics in the ``sys.nodes`` table have been deprecated and now
+  always return ``-1``, except network metrics with still return ``0`` as
+  previously when Sigar was not available.
+
+  The affected metrics are: network metrics, read/write filesystem metrics for
+  individual disks, system/user/idle/stolen values for CPU, and system/user
+  values for process CPU.
+
+  This is due to the removal of the "Sigar" library dependency.
+
+- The default value of the setting ``auth.host_based.enabled`` (``false``) is
+  overwritten with ``true`` in the ``crate.yml`` that is shipped with the
+  tarball and Linux distributions of CrateDB and also contains a sane default
+  configuration for ``auth.host_based.config``.
+
+  This is done in order to provide a better default installation for new users
+  without breaking exising HBA configurations.
+
+  An implication of these settings is that whenever Enterprise is enabled
+  (default behaviour) connections from remote hosts *always* require
+  password authentication. Note, that when running CrateDB in Docker, the host
+  of the Docker container is also considered a remote host.
+
+- Columns aren't implicitly cast to a type anymore. Whenever columns are
+  compared to Literals (e.g. 'string', 1, 1.2), these literals will be
+  converted to the column type but not vice-versa. The column can still be
+  manually cast to a type by using a cast function.
+
+- Table ``information_schema.table_constraints`` is now returning
+  ``constraint_name`` as type string instead of type array. Constraint type
+  ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also PRIMARY KEY
+  constraint is not returned when not explicitly defined.
+
+Changes
+-------
+
+- Added the ``hyperloglog_distinct`` aggregation function. This feature is only
+  available in the Enterprise Edition.
+
+- Added a ``os['cpu']['used']`` column to the ``sys.nodes`` table. This
+  replaces the deprecated system/user/idle/stolen values.
+
+- Added a ``cgroup`` object column to the ``sys.nodes`` table. This column
+  contains cgroup information which is relevant when running CrateDB inside a
+  containers.
+
+- Subqueries which filter on primary key columns now have the same realtime
+  semantics as the equivalent top-level queries.
+
+- Added support for disabling the column store for ``STRING`` columns on table
+  creation and when adding columns. In conjunction with disabling indexing on
+  that columns, this will support storing strings greater than 32kb. Be aware,
+  that the performance of aggregations, groupings and sorting on such columns
+  will decrease.
+
+- Added support for ``ORDER BY``, ``GROUP BY`` and global aggregates on columns
+  with disabled indexing (``INDEX OFF``).
+
+- Added support for scalar subqueries in ``DELETE`` and ``UPDATE`` statements.
+
+- Added ``UNION ALL`` operator to produce the combined result of two or more
+  queries, e.g.:
+
+  .. code-block:: psql
+
+    SELECT id FROM t1
+    UNION ALL
+    SELECT id FROM t2
+
+- Added the "password" authentication method which is available for connections
+  via the PostgreSQL wire protocol and HTTP. This method allows clients to
+  authenticate using a valid database user and its password. For HTTP, the
+  ``X-User`` header, used to provide a username, has been deprecated in favour
+  of the standard HTTP ``Authorization`` header with the Basic Authentication
+  Scheme.
+
+- Added a ``WITH`` clause to ``CREATE USER`` statement to specify user
+  properties upon creation. The single property available right now is the
+  ``password`` property which can be used for "password" authentication.
+
+  The passwords of existing users can be changed using the ``ALTER USER``
+  statement.
+
+  Note that user passwords are never stored in clear-text inside CrateDB!
+
+- The "address" field of the ``auth.host_based.config`` setting allows the
+  special ``_local_`` identifier additionally to IP and CIDR notation.
+  ``_local_`` matches both IPv4 and IPv6 connections from localhost.
+
+- Table ``information_schema.key_column_usage`` is now populated with primary
+  key information of user generated tables.
+
+- Table ``information_schema.table_constraints`` is now also returning the
+  ``NOT_NULL`` constraint.
+
+- Added new cluster setting ``routing.rebalance.enable`` that allows to
+  enable or disable shard rebalancing on the cluster.
+
+- Added support to manually control the allocation of shards using ``ALTER
+  TABLE REROUTE``. Supported reroute-options are: MOVE, ALLOCATE REPLICA,
+  CANCEL
+
+- Added support to manually retry the allocation of shards that failed to
+  allocate using ``ALTER CLUSTER REROUTE RETRY FAILED``.
+
+- Added new table setting ``allocation.max_retries`` that defines the number of
+  attempts to allocate a shard before giving up and leaving it unallocated.
+
+- Added new system table ``sys.allocations`` which lists shards and their
+  allocation state including the reasoning why they are in a certain state.
+
+- Function arguments are now linked to each other, where possible. This enables
+  type inference between arguments such that arguments can be converted to
+  match a function's signature. For example, ``coalesce(integer, long)`` would
+  have resulted in an "unknown function" message. We now convert this call into
+  ``coalesce(long, long)``. The conversion is possible through a type
+  precedence list and convertibility checks on the data types.
+
+- Functions which accept regular expression flags now throw an error when
+  invalid flags are provided.
+
+- Clients using the postgres wire protocol will now receive an additional
+  ``crate_version`` ParameterStatus message when establishing a connection.
+  This can be used to identify the server as ``CrateDB``.
+
+- Added the ``typtype`` column to ``pg_catalog.pg_type`` for better
+  compatibility with certain PostgreSQL client libraries.
+
+- Added the ``pg_backend_pid()`` function for enhanced PostgreSQL compatibility.
+
+- Added support for the PSQL ParameterDescription message which allows to get
+  the parameter types in prepared statements up front without specifying the
+  actual arguments first. This fixes compatibility issues with some drivers.
+  This works for the most common use cases except for DDL statements.
+
+- Upgraded Elasticsearch to version 5.6.3.
+
+- Updated the CrateDB command line shell (crash) to version 0.23.0, which added
+  support for password authentication and pasting multiple statements at once.
+
+- Update the Admin UI to use new CPU metrics for its graphs.
+
+- Hadoop2 dependencies for the HDFS repository plugin have been upgraded to
+  version 2.8.1.

@@ -20,6 +20,14 @@ information and changelog.
 2.x
 ===
 
+2.3.x
+-----
+
+.. toctree::
+    :maxdepth: 1
+
+    2.3.0
+
 2.2.x
 -----
 
