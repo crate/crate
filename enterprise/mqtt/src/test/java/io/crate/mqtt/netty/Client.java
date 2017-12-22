@@ -63,7 +63,7 @@ public class Client implements AutoCloseable {
     public void connect() {
         LOGGER.debug("[mqtt-client] connect");
         handler = new ClientNettyMQTTHandler();
-        workerGroup = new NioEventLoopGroup();
+        workerGroup = new NioEventLoopGroup(1);
         try {
             Bootstrap b = new Bootstrap();
             b.group(workerGroup);
