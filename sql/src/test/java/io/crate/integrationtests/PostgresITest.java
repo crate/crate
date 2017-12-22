@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLOperations;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.shade.org.postgresql.PGProperty;
@@ -469,6 +470,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 5000)
     public void testExecuteBatchWithOneRuntimeFailure() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement stmt = conn.createStatement();
