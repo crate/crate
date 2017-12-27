@@ -53,14 +53,23 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
             value = null;
         } else {
             BytesRef bytesRef = values.get(docId);
-            String format = DocValueFormat.IP.format(bytesRef);
-            value = BytesRefs.toBytesRef(format);
+            if (bytesRef.length == 0) {
+                value = null;
+            } else {
+                String format = DocValueFormat.IP.format(bytesRef);
+                value = BytesRefs.toBytesRef(format);
+            }
         }
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         SortedSetDocValues setDocValues = context.reader().getSortedSetDocValues(columnName);
+        if (setDocValues == null) {
+            values = null;
+            return;
+        }
+
         final SortedDocValues singleton = DocValues.unwrapSingleton(setDocValues);
         if (singleton != null) {
             values = singleton;
@@ -71,7 +80,8 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
                     setDocValues.setDocument(docID);
                     int ord = (int) setDocValues.nextOrd();
 
-                    if (setDocValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                    if (ord != SortedSetDocValues.NO_MORE_ORDS &&
+                        setDocValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
                         throw new GroupByOnArrayUnsupportedException(columnName);
                     }
                     return ord;
