@@ -21,3 +21,6 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused an error to be thrown when using ``GROUP BY`` or
+  ``DISTINCT`` on a column of type ``IP`` in case there are rows with null
+  value for that column.
