@@ -220,7 +220,8 @@ public class AnalyzedColumnDefinition {
         mapping.put("type", dataType);
 
         if (indexType == Reference.IndexType.NO) {
-            mapping.put("index", "false");
+            // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
+            mapping.put("index", false);
         }
         if (copyToTargets != null) {
             mapping.put("copy_to", copyToTargets);
