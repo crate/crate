@@ -60,6 +60,11 @@ INDICES = {
         );
         INSERT INTO object_template_mapping (ts, attr, month) VALUES (1480530180000, {temp=21.1}, '201611');
         REFRESH TABLE object_template_mapping;''',
+    'legacy_string': '''
+        -- we just need any table created with < 1.2, we want to test adding a string col to old tables
+        CREATE TABLE legacy_string (
+            s string
+        );'''
 }
 
 

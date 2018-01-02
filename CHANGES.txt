@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause a ``ALTER TABLE`` statement to fail with an
+  exception on partitioned tables created with CrateDB < 1.2.
+
 - Enforce validation of column constraints for ``INSERT`` statements with a
   subquery as source and in combination with ``ON DUPLICATE KEY UPDATE``.
 
