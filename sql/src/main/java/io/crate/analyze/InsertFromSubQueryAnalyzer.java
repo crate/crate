@@ -205,6 +205,7 @@ class InsertFromSubQueryAnalyzer {
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, parameterContext, fieldProvider, null);
+        expressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
