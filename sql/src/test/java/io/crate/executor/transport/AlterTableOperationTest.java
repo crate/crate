@@ -23,14 +23,23 @@
 package io.crate.executor.transport;
 
 import io.crate.Constants;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Map;
 
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class AlterTableOperationTest extends CrateUnitTest {
 
@@ -54,5 +63,25 @@ public class AlterTableOperationTest extends CrateUnitTest {
 
         assertThat(request.type(), is(Constants.DEFAULT_MAPPING_TYPE));
         assertThat(request.source(), is("{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
+    }
+
+    @Test
+    public void testOldSettingsAreArchivedOnPrepareIndexTemplateRequest() {
+        IndexScopedSettings indexScopedSettings = new IndexScopedSettings(Settings.EMPTY, Collections.emptySet());
+
+        String unsupportedSetting = "index.translog.disable_flush";
+        Settings unsupportedSettings = Settings.builder()
+            .put(unsupportedSetting, false)
+            .build();
+        IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder("t1")
+            .settings(unsupportedSettings)
+            .build();
+
+        PutIndexTemplateRequest request = AlterTableOperation.preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
+            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*",
+            logger);
+
+        assertThat(request.settings().get(unsupportedSetting), nullValue());
+        assertThat(request.settings().get(ARCHIVED_SETTINGS_PREFIX + unsupportedSetting), is("false"));
     }
 }
