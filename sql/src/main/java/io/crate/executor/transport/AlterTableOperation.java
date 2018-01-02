@@ -48,6 +48,9 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
@@ -74,6 +77,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -106,6 +111,8 @@ public class AlterTableOperation {
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final SQLOperations sqlOperations;
+    private final IndexScopedSettings indexScopedSettings;
+    private final Logger logger;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
@@ -116,7 +123,10 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
-                               SQLOperations sqlOperations) {
+                               SQLOperations sqlOperations,
+                               IndexScopedSettings indexScopedSettings,
+                               Settings settings) {
+
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
@@ -126,6 +136,8 @@ public class AlterTableOperation {
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.sqlOperations = sqlOperations;
+        this.indexScopedSettings = indexScopedSettings;
+        logger = Loggers.getLogger(getClass(), settings);
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
@@ -354,6 +366,22 @@ public class AlterTableOperation {
             return CompletableFutures.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
         }
 
+        PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
+            newMappings, mappingsToRemove, newSettings, tableIdent, templateName, logger);
+        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        transportPutIndexTemplateAction.execute(request, listener);
+        return listener;
+    }
+
+    @VisibleForTesting
+    static PutIndexTemplateRequest preparePutIndexTemplateRequest(IndexScopedSettings indexScopedSettings,
+                                                                  IndexTemplateMetaData indexTemplateMetaData,
+                                                                  Map<String, Object> newMappings,
+                                                                  Map<String, Object> mappingsToRemove,
+                                                                  Settings newSettings,
+                                                                  TableIdent tableIdent,
+                                                                  String templateName,
+                                                                  Logger logger) {
         // merge mappings
         Map<String, Object> mapping = mergeTemplateMapping(indexTemplateMetaData, newMappings);
 
@@ -365,21 +393,26 @@ public class AlterTableOperation {
         settingsBuilder.put(indexTemplateMetaData.settings());
         settingsBuilder.put(newSettings);
 
+        // archive unsupported/old settings
+        Settings settings = indexScopedSettings.archiveUnknownOrInvalidSettings(
+            settingsBuilder.build(),
+            e -> logger.warn("{} ignoring unknown table setting: [{}] with value [{}]; archiving",
+                tableIdent.fqn(), e.getKey(), e.getValue()),
+            (e, ex) -> logger.warn((Supplier<?>) () -> new ParameterizedMessage("{} ignoring invalid table setting: [{}] with value [{}]; archiving",
+                tableIdent.fqn(), e.getKey(), e.getValue()), ex));
+
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .create(false)
             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
             .order(indexTemplateMetaData.order())
-            .settings(settingsBuilder.build())
+            .settings(settings)
             .template(indexTemplateMetaData.template())
             .alias(new Alias(tableIdent.indexName()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);
         }
-
-        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportPutIndexTemplateAction.execute(request, listener);
-        return listener;
+        return request;
     }
 
     /**
