@@ -132,11 +132,7 @@ class InsertFromSubQueryAnalyzer {
             insert.onDuplicateKeyAssignments()
         );
 
-        return new AnalyzedInsertStatement(
-            targetTable,
-            targetColumns,
-            subQueryRelation,
-            onDuplicateKeyAssignments);
+        return new AnalyzedInsertStatement(subQueryRelation, onDuplicateKeyAssignments);
     }
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {

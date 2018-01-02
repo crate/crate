@@ -24,7 +24,6 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.List;
@@ -33,38 +32,25 @@ import java.util.function.Consumer;
 
 public final class AnalyzedInsertStatement implements AnalyzedStatement {
 
-    private final DocTableInfo targetTable;
-    private final List<Reference> targetCols;
     @Nullable
     private List<List<Symbol>> rows;
     @Nullable
     private AnalyzedStatement subRelation;
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
 
-    private AnalyzedInsertStatement(DocTableInfo targetTable,
-                                    List<Reference> targetCols,
-                                    Map<Reference, Symbol> onDuplicateKeyAssignments) {
-
-        this.targetTable = targetTable;
-        this.targetCols = targetCols;
+    private AnalyzedInsertStatement(Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
     }
 
-    public AnalyzedInsertStatement(DocTableInfo targetTable,
-                                   List<Reference> targetCols,
-                                   List<List<Symbol>> rows,
-                                   Map<Reference, Symbol> onDuplicateKeyAssignments) {
-
-        this(targetTable, targetCols, onDuplicateKeyAssignments);
+    AnalyzedInsertStatement(List<List<Symbol>> rows,
+                            Map<Reference, Symbol> onDuplicateKeyAssignments) {
+        this(onDuplicateKeyAssignments);
         this.rows = rows;
     }
 
-    public AnalyzedInsertStatement(DocTableInfo targetTable,
-                                   List<Reference> targetCols,
-                                   AnalyzedStatement subRelation,
-                                   Map<Reference, Symbol> onDuplicateKeyAssignments) {
-
-        this(targetTable, targetCols, onDuplicateKeyAssignments);
+    AnalyzedInsertStatement(AnalyzedStatement subRelation,
+                            Map<Reference, Symbol> onDuplicateKeyAssignments) {
+        this(onDuplicateKeyAssignments);
         this.subRelation = subRelation;
     }
 

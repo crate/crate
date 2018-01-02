@@ -158,12 +158,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             txnCtx,
             typeHints,
             insert.onDuplicateKeyAssignments());
-        return new AnalyzedInsertStatement(
-            targetTable,
-            targetCols,
-            rows,
-            onDuplicateKeyAssignments
-        );
+        return new AnalyzedInsertStatement(rows, onDuplicateKeyAssignments);
     }
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
