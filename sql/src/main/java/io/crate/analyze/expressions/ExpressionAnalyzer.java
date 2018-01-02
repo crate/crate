@@ -160,7 +160,7 @@ public class ExpressionAnalyzer {
     private final SubqueryAnalyzer subQueryAnalyzer;
     private final Functions functions;
     private final InnerExpressionAnalyzer innerAnalyzer;
-    private Operation operation = Operation.READ;
+    private final Operation operation;
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
@@ -169,12 +169,22 @@ public class ExpressionAnalyzer {
                               java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
+        this(functions, transactionContext, convertParamFunction, fieldProvider, subQueryAnalyzer, Operation.READ);
+    }
+
+    public ExpressionAnalyzer(Functions functions,
+                              TransactionContext transactionContext,
+                              java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
+                              FieldProvider fieldProvider,
+                              @Nullable SubqueryAnalyzer subQueryAnalyzer,
+                              Operation operation) {
         this.functions = functions;
         this.transactionContext = transactionContext;
         this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
         this.subQueryAnalyzer = subQueryAnalyzer;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
+        this.operation = operation;
     }
 
     /**
@@ -243,8 +253,15 @@ public class ExpressionAnalyzer {
         }
     }
 
-    public void setResolveFieldsOperation(Operation operation) {
-        this.operation = operation;
+    public ExpressionAnalyzer copyForOperation(Operation operation) {
+        return new ExpressionAnalyzer(
+            functions,
+            transactionContext,
+            convertParamFunction,
+            fieldProvider,
+            subQueryAnalyzer,
+            operation
+        );
     }
 
     /**

@@ -122,9 +122,9 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             txnCtx,
             typeHints,
             new NameFieldProvider(tableRelation),
-            null
+            null,
+            Operation.INSERT
         );
-        exprAnalyzer.setResolveFieldsOperation(Operation.INSERT);
         ValuesList firstRow = insert.valuesLists().get(0);
 
         List<Reference> targetCols = ImmutableList.copyOf(
@@ -154,7 +154,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             functions,
             tableRelation,
             targetCols,
-            exprAnalyzer,
+            exprAnalyzer.copyForOperation(Operation.UPDATE),
             txnCtx,
             typeHints,
             insert.onDuplicateKeyAssignments());
@@ -170,15 +170,6 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
-            analysis.transactionContext(),
-            convertParamFunction,
-            fieldProvider,
-            null
-            );
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
@@ -204,6 +195,15 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             RowGranularity.CLUSTER,
             null,
             tableRelation);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            analysis.transactionContext(),
+            convertParamFunction,
+            fieldProvider,
+            null,
+            Operation.UPDATE
+        );
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         analyzeColumns(statement.tableInfo(), statement.columns());
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
@@ -397,7 +397,6 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             valuesResolver.columns = context.columns();
             Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
             valuesResolver.assignmentColumns = new ArrayList<>(assignments.size());
-            expressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
             for (int i = 0; i < assignments.size(); i++) {
                 Assignment assignment = assignments.get(i);
                 Reference columnName = tableRelation.resolveField(

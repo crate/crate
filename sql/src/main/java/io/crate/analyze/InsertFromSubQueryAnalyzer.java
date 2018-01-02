@@ -113,22 +113,12 @@ class InsertFromSubQueryAnalyzer {
             new ArrayList<>(resolveTargetColumns(insert.columns(), targetTable, subQueryRelation.fields().size()));
         validateColumnsAndAddCastsIfNecessary(targetColumns, subQueryRelation.querySpec());
 
-        ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
-            functions,
-            txnCtx,
-            typeHints,
-            new NameFieldProvider(tableRelation),
-            null
-        );
-        exprAnalyzer.setResolveFieldsOperation(Operation.INSERT);
-
-        Map<Reference, Symbol> onDuplicateKeyAssignments = getUpdateAssignments(
-            functions,
+        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
-            exprAnalyzer,
-            txnCtx,
             typeHints,
+            txnCtx,
+            new NameFieldProvider(tableRelation),
             insert.onDuplicateKeyAssignments()
         );
 
@@ -148,16 +138,14 @@ class InsertFromSubQueryAnalyzer {
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
         validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
 
-        Map<Reference, Symbol> onDuplicateKeyAssignments = null;
-        if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            onDuplicateKeyAssignments = processUpdateAssignments(
-                tableRelation,
-                targetColumns,
-                analysis.parameterContext(),
-                analysis.transactionContext(),
-                fieldProvider,
-                node.onDuplicateKeyAssignments());
-        }
+        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
+            tableRelation,
+            targetColumns,
+            analysis.parameterContext(),
+            analysis.transactionContext(),
+            fieldProvider,
+            node.onDuplicateKeyAssignments()
+        );
 
         return new InsertFromSubQueryAnalyzedStatement(
             source,
@@ -270,13 +258,16 @@ class InsertFromSubQueryAnalyzer {
 
     private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
                                                             List<Reference> targetColumns,
-                                                            ParameterContext parameterContext,
+                                                            java.util.function.Function<ParameterExpression, Symbol> parameterContext,
                                                             TransactionContext transactionContext,
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
+        if (assignments.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, transactionContext, parameterContext, fieldProvider, null);
-        expressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
+            functions, transactionContext, parameterContext, fieldProvider, null, Operation.UPDATE);
 
         return getUpdateAssignments(
             functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext, assignments);

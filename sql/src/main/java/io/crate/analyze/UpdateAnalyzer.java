@@ -128,9 +128,9 @@ public final class UpdateAnalyzer {
             txnCtx,
             typeHints,
             new NameFieldProvider(table),
-            subqueryAnalyzer
+            subqueryAnalyzer,
+            Operation.UPDATE
         );
-        targetExprAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
         assert assignments instanceof RandomAccess
             : "assignments should implement RandomAccess for indexed loop to avoid iterator allocations";
         TableInfo tableInfo = table.tableInfo();

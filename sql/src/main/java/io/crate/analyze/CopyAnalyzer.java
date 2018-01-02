@@ -115,8 +115,7 @@ class CopyAnalyzer {
             RowGranularity.CLUSTER,
             null,
             tableRelation);
-        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
-        expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
+        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation, Operation.INSERT);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Predicate<DiscoveryNode> nodeFilters = discoveryNode -> true;
         Settings settings = Settings.EMPTY;
@@ -140,13 +139,14 @@ class CopyAnalyzer {
     }
 
 
-    private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation) {
+    private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation, Operation operation) {
         return new ExpressionAnalyzer(
             functions,
             analysis.transactionContext(),
             analysis.parameterContext(),
             new NameFieldProvider(tableRelation),
-            null);
+            null,
+            operation);
     }
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
@@ -178,7 +178,7 @@ class CopyAnalyzer {
             RowGranularity.CLUSTER,
             null,
             tableRelation);
-        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
+        ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation, Operation.READ);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
