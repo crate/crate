@@ -25,6 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -234,6 +235,13 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         expectedException.expectMessage("Column does_not_exist unknown");
         e.analyze("insert into users (id, name) (select id, name from users) " +
                   "on duplicate key update name = values (does_not_exist)");
+    }
+
+    @Test
+    public void testFromQueryWithOnDuplicateKeyPrimaryKeyUpdate() {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on duplicate key update id = id + 1");
     }
 
     @Test
