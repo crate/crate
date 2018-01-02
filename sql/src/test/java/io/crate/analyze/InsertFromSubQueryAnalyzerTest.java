@@ -124,7 +124,6 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
                   ")");
     }
 
-
     @Test
     public void testFromQueryWithInsertColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
@@ -240,7 +239,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testFromQueryWithOnDuplicateKeyPrimaryKeyUpdate() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Updating a clustered-by column is not supported");
+        expectedException.expectMessage("Updating a primary key is not supported");
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on duplicate key update id = id + 1");
     }
 

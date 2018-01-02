@@ -1008,28 +1008,21 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInvalidLeftSideExpressionInOnDuplicateKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-       e.analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
+        e.analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
     }
 
     @Test
     public void testUpdateOnPartitionedColumnShouldRaiseAnError() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for date: Updating a partitioned-by column is not supported");
-       e.analyze("insert into parted (id) values (1) on duplicate key update date = 0");
-    }
-
-    @Test
-    public void testUpdateOnPrimaryKeyColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: Updating a primary key is not supported");
-       e.analyze("insert into nested_pk (id, o) values (1, {b=1}) on duplicate key update id = 10");
+        e.analyze("insert into parted (id) values (1) on duplicate key update date = 0");
     }
 
     @Test
     public void testUpdateOnClusteredByColumnShouldRaiseAnError() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
-       e.analyze("insert into users (id) values (1) on duplicate key update id = 10");
+        e.analyze("insert into users_clustered_by_only (id) values (1) on duplicate key update id = 10");
     }
 
     @Test

@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Field;
@@ -114,16 +115,17 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     /**
      * @throws io.crate.exceptions.ColumnValidationException if the column cannot be updated
      */
-    private void ensureColumnCanBeUpdated(ColumnIdent ci) {
+    @VisibleForTesting
+    void ensureColumnCanBeUpdated(ColumnIdent ci) {
         if (ci.isSystemColumn()) {
             throw new ColumnValidationException(ci.toString(), tableInfo.ident(),
                 "Updating a system column is not supported");
         }
-        if (tableInfo.clusteredBy() != null) {
-            ensureNotUpdated(ci, tableInfo.clusteredBy(), "Updating a clustered-by column is not supported");
-        }
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             ensureNotUpdated(ci, pkIdent, "Updating a primary key is not supported");
+        }
+        if (tableInfo.clusteredBy() != null) {
+            ensureNotUpdated(ci, tableInfo.clusteredBy(), "Updating a clustered-by column is not supported");
         }
         List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
 
