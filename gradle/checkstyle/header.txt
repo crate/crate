@@ -1,0 +1,2 @@
+^/\*
+^ \* (Licensed to|Copyright|This file is part of a module with proprietary Enterprise Features)
