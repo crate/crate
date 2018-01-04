@@ -1,4 +1,4 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
+apply from: "$rootDir/enterprise/enterpriseModule.gradle"
 
 archivesBaseName = 'lang-js'
 group = 'io.crate'
@@ -32,18 +32,3 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
 }
-
-task getVersion(dependsOn: [':core:getVersion']) {
-    doFirst {
-        project.version = project(':core').getVersion.version
-    }
-}
-
-jar {
-    doLast {
-        manifest {
-            attributes("Implementation-Title": description, "Implementation-Version": project.version)
-        }
-    }
-}
-jar.dependsOn('getVersion')

@@ -93,7 +93,9 @@ checkstyle {
     toolVersion = "8.1"
     def checkstyle_dir = new String("$rootDir/gradle/checkstyle/")
     configProperties = [
-            'checkstyleDir' : checkstyle_dir
+            'checkstyleDir' : checkstyle_dir,
+            // May be overwritten by other modules, e.g. enterprise
+            'licenseHeaderFile' : 'header.txt'
     ]
     configFile = file(checkstyle_dir + "rules.xml")
     checkstyleTest.enabled = false

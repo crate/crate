@@ -24,6 +24,12 @@ task getVersion(dependsOn: [':core:getVersion']) {
     }
 }
 
+checkstyle {
+    // only override enterprise specific properties
+    configProperties['licenseHeaderFile'] = "enterprise_header.txt"
+}
+
+
 jar {
     doLast {
         manifest {

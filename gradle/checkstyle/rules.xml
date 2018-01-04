@@ -42,7 +42,7 @@
     <property name="fileExtensions" value="java, properties, xml"/>
 
     <module name="RegexpHeader">
-        <property name="headerFile" value="${checkstyleDir}/header.txt"/>
+        <property name="headerFile" value="${checkstyleDir}/${licenseHeaderFile}"/>
     </module>
 
     <!-- Checks for whitespace                               -->
