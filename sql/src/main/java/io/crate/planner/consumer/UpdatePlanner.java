@@ -115,8 +115,8 @@ public final class UpdatePlanner {
         WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
             normalizer, query, tableInfo, plannerCtx.transactionContext());
 
-        if (detailedQuery.docKeys().isPresent()) {
-            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys().get());
+        if (detailedQuery.docKeys() != null) {
+            return new UpdateById(tableInfo, assignmentByTargetCol, detailedQuery.docKeys());
         }
 
         return new Update((plannerContext, params, subQueryValues) ->

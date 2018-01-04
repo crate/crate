@@ -98,8 +98,8 @@ public final class DeletePlanner {
         if (!detailedQuery.partitions().isEmpty()) {
             return new DeletePartitions(table.ident(), detailedQuery.partitions());
         }
-        if (detailedQuery.docKeys().isPresent()) {
-            return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
+        if (detailedQuery.docKeys() != null) {
+            return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys());
         }
         Symbol query = detailedQuery.query();
         if (table.isPartitioned() && query instanceof Input && DataTypes.BOOLEAN.value(((Input) query).value())) {
