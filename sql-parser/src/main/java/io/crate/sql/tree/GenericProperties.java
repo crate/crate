@@ -48,7 +48,7 @@ import java.util.Set;
  */
 public class GenericProperties extends Node {
 
-    public static final GenericProperties EMPTY = new GenericProperties(ImmutableMap.<String, Expression>of());
+    public static final GenericProperties EMPTY = new GenericProperties(ImmutableMap.of());
 
     private final Map<String, Expression> properties;
 

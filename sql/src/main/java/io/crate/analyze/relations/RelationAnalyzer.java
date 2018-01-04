@@ -142,7 +142,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
         // the `node` contains the ORDER BY and/or LIMIT and/or OFFSET and wraps the
         // actual operation (eg: UNION) which is parsed into the `queryBody` of the `node`.
-        if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
+        if (!node.getOrderBy().isEmpty() || node.getLimit() != null || node.getOffset() != null) {
             QueriedRelation childRelation = (QueriedRelation) process(node.getQueryBody(), statementContext);
 
             // Use child relation to process expressions of the "root" Query node
@@ -410,14 +410,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private static Symbol longSymbolOrNull(Optional<Expression> optExpression,
+    private static Symbol longSymbolOrNull(@Nullable Expression optExpression,
                                            ExpressionAnalyzer expressionAnalyzer,
                                            ExpressionAnalysisContext expressionAnalysisContext) {
-        if (optExpression.isPresent()) {
-            Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
+        if (optExpression == null) {
+            return null;
         }
-        return null;
+        Symbol symbol = expressionAnalyzer.convert(optExpression, expressionAnalysisContext);
+        return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
     }
 
     private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
@@ -516,15 +516,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private HavingClause analyzeHaving(Optional<Expression> having,
-                                       @Nullable List<Symbol> groupBy,
-                                       ExpressionAnalyzer expressionAnalyzer,
-                                       ExpressionAnalysisContext expressionAnalysisContext) {
-        if (having.isPresent()) {
+    private static HavingClause analyzeHaving(@Nullable Expression having,
+                                              @Nullable List<Symbol> groupBy,
+                                              ExpressionAnalyzer expressionAnalyzer,
+                                              ExpressionAnalysisContext expressionAnalysisContext) {
+        if (having != null) {
             if (!expressionAnalysisContext.hasAggregates() && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
-            Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
+            Symbol symbol = expressionAnalyzer.convert(having, expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
             return new HavingClause(symbol);
         }

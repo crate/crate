@@ -21,7 +21,7 @@ public class CreateIngestionRuleAnalyzer {
         return new CreateIngestionRuleAnalysedStatement(node.ruleName(),
             node.sourceIdent(),
             tableIdent,
-            node.where().orElse(null),
+            node.where(),
             context.parameterContext());
     }
 

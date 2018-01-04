@@ -27,7 +27,6 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
-import java.util.Optional;
 
 class CreateBlobTableAnalyzer {
 
@@ -45,9 +44,9 @@ class CreateBlobTableAnalyzer {
         statement.table(tableIdent, schemas);
 
         int numShards;
-        Optional<ClusteredBy> clusteredBy = node.clusteredBy();
-        if (clusteredBy.isPresent()) {
-            numShards = numberOfShards.fromClusteredByClause(clusteredBy.get(), parameterContext.parameters());
+        ClusteredBy clusteredBy = node.clusteredBy();
+        if (clusteredBy != null) {
+            numShards = numberOfShards.fromClusteredByClause(clusteredBy, parameterContext.parameters());
         } else {
             numShards = numberOfShards.defaultNumberOfShards();
         }

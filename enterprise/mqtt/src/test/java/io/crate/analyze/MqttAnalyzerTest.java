@@ -29,8 +29,6 @@ import io.crate.sql.tree.QualifiedName;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Optional;
-
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -45,7 +43,7 @@ public class MqttAnalyzerTest {
                 "rule",
                 "source",
                 QualifiedName.of("table"),
-                Optional.empty());
+                null);
         SessionContext sessionContext = SessionContext.create();
         sessionContext.setDefaultSchema("custom");
         ParameterContext parameterContext = Mockito.mock(ParameterContext.class);

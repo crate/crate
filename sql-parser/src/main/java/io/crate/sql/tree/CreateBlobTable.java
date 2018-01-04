@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 
 public class CreateBlobTable extends Statement {
 

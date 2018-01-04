@@ -201,12 +201,11 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
-    public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
-        if (whereExpression.isPresent()) {
-            return convert(whereExpression.get(), context);
-        } else {
-            return Literal.BOOLEAN_TRUE;
+    public Symbol generateQuerySymbol(@Nullable Expression whereExpression, ExpressionAnalysisContext context) {
+        if (whereExpression != null) {
+            return convert(whereExpression, context);
         }
+        return Literal.BOOLEAN_TRUE;
     }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
@@ -359,13 +358,13 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitIfExpression(IfExpression node, ExpressionAnalysisContext context) {
             // check for global operand
-            Optional<Expression> defaultExpression = node.getFalseValue();
-            List<Symbol> arguments = new ArrayList<>(defaultExpression.isPresent() ? 3 : 2);
+            Expression defaultExpression = node.getFalseValue();
+            List<Symbol> arguments = new ArrayList<>(defaultExpression != null ? 3 : 2);
 
             arguments.add(node.getCondition().accept(innerAnalyzer, context));
             arguments.add(node.getTrueValue().accept(innerAnalyzer, context));
-            if (defaultExpression.isPresent()) {
-                arguments.add(defaultExpression.get().accept(innerAnalyzer, context));
+            if (defaultExpression != null) {
+                arguments.add(defaultExpression.accept(innerAnalyzer, context));
             }
             return allocateFunction(IfFunction.NAME, arguments, context);
         }

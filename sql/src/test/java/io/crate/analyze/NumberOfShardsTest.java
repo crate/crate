@@ -37,7 +37,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Locale;
-import java.util.Optional;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -85,7 +84,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
 
     @Test
     public void testGetNumberOfShards() {
-        ClusteredBy clusteredBy = new ClusteredBy(Optional.of(QNAME_REF), Optional.of(LongLiteral.fromObject(7)));
+        ClusteredBy clusteredBy = new ClusteredBy(QNAME_REF, LongLiteral.fromObject(7));
         assertThat(numberOfShards.fromClusteredByClause(clusteredBy, Row.EMPTY), is(7));
     }
 
@@ -94,7 +93,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
         numberOfShards.fromClusteredByClause(
-            new ClusteredBy(Optional.of(QNAME_REF), Optional.of(LongLiteral.fromObject(0))), Row.EMPTY);
+            new ClusteredBy(QNAME_REF, LongLiteral.fromObject(0)), Row.EMPTY);
     }
 
 }

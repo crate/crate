@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 public class CopyTo extends Statement {
 
@@ -36,11 +35,12 @@ public class CopyTo extends Statement {
 
     private final GenericProperties genericProperties;
     private final List<Expression> columns;
-    private final Optional<Expression> whereClause;
+    @Nullable
+    private final Expression whereClause;
 
     public CopyTo(Table table,
                   @Nullable List<Expression> columns,
-                  Optional<Expression> whereClause,
+                  @Nullable Expression whereClause,
                   boolean directoryUri,
                   Expression targetUri,
                   GenericProperties genericProperties) {
@@ -74,7 +74,8 @@ public class CopyTo extends Statement {
         return genericProperties;
     }
 
-    public Optional<Expression> whereClause() {
+    @Nullable
+    public Expression whereClause() {
         return whereClause;
     }
 
@@ -90,7 +91,7 @@ public class CopyTo extends Statement {
         if (!genericProperties.equals(copyTo.genericProperties)) return false;
         if (!table.equals(copyTo.table)) return false;
         if (!targetUri.equals(copyTo.targetUri)) return false;
-        if (!whereClause.equals(copyTo.whereClause)) return false;
+        if (whereClause != null ? !whereClause.equals(copyTo.whereClause) : copyTo.whereClause != null) return false;
 
         return true;
     }
@@ -102,7 +103,9 @@ public class CopyTo extends Statement {
         result = 31 * result + targetUri.hashCode();
         result = 31 * result + genericProperties.hashCode();
         result = 31 * result + columns.hashCode();
-        result = 31 * result + whereClause.hashCode();
+        if (whereClause != null) {
+            result = 31 * result + whereClause.hashCode();
+        }
         return result;
     }
 

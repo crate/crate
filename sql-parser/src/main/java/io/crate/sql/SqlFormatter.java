@@ -157,8 +157,8 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
-            if (node.getWith().isPresent()) {
-                With with = node.getWith().get();
+            if (node.getWith() != null) {
+                With with = node.getWith();
                 append(indent, "WITH");
                 if (with.isRecursive()) {
                     builder.append(" RECURSIVE");
@@ -188,13 +188,13 @@ public final class SqlFormatter {
                 ).append('\n');
             }
 
-            if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
+            if (node.getLimit() != null) {
+                append(indent, "LIMIT " + node.getLimit())
                     .append('\n');
             }
 
-            if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
+            if (node.getOffset() != null) {
+                append(indent, "OFFSET " + node.getOffset())
                     .append('\n');
             }
 
@@ -226,8 +226,8 @@ public final class SqlFormatter {
 
             builder.append('\n');
 
-            if (node.getWhere().isPresent()) {
-                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere().get()))
+            if (node.getWhere() != null) {
+                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere()))
                     .append('\n');
             }
 
@@ -239,8 +239,8 @@ public final class SqlFormatter {
                     .append('\n');
             }
 
-            if (node.getHaving().isPresent()) {
-                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get()))
+            if (node.getHaving() != null) {
+                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving()))
                     .append('\n');
             }
 
@@ -252,13 +252,13 @@ public final class SqlFormatter {
                 ).append('\n');
             }
 
-            if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
+            if (node.getLimit() != null) {
+                append(indent, "LIMIT " + node.getLimit())
                     .append('\n');
             }
 
-            if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
+            if (node.getOffset() != null) {
+                append(indent, "OFFSET " + node.getOffset())
                     .append('\n');
             }
             return null;
@@ -711,8 +711,8 @@ public final class SqlFormatter {
             builder.append(" ON ")
                 .append(quoteIdentifierIfNeeded(node.sourceIdent().toString()));
 
-            if (node.where().isPresent()) {
-                builder.append(" WHERE " + formatExpression(node.where().get()));
+            if (node.where() != null) {
+                builder.append(" WHERE " + formatExpression(node.where()));
             }
             builder.append(" INTO ")
                 .append(quoteIdentifierIfNeeded(node.targetTable().toString()));

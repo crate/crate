@@ -24,29 +24,30 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Query extends Statement {
-    private final Optional<With> with;
+    @Nullable
+    private final With with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
-    private final Optional<Expression> limit;
-    private final Optional<Expression> offset;
+    @Nullable
+    private final Expression limit;
+    @Nullable
+    private final Expression offset;
 
     public Query(
-        Optional<With> with,
+        @Nullable With with,
         QueryBody queryBody,
         List<SortItem> orderBy,
-        Optional<Expression> limit,
-        Optional<Expression> offset) {
-        checkNotNull(with, "with is null");
+        @Nullable Expression limit,
+        @Nullable Expression offset) {
         checkNotNull(queryBody, "queryBody is null");
         checkNotNull(orderBy, "orderBy is null");
-        checkNotNull(limit, "limit is null");
-        checkNotNull(offset, "offset is null");
 
         this.with = with;
         this.queryBody = queryBody;
@@ -55,7 +56,8 @@ public class Query extends Statement {
         this.offset = offset;
     }
 
-    public Optional<With> getWith() {
+    @Nullable
+    public With getWith() {
         return with;
     }
 
@@ -67,11 +69,13 @@ public class Query extends Statement {
         return orderBy;
     }
 
-    public Optional<Expression> getLimit() {
+    @Nullable
+    public Expression getLimit() {
         return limit;
     }
 
-    public Optional<Expression> getOffset() {
+    @Nullable
+    public Expression getOffset() {
         return offset;
     }
 

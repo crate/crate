@@ -72,8 +72,8 @@ class RestoreSnapshotAnalyzer {
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
             node.properties(), analysis.parameterContext(), SETTINGS).build();
 
-        if (node.tableList().isPresent()) {
-            List<Table> tableList = node.tableList().get();
+        if (!node.tableList().isEmpty()) {
+            List<Table> tableList = node.tableList();
             Set<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables = new HashSet<>(tableList.size());
             for (Table table : tableList) {
                 TableIdent tableIdent = TableIdent.of(table, analysis.sessionContext().defaultSchema());

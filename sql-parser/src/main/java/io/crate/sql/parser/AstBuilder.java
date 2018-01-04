@@ -174,6 +174,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -508,15 +509,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitShowTables(SqlBaseParser.ShowTablesContext context) {
         return new ShowTables(
-            Optional.ofNullable(context.qname()).map(this::getQualifiedName),
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            getQualifiedName(context.qname()),
+            getUnquotedTextIfPresentElseNull(context.pattern),
             visitIfPresent(context.where(), Expression.class));
     }
 
     @Override
     public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context) {
         return new ShowSchemas(
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            getUnquotedTextIfPresentElseNull(context.pattern),
             visitIfPresent(context.where(), Expression.class));
     }
 
@@ -524,9 +525,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
         return new ShowColumns(
             getQualifiedName(context.tableName),
-            Optional.ofNullable(context.schema).map(this::getQualifiedName),
+            getQualifiedName(context.schema),
             visitIfPresent(context.where(), Expression.class),
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote));
+            getUnquotedTextIfPresentElseNull(context.pattern));
     }
 
     @Override
@@ -838,7 +839,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             QuerySpecification query = (QuerySpecification) term;
 
             return new Query(
-                Optional.empty(),
+                null,
                 new QuerySpecification(
                     query.getSelect(),
                     query.getFrom(),
@@ -849,11 +850,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     visitIfPresent(context.limit, Expression.class),
                     visitIfPresent(context.offset, Expression.class)),
                 ImmutableList.of(),
-                Optional.empty(),
-                Optional.empty());
+                null,
+                null);
         }
         return new Query(
-            Optional.empty(),
+            null,
             term,
             visit(context.sortItem(), SortItem.class),
             visitIfPresent(context.limit, Expression.class),
@@ -876,8 +877,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visit(context.expr(), Expression.class),
             visitIfPresent(context.having, Expression.class),
             ImmutableList.of(),
-            Optional.empty(),
-            Optional.empty());
+            null,
+            null);
     }
 
     @Override
@@ -1527,8 +1528,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return setQuantifier != null && setQuantifier.DISTINCT() != null;
     }
 
-    private static Optional<String> getTextIfPresent(ParserRuleContext context) {
-        return Optional.ofNullable(context).map(ParseTree::getText);
+    @Nullable
+    private static String getUnquotedTextIfPresentElseNull(ParserRuleContext context) {
+        return Optional.ofNullable(context)
+            .map(ParseTree::getText)
+            .map(AstBuilder::unquote)
+            .orElse(null);
     }
 
     private List<String> getColumnAliases(SqlBaseParser.AliasedColumnsContext columnAliasesContext) {

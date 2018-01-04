@@ -335,9 +335,9 @@ public final class ExpressionFormatter {
                 .append(process(node.getCondition(), context))
                 .append(", ")
                 .append(process(node.getTrueValue(), context));
-            if (node.getFalseValue().isPresent()) {
+            if (node.getFalseValue() != null) {
                 builder.append(", ")
-                    .append(process(node.getFalseValue().get(), context));
+                    .append(process(node.getFalseValue(), context));
             }
             builder.append(")");
             return builder.toString();

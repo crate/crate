@@ -24,21 +24,24 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ShowColumns extends Statement {
 
     private final QualifiedName table;
-    private final Optional<QualifiedName> schema;
-    private final Optional<String> likePattern;
-    private final Optional<Expression> where;
+    @Nullable
+    private final QualifiedName schema;
+    @Nullable
+    private final String likePattern;
+    @Nullable
+    private final Expression where;
 
     public ShowColumns(QualifiedName table,
-                       Optional<QualifiedName> schema,
-                       Optional<Expression> where,
-                       Optional<String> likePattern) {
+                       @Nullable QualifiedName schema,
+                       @Nullable Expression where,
+                       @Nullable String likePattern) {
         this.table = checkNotNull(table, "table is null");
         this.schema = schema;
         this.likePattern = likePattern;
@@ -49,15 +52,18 @@ public class ShowColumns extends Statement {
         return table;
     }
 
-    public Optional<QualifiedName> schema() {
+    @Nullable
+    public QualifiedName schema() {
         return schema;
     }
 
-    public Optional<String> likePattern() {
+    @Nullable
+    public String likePattern() {
         return likePattern;
     }
 
-    public Optional<Expression> where() {
+    @Nullable
+    public Expression where() {
         return where;
     }
 

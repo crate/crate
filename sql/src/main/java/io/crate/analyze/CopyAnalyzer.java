@@ -272,23 +272,21 @@ class CopyAnalyzer {
         return partitions;
     }
 
-    private WhereClause createWhereClause(Optional<Expression> where,
+    private WhereClause createWhereClause(@Nullable Expression where,
                                           DocTableRelation tableRelation,
                                           List<String> partitions,
                                           EvaluatingNormalizer normalizer,
                                           ExpressionAnalyzer expressionAnalyzer,
                                           ExpressionAnalysisContext expressionAnalysisContext,
                                           TransactionContext transactionContext) {
-        WhereClause whereClause = null;
-        if (where.isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
-            Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
-            whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
-        }
-
-        if (whereClause == null) {
+        if (where == null) {
             return new WhereClause(null, null, partitions, null);
-        } else if (whereClause.noMatch()) {
+        }
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
+        Symbol query = expressionAnalyzer.convert(where, expressionAnalysisContext);
+        WhereClause whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
+
+        if (whereClause.noMatch()) {
             return whereClause;
         } else {
             if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() &&

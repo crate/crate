@@ -93,8 +93,8 @@ class CreateSnapshotAnalyzer {
         boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
         // iterate tables
-        if (node.tableList().isPresent()) {
-            List<Table> tableList = node.tableList().get();
+        if (!node.tableList().isEmpty()) {
+            List<Table> tableList = node.tableList();
             Set<String> snapshotIndices = new HashSet<>(tableList.size());
             for (Table table : tableList) {
                 DocTableInfo docTableInfo;
