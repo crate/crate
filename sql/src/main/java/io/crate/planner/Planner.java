@@ -274,9 +274,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, PlannerContext context) {
-        return analysis.jobId().isPresent() ?
-            new KillPlan(analysis.jobId().get()) :
-            new KillPlan();
+        return new KillPlan(analysis.jobId());
     }
 
     @Override

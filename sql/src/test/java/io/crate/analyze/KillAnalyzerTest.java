@@ -43,25 +43,25 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnalyzeKillAll() throws Exception {
         KillAnalyzedStatement stmt = e.analyze("kill all");
-        assertThat(stmt.jobId().isPresent(), is(false));
+        assertNull(stmt.jobId());
     }
 
     @Test
     public void testAnalyzeKillJobWithParameter() throws Exception {
         UUID jobId = UUID.randomUUID();
         KillAnalyzedStatement stmt = e.analyze("kill $2", new Object[]{2, jobId});
-        assertThat(stmt.jobId().get(), is(jobId));
+        assertThat(stmt.jobId(), is(jobId));
         stmt = e.analyze("kill $1", new Object[]{jobId});
-        assertThat(stmt.jobId().get(), is(jobId));
+        assertThat(stmt.jobId(), is(jobId));
         stmt = e.analyze("kill ?", new Object[]{jobId});
-        assertThat(stmt.jobId().get(), is(jobId));
+        assertThat(stmt.jobId(), is(jobId));
     }
 
     @Test
     public void testAnalyzeKillJobWithLiteral() throws Exception {
         UUID jobId = UUID.randomUUID();
         KillAnalyzedStatement stmt = e.analyze(String.format(Locale.ENGLISH, "kill '%s'", jobId.toString()));
-        assertThat(stmt.jobId().get(), is(jobId));
+        assertThat(stmt.jobId(), is(jobId));
     }
 
     @Test(expected = IllegalArgumentException.class)
