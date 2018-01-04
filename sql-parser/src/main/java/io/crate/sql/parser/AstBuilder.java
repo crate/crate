@@ -1511,7 +1511,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
-        return QualifiedName.of(identsToStrings(context.ident()));
+        return Optional.ofNullable(context)
+            .map(ctx -> identsToStrings(ctx.ident()))
+            .map(QualifiedName::of)
+            .orElse(null);
     }
 
     private QualifiedName getQualifiedName(SqlBaseParser.IdentContext context) {
