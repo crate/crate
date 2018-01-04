@@ -448,11 +448,11 @@ public final class SqlFormatter {
         @Override
         public Void visitClusteredBy(ClusteredBy node, Integer indent) {
             append(indent, "CLUSTERED");
-            if (node.column().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().get().toString()));
+            if (node.column() != null) {
+                builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().toString()));
             }
-            if (node.numberOfShards().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " INTO %s SHARDS", node.numberOfShards().get()));
+            if (node.numberOfShards() != null) {
+                builder.append(String.format(Locale.ENGLISH, " INTO %s SHARDS", node.numberOfShards()));
             }
             return null;
         }

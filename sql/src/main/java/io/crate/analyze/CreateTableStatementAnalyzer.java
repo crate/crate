@@ -147,9 +147,9 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     @Override
     public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy clusteredBy, Context context) {
-        if (clusteredBy.column().isPresent()) {
+        if (clusteredBy.column() != null) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.parameterContext.parameters()));
+                ExpressionToStringVisitor.convert(clusteredBy.column(), context.parameterContext.parameters()));
 
             for (AnalyzedColumnDefinition column : context.statement.analyzedTableElements().partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {

@@ -224,7 +224,7 @@ public class MetaDataToASTNodeResolver {
                 clusteredByExpression = expressionFromColumn(clusteredBy);
             }
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            options.add(new ClusteredBy(Optional.ofNullable(clusteredByExpression), Optional.of(numShards)));
+            options.add(new ClusteredBy(clusteredByExpression, numShards));
             // PARTITIONED BY (...)
             if (tableInfo.isPartitioned() && !tableInfo.partitionedBy().isEmpty()) {
                 options.add(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
@@ -263,7 +263,7 @@ public class MetaDataToASTNodeResolver {
             Table table = extractTable();
             List<TableElement> tableElements = extractTableElements();
             List<CrateTableOption> tableOptions = extractTableOptions();
-            Optional<GenericProperties> tableProperties = Optional.of(extractTableProperties());
+            GenericProperties tableProperties = extractTableProperties();
             return new CreateTable(table, tableElements, tableOptions, tableProperties, true);
         }
 

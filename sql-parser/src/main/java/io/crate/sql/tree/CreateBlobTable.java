@@ -23,15 +23,17 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 public class CreateBlobTable extends Statement {
 
     private final Table name;
-    private final Optional<ClusteredBy> clusteredBy;
+    @Nullable
+    private final ClusteredBy clusteredBy;
     private final GenericProperties genericProperties;
 
-    public CreateBlobTable(Table name, Optional<ClusteredBy> clusteredBy, GenericProperties properties) {
+    public CreateBlobTable(Table name, @Nullable ClusteredBy clusteredBy, GenericProperties properties) {
         this.name = name;
         this.clusteredBy = clusteredBy;
         this.genericProperties = properties;
@@ -41,7 +43,8 @@ public class CreateBlobTable extends Statement {
         return name;
     }
 
-    public Optional<ClusteredBy> clusteredBy() {
+    @Nullable
+    public ClusteredBy clusteredBy() {
         return clusteredBy;
     }
 
@@ -56,7 +59,7 @@ public class CreateBlobTable extends Statement {
 
         CreateBlobTable that = (CreateBlobTable) o;
 
-        if (!clusteredBy.equals(that.clusteredBy)) return false;
+        if (clusteredBy != null ? !clusteredBy.equals(that.clusteredBy) : that.clusteredBy != null) return false;
         if (!genericProperties.equals(that.genericProperties)) return false;
         if (!name.equals(that.name)) return false;
 
@@ -66,7 +69,9 @@ public class CreateBlobTable extends Statement {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + clusteredBy.hashCode();
+        if (clusteredBy != null) {
+            result = 31 * result + clusteredBy.hashCode();
+        }
         result = 31 * result + genericProperties.hashCode();
         return result;
     }
