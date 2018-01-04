@@ -340,7 +340,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testLimitNotAppliedWhenFilteringRemains() throws Exception {
+    public void testLimitNotAppliedWhenExplicitFilteringRemains() throws Exception {
         QueryThenFetch plan = plan("select * from users u1 " +
                                    "left join users u2 on u1.id=u2.id " +
                                    "left join users u3 on u2.id=u3.id " +
@@ -355,6 +355,26 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         nl = ((NestedLoop) ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).left()).nestedLoopPhase();
         assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
     }
+
+    @Test
+    public void testLimitNotAppliedWhenImplicitFilteringRemains() throws Exception {
+        QueryThenFetch plan = plan("select * from users u1 " +
+                                   "inner join users u2 on u1.id=u2.id " +
+                                   "inner join users u3 on u2.id=u3.id " +
+                                   "inner join users u4 on u3.id=u4.id " +
+                                   "limit 10");
+        NestedLoopPhase nl = ((NestedLoop) plan.subPlan()).nestedLoopPhase();
+        assertThat(nl.projections().size(), is(2));
+        assertThat(nl.projections().get(1), instanceOf(FetchProjection.class));
+        assertThat(((TopNProjection) nl.projections().get(0)).limit(), is(10));
+        nl = ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).nestedLoopPhase();
+        assertThat(nl.projections().size(), is(1));
+        assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
+        nl = ((NestedLoop) ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).left()).nestedLoopPhase();
+        assertThat(nl.projections().size(), is(1));
+        assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
+    }
+
 
     @Test
     public void testGlobalAggregateWithExplicitCrossJoinSyntax() throws Exception {

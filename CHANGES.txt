@@ -21,6 +21,15 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused incorrect results for queries with joins on more
+  than 2 tables with implicit join conditions using the ``ON`` clause and
+  ``LIMIT`` is applied. E.g. ::
+
+     SELECT * from t1
+     INNER JOIN t2 on t1.id = t2.id
+     INNER JOIN t3 on t3.id = t2.id
+     LIMIT 100
+
 - Fixed an issue that could cause a ``ALTER TABLE`` statement to fail with an
   exception on partitioned tables created with CrateDB < 1.2.
 

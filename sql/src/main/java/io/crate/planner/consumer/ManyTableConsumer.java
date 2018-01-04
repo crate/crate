@@ -441,8 +441,12 @@ public class ManyTableConsumer implements Consumer {
         int index = 0;
         for (int i = twoTableJoinList.size() - 1; i >= 0; i--) {
             index = i;
-            WhereClause where = twoTableJoinList.get(i).querySpec().where();
+            TwoTableJoin ttJoin = twoTableJoinList.get(i);
+            WhereClause where = ttJoin.querySpec().where();
             if (where.hasQuery() && !(where.query() instanceof Literal)) {
+                break;
+            }
+            if (ttJoin.joinPair().condition() != null) {
                 break;
             }
         }
