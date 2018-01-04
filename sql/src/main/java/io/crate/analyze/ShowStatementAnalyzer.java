@@ -33,7 +33,6 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
 
 import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Rewrites the SHOW statements into Select queries.

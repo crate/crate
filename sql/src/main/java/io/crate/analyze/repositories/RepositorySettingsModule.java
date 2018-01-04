@@ -37,7 +37,6 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 public class RepositorySettingsModule extends AbstractModule {
 

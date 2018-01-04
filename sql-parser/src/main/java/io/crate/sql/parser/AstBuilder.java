@@ -1489,7 +1489,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private <T> T visitIfPresent(ParserRuleContext context, Class<T> clazz) {
         return visitIfPresent(context, clazz, null);
-    };
+    }
 
     private <T> T visitIfPresent(ParserRuleContext context, Class<T> clazz, T defaultValue) {
         return Optional.ofNullable(context)
