@@ -298,9 +298,9 @@ class CopyAnalyzer {
 
             return new WhereClause(
                 whereClause.query(),
-                whereClause.docKeys().orElse(null),
+                whereClause.docKeys(),
                 partitions.isEmpty() ? whereClause.partitions() : partitions,
-                whereClause.clusteredBy().orElse(null)
+                whereClause.clusteredBy()
             );
         }
     }

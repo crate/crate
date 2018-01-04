@@ -94,8 +94,8 @@ class Collect extends ZeroInputPlan {
     private final long numExpectedRows;
 
     public static LogicalPlan.Builder create(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
-        if (where.docKeys().isPresent() && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
-            DocKeys docKeys = where.docKeys().get();
+        if (where.docKeys() != null && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
+            DocKeys docKeys = where.docKeys();
             return ((tableStats, usedBeforeNextFetch) -> new Get(((QueriedDocTable) relation), docKeys, toCollect));
         }
         return (tableStats, usedColumns) -> new Collect(
