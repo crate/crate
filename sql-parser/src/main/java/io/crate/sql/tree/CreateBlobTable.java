@@ -29,9 +29,9 @@ public class CreateBlobTable extends Statement {
 
     private final Table name;
     private final Optional<ClusteredBy> clusteredBy;
-    private final Optional<GenericProperties> genericProperties;
+    private final GenericProperties genericProperties;
 
-    public CreateBlobTable(Table name, Optional<ClusteredBy> clusteredBy, Optional<GenericProperties> properties) {
+    public CreateBlobTable(Table name, Optional<ClusteredBy> clusteredBy, GenericProperties properties) {
         this.name = name;
         this.clusteredBy = clusteredBy;
         this.genericProperties = properties;
@@ -45,7 +45,7 @@ public class CreateBlobTable extends Statement {
         return clusteredBy;
     }
 
-    public Optional<GenericProperties> genericProperties() {
+    public GenericProperties genericProperties() {
         return genericProperties;
     }
 

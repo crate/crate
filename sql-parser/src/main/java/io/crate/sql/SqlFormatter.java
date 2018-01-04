@@ -128,9 +128,9 @@ public final class SqlFormatter {
             process(node.table(), indent);
             append(indent, " FROM ");
             process(node.path(), indent);
-            if (node.genericProperties().isPresent()) {
+            if (!node.genericProperties().isEmpty()) {
                 append(indent, " ");
-                process(node.genericProperties().get(), indent);
+                process(node.genericProperties(), indent);
             }
             return null;
         }
@@ -364,9 +364,9 @@ public final class SqlFormatter {
                 }
             }
 
-            if (node.properties().isPresent() && !node.properties().get().isEmpty()) {
+            if (!node.properties().isEmpty()) {
                 builder.append("\n");
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
@@ -686,19 +686,19 @@ public final class SqlFormatter {
         public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
             builder.append("CREATE SNAPSHOT ")
                 .append(quoteIdentifierIfNeeded(node.name().toString()));
-            if (node.tableList().isPresent()) {
+            if (!node.tableList().isEmpty()) {
                 builder.append(" TABLE ");
-                int count = 0, max = node.tableList().get().size();
-                for (Table table : node.tableList().get()) {
+                int count = 0, max = node.tableList().size();
+                for (Table table : node.tableList()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }
             } else {
                 builder.append(" ALL");
             }
-            if (node.properties().isPresent()) {
+            if (!node.properties().isEmpty()) {
                 builder.append(' ');
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
