@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed a bug which could cause job entries in `sys.jobs` not being removed
+  when a connection error occurred while transferring the results of the job
+  execution.
+
 - Fixed an issue that could cause a ``ALTER TABLE`` statement to fail with an
   exception on partitioned tables created with CrateDB < 1.2.
 
