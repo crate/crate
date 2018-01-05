@@ -824,7 +824,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new WithQuery(
             getIdentText(context.name),
             (Query) visit(context.query()),
-            Optional.ofNullable(getColumnAliases(context.aliasedColumns())).orElse(ImmutableList.of()));
+            getColumnAliases(context.aliasedColumns()));
     }
 
     @Override
@@ -954,6 +954,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return literal.getValue();
     }
 
+    @Nullable
     private String getIdentTextIfPresentElseNull(SqlBaseParser.IdentContext ident) {
         if (ident == null) {
             return null;
@@ -1513,6 +1514,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             .replace("''", "'");
     }
 
+    @Nullable
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
         return Optional.ofNullable(context)
             .map(ctx -> identsToStrings(ctx.ident()))
@@ -1543,10 +1545,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private List<String> getColumnAliases(SqlBaseParser.AliasedColumnsContext columnAliasesContext) {
-        if (columnAliasesContext == null) {
-            return null;
-        }
-        return identsToStrings(columnAliasesContext.ident());
+        return Optional.ofNullable(columnAliasesContext)
+            .map(x -> identsToStrings(x.ident()))
+            .orElse(ImmutableList.of());
     }
 
     private static ArithmeticExpression.Type getArithmeticBinaryOperator(Token operator) {
