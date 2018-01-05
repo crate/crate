@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed a bug which could cause job entries in `sys.jobs` not being removed
+  when a connection error occurred while transferring the results of the job
+  execution.
+
 - Fixed an issue that caused incorrect results for queries with joins on more
   than 2 tables with implicit join conditions using the ``ON`` clause and
   ``LIMIT`` is applied. E.g. ::
