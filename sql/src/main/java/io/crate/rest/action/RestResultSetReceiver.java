@@ -104,7 +104,8 @@ class RestResultSetReceiver extends BaseResultReceiver {
             channel.sendResponse(response);
             super.allFinished(interrupted);
         } catch (Throwable e) {
-            LOGGER.error(e);
+            LOGGER.error("Failed to send final response.", e);
+            super.fail(e);
         } finally {
             rowAccounting.close();
         }
