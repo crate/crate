@@ -24,8 +24,6 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import java.util.Optional;
-
 public class Tokenizer extends AnalyzerElement {
 
     private final NamedProperties namedProperties;
@@ -34,7 +32,7 @@ public class Tokenizer extends AnalyzerElement {
         this.namedProperties = namedProperties;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return namedProperties.properties();
     }
 

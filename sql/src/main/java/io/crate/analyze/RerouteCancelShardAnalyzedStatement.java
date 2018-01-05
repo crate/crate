@@ -26,7 +26,6 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.Nullable;
 
 import java.util.List;
 
@@ -34,14 +33,13 @@ public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatemen
 
     private final Expression shardId;
     private final Expression nodeId;
-    @Nullable
     private final GenericProperties properties;
 
     public RerouteCancelShardAnalyzedStatement(ShardedTable tableInfo,
                                                List<Assignment> partitionProperties,
                                                Expression shardId,
                                                Expression nodeId,
-                                               @Nullable GenericProperties properties) {
+                                               GenericProperties properties) {
         super(tableInfo, partitionProperties);
         this.shardId = shardId;
         this.nodeId = nodeId;
@@ -61,7 +59,6 @@ public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatemen
         return nodeId;
     }
 
-    @Nullable
     public GenericProperties properties() {
         return properties;
     }

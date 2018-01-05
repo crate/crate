@@ -37,7 +37,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Singleton
@@ -49,7 +48,7 @@ public class RepositoryParamValidator {
         typeSettings = repositoryTypeSettings;
     }
 
-    public Settings convertAndValidate(String type, Optional<GenericProperties> genericProperties, ParameterContext parameterContext) {
+    public Settings convertAndValidate(String type, GenericProperties genericProperties, ParameterContext parameterContext) {
         TypeSettings typeSettings = this.typeSettings.get(type);
         if (typeSettings == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
@@ -58,11 +57,11 @@ public class RepositoryParamValidator {
         Map<String, SettingsApplier> allSettings = typeSettings.all();
 
         // create string settings applier for all dynamic settings
-        Optional<GenericProperties> dynamicProperties = typeSettings.dynamicProperties(genericProperties);
-        if (dynamicProperties.isPresent()) {
+        GenericProperties dynamicProperties = typeSettings.dynamicProperties(genericProperties);
+        if (!dynamicProperties.isEmpty()) {
             // allSettings are immutable by default, copy map
             allSettings = Maps.newHashMap(allSettings);
-            for (String key : dynamicProperties.get().properties().keySet()) {
+            for (String key : dynamicProperties.properties().keySet()) {
                 allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key)));
             }
         }

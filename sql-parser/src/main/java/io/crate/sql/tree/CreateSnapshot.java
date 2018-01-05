@@ -30,11 +30,11 @@ import java.util.Optional;
 public class CreateSnapshot extends Statement {
 
     private final QualifiedName name;
-    private final Optional<GenericProperties> properties;
+    private final GenericProperties properties;
     private final Optional<List<Table>> tableList;
 
     public CreateSnapshot(QualifiedName name,
-                          Optional<GenericProperties> genericProperties) {
+                          GenericProperties genericProperties) {
         this.name = name;
         this.properties = genericProperties;
         this.tableList = Optional.empty();
@@ -42,7 +42,7 @@ public class CreateSnapshot extends Statement {
 
     public CreateSnapshot(QualifiedName name,
                           List<Table> tableList,
-                          Optional<GenericProperties> genericProperties) {
+                          GenericProperties genericProperties) {
         this.name = name;
         this.tableList = Optional.of(tableList);
         this.properties = genericProperties;
@@ -53,7 +53,7 @@ public class CreateSnapshot extends Statement {
         return this.name;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return properties;
     }
 

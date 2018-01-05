@@ -34,6 +34,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.Nullable;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,21 +60,23 @@ public class CreateUserAnalyzer {
     }
 
     public CreateUserAnalyzedStatement analyze(CreateUser node, ParamTypeHints typeHints, TransactionContext txnContext) {
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions,
-            txnContext,
-            typeHints,
-            fieldProvider,
-            null
-        );
-
-        Map<String, Symbol> rows = new HashMap<>();
-        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
-        Map<String, Expression> properties = node.properties().properties();
-        for (Map.Entry<String, Expression> exprEntry : properties.entrySet()) {
-            Symbol valueSymbol = expressionAnalyzer.convert(exprEntry.getValue(), exprCtx);
-            rows.put(exprEntry.getKey(), valueSymbol);
+        if (!node.properties().isEmpty()) {
+            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                functions,
+                txnContext,
+                typeHints,
+                fieldProvider,
+                null
+            );
+            Map<String, Symbol> rows = new HashMap<>();
+            ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
+            Map<String, Expression> properties = node.properties().properties();
+            for (Map.Entry<String, Expression> exprEntry : properties.entrySet()) {
+                Symbol valueSymbol = expressionAnalyzer.convert(exprEntry.getValue(), exprCtx);
+                rows.put(exprEntry.getKey(), valueSymbol);
+            }
+            return new CreateUserAnalyzedStatement(node.name(), rows);
         }
-        return new CreateUserAnalyzedStatement(node.name(), rows);
+        return new CreateUserAnalyzedStatement(node.name(), Collections.emptyMap());
     }
 }

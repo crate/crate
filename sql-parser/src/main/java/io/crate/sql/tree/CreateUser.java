@@ -25,14 +25,12 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import javax.annotation.Nullable;
-
 public class CreateUser extends Statement {
 
     private final String name;
     private final GenericProperties properties;
 
-    public CreateUser(String name, @Nullable GenericProperties properties) {
+    public CreateUser(String name, GenericProperties properties) {
         this.name = name;
         this.properties = properties;
     }
@@ -41,7 +39,6 @@ public class CreateUser extends Statement {
         return name;
     }
 
-    @Nullable
     public GenericProperties properties() {
         return properties;
     }

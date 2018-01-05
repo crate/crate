@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
 
 public class AlterUser extends Statement {
 
@@ -32,7 +31,6 @@ public class AlterUser extends Statement {
     private final String name;
 
     public AlterUser(String name, GenericProperties genericProperties) {
-        Preconditions.checkNotNull(genericProperties, "assignments are null");
         this.genericProperties = genericProperties;
         this.name = name;
     }

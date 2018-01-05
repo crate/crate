@@ -23,17 +23,15 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-import java.util.Optional;
-
 public class CopyFrom extends Statement {
 
     private final Table table;
     private final Expression path;
-    private final Optional<GenericProperties> genericProperties;
+    private final GenericProperties genericProperties;
 
     public CopyFrom(Table table,
                     Expression path,
-                    Optional<GenericProperties> genericProperties) {
+                    GenericProperties genericProperties) {
 
         this.table = table;
         this.path = path;
@@ -48,7 +46,7 @@ public class CopyFrom extends Statement {
         return path;
     }
 
-    public Optional<GenericProperties> genericProperties() {
+    public GenericProperties genericProperties() {
         return genericProperties;
     }
 

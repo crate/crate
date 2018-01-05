@@ -25,16 +25,13 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import javax.annotation.Nullable;
-
 public class RerouteCancelShard extends RerouteOption {
 
     private final Expression nodeId;
     private final Expression shardId;
-    @Nullable
     private final GenericProperties properties;
 
-    public RerouteCancelShard(Expression shardId, Expression nodeId, @Nullable GenericProperties properties) {
+    public RerouteCancelShard(Expression shardId, Expression nodeId, GenericProperties properties) {
         this.shardId = shardId;
         this.nodeId = nodeId;
         this.properties = properties;
@@ -48,7 +45,6 @@ public class RerouteCancelShard extends RerouteOption {
         return shardId;
     }
 
-    @Nullable
     public GenericProperties properties() {
         return properties;
     }

@@ -25,14 +25,13 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 
 import java.util.List;
-import java.util.Optional;
 
 public class OptimizeStatement extends Statement {
 
     private final List<Table> tables;
-    private final Optional<GenericProperties> properties;
+    private final GenericProperties properties;
 
-    public OptimizeStatement(List<Table> tables, Optional<GenericProperties> properties) {
+    public OptimizeStatement(List<Table> tables, GenericProperties properties) {
         this.tables = tables;
         this.properties = properties;
     }
@@ -41,7 +40,7 @@ public class OptimizeStatement extends Statement {
         return tables;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return properties;
     }
 

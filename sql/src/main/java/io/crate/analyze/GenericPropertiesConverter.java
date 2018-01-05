@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 public class GenericPropertiesConverter {
 
@@ -71,13 +70,13 @@ public class GenericPropertiesConverter {
         return builder.build();
     }
 
-    public static Settings.Builder settingsFromProperties(Optional<GenericProperties> properties,
+    public static Settings.Builder settingsFromProperties(GenericProperties properties,
                                                           ParameterContext parameterContext,
                                                           Map<String, ? extends SettingsApplier> settingAppliers) {
         Settings.Builder builder = Settings.builder();
         setDefaults(settingAppliers, builder);
-        if (properties.isPresent()) {
-            for (Map.Entry<String, Expression> entry : properties.get().properties().entrySet()) {
+        if (!properties.isEmpty()) {
+            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
                 SettingsApplier settingsApplier = settingAppliers.get(entry.getKey());
                 if (settingsApplier == null) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", entry.getKey()));

@@ -25,24 +25,23 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Optional;
 
 public class AlterTable extends Statement {
 
     private final Table table;
-    private final Optional<GenericProperties> genericProperties;
+    private final GenericProperties genericProperties;
     private final List<String> resetProperties;
 
     public AlterTable(Table table, GenericProperties genericProperties) {
         this.table = table;
-        this.genericProperties = Optional.of(genericProperties);
+        this.genericProperties = genericProperties;
         this.resetProperties = ImmutableList.of();
     }
 
     public AlterTable(Table table, List<String> resetProperties) {
         this.table = table;
         this.resetProperties = resetProperties;
-        this.genericProperties = Optional.empty();
+        this.genericProperties = GenericProperties.EMPTY;
     }
 
     @Override
@@ -54,7 +53,7 @@ public class AlterTable extends Statement {
         return table;
     }
 
-    public Optional<GenericProperties> genericProperties() {
+    public GenericProperties genericProperties() {
         return genericProperties;
     }
 

@@ -210,7 +210,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitOptimize(SqlBaseParser.OptimizeContext context) {
         return new OptimizeStatement(
             visit(context.tableWithPartitions().tableWithPartition(), Table.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -220,7 +220,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             (Table) visit(context.table()),
             visit(context.tableElement(), TableElement.class),
             visit(context.crateTableOption(), CrateTableOption.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class),
+            extractGenericProperties(context.withProperties()),
             notExists);
     }
 
@@ -229,7 +229,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new CreateBlobTable(
             (Table) visit(context.table()),
             visitIfPresent(context.numShards, ClusteredBy.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -237,7 +237,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new CreateRepository(
             getIdentText(context.name),
             getIdentText(context.type),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -245,12 +245,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new CreateSnapshot(
                 getQualifiedName(context.qname()),
-                visitIfPresent(context.withProperties(), GenericProperties.class));
+                extractGenericProperties(context.withProperties()));
         }
         return new CreateSnapshot(
             getQualifiedName(context.qname()),
             visit(context.tableWithPartitions().tableWithPartition(), Table.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -266,8 +266,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCreateUser(SqlBaseParser.CreateUserContext context) {
         return new CreateUser(
             getIdentText(context.name),
-            visitIfPresent(context.withProperties(), GenericProperties.class)
-                .orElse(GenericProperties.EMPTY));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -333,7 +332,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitNamedProperties(SqlBaseParser.NamedPropertiesContext context) {
         return new NamedProperties(
             getIdentText(context.ident()),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -341,11 +340,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new RestoreSnapshot(
                 getQualifiedName(context.qname()),
-                visitIfPresent(context.withProperties(), GenericProperties.class));
+                extractGenericProperties(context.withProperties()));
         }
         return new RestoreSnapshot(getQualifiedName(context.qname()),
             visit(context.tableWithPartitions().tableWithPartition(), Table.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -383,7 +382,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new CopyFrom(
             (Table) visit(context.tableWithPartition()),
             (Expression) visit(context.path),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -398,7 +397,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
             (Expression) visit(context.path),
-            visitIfPresent(context.withProperties(), GenericProperties.class));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -616,8 +615,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitColumnIndexConstraint(SqlBaseParser.ColumnIndexConstraintContext context) {
         return new IndexColumnConstraint(
             getIdentText(context.method),
-            visitIfPresent(context.withProperties(), GenericProperties.class)
-                .orElse(GenericProperties.EMPTY));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -626,14 +624,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getIdentText(context.name),
             getIdentText(context.method),
             visit(context.columns().primaryExpression(), Expression.class),
-            visitIfPresent(context.withProperties(), GenericProperties.class)
-                .orElse(GenericProperties.EMPTY));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override
     public Node visitColumnStorageDefinition(SqlBaseParser.ColumnStorageDefinitionContext ctx) {
-        return new ColumnStorageDefinition(visitIfPresent(ctx.withProperties(), GenericProperties.class)
-            .orElse(GenericProperties.EMPTY));
+        return new ColumnStorageDefinition(extractGenericProperties(ctx.withProperties()));
     }
 
     @Override
@@ -678,11 +674,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new RerouteCancelShard(
             (Expression) visit(context.shardId),
             (Expression) visit(context.nodeId),
-            visitIfPresent(context.withProperties(), GenericProperties.class)
-                .orElse(GenericProperties.EMPTY));
+            extractGenericProperties(context.withProperties()));
     }
 
     // Properties
+
+    private GenericProperties extractGenericProperties(ParserRuleContext context) {
+        return visitIfPresent(context, GenericProperties.class).orElse(GenericProperties.EMPTY);
+    }
 
     @Override
     public Node visitWithGenericProperties(SqlBaseParser.WithGenericPropertiesContext context) {
@@ -707,7 +706,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterTableProperties(SqlBaseParser.AlterTablePropertiesContext context) {
         Table name = (Table) visit(context.alterTableDefinition());
         if (context.SET() != null) {
-            return new AlterTable(name, (GenericProperties) visit(context.genericProperties()));
+            return new AlterTable(name, extractGenericProperties(context.genericProperties()));
         }
         return new AlterTable(name, identsToStrings(context.ident()));
     }
@@ -716,7 +715,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterBlobTableProperties(SqlBaseParser.AlterBlobTablePropertiesContext context) {
         Table name = (Table) visit(context.alterTableDefinition());
         if (context.SET() != null) {
-            return new AlterBlobTable(name, (GenericProperties) visit(context.genericProperties()));
+            return new AlterBlobTable(name, extractGenericProperties(context.genericProperties()));
         }
         return new AlterBlobTable(name, identsToStrings(context.ident()));
     }
@@ -781,7 +780,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAlterUser(SqlBaseParser.AlterUserContext context) {
         return new AlterUser(
             getIdentText(context.name),
-            (GenericProperties) visit(context.genericProperties())
+            extractGenericProperties(context.genericProperties())
         );
     }
 
@@ -1185,7 +1184,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             idents,
             (Expression) visit(context.term),
             getIdentTextIfPresent(context.matchType).orElse(null),
-            visitIfPresent(context.withProperties(), GenericProperties.class).orElse(null));
+            extractGenericProperties(context.withProperties()));
     }
 
     @Override

@@ -35,7 +35,7 @@ public class CopyTo extends Statement {
     private final boolean directoryUri;
     private final Expression targetUri;
 
-    private final Optional<GenericProperties> genericProperties;
+    private final GenericProperties genericProperties;
     private final List<Expression> columns;
     private final Optional<Expression> whereClause;
 
@@ -44,7 +44,7 @@ public class CopyTo extends Statement {
                   Optional<Expression> whereClause,
                   boolean directoryUri,
                   Expression targetUri,
-                  Optional<GenericProperties> genericProperties) {
+                  GenericProperties genericProperties) {
 
         this.table = table;
         this.directoryUri = directoryUri;
@@ -71,7 +71,7 @@ public class CopyTo extends Statement {
     }
 
 
-    public Optional<GenericProperties> genericProperties() {
+    public GenericProperties genericProperties() {
         return genericProperties;
     }
 

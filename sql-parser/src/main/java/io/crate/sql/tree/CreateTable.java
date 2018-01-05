@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import java.util.List;
-import java.util.Optional;
 
 public class CreateTable extends Statement {
 
@@ -33,12 +32,12 @@ public class CreateTable extends Statement {
     private final List<TableElement> tableElements;
     private final boolean ifNotExists;
     private final List<CrateTableOption> crateTableOptions;
-    private final Optional<GenericProperties> properties;
+    private final GenericProperties properties;
 
     public CreateTable(Table name,
                        List<TableElement> tableElements,
                        List<CrateTableOption> crateTableOptions,
-                       Optional<GenericProperties> genericProperties,
+                       GenericProperties genericProperties,
                        boolean ifNotExists) {
         this.name = name;
         this.tableElements = tableElements;
@@ -63,7 +62,7 @@ public class CreateTable extends Statement {
         return crateTableOptions;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return properties;
     }
 

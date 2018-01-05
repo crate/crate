@@ -119,10 +119,10 @@ class CopyAnalyzer {
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Predicate<DiscoveryNode> nodeFilters = discoveryNode -> true;
         Settings settings = Settings.EMPTY;
-        if (node.genericProperties().isPresent()) {
+        if (!node.genericProperties().isEmpty()) {
             // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
             // items would cause subsequent queries that hit the cache to have different genericProperties
-            Map<String, Expression> properties = new HashMap<>(node.genericProperties().get().properties());
+            Map<String, Expression> properties = new HashMap<>(node.genericProperties().properties());
             nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
             settings = settingsFromProperties(properties, expressionAnalyzer, expressionAnalysisContext);
         }

@@ -24,17 +24,15 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import java.util.Optional;
-
 public class CreateRepository extends Statement {
 
     private final String repository;
     private final String type;
-    private final Optional<GenericProperties> properties;
+    private final GenericProperties properties;
 
     public CreateRepository(String repository,
                             String type,
-                            Optional<GenericProperties> genericProperties) {
+                            GenericProperties genericProperties) {
         this.repository = repository;
         this.type = type;
         this.properties = genericProperties;
@@ -48,7 +46,7 @@ public class CreateRepository extends Statement {
         return type;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return properties;
     }
 

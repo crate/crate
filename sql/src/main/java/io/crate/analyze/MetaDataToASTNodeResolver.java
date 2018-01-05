@@ -263,8 +263,7 @@ public class MetaDataToASTNodeResolver {
             Table table = extractTable();
             List<TableElement> tableElements = extractTableElements();
             List<CrateTableOption> tableOptions = extractTableOptions();
-            Optional<GenericProperties> tableProperties = Optional.of(extractTableProperties());
-            return new CreateTable(table, tableElements, tableOptions, tableProperties, true);
+            return new CreateTable(table, tableElements, tableOptions, extractTableProperties(), true);
         }
 
         private Expression expressionFromColumn(ColumnIdent ident) {

@@ -29,7 +29,6 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.sql.tree.GenericProperties;
 
 import java.util.Map;
-import java.util.Optional;
 
 public class TypeSettings {
 
@@ -59,7 +58,7 @@ public class TypeSettings {
     /**
      * Return possible dynamic GenericProperties which will not be validated.
      */
-    public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
-        return Optional.empty();
+    public GenericProperties dynamicProperties(GenericProperties genericProperties) {
+        return GenericProperties.EMPTY;
     }
 }

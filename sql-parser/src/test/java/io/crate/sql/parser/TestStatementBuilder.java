@@ -770,7 +770,7 @@ public class TestStatementBuilder {
         assertThat(statement.toString(), is("CreateRepository{" +
                                             "repository=my_repo, " +
                                             "type=hdfs, " +
-                                            "properties=Optional[{location='/mount/backups/my_backup'}]}"));
+                                            "properties={location='/mount/backups/my_backup'}}"));
 
         printStatement("DROP REPOSITORY my_repo");
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
@@ -787,7 +787,7 @@ public class TestStatementBuilder {
         Statement statement = SqlParser.createStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
         assertThat(statement.toString(), is("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
-                                            "properties=Optional.empty, " +
+                                            "properties={}, " +
                                             "tableList=Optional[" +
                                             "[Table{only=false, authors, partitionProperties=[" + "" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
@@ -805,7 +805,7 @@ public class TestStatementBuilder {
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books with (wait_for_completion=True)");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
-                                            "properties=Optional[{wait_for_completion=true}], " +
+                                            "properties={wait_for_completion=true}, " +
                                             "tableList=Optional[" +
                                             "[Table{only=false, authors, partitionProperties=[" + "" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
@@ -814,7 +814,7 @@ public class TestStatementBuilder {
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
-                                            "properties=Optional.empty, " +
+                                            "properties={}, " +
                                             "tableList=Optional.empty}"));
     }
 

@@ -128,9 +128,9 @@ public final class SqlFormatter {
             process(node.table(), indent);
             append(indent, " FROM ");
             process(node.path(), indent);
-            if (node.genericProperties().isPresent()) {
+            if (!node.genericProperties().isEmpty()) {
                 append(indent, " ");
-                process(node.genericProperties().get(), indent);
+                process(node.genericProperties(), indent);
             }
             return null;
         }
@@ -364,9 +364,9 @@ public final class SqlFormatter {
                 }
             }
 
-            if (node.properties().isPresent() && !node.properties().get().isEmpty()) {
+            if (!node.properties().isEmpty()) {
                 builder.append("\n");
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
@@ -400,7 +400,7 @@ public final class SqlFormatter {
         @Override
         public Void visitCreateUser(CreateUser node, Integer indent) {
             builder.append("CREATE USER ").append(quoteIdentifierIfNeeded(node.name()));
-            if (node.properties() != null && !node.properties().properties().isEmpty()) {
+            if (!node.properties().isEmpty()) {
                 builder.append("\n");
                 node.properties().accept(this, indent);
             }
@@ -696,9 +696,9 @@ public final class SqlFormatter {
             } else {
                 builder.append(" ALL");
             }
-            if (node.properties().isPresent()) {
+            if (!node.properties().isEmpty()) {
                 builder.append(' ');
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
