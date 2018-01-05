@@ -117,7 +117,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
             channel.sendResponse(new CrateThrowableRestResponse(channel,
                 createSQLActionException(t, exceptionAuthorizedValidator)));
         } catch (Throwable e) {
-            LOGGER.error("failed to send failure response", e);
+            LOGGER.error("Failed to send error response for failed request.", e, t);
         } finally {
             rowAccounting.close();
             super.fail(t);
