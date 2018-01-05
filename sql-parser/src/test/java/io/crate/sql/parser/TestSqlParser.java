@@ -30,7 +30,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
-import java.util.Optional;
 
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.tree.QueryUtil.selectList;

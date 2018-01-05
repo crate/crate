@@ -349,7 +349,7 @@ public class ExpressionAnalyzer {
                 visitExpression(node, context);
             }
             List<Symbol> args = Lists.newArrayList(
-                Literal.of(node.getPrecision().orElse(CurrentTimestampFunction.DEFAULT_PRECISION))
+                Literal.of(node.getPrecision() == null ? CurrentTimestampFunction.DEFAULT_PRECISION : node.getPrecision())
             );
             return allocateFunction(CurrentTimestampFunction.NAME, args, context);
         }

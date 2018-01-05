@@ -95,7 +95,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -233,11 +232,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         process(node.getRight(), statementContext);
 
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
-        Optional<JoinCriteria> optCriteria = node.getCriteria();
+        JoinCriteria optCriteria = node.getCriteria();
         Symbol joinCondition = null;
-        if (optCriteria.isPresent()) {
-            JoinCriteria joinCriteria = optCriteria.get();
-            if (joinCriteria instanceof JoinOn) {
+        if (optCriteria != null) {
+            if (optCriteria instanceof JoinOn) {
                 final TransactionContext transactionContext = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
@@ -250,7 +248,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
-                        ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
+                        ((JoinOn) optCriteria).getExpression(), relationContext.expressionAnalysisContext());
                 } catch (RelationUnknownException e) {
                     throw new RelationValidationException(e.getTableIdents(),
                         String.format(Locale.ENGLISH,
@@ -258,7 +256,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                    joinCriteria.getClass().getSimpleName()));
+                    optCriteria.getClass().getSimpleName()));
             }
         }
 

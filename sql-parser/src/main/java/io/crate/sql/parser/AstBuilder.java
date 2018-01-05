@@ -258,7 +258,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCreateAnalyzer(SqlBaseParser.CreateAnalyzerContext context) {
         return new CreateAnalyzer(
             getIdentText(context.name),
-            getIdentTextIfPresent(context.extendedName),
+            getIdentTextIfPresentElseNull(context.extendedName),
             visit(context.analyzerElement(), AnalyzerElement.class)
         );
     }
@@ -653,7 +653,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitFunctionArgument(SqlBaseParser.FunctionArgumentContext context) {
-        return new FunctionArgument(getIdentTextIfPresent(context.ident()), (ColumnType) visit(context.dataType()));
+        return new FunctionArgument(getIdentTextIfPresentElseNull(context.ident()), (ColumnType) visit(context.dataType()));
     }
 
     @Override
@@ -929,7 +929,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
-        return new SingleColumn((Expression) visit(context.expr()), getIdentTextIfPresent(context.ident()));
+        return new SingleColumn((Expression) visit(context.expr()), getIdentTextIfPresentElseNull(context.ident()));
     }
 
     /*
@@ -954,8 +954,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return literal.getValue();
     }
 
-    private Optional<String> getIdentTextIfPresent(SqlBaseParser.IdentContext ident) {
-        return Optional.ofNullable(ident).map(this::getIdentText);
+    private String getIdentTextIfPresentElseNull(SqlBaseParser.IdentContext ident) {
+        if (ident == null) {
+            return null;
+        }
+        return getIdentText(ident);
     }
 
     @Override
@@ -992,7 +995,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
         if (context.CROSS() != null) {
             right = (Relation) visit(context.right);
-            return new Join(Join.Type.CROSS, left, right, Optional.empty());
+            return new Join(Join.Type.CROSS, left, right, null);
         }
 
         JoinCriteria criteria;
@@ -1010,7 +1013,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 throw new IllegalArgumentException("Unsupported join criteria");
             }
         }
-        return new Join(getJoinType(context.joinType()), left, right, Optional.of(criteria));
+        return new Join(getJoinType(context.joinType()), left, right, criteria);
     }
 
     private static Join.Type getJoinType(SqlBaseParser.JoinTypeContext joinTypeContext) {
@@ -1181,7 +1184,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new MatchPredicate(
             idents,
             (Expression) visit(context.term),
-            getIdentTextIfPresent(context.matchType).orElse(null),
+            getIdentTextIfPresentElseNull(context.matchType),
             visitIfPresent(context.withProperties(), GenericProperties.class, GenericProperties.EMPTY));
     }
 

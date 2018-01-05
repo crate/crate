@@ -23,22 +23,24 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class AllColumns extends SelectItem {
 
-    private final Optional<QualifiedName> prefix;
+    @Nullable
+    private final QualifiedName prefix;
 
     public AllColumns() {
-        prefix = Optional.empty();
+        prefix = null;
     }
 
     public AllColumns(QualifiedName prefix) {
         Preconditions.checkNotNull(prefix, "prefix is null");
-        this.prefix = Optional.of(prefix);
+        this.prefix = prefix;
     }
 
-    public Optional<QualifiedName> getPrefix() {
+    @Nullable
+    public QualifiedName getPrefix() {
         return prefix;
     }
 
@@ -72,8 +74,8 @@ public class AllColumns extends SelectItem {
 
     @Override
     public String toString() {
-        if (prefix.isPresent()) {
-            return prefix.get() + ".*";
+        if (prefix != null) {
+            return prefix + ".*";
         }
 
         return "*";

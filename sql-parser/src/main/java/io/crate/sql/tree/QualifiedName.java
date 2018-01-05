@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class QualifiedName {
 
@@ -69,14 +69,15 @@ public class QualifiedName {
 
     /**
      * For an identifier of the form "a.b.c.d", returns "a.b.c"
-     * For an identifier of the form "a", returns absent
+     * For an identifier of the form "a", returns NULL
      */
-    public Optional<QualifiedName> getPrefix() {
+    @Nullable
+    public QualifiedName getPrefix() {
         if (parts.size() == 1) {
-            return Optional.empty();
+            return null;
         }
 
-        return Optional.of(QualifiedName.of(parts.subList(0, parts.size() - 1)));
+        return QualifiedName.of(parts.subList(0, parts.size() - 1));
     }
 
     public String getSuffix() {

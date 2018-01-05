@@ -49,7 +49,6 @@ import org.elasticsearch.snapshots.SnapshotId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -75,16 +74,17 @@ class CreateSnapshotAnalyzer {
     }
 
     public CreateSnapshotAnalyzedStatement analyze(CreateSnapshot node, Analysis analysis) {
-        Optional<QualifiedName> repositoryName = node.name().getPrefix();
+        QualifiedName repositoryName = node.name().getPrefix();
         // validate repository
-        Preconditions.checkArgument(repositoryName.isPresent(), "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");
-        Preconditions.checkArgument(repositoryName.get().getParts().size() == 1,
-            String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName.get()));
-        repositoryService.failIfRepositoryDoesNotExist(repositoryName.get().toString());
+        Preconditions.checkArgument(repositoryName != null,
+            "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");
+        Preconditions.checkArgument(repositoryName.getParts().size() == 1,
+            String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName));
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName.toString());
 
         // snapshot existence in repo is validated upon execution
         String snapshotName = node.name().getSuffix();
-        Snapshot snapshot = new Snapshot(repositoryName.get().toString(), new SnapshotId(snapshotName, UUID.randomUUID().toString()));
+        Snapshot snapshot = new Snapshot(repositoryName.toString(), new SnapshotId(snapshotName, UUID.randomUUID().toString()));
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(

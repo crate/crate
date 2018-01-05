@@ -26,20 +26,22 @@
 
 package io.crate.sql.tree;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
-import java.util.Optional;
 
 public class FunctionArgument extends Node {
 
-    private final Optional<String> name;
+    @Nullable
+    private final String name;
     private final ColumnType type;
 
-    public FunctionArgument(Optional<String> name, ColumnType type) {
+    public FunctionArgument(@Nullable String name, ColumnType type) {
         this.name = name;
         this.type = type;
     }
 
-    public Optional<String> name() {
+    @Nullable
+    public String name() {
         return name;
     }
 

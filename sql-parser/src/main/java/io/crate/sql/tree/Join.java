@@ -23,19 +23,19 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Join extends Relation {
-    public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
+    public Join(Type type, Relation left, Relation right, @Nullable JoinCriteria criteria) {
         checkNotNull(left, "left is null");
         checkNotNull(right, "right is null");
         if (type.equals(Type.CROSS)) {
-            checkArgument(!criteria.isPresent(), "Cross join cannot have join criteria");
+            checkArgument(criteria == null, "Cross join cannot have join criteria");
         } else {
-            checkArgument(criteria.isPresent(), "No join criteria specified");
+            checkNotNull(criteria, "No join criteria specified");
         }
 
         this.type = type;
@@ -51,7 +51,8 @@ public class Join extends Relation {
     private final Type type;
     private final Relation left;
     private final Relation right;
-    private final Optional<JoinCriteria> criteria;
+    @Nullable
+    private final JoinCriteria criteria;
 
     public Type getType() {
         return type;
@@ -65,7 +66,8 @@ public class Join extends Relation {
         return right;
     }
 
-    public Optional<JoinCriteria> getCriteria() {
+    @Nullable
+    public JoinCriteria getCriteria() {
         return criteria;
     }
 

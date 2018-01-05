@@ -293,10 +293,10 @@ public final class SqlFormatter {
         @Override
         protected Void visitSingleColumn(SingleColumn node, Integer indent) {
             builder.append(formatStandaloneExpression(node.getExpression()));
-            if (node.getAlias().isPresent()) {
+            if (node.getAlias() != null) {
                 builder.append(' ')
                     .append('"')
-                    .append(node.getAlias().get())
+                    .append(node.getAlias())
                     .append('"'); // TODO: handle quoting properly
             }
 
@@ -440,7 +440,9 @@ public final class SqlFormatter {
 
         @Override
         public Void visitFunctionArgument(FunctionArgument node, Integer context) {
-            node.name().ifPresent(s -> builder.append(s).append(" "));
+            if (node.name() != null) {
+                builder.append(node.name()).append(" ");
+            }
             builder.append(node.type());
             return null;
         }
@@ -522,8 +524,8 @@ public final class SqlFormatter {
         @Override
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             builder.append("OBJECT");
-            if (node.objectType().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
+            if (node.objectType() != null) {
+                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().toUpperCase(Locale.ENGLISH)));
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
@@ -621,7 +623,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitJoin(Join node, Integer indent) {
-            JoinCriteria criteria = node.getCriteria().orElse(null);
+            JoinCriteria criteria = node.getCriteria();
             String type = node.getType().toString();
             if (criteria instanceof NaturalJoin) {
                 type = "NATURAL " + type;

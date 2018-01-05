@@ -96,7 +96,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -168,9 +167,9 @@ public class AlterTableOperation {
     public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
         FutureActionListener<OpenCloseTableOrPartitionResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         String partitionIndexName = null;
-        Optional<PartitionName> partitionName = analysis.partitionName();
-        if (partitionName.isPresent()) {
-            partitionIndexName = partitionName.get().asIndexName();
+        PartitionName partitionName = analysis.partitionName();
+        if (partitionName != null) {
+            partitionIndexName = partitionName.asIndexName();
         }
         OpenCloseTableOrPartitionRequest request = new OpenCloseTableOrPartitionRequest(
             analysis.tableInfo().ident(), partitionIndexName, analysis.openTable());
@@ -208,9 +207,9 @@ public class AlterTableOperation {
                 analysis.tableParameter().settings(),
                 tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
 
-            Optional<PartitionName> partitionName = analysis.partitionName();
-            if (partitionName.isPresent()) {
-                String index = partitionName.get().asIndexName();
+            PartitionName partitionName = analysis.partitionName();
+            if (partitionName != null) {
+                String index = partitionName.asIndexName();
                 results.add(updateMapping(analysis.tableParameter().mappings(), index));
                 results.add(updateSettings(parameterWithFilteredSettings, index));
             } else {
