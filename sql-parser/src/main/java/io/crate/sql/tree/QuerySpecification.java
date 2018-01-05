@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,7 +42,7 @@ public class QuerySpecification
 
     public QuerySpecification(
         Select select,
-        @Nullable List<Relation> from,
+        List<Relation> from,
         Optional<Expression> where,
         List<Expression> groupBy,
         Optional<Expression> having,

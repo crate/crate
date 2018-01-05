@@ -24,7 +24,6 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class Table extends QueryBody {
@@ -42,10 +41,10 @@ public class Table extends QueryBody {
         this.partitionProperties = ImmutableList.of();
     }
 
-    public Table(QualifiedName name, @Nullable List<Assignment> partitionProperties) {
+    public Table(QualifiedName name, List<Assignment> partitionProperties) {
         this.name = name;
         this.excludePartitions = false;
-        this.partitionProperties = MoreObjects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
+        this.partitionProperties = partitionProperties;
     }
 
     public QualifiedName getName() {

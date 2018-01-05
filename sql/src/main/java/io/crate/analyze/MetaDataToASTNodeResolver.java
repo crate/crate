@@ -113,12 +113,12 @@ public class MetaDataToASTNodeResolver {
                     if (ident.getParent().compareTo(parent) > 0) continue;
                 }
 
-                ColumnType columnType = null;
+                ColumnType columnType;
                 if (info.valueType().equals(DataTypes.OBJECT)) {
                     columnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
                     DataType innerType = ((CollectionType) info.valueType()).innerType();
-                    ColumnType innerColumnType = null;
+                    ColumnType innerColumnType;
                     if (innerType.equals(DataTypes.OBJECT)) {
                         innerColumnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
                     } else {

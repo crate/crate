@@ -205,7 +205,7 @@ public final class SqlFormatter {
         protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
             process(node.getSelect(), indent);
 
-            if (node.getFrom() != null) {
+            if (!node.getFrom().isEmpty()) {
                 append(indent, "FROM");
                 if (node.getFrom().size() > 1) {
                     builder.append('\n');
@@ -686,10 +686,10 @@ public final class SqlFormatter {
         public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
             builder.append("CREATE SNAPSHOT ")
                 .append(quoteIdentifierIfNeeded(node.name().toString()));
-            if (node.tableList().isPresent()) {
+            if (!node.tableList().isEmpty()) {
                 builder.append(" TABLE ");
-                int count = 0, max = node.tableList().get().size();
-                for (Table table : node.tableList().get()) {
+                int count = 0, max = node.tableList().size();
+                for (Table table : node.tableList()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }

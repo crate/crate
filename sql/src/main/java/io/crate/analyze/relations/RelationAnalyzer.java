@@ -268,7 +268,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
-        List<Relation> from = node.getFrom() != null ? node.getFrom() : EMPTY_ROW_TABLE_RELATION;
+        List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         statementContext.startRelation();
 
         for (Relation relation : from) {

@@ -788,11 +788,10 @@ public class TestStatementBuilder {
         assertThat(statement.toString(), is("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
-                                            "tableList=Optional[" +
-                                            "[Table{only=false, authors, partitionProperties=[" + "" +
+                                            "tableList=[Table{only=false, authors, partitionProperties=[" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
-                                            "Table{only=false, books, partitionProperties=[]}]]}"));
+                                            "Table{only=false, books, partitionProperties=[]}]}"));
 
         statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
         assertThat(statement.toString(), is("DropSnapshot{name=my_repo.my_snapshot}"));

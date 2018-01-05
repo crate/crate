@@ -22,7 +22,6 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,11 +38,11 @@ public class AddColumnDefinition extends TableElement {
     public AddColumnDefinition(Expression name,
                                @Nullable Expression generatedExpression,
                                @Nullable ColumnType type,
-                               @Nullable List<ColumnConstraint> constraints) {
+                               List<ColumnConstraint> constraints) {
         this.name = name;
         this.generatedExpression = generatedExpression;
         this.type = type;
-        this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
+        this.constraints = constraints;
     }
 
     public Expression name() {

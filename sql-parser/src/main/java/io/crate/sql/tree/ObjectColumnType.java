@@ -21,9 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -34,10 +32,10 @@ public class ObjectColumnType extends ColumnType {
     private final Optional<String> objectType;
     private final List<ColumnDefinition> nestedColumns;
 
-    public ObjectColumnType(@Nullable String objectType, @Nullable List<ColumnDefinition> nestedColumns) {
+    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
         super("object");
         this.objectType = Optional.ofNullable(objectType);
-        this.nestedColumns = MoreObjects.firstNonNull(nestedColumns, ImmutableList.<ColumnDefinition>of());
+        this.nestedColumns = nestedColumns;
     }
 
     public Optional<String> objectType() {

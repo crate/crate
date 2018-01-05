@@ -47,7 +47,6 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -93,10 +92,9 @@ class CreateSnapshotAnalyzer {
         boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
         // iterate tables
-        if (node.tableList().isPresent()) {
-            List<Table> tableList = node.tableList().get();
-            Set<String> snapshotIndices = new HashSet<>(tableList.size());
-            for (Table table : tableList) {
+        if (!node.tableList().isEmpty()) {
+            Set<String> snapshotIndices = new HashSet<>(node.tableList().size());
+            for (Table table : node.tableList()) {
                 DocTableInfo docTableInfo;
                 try {
                     docTableInfo = schemas.getTableInfo(
