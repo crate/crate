@@ -188,7 +188,7 @@ public class TestStatementBuilder {
     @Test
     public void testKillJob() {
         KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
-        assertThat(stmt.jobId().isPresent(), is(true));
+        assertNotNull(stmt.jobId());
     }
 
     @Test

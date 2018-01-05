@@ -25,16 +25,16 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 public class Update extends Statement {
 
     private final Relation relation;
     private final List<Assignment> assignments;
-    private final Optional<Expression> where;
+    private final Expression where;
 
-    public Update(Relation relation, List<Assignment> assignments, Optional<Expression> where) {
+    public Update(Relation relation, List<Assignment> assignments, @Nullable Expression where) {
         Preconditions.checkNotNull(relation, "relation is null");
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.relation = relation;
@@ -50,7 +50,8 @@ public class Update extends Statement {
         return assignments;
     }
 
-    public Optional<Expression> whereClause() {
+    @Nullable
+    public Expression whereClause() {
         return where;
     }
 

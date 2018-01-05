@@ -91,7 +91,7 @@ public class AlterTableAnalyzer {
 
     private static TableParameter getTableParameter(AlterTable node, Row parameters, TableParameterInfo tableParameterInfo) {
         TableParameter tableParameter = new TableParameter();
-        if (node.genericProperties().isPresent()) {
+        if (!node.genericProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyze(tableParameter, tableParameterInfo, node.genericProperties(), parameters);
         } else if (!node.resetProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyze(tableParameter, tableParameterInfo, node.resetProperties());

@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
 public final class TablePropertiesAnalyzer {
 
@@ -128,14 +127,14 @@ public final class TablePropertiesAnalyzer {
 
     public static void analyze(TableParameter tableParameter,
                                TableParameterInfo tableParameterInfo,
-                               Optional<GenericProperties> properties,
+                               GenericProperties properties,
                                Row parameters) {
         analyze(tableParameter, tableParameterInfo, properties, parameters, false);
     }
 
     public static void analyze(TableParameter tableParameter,
                                TableParameterInfo tableParameterInfo,
-                               Optional<GenericProperties> properties,
+                               GenericProperties properties,
                                Row parameters,
                                boolean withDefaults) {
         if (withDefaults) {
@@ -146,8 +145,8 @@ public final class TablePropertiesAnalyzer {
                 tableParameter.mappings().put(mappingsApplier.name, mappingsApplier.getDefault());
             }
         }
-        if (properties.isPresent()) {
-            Map<String, Expression> tableProperties = properties.get().properties();
+        if (!properties.isEmpty()) {
+            Map<String, Expression> tableProperties = properties.properties();
             validateTableProperties(tableParameterInfo, tableProperties.keySet());
 
             for (String setting : tableParameterInfo.supportedSettings()) {

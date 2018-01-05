@@ -26,10 +26,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 
 public class AlterTableOpenCloseAnalyzedStatement implements DDLStatement {
-
 
     private final DocTableInfo tableInfo;
     private final PartitionName partitionName;
@@ -48,8 +46,9 @@ public class AlterTableOpenCloseAnalyzedStatement implements DDLStatement {
         return tableInfo;
     }
 
-    public Optional<PartitionName> partitionName() {
-        return Optional.ofNullable(partitionName);
+    @Nullable
+    public PartitionName partitionName() {
+        return partitionName;
     }
 
     public boolean openTable() {

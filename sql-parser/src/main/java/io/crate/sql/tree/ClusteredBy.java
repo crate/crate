@@ -24,24 +24,32 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class ClusteredBy extends CrateTableOption {
 
-    private final Optional<Expression> column;
-    private final Optional<Expression> numberOfShards;
+    @Nullable
+    private final Expression column;
+    @Nullable
+    private final Expression numberOfShards;
 
-    public ClusteredBy(Optional<Expression> column, Optional<Expression> numberOfShards) {
+    public ClusteredBy(@Nullable Expression column, @Nullable Expression numberOfShards) {
         this.column = column;
         this.numberOfShards = numberOfShards;
     }
 
-    public Optional<Expression> column() {
+    @Nullable
+    public Expression column() {
         return column;
     }
 
-    public Optional<Expression> numberOfShards() {
+    @Nullable
+    public Expression numberOfShards() {
         return numberOfShards;
+    }
+
+    public boolean isEmpty() {
+        return column != null && numberOfShards != null;
     }
 
     @Override
@@ -56,8 +64,8 @@ public class ClusteredBy extends CrateTableOption {
 
         ClusteredBy that = (ClusteredBy) o;
 
-        if (!numberOfShards.equals(that.numberOfShards)) return false;
-        if (!column.equals(that.column)) return false;
+        if (numberOfShards != null ? !numberOfShards.equals(that.numberOfShards) : that.numberOfShards != null) return false;
+        if (column != null ? !column.equals(that.column) : that.column != null) return false;
 
         return true;
     }
@@ -66,7 +74,8 @@ public class ClusteredBy extends CrateTableOption {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("column", column)
-            .add("number of shards", numberOfShards).toString();
+            .add("number of shards", numberOfShards)
+            .toString();
     }
 
     @Override

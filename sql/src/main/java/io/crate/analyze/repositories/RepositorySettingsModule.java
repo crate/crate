@@ -37,7 +37,6 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 
 public class RepositorySettingsModule extends AbstractModule {
 
@@ -71,22 +70,19 @@ public class RepositorySettingsModule extends AbstractModule {
             .build()) {
 
         @Override
-        public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
-            if (!genericProperties.isPresent()) {
+        public GenericProperties dynamicProperties(GenericProperties genericProperties) {
+            if (genericProperties.isEmpty()) {
                 return genericProperties;
             }
-            GenericProperties dynamicProperties = null;
-            Map<String, Expression> properties = genericProperties.get().properties();
+            GenericProperties dynamicProperties = new GenericProperties();
+            Map<String, Expression> properties = genericProperties.properties();
             for (Map.Entry<String, Expression> entry : properties.entrySet()) {
                 String key = entry.getKey();
                 if (key.startsWith("conf.")) {
-                    if (dynamicProperties == null) {
-                        dynamicProperties = new GenericProperties();
-                    }
                     dynamicProperties.add(new GenericProperty(key, entry.getValue()));
                 }
             }
-            return Optional.ofNullable(dynamicProperties);
+            return dynamicProperties;
         }
     };
 

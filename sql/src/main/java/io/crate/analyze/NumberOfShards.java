@@ -29,8 +29,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Optional;
-
 @Singleton
 public class NumberOfShards {
 
@@ -44,9 +42,9 @@ public class NumberOfShards {
     }
 
     int fromClusteredByClause(ClusteredBy clusteredBy, Row parameters) {
-        Optional<Expression> numberOfShards = clusteredBy.numberOfShards();
-        if (numberOfShards.isPresent()) {
-            int numShards = ExpressionToNumberVisitor.convert(numberOfShards.get(), parameters).intValue();
+        Expression numberOfShards = clusteredBy.numberOfShards();
+        if (numberOfShards != null) {
+            int numShards = ExpressionToNumberVisitor.convert(numberOfShards, parameters).intValue();
             if (numShards < 1) {
                 throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
             }

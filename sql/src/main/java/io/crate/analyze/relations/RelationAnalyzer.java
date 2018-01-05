@@ -95,7 +95,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -142,7 +141,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
         // the `node` contains the ORDER BY and/or LIMIT and/or OFFSET and wraps the
         // actual operation (eg: UNION) which is parsed into the `queryBody` of the `node`.
-        if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
+        if (!node.getOrderBy().isEmpty() || node.getLimit() != null || node.getOffset() != null) {
             QueriedRelation childRelation = (QueriedRelation) process(node.getQueryBody(), statementContext);
 
             // Use child relation to process expressions of the "root" Query node
@@ -233,11 +232,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         process(node.getRight(), statementContext);
 
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
-        Optional<JoinCriteria> optCriteria = node.getCriteria();
+        JoinCriteria optCriteria = node.getCriteria();
         Symbol joinCondition = null;
-        if (optCriteria.isPresent()) {
-            JoinCriteria joinCriteria = optCriteria.get();
-            if (joinCriteria instanceof JoinOn) {
+        if (optCriteria != null) {
+            if (optCriteria instanceof JoinOn) {
                 final TransactionContext transactionContext = statementContext.transactionContext();
                 ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                     functions,
@@ -250,7 +248,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
-                        ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
+                        ((JoinOn) optCriteria).getExpression(), relationContext.expressionAnalysisContext());
                 } catch (RelationUnknownException e) {
                     throw new RelationValidationException(e.getTableIdents(),
                         String.format(Locale.ENGLISH,
@@ -258,7 +256,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                    joinCriteria.getClass().getSimpleName()));
+                    optCriteria.getClass().getSimpleName()));
             }
         }
 
@@ -410,14 +408,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private static Symbol longSymbolOrNull(Optional<Expression> optExpression,
+    private static Symbol longSymbolOrNull(@Nullable Expression optExpression,
                                            ExpressionAnalyzer expressionAnalyzer,
                                            ExpressionAnalysisContext expressionAnalysisContext) {
-        if (optExpression.isPresent()) {
-            Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
+        if (optExpression == null) {
+            return null;
         }
-        return null;
+        Symbol symbol = expressionAnalyzer.convert(optExpression, expressionAnalysisContext);
+        return ExpressionAnalyzer.cast(symbol, DataTypes.LONG);
     }
 
     private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
@@ -516,15 +514,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private HavingClause analyzeHaving(Optional<Expression> having,
-                                       @Nullable List<Symbol> groupBy,
-                                       ExpressionAnalyzer expressionAnalyzer,
-                                       ExpressionAnalysisContext expressionAnalysisContext) {
-        if (having.isPresent()) {
+    private static HavingClause analyzeHaving(@Nullable Expression having,
+                                              @Nullable List<Symbol> groupBy,
+                                              ExpressionAnalyzer expressionAnalyzer,
+                                              ExpressionAnalysisContext expressionAnalysisContext) {
+        if (having != null) {
             if (!expressionAnalysisContext.hasAggregates() && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
-            Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
+            Symbol symbol = expressionAnalyzer.convert(having, expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
             return new HavingClause(symbol);
         }

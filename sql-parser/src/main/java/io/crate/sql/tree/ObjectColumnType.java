@@ -27,20 +27,19 @@ import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 public class ObjectColumnType extends ColumnType {
 
-    private final Optional<String> objectType;
+    private final String objectType;
     private final List<ColumnDefinition> nestedColumns;
 
     public ObjectColumnType(@Nullable String objectType, @Nullable List<ColumnDefinition> nestedColumns) {
         super("object");
-        this.objectType = Optional.ofNullable(objectType);
+        this.objectType = MoreObjects.firstNonNull(objectType, "dynamic");
         this.nestedColumns = MoreObjects.firstNonNull(nestedColumns, ImmutableList.<ColumnDefinition>of());
     }
 
-    public Optional<String> objectType() {
+    public String objectType() {
         return objectType;
     }
 

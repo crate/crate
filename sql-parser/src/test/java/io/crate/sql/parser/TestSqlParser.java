@@ -30,7 +30,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
-import java.util.Optional;
 
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.tree.QueryUtil.selectList;
@@ -87,19 +86,19 @@ public class TestSqlParser {
     public void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
             new Query(
-                Optional.empty(),
+                null,
                 new QuerySpecification(
                     selectList(new DoubleLiteral("123.456E7")),
                     table(QualifiedName.of("dual")),
-                    Optional.empty(),
+                    null,
                     ImmutableList.of(),
-                    Optional.empty(),
+                    null,
                     ImmutableList.of(),
-                    Optional.empty(),
-                    Optional.empty()),
+                    null,
+                    null),
                 ImmutableList.of(),
-                Optional.empty(),
-                Optional.empty())
+                null,
+                null)
         );
     }
 

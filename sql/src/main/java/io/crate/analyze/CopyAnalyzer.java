@@ -72,7 +72,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -119,10 +118,10 @@ class CopyAnalyzer {
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Predicate<DiscoveryNode> nodeFilters = discoveryNode -> true;
         Settings settings = Settings.EMPTY;
-        if (node.genericProperties().isPresent()) {
+        if (!node.genericProperties().isEmpty()) {
             // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
             // items would cause subsequent queries that hit the cache to have different genericProperties
-            Map<String, Expression> properties = new HashMap<>(node.genericProperties().get().properties());
+            Map<String, Expression> properties = new HashMap<>(node.genericProperties().properties());
             nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
             settings = settingsFromProperties(properties, expressionAnalyzer, expressionAnalysisContext);
         }
@@ -272,23 +271,21 @@ class CopyAnalyzer {
         return partitions;
     }
 
-    private WhereClause createWhereClause(Optional<Expression> where,
+    private WhereClause createWhereClause(@Nullable Expression where,
                                           DocTableRelation tableRelation,
                                           List<String> partitions,
                                           EvaluatingNormalizer normalizer,
                                           ExpressionAnalyzer expressionAnalyzer,
                                           ExpressionAnalysisContext expressionAnalysisContext,
                                           TransactionContext transactionContext) {
-        WhereClause whereClause = null;
-        if (where.isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
-            Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
-            whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
-        }
-
-        if (whereClause == null) {
+        if (where == null) {
             return new WhereClause(null, null, partitions, null);
-        } else if (whereClause.noMatch()) {
+        }
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
+        Symbol query = expressionAnalyzer.convert(where, expressionAnalysisContext);
+        WhereClause whereClause = whereClauseAnalyzer.analyze(normalizer.normalize(query, transactionContext), transactionContext);
+
+        if (whereClause.noMatch()) {
             return whereClause;
         } else {
             if (!whereClause.partitions().isEmpty() && !partitions.isEmpty() &&
@@ -298,9 +295,9 @@ class CopyAnalyzer {
 
             return new WhereClause(
                 whereClause.query(),
-                whereClause.docKeys().orElse(null),
+                whereClause.docKeys(),
                 partitions.isEmpty() ? whereClause.partitions() : partitions,
-                whereClause.clusteredBy().orElse(null)
+                whereClause.clusteredBy()
             );
         }
     }

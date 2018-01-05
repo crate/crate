@@ -38,7 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static io.crate.analyze.OptimizeSettings.FLUSH;
@@ -94,9 +93,9 @@ class OptimizeTableAnalyzer {
         return indexNames;
     }
 
-    private void validateSettings(Settings settings, Optional<GenericProperties> stmtParameters) {
+    private void validateSettings(Settings settings, GenericProperties stmtParameters) {
         if (settings.getAsBoolean(UPGRADE_SEGMENTS.name(), UPGRADE_SEGMENTS.defaultValue())
-            && stmtParameters.get().size() > 1) {
+            && stmtParameters.size() > 1) {
             throw new IllegalArgumentException("cannot use other parameters if " +
                                                UPGRADE_SEGMENTS.name() + " is set to true");
         }

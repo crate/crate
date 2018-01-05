@@ -163,9 +163,9 @@ public final class ExpressionFormatter {
                     throw new UnsupportedOperationException("not yet implemented: " + node.getType());
             }
 
-            if (node.getPrecision().isPresent()) {
+            if (node.getPrecision() != null) {
                 builder.append('(')
-                    .append(node.getPrecision().get())
+                    .append(node.getPrecision())
                     .append(')');
             }
 
@@ -335,9 +335,9 @@ public final class ExpressionFormatter {
                 .append(process(node.getCondition(), context))
                 .append(", ")
                 .append(process(node.getTrueValue(), context));
-            if (node.getFalseValue().isPresent()) {
+            if (node.getFalseValue() != null) {
                 builder.append(", ")
-                    .append(process(node.getFalseValue().get(), context));
+                    .append(process(node.getFalseValue(), context));
             }
             builder.append(")");
             return builder.toString();
@@ -440,8 +440,8 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitAllColumns(AllColumns node, Void context) {
-            if (node.getPrefix().isPresent()) {
-                return node.getPrefix().get() + ".*";
+            if (node.getPrefix() != null) {
+                return node.getPrefix() + ".*";
             }
 
             return "*";

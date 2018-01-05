@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 
 public class CreateIngestRule extends Statement {
@@ -32,12 +32,13 @@ public class CreateIngestRule extends Statement {
     private final String rule;
     private final String source;
     private final QualifiedName target;
-    private final Optional<Expression> where;
+    @Nullable
+    private final Expression where;
 
     public CreateIngestRule(String rule,
                             String sourceIdent,
                             QualifiedName targetTable,
-                            Optional<Expression> where) {
+                            @Nullable Expression where) {
         this.rule = rule;
         this.source = sourceIdent;
         this.target = targetTable;
@@ -56,7 +57,8 @@ public class CreateIngestRule extends Statement {
         return target;
     }
 
-    public Optional<Expression> where() {
+    @Nullable
+    public Expression where() {
         return where;
     }
 

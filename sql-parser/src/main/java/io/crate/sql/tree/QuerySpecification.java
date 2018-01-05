@@ -26,7 +26,6 @@ import com.google.common.base.Objects;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,29 +33,29 @@ public class QuerySpecification
     extends QueryBody {
     private final Select select;
     private final List<Relation> from;
-    private final Optional<Expression> where;
+    @Nullable
+    private final Expression where;
     private final List<Expression> groupBy;
-    private final Optional<Expression> having;
+    @Nullable
+    private final Expression having;
     private final List<SortItem> orderBy;
-    private final Optional<Expression> limit;
-    private final Optional<Expression> offset;
+    @Nullable
+    private final Expression limit;
+    @Nullable
+    private final Expression offset;
 
     public QuerySpecification(
         Select select,
         @Nullable List<Relation> from,
-        Optional<Expression> where,
+        @Nullable Expression where,
         List<Expression> groupBy,
-        Optional<Expression> having,
+        @Nullable Expression having,
         List<SortItem> orderBy,
-        Optional<Expression> limit,
-        Optional<Expression> offset) {
+        @Nullable Expression limit,
+        @Nullable Expression offset) {
         checkNotNull(select, "select is null");
-        checkNotNull(where, "where is null");
         checkNotNull(groupBy, "groupBy is null");
-        checkNotNull(having, "having is null");
         checkNotNull(orderBy, "orderBy is null");
-        checkNotNull(limit, "limit is null");
-        checkNotNull(offset, "offset is null");
 
         this.select = select;
         this.from = from;
@@ -76,7 +75,8 @@ public class QuerySpecification
         return from;
     }
 
-    public Optional<Expression> getWhere() {
+    @Nullable
+    public Expression getWhere() {
         return where;
     }
 
@@ -84,7 +84,8 @@ public class QuerySpecification
         return groupBy;
     }
 
-    public Optional<Expression> getHaving() {
+    @Nullable
+    public Expression getHaving() {
         return having;
     }
 
@@ -92,11 +93,13 @@ public class QuerySpecification
         return orderBy;
     }
 
-    public Optional<Expression> getLimit() {
+    @Nullable
+    public Expression getLimit() {
         return limit;
     }
 
-    public Optional<Expression> getOffset() {
+    @Nullable
+    public Expression getOffset() {
         return offset;
     }
 

@@ -25,14 +25,15 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class Delete extends Statement {
 
     private final Relation relation;
-    private final Optional<Expression> where;
+    @Nullable
+    private final Expression where;
 
-    public Delete(Relation relation, Optional<Expression> where) {
+    public Delete(Relation relation, @Nullable Expression where) {
         Preconditions.checkNotNull(relation, "relation is null");
         this.relation = relation;
         this.where = where;
@@ -42,7 +43,8 @@ public class Delete extends Statement {
         return relation;
     }
 
-    public Optional<Expression> getWhere() {
+    @Nullable
+    public Expression getWhere() {
         return where;
     }
 

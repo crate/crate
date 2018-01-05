@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -33,9 +33,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class IfExpression extends Expression {
     private final Expression condition;
     private final Expression trueValue;
-    private final Optional<Expression> falseValue;
+    @Nullable
+    private final Expression falseValue;
 
-    public IfExpression(Expression condition, Expression trueValue, Optional<Expression> falseValue) {
+    public IfExpression(Expression condition, Expression trueValue, @Nullable Expression falseValue) {
         this.condition = checkNotNull(condition, "condition is null");
         this.trueValue = checkNotNull(trueValue, "trueValue is null");
         this.falseValue = falseValue;
@@ -49,7 +50,8 @@ public class IfExpression extends Expression {
         return trueValue;
     }
 
-    public Optional<Expression> getFalseValue() {
+    @Nullable
+    public Expression getFalseValue() {
         return falseValue;
     }
 

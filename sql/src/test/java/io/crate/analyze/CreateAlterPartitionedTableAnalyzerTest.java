@@ -265,7 +265,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTable() throws Exception {
         AlterTableAnalyzedStatement analysis = e.analyze(
             "alter table parted set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName().isPresent(), is(false));
+        assertNull(analysis.partitionName());
         assertThat(analysis.table().isPartitioned(), is(true));
         assertEquals("0-all", analysis.tableParameter().settings().get(TableParameterInfo.AUTO_EXPAND_REPLICAS));
     }
@@ -274,8 +274,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTablePartition() throws Exception {
         AlterTableAnalyzedStatement analysis = e.analyze(
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
-        assertThat(analysis.partitionName().isPresent(), is(true));
-        assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
+        assertThat(analysis.partitionName(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
         PartitionedTableParameterInfo tableSettingsInfo = (PartitionedTableParameterInfo) analysis.table().tableParameterInfo();
         assertThat(tableSettingsInfo.partitionTableSettingsInfo(), instanceOf(TableParameterInfo.class));
@@ -306,7 +305,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterPartitionedTableShards() throws Exception {
         AlterTableAnalyzedStatement analysis = e.analyze(
             "alter table parted set (number_of_shards=10)");
-        assertThat(analysis.partitionName().isPresent(), is(false));
+        assertNull(analysis.partitionName());
         assertThat(analysis.table().isPartitioned(), is(true));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(PartitionedTableParameterInfo.class));
         assertEquals("10", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS));

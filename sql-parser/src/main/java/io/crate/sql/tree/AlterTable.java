@@ -22,27 +22,19 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
-import java.util.Optional;
 
 public class AlterTable extends Statement {
 
     private final Table table;
-    private final Optional<GenericProperties> genericProperties;
+    private final GenericProperties genericProperties;
     private final List<String> resetProperties;
 
-    public AlterTable(Table table, GenericProperties genericProperties) {
+    public AlterTable(Table table, GenericProperties genericProperties, List<String> resetProperties) {
         this.table = table;
-        this.genericProperties = Optional.of(genericProperties);
-        this.resetProperties = ImmutableList.of();
-    }
-
-    public AlterTable(Table table, List<String> resetProperties) {
-        this.table = table;
+        this.genericProperties = genericProperties;
         this.resetProperties = resetProperties;
-        this.genericProperties = Optional.empty();
     }
 
     @Override
@@ -54,7 +46,7 @@ public class AlterTable extends Statement {
         return table;
     }
 
-    public Optional<GenericProperties> genericProperties() {
+    public GenericProperties genericProperties() {
         return genericProperties;
     }
 
@@ -66,7 +58,8 @@ public class AlterTable extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("table", table)
-            .add("properties", genericProperties).toString();
+            .add("properties", genericProperties)
+            .toString();
     }
 
     @Override

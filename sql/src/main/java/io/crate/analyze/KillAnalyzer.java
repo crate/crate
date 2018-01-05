@@ -33,11 +33,11 @@ public class KillAnalyzer {
 
 
     public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
-        if (killStatement.jobId().isPresent()) {
+        if (killStatement.jobId() != null) {
             UUID jobId;
             try {
                 jobId = UUID.fromString(ExpressionToStringVisitor
-                    .convert(killStatement.jobId().get(), parameterContext.parameters()));
+                    .convert(killStatement.jobId(), parameterContext.parameters()));
             } catch (Exception e) {
                 throw new IllegalArgumentException("Can not parse job ID", e);
             }

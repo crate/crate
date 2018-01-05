@@ -24,27 +24,27 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class CreateSnapshot extends Statement {
 
     private final QualifiedName name;
-    private final Optional<GenericProperties> properties;
-    private final Optional<List<Table>> tableList;
+    private final GenericProperties properties;
+    private final List<Table> tableList;
 
     public CreateSnapshot(QualifiedName name,
-                          Optional<GenericProperties> genericProperties) {
+                          GenericProperties genericProperties) {
         this.name = name;
         this.properties = genericProperties;
-        this.tableList = Optional.empty();
+        this.tableList = Collections.emptyList();
     }
 
     public CreateSnapshot(QualifiedName name,
                           List<Table> tableList,
-                          Optional<GenericProperties> genericProperties) {
+                          GenericProperties genericProperties) {
         this.name = name;
-        this.tableList = Optional.of(tableList);
+        this.tableList = tableList;
         this.properties = genericProperties;
 
     }
@@ -53,11 +53,11 @@ public class CreateSnapshot extends Statement {
         return this.name;
     }
 
-    public Optional<GenericProperties> properties() {
+    public GenericProperties properties() {
         return properties;
     }
 
-    public Optional<List<Table>> tableList() {
+    public List<Table> tableList() {
         return tableList;
     }
 

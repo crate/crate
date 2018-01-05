@@ -35,24 +35,28 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 public class KillPlan implements Plan {
 
-    private final Optional<UUID> jobToKill;
+    @Nullable
+    private final UUID jobToKill;
 
-    public KillPlan() {
-        this.jobToKill = Optional.empty();
+    @VisibleForTesting
+    KillPlan() {
+        this(null);
     }
 
-    public KillPlan(UUID jobToKill) {
-        this.jobToKill = Optional.of(jobToKill);
+    public KillPlan(@Nullable UUID jobToKill) {
+        this.jobToKill = jobToKill;
     }
 
-    public Optional<UUID> jobToKill() {
+    @Nullable
+    @VisibleForTesting
+    public UUID jobToKill() {
         return jobToKill;
     }
 
@@ -60,10 +64,9 @@ public class KillPlan implements Plan {
     void execute(TransportKillAllNodeAction killAllNodeAction,
                  TransportKillJobsNodeAction killjobsNodeAction,
                  RowConsumer consumer) {
-        if (jobToKill.isPresent()) {
-            UUID jobId = jobToKill.get();
+        if (jobToKill != null) {
             killjobsNodeAction.broadcast(
-                new KillJobsRequest(Collections.singletonList(jobId)),
+                new KillJobsRequest(Collections.singletonList(jobToKill)),
                 new OneRowActionListener<>(consumer, Row1::new)
             );
         } else {

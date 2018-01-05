@@ -33,8 +33,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Optional;
-
 import static org.hamcrest.Matchers.is;
 
 public class RepositoryParamValidatorTest extends CrateUnitTest {
@@ -51,7 +49,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
     public void testValidate() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid repository type \"invalid_type\"");
-        validator.convertAndValidate("invalid_type", Optional.of(new GenericProperties()), ParameterContext.EMPTY);
+        validator.convertAndValidate("invalid_type", GenericProperties.EMPTY, ParameterContext.EMPTY);
     }
 
     @Test
@@ -59,7 +57,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "The following required parameters are missing to create a repository of type \"fs\": [location]");
-        validator.convertAndValidate("fs", Optional.of(new GenericProperties()), ParameterContext.EMPTY);
+        validator.convertAndValidate("fs", GenericProperties.EMPTY, ParameterContext.EMPTY);
     }
 
     @Test
@@ -69,7 +67,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         GenericProperties genericProperties = new GenericProperties();
         genericProperties.add(new GenericProperty("location", new StringLiteral("foo")));
         genericProperties.add(new GenericProperty("yay", new StringLiteral("invalid")));
-        validator.convertAndValidate("fs", Optional.of(genericProperties), ParameterContext.EMPTY);
+        validator.convertAndValidate("fs", genericProperties, ParameterContext.EMPTY);
     }
 
     @Test
@@ -77,7 +75,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         GenericProperties genericProperties = new GenericProperties();
         genericProperties.add(new GenericProperty("path", new StringLiteral("/data")));
         genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
-        Settings settings = validator.convertAndValidate("hdfs", Optional.of(genericProperties), ParameterContext.EMPTY);
+        Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("conf.foobar"), is("bar"));
     }
 
@@ -98,7 +96,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         genericProperties.add(new GenericProperty("region", new StringLiteral("Europe-1")));
         genericProperties.add(new GenericProperty("secret_key", new StringLiteral("thisIsASecretKey")));
         genericProperties.add(new GenericProperty("server_side_encryption", new StringLiteral("false")));
-        Settings settings = validator.convertAndValidate("s3", Optional.of(genericProperties), ParameterContext.EMPTY);
+        Settings settings = validator.convertAndValidate("s3", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("access_key"), is("foobar"));
         assertThat(settings.get("base_path"), is("/data"));
         assertThat(settings.get("bucket"), is("myBucket"));

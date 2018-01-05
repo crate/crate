@@ -24,12 +24,13 @@ package io.crate.analyze;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class AlterTableAnalyzedStatement implements DDLStatement {
 
 
     private final DocTableInfo tableInfo;
+    @Nullable
     private final PartitionName partitionName;
     private final TableParameter tableParameter;
     private final boolean excludePartitions;
@@ -48,8 +49,9 @@ public class AlterTableAnalyzedStatement implements DDLStatement {
         return tableInfo;
     }
 
-    public Optional<PartitionName> partitionName() {
-        return Optional.ofNullable(partitionName);
+    @Nullable
+    public PartitionName partitionName() {
+        return partitionName;
     }
 
     public boolean excludePartitions() {

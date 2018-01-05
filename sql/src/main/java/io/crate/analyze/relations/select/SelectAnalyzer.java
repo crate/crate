@@ -59,8 +59,8 @@ public class SelectAnalyzer {
         @Override
         protected Void visitSingleColumn(SingleColumn node, SelectAnalysis context) {
             Symbol symbol = context.toSymbol(node.getExpression());
-            if (node.getAlias().isPresent()) {
-                context.add(new OutputName(node.getAlias().get()), symbol);
+            if (node.getAlias() != null) {
+                context.add(new OutputName(node.getAlias()), symbol);
             } else {
                 context.add(new OutputName(OutputNameFormatter.format(node.getExpression())), symbol);
             }
@@ -69,10 +69,10 @@ public class SelectAnalyzer {
 
         @Override
         protected Void visitAllColumns(AllColumns node, SelectAnalysis context) {
-            if (node.getPrefix().isPresent()) {
+            if (node.getPrefix() != null) {
                 // prefix is either: <tableOrAlias>.* or <schema>.<table>
 
-                QualifiedName prefix = node.getPrefix().get();
+                QualifiedName prefix = node.getPrefix();
                 AnalyzedRelation relation = context.sources().get(prefix);
                 if (relation != null) {
                     addAllFieldsFromRelation(context, relation);

@@ -33,7 +33,6 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowTables;
 
 import java.util.Locale;
-import java.util.Optional;
 
 /**
  * Rewrites the SHOW statements into Select queries.
@@ -92,11 +91,11 @@ class ShowStatementAnalyzer {
          */
         StringBuilder sb = new StringBuilder("SELECT schema_name ");
         sb.append("FROM information_schema.schemata ");
-        if (node.likePattern().isPresent()) {
+        if (node.likePattern() != null) {
             sb.append("WHERE schema_name LIKE ");
-            singleQuote(sb, node.likePattern().get());
-        } else if (node.whereExpression().isPresent()) {
-            sb.append(String.format(Locale.ENGLISH, "WHERE %s ", node.whereExpression().get().toString()));
+            singleQuote(sb, node.likePattern());
+        } else if (node.whereExpression() != null) {
+            sb.append(String.format(Locale.ENGLISH, "WHERE %s ", node.whereExpression().toString()));
         }
         sb.append("ORDER BY schema_name");
         return (Query) SqlParser.createStatement(sb.toString());
@@ -132,16 +131,16 @@ class ShowStatementAnalyzer {
         singleQuote(sb, node.table().toString());
 
         sb.append("AND table_schema = ");
-        if (node.schema().isPresent()) {
-            singleQuote(sb, node.schema().get().toString());
+        if (node.schema() != null) {
+            singleQuote(sb, node.schema().toString());
         } else {
             singleQuote(sb, defaultSchema);
         }
-        if (node.likePattern().isPresent()) {
+        if (node.likePattern() != null) {
             sb.append("AND column_name LIKE ");
-            singleQuote(sb, node.likePattern().get());
-        } else if (node.where().isPresent()) {
-            sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where().get())));
+            singleQuote(sb, node.likePattern());
+        } else if (node.where() != null) {
+            sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where())));
         }
         sb.append("ORDER BY column_name");
         return (Query) SqlParser.createStatement(sb.toString());
@@ -178,10 +177,10 @@ class ShowStatementAnalyzer {
          * </code>
          */
         StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
-        Optional<QualifiedName> schema = node.schema();
-        if (schema.isPresent()) {
+        QualifiedName schema = node.schema();
+        if (schema != null) {
             sb.append("WHERE table_schema = ");
-            singleQuote(sb, schema.get().toString());
+            singleQuote(sb, schema.toString());
         } else {
             sb.append("WHERE table_schema NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
@@ -192,16 +191,16 @@ class ShowStatementAnalyzer {
             }
             sb.append(")");
         }
-        Optional<Expression> whereExpression = node.whereExpression();
-        if (whereExpression.isPresent()) {
+        Expression whereExpression = node.whereExpression();
+        if (whereExpression != null) {
             sb.append(" AND (");
-            sb.append(whereExpression.get().toString());
+            sb.append(whereExpression.toString());
             sb.append(")");
         } else {
-            Optional<String> likePattern = node.likePattern();
-            if (likePattern.isPresent()) {
+            String likePattern = node.likePattern();
+            if (likePattern != null) {
                 sb.append(" AND table_name like ");
-                singleQuote(sb, likePattern.get());
+                singleQuote(sb, likePattern);
             }
         }
         sb.append(" ORDER BY 1");

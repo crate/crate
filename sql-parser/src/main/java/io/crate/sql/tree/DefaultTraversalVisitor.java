@@ -65,8 +65,8 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitQuery(Query node, C context) {
-        if (node.getWith().isPresent()) {
-            process(node.getWith().get(), context);
+        if (node.getWith() != null) {
+            process(node.getWith(), context);
         }
         process(node.getQueryBody(), context);
         for (SortItem sortItem : node.getOrderBy()) {
@@ -157,8 +157,8 @@ public abstract class DefaultTraversalVisitor<R, C>
     protected R visitIfExpression(IfExpression node, C context) {
         process(node.getCondition(), context);
         process(node.getTrueValue(), context);
-        if (node.getFalseValue().isPresent()) {
-            process(node.getFalseValue().get(), context);
+        if (node.getFalseValue() != null) {
+            process(node.getFalseValue(), context);
         }
 
         return null;
@@ -236,14 +236,14 @@ public abstract class DefaultTraversalVisitor<R, C>
         }
 
         process(node.getSelect(), context);
-        if (node.getWhere().isPresent()) {
-            process(node.getWhere().get(), context);
+        if (node.getWhere() != null) {
+            process(node.getWhere(), context);
         }
         for (Expression expression : node.getGroupBy()) {
             process(expression, context);
         }
-        if (node.getHaving().isPresent()) {
-            process(node.getHaving().get(), context);
+        if (node.getHaving() != null) {
+            process(node.getHaving(), context);
         }
         for (SortItem sortItem : node.getOrderBy()) {
             process(sortItem, context);
@@ -287,8 +287,8 @@ public abstract class DefaultTraversalVisitor<R, C>
         process(node.getLeft(), context);
         process(node.getRight(), context);
 
-        if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn) {
-            process(((JoinOn) node.getCriteria().get()).getExpression(), context);
+        if (node.getCriteria() != null && node.getCriteria() instanceof JoinOn) {
+            process(((JoinOn) node.getCriteria()).getExpression(), context);
         }
 
         return null;
@@ -317,8 +317,8 @@ public abstract class DefaultTraversalVisitor<R, C>
         for (Assignment assignment : node.assignements()) {
             process(assignment, context);
         }
-        if (node.whereClause().isPresent()) {
-            process(node.whereClause().get(), context);
+        if (node.whereClause() != null) {
+            process(node.whereClause(), context);
         }
         return null;
     }

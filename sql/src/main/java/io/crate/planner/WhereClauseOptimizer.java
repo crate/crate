@@ -33,10 +33,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -66,8 +66,9 @@ public final class WhereClauseOptimizer {
             this.partitionValues = firstNonNull(partitionValues, Collections.emptyList());
         }
 
-        public Optional<DocKeys> docKeys() {
-            return Optional.ofNullable(docKeys);
+        @Nullable
+        public DocKeys docKeys() {
+            return docKeys;
         }
 
         /**

@@ -128,9 +128,9 @@ public final class SqlFormatter {
             process(node.table(), indent);
             append(indent, " FROM ");
             process(node.path(), indent);
-            if (node.genericProperties().isPresent()) {
+            if (!node.genericProperties().isEmpty()) {
                 append(indent, " ");
-                process(node.genericProperties().get(), indent);
+                process(node.genericProperties(), indent);
             }
             return null;
         }
@@ -157,8 +157,8 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
-            if (node.getWith().isPresent()) {
-                With with = node.getWith().get();
+            if (node.getWith() != null) {
+                With with = node.getWith();
                 append(indent, "WITH");
                 if (with.isRecursive()) {
                     builder.append(" RECURSIVE");
@@ -188,13 +188,13 @@ public final class SqlFormatter {
                 ).append('\n');
             }
 
-            if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
+            if (node.getLimit() != null) {
+                append(indent, "LIMIT " + node.getLimit())
                     .append('\n');
             }
 
-            if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
+            if (node.getOffset() != null) {
+                append(indent, "OFFSET " + node.getOffset())
                     .append('\n');
             }
 
@@ -226,8 +226,8 @@ public final class SqlFormatter {
 
             builder.append('\n');
 
-            if (node.getWhere().isPresent()) {
-                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere().get()))
+            if (node.getWhere() != null) {
+                append(indent, "WHERE " + formatStandaloneExpression(node.getWhere()))
                     .append('\n');
             }
 
@@ -239,8 +239,8 @@ public final class SqlFormatter {
                     .append('\n');
             }
 
-            if (node.getHaving().isPresent()) {
-                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get()))
+            if (node.getHaving() != null) {
+                append(indent, "HAVING " + formatStandaloneExpression(node.getHaving()))
                     .append('\n');
             }
 
@@ -252,13 +252,13 @@ public final class SqlFormatter {
                 ).append('\n');
             }
 
-            if (node.getLimit().isPresent()) {
-                append(indent, "LIMIT " + node.getLimit().get())
+            if (node.getLimit() != null) {
+                append(indent, "LIMIT " + node.getLimit())
                     .append('\n');
             }
 
-            if (node.getOffset().isPresent()) {
-                append(indent, "OFFSET " + node.getOffset().get())
+            if (node.getOffset() != null) {
+                append(indent, "OFFSET " + node.getOffset())
                     .append('\n');
             }
             return null;
@@ -293,10 +293,10 @@ public final class SqlFormatter {
         @Override
         protected Void visitSingleColumn(SingleColumn node, Integer indent) {
             builder.append(formatStandaloneExpression(node.getExpression()));
-            if (node.getAlias().isPresent()) {
+            if (node.getAlias() != null) {
                 builder.append(' ')
                     .append('"')
-                    .append(node.getAlias().get())
+                    .append(node.getAlias())
                     .append('"'); // TODO: handle quoting properly
             }
 
@@ -364,9 +364,9 @@ public final class SqlFormatter {
                 }
             }
 
-            if (node.properties().isPresent() && !node.properties().get().isEmpty()) {
+            if (!node.properties().isEmpty()) {
                 builder.append("\n");
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
@@ -440,7 +440,9 @@ public final class SqlFormatter {
 
         @Override
         public Void visitFunctionArgument(FunctionArgument node, Integer context) {
-            node.name().ifPresent(s -> builder.append(s).append(" "));
+            if (node.name() != null) {
+                builder.append(node.name()).append(" ");
+            }
             builder.append(node.type());
             return null;
         }
@@ -448,11 +450,11 @@ public final class SqlFormatter {
         @Override
         public Void visitClusteredBy(ClusteredBy node, Integer indent) {
             append(indent, "CLUSTERED");
-            if (node.column().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().get().toString()));
+            if (node.column() != null) {
+                builder.append(String.format(Locale.ENGLISH, " BY (%s)", node.column().toString()));
             }
-            if (node.numberOfShards().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " INTO %s SHARDS", node.numberOfShards().get()));
+            if (node.numberOfShards() != null) {
+                builder.append(String.format(Locale.ENGLISH, " INTO %s SHARDS", node.numberOfShards()));
             }
             return null;
         }
@@ -522,8 +524,8 @@ public final class SqlFormatter {
         @Override
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             builder.append("OBJECT");
-            if (node.objectType().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
+            if (node.objectType() != null) {
+                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().toUpperCase(Locale.ENGLISH)));
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");
@@ -621,7 +623,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitJoin(Join node, Integer indent) {
-            JoinCriteria criteria = node.getCriteria().orElse(null);
+            JoinCriteria criteria = node.getCriteria();
             String type = node.getType().toString();
             if (criteria instanceof NaturalJoin) {
                 type = "NATURAL " + type;
@@ -686,19 +688,19 @@ public final class SqlFormatter {
         public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
             builder.append("CREATE SNAPSHOT ")
                 .append(quoteIdentifierIfNeeded(node.name().toString()));
-            if (node.tableList().isPresent()) {
+            if (!node.tableList().isEmpty()) {
                 builder.append(" TABLE ");
-                int count = 0, max = node.tableList().get().size();
-                for (Table table : node.tableList().get()) {
+                int count = 0, max = node.tableList().size();
+                for (Table table : node.tableList()) {
                     table.accept(this, indent);
                     if (++count < max) builder.append(",");
                 }
             } else {
                 builder.append(" ALL");
             }
-            if (node.properties().isPresent()) {
+            if (!node.properties().isEmpty()) {
                 builder.append(' ');
-                node.properties().get().accept(this, indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
@@ -711,8 +713,8 @@ public final class SqlFormatter {
             builder.append(" ON ")
                 .append(quoteIdentifierIfNeeded(node.sourceIdent().toString()));
 
-            if (node.where().isPresent()) {
-                builder.append(" WHERE " + formatExpression(node.where().get()));
+            if (node.where() != null) {
+                builder.append(" WHERE " + formatExpression(node.where()));
             }
             builder.append(" INTO ")
                 .append(quoteIdentifierIfNeeded(node.targetTable().toString()));

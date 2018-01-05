@@ -95,12 +95,12 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testKillPlanAll() throws Exception {
         KillPlan killPlan = e.plan("kill all");
         assertThat(killPlan, instanceOf(KillPlan.class));
-        assertThat(killPlan.jobToKill().isPresent(), is(false));
+        assertNull(killPlan.jobToKill());
     }
 
     @Test
     public void testKillPlanJobs() throws Exception {
         KillPlan killJobsPlan = e.plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
+        assertThat(killJobsPlan.jobToKill().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
 }

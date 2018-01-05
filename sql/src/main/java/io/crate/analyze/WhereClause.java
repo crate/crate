@@ -32,16 +32,15 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.AndOperator;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -50,9 +49,10 @@ public class WhereClause extends QueryClause implements Streamable {
     public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
-    private Optional<Set<Symbol>> clusteredBy = Optional.empty();
-
-    private Optional<DocKeys> docKeys = Optional.empty();
+    @Nullable
+    private Set<Symbol> clusteredBy;
+    @Nullable
+    private DocKeys docKeys;
 
     private List<String> partitions = new ArrayList<>();
 
@@ -66,8 +66,8 @@ public class WhereClause extends QueryClause implements Streamable {
                        @Nullable List<String> partitions,
                        @Nullable Set<Symbol> clusteredBy) {
         super(normalizedQuery);
-        this.docKeys = Optional.ofNullable(docKeys);
-        this.clusteredBy = Optional.ofNullable(clusteredBy);
+        this.docKeys = docKeys;
+        this.clusteredBy = clusteredBy;
         if (partitions != null) {
             this.partitions = partitions;
         }
@@ -85,26 +85,28 @@ public class WhereClause extends QueryClause implements Streamable {
         if (normalizedQuery == query) {
             return this;
         }
-        return new WhereClause(normalizedQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
+        return new WhereClause(normalizedQuery, docKeys, partitions, clusteredBy);
     }
 
-    public Optional<Set<Symbol>> clusteredBy() {
+    @Nullable
+    public Set<Symbol> clusteredBy() {
         return clusteredBy;
     }
 
     @Nullable
     public Set<String> routingValues() {
-        if (clusteredBy.isPresent()) {
-            HashSet<String> result = new HashSet<>(clusteredBy.get().size());
+        if (clusteredBy != null) {
+            HashSet<String> result = new HashSet<>(clusteredBy.size());
             Iterators.addAll(result, Iterators.transform(
-                clusteredBy.get().iterator(), ValueSymbolVisitor.STRING.function));
+                clusteredBy.iterator(), ValueSymbolVisitor.STRING.function));
             return result;
         } else {
             return null;
         }
     }
 
-    public Optional<DocKeys> docKeys() {
+    @Nullable
+    public DocKeys docKeys() {
         return docKeys;
     }
 
@@ -161,10 +163,9 @@ public class WhereClause extends QueryClause implements Streamable {
         WhereClause that = (WhereClause) o;
         if (query != null ? !query.equals(that.query) : that.query != null) return false;
         if (noMatch != that.noMatch) return false;
-        if (!docKeys.equals(that.docKeys)) return false;
-        if (!clusteredBy.equals(that.clusteredBy)) return false;
-        if (partitions != null ? !partitions.equals(that.partitions) : that.partitions != null)
-            return false;
+        if (docKeys != null ? !docKeys.equals(that.docKeys) : that.docKeys != null) return false;
+        if (clusteredBy != null ? !clusteredBy.equals(that.clusteredBy) : that.clusteredBy != null) return false;
+        if (partitions != null ? !partitions.equals(that.partitions) : that.partitions != null) return false;
         return true;
     }
 
@@ -178,7 +179,7 @@ public class WhereClause extends QueryClause implements Streamable {
     }
 
     public boolean hasVersions() {
-        return (docKeys.isPresent() && docKeys.get().withVersions())
+        return (docKeys != null && docKeys.withVersions())
             || query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
     }
 
@@ -189,7 +190,7 @@ public class WhereClause extends QueryClause implements Streamable {
      * The result is either a new WhereClause or the same (but modified) instance.
      */
     public WhereClause add(Symbol otherQuery) {
-        assert !docKeys.isPresent() : "Cannot add otherQuery if there are docKeys in the WhereClause";
+        assert docKeys == null : "Cannot add otherQuery if there are docKeys in the WhereClause";
         if (this == MATCH_ALL) {
             return new WhereClause(otherQuery);
         }
@@ -206,7 +207,7 @@ public class WhereClause extends QueryClause implements Streamable {
             return this;
         }
         Symbol newQuery = replaceFunction.apply(query);
-        return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
+        return new WhereClause(newQuery, docKeys, partitions, clusteredBy);
     }
 
     public WhereClause mergeWhere(WhereClause where2) {
