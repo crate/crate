@@ -245,6 +245,7 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDeleteWithSubQuery() throws Exception {
         execute("create table t1 (id int primary key, x int)");
+        ensureGreen();
         execute("insert into t1 (id, x) values (1, 1), (2, 2), (3, 3)");
         execute("refresh table t1");
 

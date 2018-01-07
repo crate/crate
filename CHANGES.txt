@@ -15,6 +15,13 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Attempting to collect documents (using the common statements ``DELETE``,
+   ``UPDATE``, ``SELECT`` or any statement with subquery) from a shard that was
+   not ``STARTED``  resulted in a ``SQLActionException`` with
+   ``JobKilledException`` message. The exception message now contains more
+   information as the source of the message is an
+   ``IllegalShardRoutingStateException``.
+
 Changes
 =======
 
