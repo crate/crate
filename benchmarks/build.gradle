@@ -1,10 +1,11 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
 // generate uberjar with all benchmarks
 apply plugin: 'application'
+// mainClassName must come after application but before shadow plugin application
+// to avoid a warning. See https://github.com/johnrengelman/shadow/issues/336
+mainClassName = 'org.openjdk.jmh.Main'
+apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-benchmarks'
-mainClassName = 'org.openjdk.jmh.Main'
 
 test.enabled = false
 
