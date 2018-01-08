@@ -167,8 +167,6 @@ import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
-import io.crate.sql.tree.With;
-import io.crate.sql.tree.WithQuery;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -803,30 +801,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitQuery(SqlBaseParser.QueryContext context) {
-        Query body = (Query) visit(context.queryNoWith());
-        return new Query(
-            visitIfPresent(context.with(), With.class),
-            body.getQueryBody(),
-            body.getOrderBy(),
-            body.getLimit(),
-            body.getOffset());
-    }
-
-    @Override
-    public Node visitWith(SqlBaseParser.WithContext context) {
-        return new With(context.RECURSIVE() != null, visitCollection(context.namedQuery(), WithQuery.class));
-    }
-
-    @Override
-    public Node visitNamedQuery(SqlBaseParser.NamedQueryContext context) {
-        return new WithQuery(
-            getIdentText(context.name),
-            (Query) visit(context.query()),
-            getColumnAliases(context.aliasedColumns()));
-    }
-
-    @Override
-    public Node visitQueryNoWith(SqlBaseParser.QueryNoWithContext context) {
         QueryBody term = (QueryBody) visit(context.queryTerm());
         if (term instanceof QuerySpecification) {
             // When we have a simple query specification
@@ -837,7 +811,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             QuerySpecification query = (QuerySpecification) term;
 
             return new Query(
-                Optional.empty(),
                 new QuerySpecification(
                     query.getSelect(),
                     query.getFrom(),
@@ -852,7 +825,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 Optional.empty());
         }
         return new Query(
-            Optional.empty(),
             term,
             visitCollection(context.sortItem(), SortItem.class),
             visitIfPresent(context.limit, Expression.class),

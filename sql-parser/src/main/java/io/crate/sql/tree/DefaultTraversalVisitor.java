@@ -65,29 +65,12 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitQuery(Query node, C context) {
-        if (node.getWith().isPresent()) {
-            process(node.getWith().get(), context);
-        }
         process(node.getQueryBody(), context);
         for (SortItem sortItem : node.getOrderBy()) {
             process(sortItem, context);
         }
 
         return null;
-    }
-
-    @Override
-    protected R visitWith(With node, C context) {
-        for (WithQuery query : node.getQueries()) {
-            process(query, context);
-        }
-
-        return null;
-    }
-
-    @Override
-    protected R visitWithQuery(WithQuery node, C context) {
-        return process(node.getQuery(), context);
     }
 
     @Override

@@ -88,15 +88,7 @@ statement
     | createStmt                                                                     #create
     ;
 
-query
-    :  with? queryNoWith
-    ;
-
-with
-    : WITH RECURSIVE? namedQuery (',' namedQuery)*
-    ;
-
-queryNoWith:
+query:
       queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
       (LIMIT limit=parameterOrInteger)?
@@ -124,10 +116,6 @@ querySpec
       where?
       (GROUP BY expr (',' expr)*)?
       (HAVING having=booleanExpression)?
-    ;
-
-namedQuery
-    : name=ident (aliasedColumns)? AS '(' query ')'
     ;
 
 selectItem

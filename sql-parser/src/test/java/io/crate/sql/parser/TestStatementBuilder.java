@@ -588,13 +588,6 @@ public class TestStatementBuilder {
 
         printStatement("select x is distinct from y from foo where a is not distinct from b");
 
-        printStatement("" +
-                       "with a (id) as (with x as (select 123 from z) select * from x) " +
-                       "   , b (id) as (select 999 from z) " +
-                       "select * from a join b using (id)");
-
-        printStatement("with recursive t as (select * from x) select * from t");
-
         printStatement("select * from information_schema.tables");
 
         printStatement("select * from a.b.c@d");

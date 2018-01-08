@@ -97,14 +97,6 @@ public abstract class AstVisitor<R, C> {
         return visitLiteral(node, context);
     }
 
-    protected R visitWith(With node, C context) {
-        return visitNode(node, context);
-    }
-
-    protected R visitWithQuery(WithQuery node, C context) {
-        return visitNode(node, context);
-    }
-
     protected R visitSelect(Select node, C context) {
         return visitNode(node, context);
     }

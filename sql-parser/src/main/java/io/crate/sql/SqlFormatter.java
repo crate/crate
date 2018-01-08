@@ -79,8 +79,6 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
-import io.crate.sql.tree.With;
-import io.crate.sql.tree.WithQuery;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -157,27 +155,6 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
-            if (node.getWith().isPresent()) {
-                With with = node.getWith().get();
-                append(indent, "WITH");
-                if (with.isRecursive()) {
-                    builder.append(" RECURSIVE");
-                }
-                builder.append("\n  ");
-                Iterator<WithQuery> queries = with.getQueries().iterator();
-                while (queries.hasNext()) {
-                    WithQuery query = queries.next();
-                    append(indent, query.getName());
-                    appendAliasColumns(builder, query.getColumnNames());
-                    builder.append(" AS ");
-                    process(new TableSubquery(query.getQuery()), indent);
-                    builder.append('\n');
-                    if (queries.hasNext()) {
-                        builder.append(", ");
-                    }
-                }
-            }
-
             process(node.getQueryBody(), indent);
 
             if (!node.getOrderBy().isEmpty()) {

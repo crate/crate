@@ -87,7 +87,6 @@ public class TestSqlParser {
     public void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
             new Query(
-                Optional.empty(),
                 new QuerySpecification(
                     selectList(new DoubleLiteral("123.456E7")),
                     table(QualifiedName.of("dual")),

@@ -30,33 +30,25 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Query extends Statement {
-    private final Optional<With> with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
     private final Optional<Expression> limit;
     private final Optional<Expression> offset;
 
     public Query(
-        Optional<With> with,
         QueryBody queryBody,
         List<SortItem> orderBy,
         Optional<Expression> limit,
         Optional<Expression> offset) {
-        checkNotNull(with, "with is null");
         checkNotNull(queryBody, "queryBody is null");
         checkNotNull(orderBy, "orderBy is null");
         checkNotNull(limit, "limit is null");
         checkNotNull(offset, "offset is null");
 
-        this.with = with;
         this.queryBody = queryBody;
         this.orderBy = orderBy;
         this.limit = limit;
         this.offset = offset;
-    }
-
-    public Optional<With> getWith() {
-        return with;
     }
 
     public QueryBody getQueryBody() {
@@ -83,7 +75,6 @@ public class Query extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("with", with)
             .add("queryBody", queryBody)
             .add("orderBy", orderBy)
             .add("limit", limit)
@@ -101,8 +92,7 @@ public class Query extends Statement {
             return false;
         }
         Query o = (Query) obj;
-        return Objects.equal(with, o.with) &&
-               Objects.equal(queryBody, o.queryBody) &&
+        return Objects.equal(queryBody, o.queryBody) &&
                Objects.equal(orderBy, o.orderBy) &&
                Objects.equal(limit, o.limit) &&
                Objects.equal(offset, o.offset);
@@ -110,6 +100,6 @@ public class Query extends Statement {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(with, queryBody, orderBy, limit, offset);
+        return Objects.hashCode(queryBody, orderBy, limit, offset);
     }
 }
