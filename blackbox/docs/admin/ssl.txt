@@ -285,6 +285,14 @@ The common name (CN) should overlap with the CN of the server key
 generated in the first step. For example, ``ssl.crate.io`` overlaps
 with `*.crate.io`.
 
+.. NOTE::
+
+    In this step by step guide it is shown how to create a server certificate.
+    If you want to create a client certificate the steps are almost the same
+    with the exception of providing a common name that is equivalent to the
+    crate username as described in :ref:`client certificate authentication
+    method <auth_cert>`.
+
 Command::
 
     openssl req -x509 -sha256 -nodes -days 36500 -newkey rsa:2048 \
