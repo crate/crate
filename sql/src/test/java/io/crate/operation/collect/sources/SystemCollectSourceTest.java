@@ -41,7 +41,7 @@ import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;

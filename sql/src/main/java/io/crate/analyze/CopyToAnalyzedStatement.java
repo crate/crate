@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;

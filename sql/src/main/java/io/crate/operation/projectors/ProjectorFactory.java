@@ -23,7 +23,7 @@ package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Projector;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 
 import java.util.UUID;
 

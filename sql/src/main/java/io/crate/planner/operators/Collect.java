@@ -56,9 +56,9 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

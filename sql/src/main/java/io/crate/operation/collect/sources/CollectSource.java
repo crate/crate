@@ -25,7 +25,7 @@ package io.crate.operation.collect.sources;
 import io.crate.data.RowConsumer;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
 
 public interface CollectSource {
 

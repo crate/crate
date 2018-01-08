@@ -41,7 +41,7 @@ import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;

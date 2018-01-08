@@ -26,7 +26,7 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;

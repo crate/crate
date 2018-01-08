@@ -25,8 +25,8 @@ package io.crate.planner.statement
 import io.crate.analyze.symbol.Literal
 import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.Collect
-import io.crate.planner.node.dql.FileUriCollectPhase
-import io.crate.planner.projection.SourceIndexWriterProjection
+import io.crate.execution.dsl.phases.FileUriCollectPhase
+import io.crate.execution.dsl.projection.SourceIndexWriterProjection
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest
 import io.crate.testing.SQLExecutor
 import io.crate.testing.T3

@@ -37,7 +37,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.scalar.SubscriptObjectFunction;
-import io.crate.planner.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

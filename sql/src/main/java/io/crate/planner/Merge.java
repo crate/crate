@@ -25,10 +25,10 @@ package io.crate.planner;
 import io.crate.operation.Paging;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -144,7 +144,7 @@ public class Merge implements ExecutionPlan, ResultDescription {
      * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
      * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
      *
-     * If the data should be limited as part of the Merge, add a {@link io.crate.planner.projection.TopNProjection},
+     * If the data should be limited as part of the Merge, add a {@link io.crate.execution.dsl.projection.TopNProjection},
      * if possible. If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
      *
      * See also: {@link ResultDescription}

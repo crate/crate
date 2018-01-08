@@ -28,7 +28,7 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 
 import javax.annotation.Nullable;
 import java.util.List;

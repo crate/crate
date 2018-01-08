@@ -41,8 +41,8 @@ import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.ValueAndInputRow;
 import io.crate.operation.projectors.InputCondition;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.TableFunctionCollectPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

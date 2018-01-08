@@ -24,6 +24,7 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
+import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.operation.PageResultListener;
 
 import java.util.Collection;
@@ -37,7 +38,7 @@ import java.util.Collection;
  *     | n1 |    | n2 |
  *     +----+    +----+
  *        \        /
- *         Downstream ({@link io.crate.jobs.PageBucketReceiver} (usually created from {@link io.crate.planner.node.dql.MergePhase}))
+ *         Downstream ({@link io.crate.jobs.PageBucketReceiver} (usually created from {@link MergePhase}))
  *
  *  For example:
  *

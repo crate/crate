@@ -39,10 +39,10 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

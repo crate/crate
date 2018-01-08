@@ -22,7 +22,7 @@
 package io.crate.planner;
 
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 
 import javax.annotation.Nullable;
 

@@ -26,7 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

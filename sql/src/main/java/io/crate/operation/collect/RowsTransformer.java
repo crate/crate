@@ -34,7 +34,7 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.ReferenceResolver;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;

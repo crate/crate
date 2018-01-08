@@ -30,7 +30,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseBuilder;
-import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;

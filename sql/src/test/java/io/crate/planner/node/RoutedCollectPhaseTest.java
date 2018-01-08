@@ -36,8 +36,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.user.User;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -154,7 +154,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new TransactionContext(SessionContext.create()));
-        
+
         assertThat(normalizedCollect, sameInstance(collect));
     }
 }

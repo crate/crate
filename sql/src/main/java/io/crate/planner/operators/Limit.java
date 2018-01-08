@@ -33,9 +33,9 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

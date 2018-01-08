@@ -22,8 +22,8 @@
 
 package io.crate.testing;
 
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.TopNProjection;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;

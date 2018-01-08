@@ -53,7 +53,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
-import io.crate.planner.projection.builder.SplitPoints;
+import io.crate.execution.dsl.projection.builder.SplitPoints;
 
 import java.util.Collection;
 import java.util.Collections;

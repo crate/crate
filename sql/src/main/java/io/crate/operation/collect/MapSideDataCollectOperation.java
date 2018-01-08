@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 import io.crate.data.RowConsumer;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;

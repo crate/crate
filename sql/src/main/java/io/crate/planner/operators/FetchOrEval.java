@@ -51,12 +51,12 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.projection.EvalProjection;
-import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.builder.InputColumns;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;

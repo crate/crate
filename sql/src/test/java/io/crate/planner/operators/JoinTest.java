@@ -34,7 +34,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;

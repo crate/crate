@@ -74,7 +74,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;

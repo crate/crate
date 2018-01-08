@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.planner.projection.AbstractIndexWriterProjection;
+import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.SQLBulkResponse;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;

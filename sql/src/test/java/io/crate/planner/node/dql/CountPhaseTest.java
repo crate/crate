@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateUnitTest;

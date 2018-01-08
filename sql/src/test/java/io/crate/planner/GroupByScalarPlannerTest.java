@@ -5,10 +5,10 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.EvalProjection;
-import io.crate.planner.projection.GroupProjection;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -103,7 +103,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().size(), is(2));
         assertThat(mergePhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
-        
+
         assertThat(mergePhase.projections().get(1).outputs(), contains(isFunction("abs")));
     }
 }

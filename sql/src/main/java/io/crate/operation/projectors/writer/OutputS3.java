@@ -33,7 +33,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.external.S3ClientHelper;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.ByteArrayInputStream;

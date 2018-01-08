@@ -22,13 +22,15 @@
 package io.crate.planner.node;
 
 import io.crate.Streamer;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.FileUriCollectPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.PKLookupPhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.CountPhase;
+import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.PKLookupPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;

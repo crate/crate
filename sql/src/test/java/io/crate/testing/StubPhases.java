@@ -23,9 +23,9 @@
 package io.crate.testing;
 
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;

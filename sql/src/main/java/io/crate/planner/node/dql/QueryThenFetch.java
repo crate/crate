@@ -27,8 +27,8 @@ import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.fetch.FetchPhase;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.dsl.projection.Projection;
 
 import javax.annotation.Nullable;
 

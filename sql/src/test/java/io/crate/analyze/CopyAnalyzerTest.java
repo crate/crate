@@ -29,7 +29,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;

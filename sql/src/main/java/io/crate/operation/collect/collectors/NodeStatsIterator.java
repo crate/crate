@@ -39,7 +39,7 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;

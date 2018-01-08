@@ -34,7 +34,7 @@ import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.collectors.BlobOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;

@@ -30,7 +30,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;

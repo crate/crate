@@ -24,7 +24,7 @@ package io.crate.action.job;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.operation.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.planner.ExecutionPlan;
 import io.crate.testing.DiscoveryNodes;

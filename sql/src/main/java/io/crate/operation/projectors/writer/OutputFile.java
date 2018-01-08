@@ -22,7 +22,7 @@
 package io.crate.operation.projectors.writer;
 
 import com.google.common.base.Preconditions;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 
 import java.io.File;
 import java.io.FileOutputStream;

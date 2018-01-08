@@ -22,13 +22,15 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.symbol.Symbols;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -54,7 +56,7 @@ public class Collect implements ExecutionPlan, ResultDescription {
      * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
      * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
      *
-     * If the data should be limited as part of the Collect, add a {@link io.crate.planner.projection.TopNProjection},
+     * If the data should be limited as part of the Collect, add a {@link io.crate.execution.dsl.projection.TopNProjection},
      * If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
      *
      * See also: {@link ResultDescription}

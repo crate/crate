@@ -27,7 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

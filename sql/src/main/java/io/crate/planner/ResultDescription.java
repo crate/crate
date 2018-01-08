@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;

@@ -22,7 +22,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.operation.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.Paging;
 import io.crate.planner.ExecutionPlan;
@@ -30,9 +30,9 @@ import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhases;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;

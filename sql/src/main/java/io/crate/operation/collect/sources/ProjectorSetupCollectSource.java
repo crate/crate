@@ -26,7 +26,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.planner.node.dql.CollectPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
 
 public class ProjectorSetupCollectSource implements CollectSource {
 

@@ -31,9 +31,9 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.projection.OrderedTopNProjection;
-import io.crate.planner.projection.builder.InputColumns;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;

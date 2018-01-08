@@ -31,9 +31,9 @@ import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.projection.ColumnIndexWriterProjection;
-import io.crate.planner.projection.MergeCountProjection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

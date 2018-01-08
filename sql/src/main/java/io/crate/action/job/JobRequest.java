@@ -21,7 +21,7 @@
 
 package io.crate.action.job;
 
-import io.crate.operation.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperation;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;

@@ -34,11 +34,11 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.CountPhase;
+import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.MergeCountProjection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;

@@ -30,7 +30,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.execution.dsl.phases.FetchPhase;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;

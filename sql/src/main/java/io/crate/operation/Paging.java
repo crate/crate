@@ -23,8 +23,8 @@ package io.crate.operation;
 
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 
 import javax.annotation.Nullable;
 

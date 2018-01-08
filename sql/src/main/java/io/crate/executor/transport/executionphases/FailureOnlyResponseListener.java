@@ -24,7 +24,7 @@ package io.crate.executor.transport.executionphases;
 
 import io.crate.action.job.JobResponse;
 import io.crate.data.RowConsumer;
-import io.crate.planner.node.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.collect.Tuple;
 

@@ -55,7 +55,7 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;

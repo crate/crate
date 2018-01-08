@@ -58,13 +58,13 @@ import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
-import io.crate.planner.projection.MergeCountProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.SysUpdateProjection;
-import io.crate.planner.projection.UpdateProjection;
+import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.SysUpdateProjection;
+import io.crate.execution.dsl.projection.UpdateProjection;
 
 import java.util.ArrayList;
 import java.util.List;

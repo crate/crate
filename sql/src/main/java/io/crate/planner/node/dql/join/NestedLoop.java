@@ -21,12 +21,13 @@
 
 package io.crate.planner.node.dql.join;
 
+import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;

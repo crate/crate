@@ -38,8 +38,8 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

@@ -28,7 +28,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.executionphases.PhasesTaskFactory;
 import io.crate.metadata.Functions;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;

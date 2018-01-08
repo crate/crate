@@ -25,7 +25,7 @@ import io.crate.data.Row;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.projection.FetchProjection;
+import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.testing.TestingRowConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;

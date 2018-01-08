@@ -32,8 +32,8 @@ import io.crate.data.Row;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.execution.dsl.projection.FilterProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;

@@ -22,7 +22,7 @@
 package io.crate.jobs;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.execution.dsl.phases.NestedLoopPhase;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;

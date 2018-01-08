@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import io.crate.planner.node.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;

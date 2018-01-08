@@ -27,12 +27,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.NodeOperationGrouper;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.NodeOperationGrouper;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

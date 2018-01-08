@@ -21,13 +21,15 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.execution.dsl.phases.CountPhase;
+import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -117,7 +119,7 @@ public class CountPlan implements ExecutionPlan, ResultDescription {
 
     @Override
     public int numOutputs() {
-        return mergePhase.outputTypes.size();
+        return mergePhase.outputTypes().size();
     }
 
     @Override
