@@ -34,7 +34,8 @@ public class AliasedRelation
 
     public AliasedRelation(Relation relation, String alias, List<String> columnNames) {
         Preconditions.checkNotNull(relation, "relation is null");
-        Preconditions.checkNotNull(alias, " is null");
+        Preconditions.checkNotNull(alias, "alias is null");
+        Preconditions.checkNotNull(columnNames, "columnNames is null");
 
         this.relation = relation;
         this.alias = alias;
@@ -82,7 +83,7 @@ public class AliasedRelation
         if (!alias.equals(that.alias)) {
             return false;
         }
-        if (columnNames != null ? !columnNames.equals(that.columnNames) : that.columnNames != null) {
+        if (!columnNames.equals(that.columnNames)) {
             return false;
         }
         if (!relation.equals(that.relation)) {

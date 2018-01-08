@@ -92,9 +92,10 @@ class ShowStatementAnalyzer {
          */
         StringBuilder sb = new StringBuilder("SELECT schema_name ");
         sb.append("FROM information_schema.schemata ");
-        if (node.likePattern().isPresent()) {
+        String likePattern = node.likePattern();
+        if (likePattern != null) {
             sb.append("WHERE schema_name LIKE ");
-            singleQuote(sb, node.likePattern().get());
+            singleQuote(sb, likePattern);
         } else if (node.whereExpression().isPresent()) {
             sb.append(String.format(Locale.ENGLISH, "WHERE %s ", node.whereExpression().get().toString()));
         }
@@ -132,14 +133,16 @@ class ShowStatementAnalyzer {
         singleQuote(sb, node.table().toString());
 
         sb.append("AND table_schema = ");
-        if (node.schema().isPresent()) {
-            singleQuote(sb, node.schema().get().toString());
+        QualifiedName schema = node.schema();
+        if (schema != null) {
+            singleQuote(sb, schema.toString());
         } else {
             singleQuote(sb, defaultSchema);
         }
-        if (node.likePattern().isPresent()) {
+        String likePattern = node.likePattern();
+        if (likePattern != null) {
             sb.append("AND column_name LIKE ");
-            singleQuote(sb, node.likePattern().get());
+            singleQuote(sb, likePattern);
         } else if (node.where().isPresent()) {
             sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where().get())));
         }
@@ -178,10 +181,10 @@ class ShowStatementAnalyzer {
          * </code>
          */
         StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
-        Optional<QualifiedName> schema = node.schema();
-        if (schema.isPresent()) {
+        QualifiedName schema = node.schema();
+        if (schema != null) {
             sb.append("WHERE table_schema = ");
-            singleQuote(sb, schema.get().toString());
+            singleQuote(sb, schema.toString());
         } else {
             sb.append("WHERE table_schema NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
@@ -198,10 +201,10 @@ class ShowStatementAnalyzer {
             sb.append(whereExpression.get().toString());
             sb.append(")");
         } else {
-            Optional<String> likePattern = node.likePattern();
-            if (likePattern.isPresent()) {
+            String likePattern = node.likePattern();
+            if (likePattern != null) {
                 sb.append(" AND table_name like ");
-                singleQuote(sb, likePattern.get());
+                singleQuote(sb, likePattern);
             }
         }
         sb.append(" ORDER BY 1");

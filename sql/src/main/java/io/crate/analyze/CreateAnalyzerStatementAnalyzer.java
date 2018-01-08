@@ -73,7 +73,7 @@ class CreateAnalyzerStatementAnalyzer
         context.statement.ident(node.ident());
 
         if (node.isExtending()) {
-            context.statement.extendedAnalyzer(node.extendedAnalyzer().get());
+            context.statement.extendedAnalyzer(node.extendedAnalyzer());
         }
 
         for (AnalyzerElement element : node.elements()) {

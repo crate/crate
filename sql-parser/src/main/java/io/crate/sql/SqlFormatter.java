@@ -293,10 +293,10 @@ public final class SqlFormatter {
         @Override
         protected Void visitSingleColumn(SingleColumn node, Integer indent) {
             builder.append(formatStandaloneExpression(node.getExpression()));
-            if (node.getAlias().isPresent()) {
+            if (node.getAlias() != null) {
                 builder.append(' ')
                     .append('"')
-                    .append(node.getAlias().get())
+                    .append(node.getAlias())
                     .append('"'); // TODO: handle quoting properly
             }
 
@@ -440,7 +440,10 @@ public final class SqlFormatter {
 
         @Override
         public Void visitFunctionArgument(FunctionArgument node, Integer context) {
-            node.name().ifPresent(s -> builder.append(s).append(" "));
+            String name = node.name();
+            if (name != null) {
+                builder.append(name).append(" ");
+            }
             builder.append(node.type());
             return null;
         }
@@ -840,7 +843,7 @@ public final class SqlFormatter {
     };
 
     private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
-        if ((columns != null) && (!columns.isEmpty())) {
+        if (!columns.isEmpty()) {
             builder.append(" (")
                 .append(String.join(", ", columns))
                 .append(')');

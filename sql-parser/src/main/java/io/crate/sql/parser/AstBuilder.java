@@ -171,9 +171,9 @@ import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -257,7 +257,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCreateAnalyzer(SqlBaseParser.CreateAnalyzerContext context) {
         return new CreateAnalyzer(
             getIdentText(context.name),
-            getIdentTextIfPresent(context.extendedName),
+            getIdentText(context.extendedName),
             visitCollection(context.analyzerElement(), AnalyzerElement.class)
         );
     }
@@ -504,15 +504,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitShowTables(SqlBaseParser.ShowTablesContext context) {
         return new ShowTables(
-            Optional.ofNullable(context.qname()).map(this::getQualifiedName),
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            context.qname() == null ? null : getQualifiedName(context.qname()),
+            getUnquotedText(context.pattern),
             visitIfPresent(context.where(), Expression.class));
     }
 
     @Override
     public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context) {
         return new ShowSchemas(
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            getUnquotedText(context.pattern),
             visitIfPresent(context.where(), Expression.class));
     }
 
@@ -520,9 +520,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
         return new ShowColumns(
             getQualifiedName(context.tableName),
-            Optional.ofNullable(context.schema).map(this::getQualifiedName),
+            context.schema == null ? null : getQualifiedName(context.schema),
             visitIfPresent(context.where(), Expression.class),
-            getTextIfPresent(context.pattern).map(AstBuilder::unquote));
+            getUnquotedText(context.pattern));
     }
 
     @Override
@@ -574,7 +574,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new ColumnDefinition(
             getIdentText(context.ident()),
             null,
-            visitIfPresent(context.dataType(), ColumnType.class).orElse(null),
+            visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
 
@@ -582,8 +582,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitGeneratedColumnDefinition(SqlBaseParser.GeneratedColumnDefinitionContext context) {
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            visitIfPresent(context.generatedExpr, Expression.class).orElse(null),
-            visitIfPresent(context.dataType(), ColumnType.class).orElse(null),
+            visitOptionalContext(context.generatedExpr, Expression.class),
+            visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
 
@@ -647,7 +647,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitFunctionArgument(SqlBaseParser.FunctionArgumentContext context) {
-        return new FunctionArgument(getIdentTextIfPresent(context.ident()), (ColumnType) visit(context.dataType()));
+        return new FunctionArgument(getIdentText(context.ident()), (ColumnType) visit(context.dataType()));
     }
 
     @Override
@@ -731,7 +731,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new AddColumnDefinition(
             (Expression) visit(context.subscriptSafe()),
             null,
-            visitIfPresent(context.dataType(), ColumnType.class).orElse(null),
+            visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
 
@@ -739,8 +739,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAddGeneratedColumnDefinition(SqlBaseParser.AddGeneratedColumnDefinitionContext context) {
         return new AddColumnDefinition(
             (Expression) visit(context.subscriptSafe()),
-            visitIfPresent(context.generatedExpr, Expression.class).orElse(null),
-            visitIfPresent(context.dataType(), ColumnType.class).orElse(null),
+            visitOptionalContext(context.generatedExpr, Expression.class),
+            visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
 
@@ -822,7 +822,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new WithQuery(
             getIdentText(context.name),
             (Query) visit(context.query()),
-            Optional.ofNullable(getColumnAliases(context.aliasedColumns())).orElse(ImmutableList.of()));
+            getColumnAliases(context.aliasedColumns()));
     }
 
     @Override
@@ -923,7 +923,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSelectSingle(SqlBaseParser.SelectSingleContext context) {
-        return new SingleColumn((Expression) visit(context.expr()), getIdentTextIfPresent(context.ident()));
+        return new SingleColumn((Expression) visit(context.expr()), getIdentText(context.ident()));
     }
 
     /*
@@ -943,13 +943,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new StringLiteral(context.getText().replace("\"\"", "\""));
     }
 
-    private String getIdentText(SqlBaseParser.IdentContext ident) {
-        StringLiteral literal = (StringLiteral) visit(ident);
-        return literal.getValue();
-    }
-
-    private Optional<String> getIdentTextIfPresent(SqlBaseParser.IdentContext ident) {
-        return Optional.ofNullable(ident).map(this::getIdentText);
+    @Nullable
+    private String getIdentText(@Nullable SqlBaseParser.IdentContext ident) {
+        if (ident != null) {
+            StringLiteral literal = (StringLiteral) visit(ident);
+            return literal.getValue();
+        }
+        return null;
     }
 
     @Override
@@ -1120,7 +1120,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getComparisonQuantifier(((TerminalNode) context.setCmpQuantifier().getChild(0)).getSymbol()),
             (Expression) visit(context.value),
             (Expression) visit(context.v),
-            visitIfPresent(context.escape, Expression.class).orElse(null),
+            visitOptionalContext(context.escape, Expression.class),
             inverse);
     }
 
@@ -1175,7 +1175,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new MatchPredicate(
             idents,
             (Expression) visit(context.term),
-            getIdentTextIfPresent(context.matchType).orElse(null),
+            getIdentText(context.matchType),
             extractGenericProperties(context.withProperties()));
     }
 
@@ -1183,7 +1183,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitMatchPredicateIdent(SqlBaseParser.MatchPredicateIdentContext context) {
         return new MatchPredicateColumnIdent(
             (Expression) visit(context.subscriptSafe()),
-            visitIfPresent(context.boost, Expression.class).orElse(null));
+            visitOptionalContext(context.boost, Expression.class));
     }
 
     // Value expressions
@@ -1317,14 +1317,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new SimpleCaseExpression(
             (Expression) visit(context.valueExpression()),
             visitCollection(context.whenClause(), WhenClause.class),
-            visitIfPresent(context.elseExpr, Expression.class).orElse(null));
+            visitOptionalContext(context.elseExpr, Expression.class));
     }
 
     @Override
     public Node visitSearchedCase(SqlBaseParser.SearchedCaseContext context) {
         return new SearchedCaseExpression(
             visitCollection(context.whenClause(), WhenClause.class),
-            visitIfPresent(context.elseExpr, Expression.class).orElse(null));
+            visitOptionalContext(context.elseExpr, Expression.class));
     }
 
     @Override
@@ -1481,7 +1481,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new UnsupportedOperationException("not yet implemented");
     }
 
-    private <T> Optional<T> visitIfPresent(ParserRuleContext context, Class<T> clazz) {
+    @Nullable
+    private <T> T visitOptionalContext(@Nullable ParserRuleContext context, Class<T> clazz) {
+        if (context != null) {
+            return clazz.cast(visit(context));
+        }
+        return null;
+    }
+
+    private <T> Optional<T> visitIfPresent(@Nullable ParserRuleContext context, Class<T> clazz) {
         return Optional.ofNullable(context)
             .map(this::visit)
             .map(clazz::cast);
@@ -1517,13 +1525,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return setQuantifier != null && setQuantifier.DISTINCT() != null;
     }
 
-    private static Optional<String> getTextIfPresent(ParserRuleContext context) {
-        return Optional.ofNullable(context).map(ParseTree::getText);
+    @Nullable
+    private static String getUnquotedText(@Nullable ParserRuleContext context) {
+        return context != null ? unquote(context.getText()) : null;
     }
 
     private List<String> getColumnAliases(SqlBaseParser.AliasedColumnsContext columnAliasesContext) {
         if (columnAliasesContext == null) {
-            return null;
+            return ImmutableList.of();
         }
         return identsToStrings(columnAliasesContext.ident());
     }

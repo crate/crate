@@ -24,16 +24,19 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 
 public class CreateAnalyzer extends Statement {
 
     private final String ident;
-    private final Optional<String> extendedAnalyzer;
+    @Nullable
+    private final String extendedAnalyzer;
     private final List<AnalyzerElement> elements;
 
-    public CreateAnalyzer(String ident, Optional<String> extendedAnalyzer, List<AnalyzerElement> elements) {
+    public CreateAnalyzer(String ident,
+                          @Nullable String extendedAnalyzer,
+                          List<AnalyzerElement> elements) {
         this.ident = ident;
         this.extendedAnalyzer = extendedAnalyzer;
         this.elements = elements;
@@ -43,12 +46,13 @@ public class CreateAnalyzer extends Statement {
         return ident;
     }
 
-    public Optional<String> extendedAnalyzer() {
+    @Nullable
+    public String extendedAnalyzer() {
         return extendedAnalyzer;
     }
 
     public boolean isExtending() {
-        return extendedAnalyzer.isPresent();
+        return extendedAnalyzer != null;
     }
 
     public List<AnalyzerElement> elements() {
@@ -67,11 +71,9 @@ public class CreateAnalyzer extends Statement {
 
         CreateAnalyzer that = (CreateAnalyzer) o;
 
-        if (!elements.equals(that.elements)) return false;
-        if (!extendedAnalyzer.equals(that.extendedAnalyzer)) return false;
-        if (!ident.equals(that.ident)) return false;
-
-        return true;
+        return Objects.equal(elements, that.elements) &&
+               Objects.equal(extendedAnalyzer, that.extendedAnalyzer) &&
+               Objects.equal(ident, that.ident);
     }
 
     @Override

@@ -24,25 +24,32 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 
 public class ShowTables extends Statement {
 
-    private final Optional<QualifiedName> schema;
-    private final Optional<String> likePattern;
+    @Nullable
+    private final QualifiedName schema;
+    @Nullable
+    private final String likePattern;
     private final Optional<Expression> whereExpression;
 
-    public ShowTables(Optional<QualifiedName> schema, Optional<String> likePattern, Optional<Expression> whereExpression) {
+    public ShowTables(@Nullable QualifiedName schema,
+                      @Nullable String likePattern,
+                      Optional<Expression> whereExpression) {
         this.schema = schema;
         this.whereExpression = whereExpression;
         this.likePattern = likePattern;
     }
 
-    public Optional<QualifiedName> schema() {
+    @Nullable
+    public QualifiedName schema() {
         return schema;
     }
 
-    public Optional<String> likePattern() {
+    @Nullable
+    public String likePattern() {
         return likePattern;
     }
 
@@ -78,7 +85,7 @@ public class ShowTables extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("schema", schema)
-            .add("likePattern", likePattern.toString())
+            .add("likePattern", likePattern)
             .add("whereExpression", whereExpression.toString())
             .toString();
     }
