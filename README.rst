@@ -75,7 +75,7 @@ Looking for more help?
 .. _Crate.io: http://crate.io/
 .. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
-.. _getting started: https://crate.io/docs/getting-started
+.. _getting started: https://crate.io/docs/getting-started/
 .. _paid support: https://crate.io/pricing/
 .. _Slack: https://crate.io/docs/support/slackin/
 .. _StackOverflow: https://stackoverflow.com/tags/crate
