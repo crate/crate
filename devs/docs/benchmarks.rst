@@ -16,7 +16,7 @@ This will execute all benchmarks which are in ``benchmarks/src/test/java``.
 
 If you want to execute specific benchmarks you can provide a filter argument::
 
-    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar <benchmarkMethodName>
+    $ java -jar benchmarks/build/libs/crate-benchmarks-all.jar <benchmarkMethodName | benchmarkClassName[.methodName]>
 
 To save the results to a file use the ``-rf`` and ``-rff`` options::
 
