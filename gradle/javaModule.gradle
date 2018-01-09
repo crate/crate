@@ -15,9 +15,7 @@ compileJava {
     options.warnings = true
     options.deprecation = true
 
-    doLast() {
-        checkstyleMain.execute()
-    }
+    finalizedBy checkstyleMain
 }
 
 sourceCompatibility = "8"
