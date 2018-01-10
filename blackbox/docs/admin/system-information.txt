@@ -192,7 +192,7 @@ configuration section.
 Nodes
 =====
 
-To get information about the nodes query for `sys.nodes`.
+To get information about the nodes query for ``sys.nodes``.
 
 This table can be queried for one, multiple or all nodes within a cluster.
 
@@ -678,8 +678,8 @@ The table schema is the following:
 |                  | check for this setting has been  |              |
 |                  | acknowledged by the user in      |              |
 |                  | order to ignored the value of    |              |
-|                  | `passed` column. This column can |              |
-|                  | be *updated*.                    |              |
+|                  | ``passed`` column. This column   |              |
+|                  | can be *updated*.                |              |
 +------------------+----------------------------------+--------------+
 
 Example query::

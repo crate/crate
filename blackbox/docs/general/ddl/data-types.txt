@@ -583,7 +583,7 @@ To insert values into object columns one can use object literals or parameters.
 
 .. NOTE::
 
-   Even though they look like `JSON` - object literals are not `JSON`
+   Even though they look like JSON - object literals are not JSON
    compatible.
 
 Object literals are given in curly brackets. Key value pairs are connected via

@@ -283,7 +283,7 @@ If you don't get your certificate signed from one of the official CAs,
 you might want to create your own CA with a self-signed certificate.
 The common name (CN) should overlap with the CN of the server key
 generated in the first step. For example, ``ssl.crate.io`` overlaps
-with `*.crate.io`.
+with ``*.crate.io``.
 
 .. NOTE::
 

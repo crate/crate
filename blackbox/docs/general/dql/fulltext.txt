@@ -286,8 +286,8 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
 
 .. NOTE::
 
-   The `_score` is not an absolute value. It just sets a row in relation to the
-   other ones.
+   The ``_score`` is not an absolute value. It just sets a row in relation to
+   the other ones.
 
 Searching On Multiple Columns
 =============================

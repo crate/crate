@@ -348,7 +348,7 @@ This can also be done when using a query instead of values::
 Updating Data
 =============
 
-In order to update documents in CrateDB the SQL `UPDATE` statement can be
+In order to update documents in CrateDB the SQL ``UPDATE`` statement can be
 used::
 
     cr> update locations set description = 'Updated description'

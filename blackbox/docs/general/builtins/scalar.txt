@@ -596,8 +596,8 @@ the other argument must be a column reference.
     what is stored inside the index which is utilized if the distance function
     is part of a WHERE clause.
 
-    For example if `select distance(...)` returns 0.0 an equality check with
-    `where distance(...) = 0` might not yield anything at all due to the
+    For example if ``select distance(...)`` returns 0.0 an equality check with
+    ``where distance(...) = 0`` might not yield anything at all due to the
     precision difference.
 
 .. _scalar_within:

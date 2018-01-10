@@ -293,8 +293,8 @@ ignored::
 
 .. NOTE::
 
-   Only `Hadoop` version **2.x** is supported and as of writing this
-   documentation, the latest stable `Hadoop (YARN)` version is **2.8.1**.
+   Only `Hadoop`_ version **2.x** is supported and as of writing this
+   documentation, the latest stable `Hadoop (YARN)`_ version is **2.8.1**.
    Required libraries may differ for other versions.
 
 .. _Hadoop: https://hadoop.apache.org/

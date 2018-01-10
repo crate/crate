@@ -159,16 +159,16 @@ Changes
  - Added support for host based authentication (HBA).
    Please see :ref:`Host Based Authentication <admin_hba>`.
 
- - Added support for renaming tables using the `ALTER ... RENAME TO ...`
+ - Added support for renaming tables using the ``ALTER ... RENAME TO ...``
    statement.
 
- - Added support for `CREATE USER` and `DROP USER`.
+ - Added support for ``CREATE USER`` and ``DROP USER``.
 
  - Added support for opening and closing a table or single partition.
 
  - Information on the state of tables/partitions is now exposed by a new column
-   `closed` on the `information_schema.tables` and
-   `information_schema.table_partitions` tables.
+   ``closed`` on the ``information_schema.tables`` and
+   ``information_schema.table_partitions`` tables.
 
  - Added full support for ``DISTINCT`` on queries where ``GROUP BY`` is
    present.
@@ -286,7 +286,7 @@ time parsing, syntax changes, and new reserved keywords. You must review the
 Bind Address
 ------------
 
-The default bind address has been changed from `0.0.0.0` to the loopback
+The default bind address has been changed from ``0.0.0.0`` to the loopback
 address (meaning it will only be accessible on ``localhost``). See
 :ref:`conf_hosts` for more.
 
