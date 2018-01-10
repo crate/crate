@@ -35,7 +35,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
@@ -46,11 +46,11 @@ public class FunctionTest extends CrateUnitTest {
         Function fn = new Function(
             new FunctionInfo(
                 new FunctionIdent(
-                    randomAsciiOfLength(10),
+                    randomAsciiLettersOfLength(10),
                     ImmutableList.of(DataTypes.BOOLEAN)
                 ),
                 TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
-            Collections.singletonList(TestingHelpers.createReference(randomAsciiOfLength(2), DataTypes.BOOLEAN))
+            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -69,11 +69,11 @@ public class FunctionTest extends CrateUnitTest {
         Function fn = new Function(
             new FunctionInfo(
                 new FunctionIdent(
-                    randomAsciiOfLength(10),
+                    randomAsciiLettersOfLength(10),
                     ImmutableList.of(DataTypes.BOOLEAN)
                 ),
                 TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
-            Collections.singletonList(TestingHelpers.createReference(randomAsciiOfLength(2), DataTypes.BOOLEAN))
+            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
         );
 
         Function fn2 = fn.clone();

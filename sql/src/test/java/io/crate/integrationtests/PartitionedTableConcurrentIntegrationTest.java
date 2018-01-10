@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -244,7 +244,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         int numberOfDocs = 100;
         final Object[][] bulkArgs = new Object[numberOfDocs][];
         for (int i = 0; i < numberOfDocs; i++) {
-            bulkArgs[i] = new Object[]{i % 2, randomAsciiOfLength(10)};
+            bulkArgs[i] = new Object[]{i % 2, randomAsciiLettersOfLength(10)};
         }
 
         // partition to delete

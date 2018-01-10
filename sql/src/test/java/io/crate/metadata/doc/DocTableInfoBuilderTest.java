@@ -41,7 +41,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Locale;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.getFunctions;
 
 
@@ -53,7 +53,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         if (randomBoolean()) {
             return DocSchemaInfo.NAME;
         } else {
-            return randomAsciiOfLength(3);
+            return randomAsciiLettersOfLength(3);
         }
     }
 

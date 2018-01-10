@@ -73,7 +73,7 @@ public class DataTypeTesting {
                 return () -> (T) (Boolean) random.nextBoolean();
 
             case StringType.ID:
-                return () -> (T) RandomizedTest.randomAsciiOfLength(random.nextInt(10));
+                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10));
 
             case IpType.ID:
                 return () -> {

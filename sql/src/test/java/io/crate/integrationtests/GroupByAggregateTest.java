@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
@@ -936,7 +936,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         ensureYellow();
         for (int i = 0; i < 100; i++) {
             execute("insert into rankings (\"pageURL\", \"pageRank\", \"avgDuration\") values (?, ?, ?)",
-                new Object[]{randomAsciiOfLength(10 + (i % 3)), randomIntBetween(i, i * i), randomInt(i)});
+                new Object[]{randomAsciiLettersOfLength(10 + (i % 3)), randomIntBetween(i, i * i), randomInt(i)});
         }
         execute("refresh table rankings");
         execute("select count(*), \"pageURL\" from rankings group by \"pageURL\" order by 1 desc limit 100");
