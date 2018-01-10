@@ -28,7 +28,9 @@ import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.MultiActionListener;
 import io.crate.executor.transport.ShardResponse;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
@@ -42,6 +44,8 @@ import java.util.concurrent.CompletableFuture;
  * Listener to aggregate the responses of multiple (bulk-operation-mode) ShardResponses
  */
 final class BulkShardResponseListener implements ActionListener<ShardResponse> {
+
+    private static final Logger logger = Loggers.getLogger(BulkShardResponseListener.class);
 
     private final BitSet allResponses;
     private final ArrayList<CompletableFuture<Long>> results;
@@ -152,7 +156,9 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
         @Override
         public void onResponse(long[] rowCounts) {
             for (int i = 0; i < rowCounts.length; i++) {
-                results.get(i).complete(rowCounts[i]);
+                CompletableFuture<Long> longCompletableFuture = results.get(i);
+                logger.info(" Completing {} with {}", longCompletableFuture, rowCounts[i]);
+                longCompletableFuture.complete(rowCounts[i]);
             }
         }
 
