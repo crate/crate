@@ -363,8 +363,12 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         // on a reasonable fast machine all inserts always work.
         assertThat("At least one insert must work without timeout", numSuccessfulInserts.get(), Matchers.greaterThanOrEqualTo(1));
 
-        execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
-        assertThat(response.rows()[0][0], is(3L + numCols * numSuccessfulInserts.get()));
+        // table info is maybe not up-to-date immediately as doc table info's are cached
+        // and invalidated/rebuild on cluster state changes
+        assertBusy(() -> {
+            execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
+            assertThat(response.rows()[0][0], is(3L + numCols * numSuccessfulInserts.get()));
+        }, 10L, TimeUnit.SECONDS);
     }
 
     @Test
