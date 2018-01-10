@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where batch operations executed using the postgres protocol 
+  could've returned 0 as row count, even though the actual row count was 
+  different.
+
 - Fixed a bug which could cause job entries in `sys.jobs` not being removed
   when a connection error occurred while transferring the results of the job
   execution.

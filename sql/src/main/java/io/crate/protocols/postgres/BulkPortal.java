@@ -46,6 +46,8 @@ import java.util.concurrent.CompletableFuture;
 
 class BulkPortal extends AbstractPortal {
 
+    private static final Runnable NO_OP_ACTION = () -> { };
+
     private final List<List<Object>> bulkArgs = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
     private String query;
@@ -133,9 +135,19 @@ class BulkPortal extends AbstractPortal {
                                                 final JobsLogs jobsLogs) {
         List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+        ArrayList<CompletableFuture> resultReceiversCompletionFutures = new ArrayList<>(resultReceivers.size());
+        for (ResultReceiver resultReceiver : resultReceivers) {
+            resultReceiversCompletionFutures.add(resultReceiver.completionFuture());
+        }
+        CompletableFuture<Void> allResultReceivers =
+            CompletableFuture.allOf(resultReceiversCompletionFutures.toArray(new CompletableFuture[0]));
+
+        // expose a CompletionStage that completes when all the ResultReceivers are complete (not just finished)
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
-            .thenAccept(ignored -> emitResults(jobId, jobsLogs, futures));
+            .thenAccept(ignored -> emitResults(jobId, jobsLogs, futures))
+            .runAfterBoth(allResultReceivers, NO_OP_ACTION);
     }
 
     private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
