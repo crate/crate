@@ -36,8 +36,8 @@ due to the distributed nature of CrateDB, *will remain on the same nodes*
 
 .. NOTE::
 
-   Currently only user tables can be exported. System tables like `sys.nodes`
-   and blob tables don't work with the `COPY TO` statement.
+   Currently only user tables can be exported. System tables like ``sys.nodes``
+   and blob tables don't work with the ``COPY TO`` statement.
 
 Parameters
 ==========
@@ -58,7 +58,7 @@ Clauses
 ``WHERE``
 .........
 
-`WHERE` clauses use the same syntax as `SELECT` statements, allowing partial
+``WHERE`` clauses use the same syntax as ``SELECT`` statements, allowing partial
 exports. (see :ref:`sql_dql_where_clause` for more information).
 
 Output URI

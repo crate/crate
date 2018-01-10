@@ -30,7 +30,7 @@ supports the following statements to create, alter and drop users:
 
 These statements are database management statements that can only be invoked by
 superusers that already exist in the CrateDB cluster. Also the users table
-`sys.users` is only readable by superusers.
+``sys.users`` is only readable by superusers.
 
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers

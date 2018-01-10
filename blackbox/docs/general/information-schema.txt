@@ -39,7 +39,7 @@ Virtual Tables
 ``tables``
 ----------
 
-The information schema contains a table called `tables`.
+The information schema contains a table called ``tables``.
 
 This table can be queried to get a list of all available tables and their
 settings like the ``number of shards`` or ``number of replicas``.
@@ -599,8 +599,8 @@ Or get an overview of how many routines and routine types are available::
     The return type of the function.
     If it doesn't apply, then ``NULL``.
 :is_deterministic:
-    If the routine is deterministic then `True`, else `False` (``NULL`` if it
-    doesn't apply).
+    If the routine is deterministic then ``True``, else ``False`` (``NULL`` if 
+    it doesn't apply).
 :routine_definition:
     The function definition (``NULL`` if it doesn't apply).
 :specific_name:

@@ -14,7 +14,7 @@ Introduction
 ============
 
 An *aggregation function* operates on multiple values of the specified column
-of your `SELECT`. For example, ``SELECT avg(temperature)`` will return the
+of your ``SELECT``. For example, ``SELECT avg(temperature)`` will return the
 average value of the ``temperature`` column across all rows being considered.
 
 You can apply aggregation functions to the results of a whole query, or to each
@@ -42,7 +42,7 @@ For a tabulated summary of aggregation functions, see
 This aggregation function simply returns the number of rows that match the
 query.
 
-`count(columName)` is also possible, but currently only works on a primary key
+``count(columName)`` is also possible, but currently only works on a primary key
 column. The semantics are the same.
 
 The return value is always of type ``long``.
@@ -92,7 +92,7 @@ Example::
 ``count(distinct columnName)``
 ------------------------------
 
-The `count` aggregation function also supports the `distinct` keyword. This
+The ``count`` aggregation function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only count the
 number of distinct values in this column that are not ``NULL``::
 
@@ -270,7 +270,7 @@ Example::
 ``avg(distinct columnName)``
 ----------------------------
 
-The `avg` aggregation function also supports the `distinct` keyword. This
+The ``avg`` aggregation function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only average the
 number of distinct values in this column that are not ``NULL``::
 

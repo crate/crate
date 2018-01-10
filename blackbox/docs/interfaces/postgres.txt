@@ -127,10 +127,10 @@ a ``BackendKeyData`` message during connection initialization.
 ``pg_type``
 -----------
 
-Some clients require the `pg_catalog.pg_type` in order to be able to stream
+Some clients require the ``pg_catalog.pg_type`` in order to be able to stream
 arrays or other non-primitive types.
 
-For compatibility reasons there is a trimmed down `pg_type` table available in
+For compatibility reasons there is a trimmed down ``pg_type`` table available in
 CrateDB::
 
     cr> select * from pg_catalog.pg_type order by oid;
@@ -163,8 +163,8 @@ CrateDB::
 Show Transaction Isolation
 --------------------------
 
-For compatibility with JDBC the `SHOW TRANSACTION ISOLATION LEVEL` statement is
-implemented::
+For compatibility with JDBC the ``SHOW TRANSACTION ISOLATION LEVEL`` statement
+is implemented::
 
     cr> show transaction isolation level;
     +-----------------------+

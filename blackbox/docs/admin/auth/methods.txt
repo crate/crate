@@ -87,7 +87,7 @@ password could potentially be read by anyone sniffing the network.
 .. NOTE::
 
    For HTTP, the password must be encoded together with the username with
-   `BASE64_` and sent together prefixed with ``Basic `` as string value for
+   ``BASE64_`` and sent together prefixed with ``Basic `` as string value for
    the ``Authorization`` HTTP header. See also: `HTTP Basic Authentication`_.
 
 .. NOTE::

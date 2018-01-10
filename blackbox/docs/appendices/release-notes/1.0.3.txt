@@ -56,8 +56,8 @@ Changes
 Fixes
 -----
 
- - Scalar functions are now allowed on the `HAVING` clause if the scalar
-   function is used as a `GROUP BY` symbol.
+ - Scalar functions are now allowed on the ``HAVING`` clause if the scalar
+   function is used as a ``GROUP BY`` symbol.
 
  - Fixed an issue in the postgres protocol that could cause a ``StackOverflow``
    exception due to connection errors or malfunctioning clients.
@@ -81,4 +81,4 @@ Fixes
    combination with ``GROUP BY`` in subselects. e.g.::
 
        SELECT x from (SELECT * from t1) as tt
-       GROUP BY x ORDER BY x`
+       GROUP BY x ORDER BY x

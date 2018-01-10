@@ -20,13 +20,13 @@ Synopsis
     COPY table_ident [ PARTITION (partition_column = value [ , ... ]) ]
     FROM uri [ WITH ( option = value [, ...] ) ]
 
-where `option` can be one of:
+where ``option`` can be one of:
 
-- `bulk_size` *integer*
-- `shared` *boolean*
-- `num_readers` *integer*
-- `compression` *string*
-- `overwrite_duplicates` *boolean*
+- ``bulk_size`` *integer*
+- ``shared`` *boolean*
+- ``num_readers`` *integer*
+- ``compression`` *string*
+- ``overwrite_duplicates`` *boolean*
 
 Description
 ===========

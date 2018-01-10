@@ -62,7 +62,7 @@ Fixes
    pools.
 
  - Fixed the error message to be more descriptive when the condition in a
-   `CASE/WHEN` expression is not a boolean.
+   ``CASE/WHEN`` expression is not a boolean.
 
  - Fixed an issue which caused an exception if ``EXPLAIN`` is used on a
    statement that uses the ``ANY (array_expression)`` operator.

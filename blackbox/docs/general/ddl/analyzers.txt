@@ -1177,7 +1177,7 @@ this filter into the ``token_filter`` chain.
 ``decimal_digit``
 -----------------
 
-A token filter that folds unicode digits to `0-9`
+A token filter that folds unicode digits to ``0-9``
 
 .. _builtin-char-filter:
 

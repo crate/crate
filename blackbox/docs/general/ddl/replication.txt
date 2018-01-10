@@ -23,8 +23,8 @@ Example::
     ... ) with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 
-The `number_of_replicas` property also accepts an string as parameter that
-contains a `range`.
+The ``number_of_replicas`` property also accepts an string as parameter that
+contains a ``range``.
 
 A range is a definition of minimum number of replicas to maximum number of
 replicas depending on the number of nodes in the cluster. The table below shows
