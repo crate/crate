@@ -751,24 +751,12 @@ public class LuceneQueryBuilder {
 
             private final boolean includeLower;
             private final boolean includeUpper;
-            private final com.google.common.base.Function<Object, Tuple<?, ?>> boundsFunction;
+            private final java.util.function.Function<Object, Tuple<?, ?>> boundsFunction;
 
-            private static final com.google.common.base.Function<Object, Tuple<?, ?>> LOWER_BOUND = new com.google.common.base.Function<Object, Tuple<?, ?>>() {
-                @Nullable
-                @Override
-                public Tuple<?, ?> apply(@Nullable Object input) {
-                    return new Tuple<>(input, null);
-                }
-            };
+            private static final java.util.function.Function<Object, Tuple<?, ?>> LOWER_BOUND = in -> new Tuple<>(in, null);
+            private static final java.util.function.Function<Object, Tuple<?, ?>> UPPER_BOUND = in -> new Tuple<>(null, in);
 
-            private static final com.google.common.base.Function<Object, Tuple<?, ?>> UPPER_BOUND = new com.google.common.base.Function<Object, Tuple<?, ?>>() {
-                @Override
-                public Tuple<?, ?> apply(Object input) {
-                    return new Tuple<>(null, input);
-                }
-            };
-
-            public RangeQuery(String comparison) {
+            RangeQuery(String comparison) {
                 switch (comparison) {
                     case "lt":
                         boundsFunction = UPPER_BOUND;
