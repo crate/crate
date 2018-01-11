@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed the evaluation of JavaScript user defined functions that caused CrateDB
+  to crash because of an unhandled assertion when providing the UDF with
+  EcmaScript 6 arrow function syntax (``var f = (x) => x;``).
+
 - Fixed an issue where batch operations executed using the postgres protocol 
   could've returned 0 as row count, even though the actual row count was 
   different.
