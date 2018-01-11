@@ -222,7 +222,7 @@ Connection failover and load balancing is supported as described here:
 .. NOTE::
 
    It is not recommended to use the **targetServerType** parameter since
-   CrateDB has no concept of Master/Slave nodes.
+   CrateDB has no concept of master-replica nodes.
 
 Implementation Differences
 ==========================
