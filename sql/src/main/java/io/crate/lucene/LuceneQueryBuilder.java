@@ -317,7 +317,7 @@ public class LuceneQueryBuilder {
         return regex.toString();
     }
 
-    public static String negateWildcard(String wildCard) {
+    static String negateWildcard(String wildCard) {
         return String.format(Locale.ENGLISH, "~(%s)", wildCard);
     }
 
@@ -375,12 +375,12 @@ public class LuceneQueryBuilder {
             /**
              * converts Strings to BytesRef on the fly
              */
-            public static Iterable<?> toIterable(Object value) {
+            static Iterable<?> toIterable(Object value) {
                 return Iterables.transform(AnyOperator.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
                     @Nullable
                     @Override
                     public Object apply(@Nullable Object input) {
-                        if (input != null && input instanceof String) {
+                        if (input instanceof String) {
                             input = new BytesRef((String) input);
                         }
                         return input;
@@ -396,7 +396,7 @@ public class LuceneQueryBuilder {
         static class AnyEqQuery extends AbstractAnyQuery {
 
             @Override
-            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 MappedFieldType fieldType = context.getFieldTypeOrNull(arrayReference.ident().columnIdent().fqn());
                 if (fieldType == null) {
                     if (CollectionType.unnest(arrayReference.valueType()).equals(DataTypes.OBJECT)) {
@@ -408,7 +408,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 String columnName = reference.ident().columnIdent().fqn();
                 return termsQuery(context.getFieldTypeOrNull(columnName), asList(arrayLiteral), context.queryShardContext);
             }
@@ -417,7 +417,7 @@ public class LuceneQueryBuilder {
         static class AnyNeqQuery extends AbstractAnyQuery {
 
             @Override
-            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 // 1 != any ( col ) -->  gt 1 or lt 1
                 String columnName = arrayReference.ident().columnIdent().fqn();
                 Object value = literal.value();
@@ -440,7 +440,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
@@ -459,7 +459,7 @@ public class LuceneQueryBuilder {
         static class AnyNotLikeQuery extends AbstractAnyQuery {
 
             @Override
-            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 String regexString = LikeOperator.patternToRegex(BytesRefs.toString(literal.value()), LikeOperator.DEFAULT_ESCAPE, false);
                 regexString = regexString.substring(1, regexString.length() - 1);
                 String notLike = negateWildcard(regexString);
@@ -472,7 +472,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
@@ -490,12 +490,12 @@ public class LuceneQueryBuilder {
         static class AnyLikeQuery extends AbstractAnyQuery {
 
             @Override
-            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 return LikeQuery.toQuery(arrayReference, literal.value(), context);
             }
 
             @Override
-            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
@@ -724,7 +724,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
+            protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) {
                 // 1 < ANY (array_col) --> array_col > 1
                 return rangeQuery.toQuery(
                     arrayReference,
@@ -734,7 +734,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
+            protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) {
                 // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
@@ -796,7 +796,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            public Query apply(Function input, Context context) throws IOException {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
                 if (tuple == null) {
                     return null;
@@ -957,7 +957,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            public Query apply(Function input, Context context) throws IOException {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 if (prepare == null) {
                     return null;
@@ -980,7 +980,7 @@ public class LuceneQueryBuilder {
         static class RegexMatchQueryCaseInsensitive extends CmpQuery {
 
             @Override
-            public Query apply(Function input, Context context) throws IOException {
+            public Query apply(Function input, Context context) {
                 Tuple<Reference, Literal> prepare = prepare(input);
                 if (prepare == null) {
                     return null;
@@ -989,10 +989,9 @@ public class LuceneQueryBuilder {
                 Object value = prepare.v2().value();
 
                 if (value instanceof BytesRef) {
-                    CrateRegexQuery query = new CrateRegexQuery(
+                    return new CrateRegexQuery(
                         new Term(fieldName, BytesRefs.toBytesRef(value)),
                         CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
-                    return query;
                 }
                 throw new IllegalArgumentException("Can only use ~* with patterns of type string");
             }
@@ -1027,7 +1026,7 @@ public class LuceneQueryBuilder {
         static class WithinQuery implements FunctionToQuery, InnerFunctionToQuery {
 
             @Override
-            public Query apply(Function parent, Function inner, Context context) throws IOException {
+            public Query apply(Function parent, Function inner, Context context) {
                 FunctionLiteralPair outerPair = new FunctionLiteralPair(parent);
                 if (!outerPair.isValid()) {
                     return null;
@@ -1136,7 +1135,7 @@ public class LuceneQueryBuilder {
             }
 
             @Override
-            public Query apply(Function input, Context context) throws IOException {
+            public Query apply(Function input, Context context) {
                 return getQuery(input, context);
             }
         }
@@ -1356,7 +1355,6 @@ public class LuceneQueryBuilder {
             return false;
         }
 
-        @Nullable
         private Function rewriteAndValidateFields(Function function, Context context) {
             if (function.arguments().size() == 2) {
                 Symbol left = function.arguments().get(0);
@@ -1426,7 +1424,7 @@ public class LuceneQueryBuilder {
             return new GenericFunctionQuery(function, expressions, collectorContext, condition);
         }
 
-        private static Query raiseUnsupported(Function function) {
+        private static void raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
                 SymbolFormatter.format("Cannot convert function %s into a query", function));
         }
