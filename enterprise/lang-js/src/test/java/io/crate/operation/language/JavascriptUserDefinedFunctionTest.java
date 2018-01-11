@@ -50,6 +50,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.Mockito.mock;
 
 public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTest {
@@ -105,7 +106,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @Test
-    public void testInvalidJavascript() throws ScriptException{
+    public void testValidateCatchesScriptException() {
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
             Schemas.DOC_SCHEMA_NAME,
             "f",
@@ -116,7 +117,24 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         );
 
         String validation = udfService.getLanguage(JS).validate(udfMeta);
-        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)': <eval>:1:27"));
+        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
+        assertThat(validation, endsWith("^ in <eval> at line number 1 at column number 27"));
+    }
+
+    @Test
+    public void testValidateCatchesAssertionError() {
+        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+            Schemas.DOC_SCHEMA_NAME,
+            "f",
+            Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
+            DataTypes.DOUBLE_ARRAY,
+            JS,
+            "var f = (a) => a * a;"
+        );
+
+        String validation = udfService.getLanguage(JS).validate(udfMeta);
+        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
+        assertThat(validation, endsWith("Failed generating bytecode for <eval>:1"));
     }
 
     @Test

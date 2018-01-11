@@ -60,12 +60,14 @@ public class JavaScriptLanguage implements UDFLanguage {
     public String validate(UserDefinedFunctionMetaData meta) {
         try {
             bindScript(meta.definition());
-        } catch (ScriptException e) {
-            return String.format(Locale.ENGLISH, "Invalid JavaScript in function '%s.%s(%s)': %s",
+        } catch (Throwable t) {
+            // We need to catch throwable because of https://bugs.openjdk.java.net/browse/JDK-8144711
+            return String.format(Locale.ENGLISH, "Invalid JavaScript in function '%s.%s(%s)' AS '%s': %s",
                 meta.schema(),
                 meta.name(),
                 meta.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")),
-                e.getMessage()
+                meta.definition(),
+                t.getMessage()
             );
         }
         return null;
