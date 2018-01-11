@@ -76,12 +76,30 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromFile() throws Exception {
+    public void testCopyFromFileWithJsonExtension() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 1");
+        assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
+    }
+
+    @Test
+    public void testCopyFromFileWithCSVOption() {
+        execute("create table quotes (id int primary key, " +
+            "quote string index using fulltext) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv.ext"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -234,7 +252,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             writer.write("{|}");
         }
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Failed to parse JSON in line: 1 in file:");
+        expectedException.expectMessage("Failed to parse input in line: 1 in file:");
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
     }
 
@@ -493,7 +511,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromNestedArrayRow() throws Exception {
         // assert that rows with nested arrays aren't imported
         execute("create table users (id int, " +
-                "name string) with (number_of_replicas=0)");
+            "name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
@@ -524,7 +542,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromWithRoutingInPK() throws Exception {
         execute("create table t (i int primary key, c string primary key, a int)" +
-                " clustered by (c) with (number_of_replicas=0)");
+            " clustered by (c) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into t (i, c) values (1, 'clusteredbyvalue'), (2, 'clusteredbyvalue')");
         refresh();
@@ -584,8 +602,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromIntoTableWithClusterBy() throws Exception {
         execute("create table quotes (id int, quote string) " +
-                "clustered by (id)" +
-                "with (number_of_replicas = 0)");
+            "clustered by (id)" +
+            "with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("copy quotes from ? with (shared = true)", new Object[]{copyFilePath + "test_copy_from.json"});
@@ -599,8 +617,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromIntoTableWithPkAndClusterBy() throws Exception {
         execute("create table quotes (id int primary key, quote string) " +
-                "clustered by (id)" +
-                "with (number_of_replicas = 0)");
+            "clustered by (id)" +
+            "with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});

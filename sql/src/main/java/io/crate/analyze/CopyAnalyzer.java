@@ -30,15 +30,16 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.ValueSymbolVisitor;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -79,6 +80,7 @@ import java.util.function.Predicate;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class CopyAnalyzer {
+    private static final String JSON_STRING = "json";
 
     private static final StringSetting COMPRESSION_SETTINGS =
         new StringSetting("compression", ImmutableSet.of("gzip"));
@@ -86,11 +88,15 @@ class CopyAnalyzer {
     private static final StringSetting OUTPUT_FORMAT_SETTINGS =
         new StringSetting("format", ImmutableSet.of("json_object", "json_array"));
 
-    private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
+    private static final StringSetting INPUT_FORMAT_SETTINGS =
+        new StringSetting("format", ImmutableSet.of(JSON_STRING, "csv"), JSON_STRING);
+
+    private static final ImmutableMap<String, SettingsApplier> OUTPUT_SETTINGS_APPLIERS =
         ImmutableMap.<String, SettingsApplier>builder()
             .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
             .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
             .build();
+
     private final Schemas schemas;
     private final Functions functions;
 
@@ -137,9 +143,11 @@ class CopyAnalyzer {
             throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
         }
 
-        return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters);
-    }
+        FileUriCollectPhase.InputFormat inputFormat =
+            settingAsEnum(FileUriCollectPhase.InputFormat.class, settings.get(INPUT_FORMAT_SETTINGS.name(),INPUT_FORMAT_SETTINGS.defaultValue()));
 
+        return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters, inputFormat);
+    }
 
     private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation, Operation operation) {
         return new ExpressionAnalyzer(
@@ -223,7 +231,7 @@ class CopyAnalyzer {
         }
 
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-            node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
+            node.genericProperties(), analysis.parameterContext(), OUTPUT_SETTINGS_APPLIERS).build();
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));

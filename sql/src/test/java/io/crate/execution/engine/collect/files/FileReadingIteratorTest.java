@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
@@ -51,50 +52,121 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
 import static io.crate.testing.TestingHelpers.createReference;
 
 public class FileReadingIteratorTest extends CrateUnitTest {
 
     private InputFactory inputFactory;
     private Path tempFilePath;
+    private String fileUri;
+    private File tmpFile;
+    private byte[] JSON_AS_MAP_FIRST_LINE = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}".getBytes(StandardCharsets.UTF_8);
+    private byte[] JSON_AS_MAP_SECOND_LINE = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}".getBytes(StandardCharsets.UTF_8);
+    private byte[] CSV_AS_MAP_FIRST_LINE = "{\"name\":\"Arthur\",\"id\":\"4\",\"age\":\"38\"}".getBytes(StandardCharsets.UTF_8);
+    private byte[] CSV_AS_MAP_SECOND_LINE = "{\"name\":\"Trillian\",\"id\":\"5\",\"age\":\"33\"}".getBytes(StandardCharsets.UTF_8);
 
     @Before
-    public void prepare() throws Exception {
+    public void prepare() {
         Functions functions = new Functions(
             ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
             ImmutableMap.<String, FunctionResolver>of()
         );
         inputFactory = new InputFactory(functions);
+    }
 
-        tempFilePath = createTempFile();
-        File tmpFile = tempFilePath.toFile();
+    @Test
+    public void testIteratorContract_givenJSONInputFormat_AndNoRelevantFileExtension_thenWritesAsMap() throws Exception {
+        tempFilePath = createTempFile("tempfile", ".any-suffix");
+        tmpFile = tempFilePath.toFile();
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-    }
+        fileUri = tempFilePath.toUri().toString();
 
-    @Test
-    public void testIteratorContract() throws Exception {
-        String fileUri = tempFilePath.toUri().toString();
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
-            Collections.singletonList(fileUri), null
+            Collections.singletonList(fileUri), null, JSON
         );
 
-        byte[] firstLine = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}".getBytes(StandardCharsets.UTF_8);
-        byte[] secondLine = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}".getBytes(StandardCharsets.UTF_8);
-
         List<Object[]> expectedResult = Arrays.asList(
-            new Object[]{new BytesRef(firstLine)},
-            new Object[]{new BytesRef(secondLine)});
+            new Object[]{new BytesRef(JSON_AS_MAP_FIRST_LINE)},
+            new Object[]{new BytesRef(JSON_AS_MAP_SECOND_LINE)});
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
-    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris, String compression) {
+    @Test
+    public void testIteratorContract_givenCSVInputFormat__AndNoRelevantFileExtension_thenWritesAsMap() throws Exception {
+        tempFilePath = createTempFile("tempfile", ".any-suffix");
+        tmpFile = tempFilePath.toFile();
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
+            writer.write("name,id,age\n");
+            writer.write("Arthur,4,38\n");
+            writer.write("Trillian,5,33\n");
+        }
+        fileUri = tempFilePath.toUri().toString();
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
+            Collections.singletonList(fileUri), null, CSV
+        );
+
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{new BytesRef(CSV_AS_MAP_FIRST_LINE)},
+            new Object[]{new BytesRef(CSV_AS_MAP_SECOND_LINE)});
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testIteratorContract_givenDefaultJsonInputFormat_AndJSONExtension_thenWritesAsMap() throws Exception {
+        tempFilePath = createTempFile("tempfile", ".json");
+        tmpFile = tempFilePath.toFile();
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
+        }
+        fileUri = tempFilePath.toUri().toString();
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
+            Collections.singletonList(fileUri), null, JSON
+        );
+
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{new BytesRef(JSON_AS_MAP_FIRST_LINE)},
+            new Object[]{new BytesRef(JSON_AS_MAP_SECOND_LINE)});
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testIteratorContract_givenDefaultJsonInputFormat_AndCSVExtension_thenWritesAsMap() throws Exception {
+        tempFilePath = createTempFile("tempfile", ".csv");
+        tmpFile = tempFilePath.toFile();
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
+            writer.write("name,id,age\n");
+            writer.write("Arthur,4,38\n");
+            writer.write("Trillian,5,33\n");
+        }
+        fileUri = tempFilePath.toUri().toString();
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
+            Collections.singletonList(fileUri), null, JSON
+        );
+
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{new BytesRef(CSV_AS_MAP_FIRST_LINE)},
+            new Object[]{new BytesRef(CSV_AS_MAP_SECOND_LINE)});
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    private BatchIterator<Row> createBatchIterator(Collection<String> fileUris, String compression, FileUriCollectPhase.InputFormat format) {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
+
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         return FileReadingIterator.newInstance(
             fileUris,
@@ -105,7 +177,7 @@ public class FileReadingIteratorTest extends CrateUnitTest {
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
             false,
             1,
-            0
-        );
+            0,
+            format);
     }
 }

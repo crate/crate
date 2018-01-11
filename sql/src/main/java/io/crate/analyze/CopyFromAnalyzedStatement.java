@@ -22,10 +22,11 @@
 
 package io.crate.analyze;
 
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.symbol.Symbol;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -37,16 +38,24 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     @Nullable
     private final String partitionIdent;
     private final Predicate<DiscoveryNode> nodePredicate;
+    @Nullable
+    private final FileUriCollectPhase.InputFormat inputFormat;
 
     public CopyFromAnalyzedStatement(DocTableInfo table,
                                      Settings settings,
                                      Symbol uri,
                                      @Nullable String partitionIdent,
-                                     Predicate<DiscoveryNode> nodePredicate) {
+                                     Predicate<DiscoveryNode> nodePredicate,
+                                     FileUriCollectPhase.InputFormat inputFormat) {
         super(settings, uri);
         this.table = table;
         this.partitionIdent = partitionIdent;
         this.nodePredicate = nodePredicate;
+        this.inputFormat = inputFormat;
+    }
+
+    public FileUriCollectPhase.InputFormat inputFormat() {
+        return inputFormat;
     }
 
     public DocTableInfo table() {

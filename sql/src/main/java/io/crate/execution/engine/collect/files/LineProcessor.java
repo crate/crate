@@ -19,23 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.reference.file;
+package io.crate.execution.engine.collect.files;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
-import java.nio.charset.StandardCharsets;
+import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
+import io.crate.expression.reference.file.LineContext;
 
-public class LineContextTest extends CrateUnitTest {
-    @Test
-    public void testGet() {
-        LineContext context = new LineContext();
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.net.URI;
 
-        String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
-        context.rawSource(source.getBytes(StandardCharsets.UTF_8));
+public class LineProcessor {
 
-        assertNull(context.get(new ColumnIdent("invalid", "column")));
-        assertNull(context.get(new ColumnIdent("details", "invalid")));
-        assertEquals(43, context.get(new ColumnIdent("details", "age")));
+    private LineContext lineContext = new LineContext();
+    private LineParser lineParser = new LineParser();
+
+    public void startCollect(Iterable<LineCollectorExpression<?>> collectorExpressions) {
+        for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
+            collectorExpression.startCollect(lineContext);
+        }
+    }
+
+    public void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
+        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    }
+
+    public void process(String line) throws IOException {
+        byte[] jsonByteArray = lineParser.getByteArray(line);
+        lineContext.rawSource(jsonByteArray);
     }
 }

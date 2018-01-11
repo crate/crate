@@ -178,6 +178,10 @@ Changes
 - Implemented a ``NodeInfo`` JMX MBean to expose useful information (id, name)
   about the node.
 
+- Added support for CSV file inputs in ``COPY FROM`` statements. Input type is
+  inferred using the file's extension or can be set using the optional ``WITH``
+  clause and specifying the ``format``.
+
 Fixes
 =====
 

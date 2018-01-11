@@ -28,8 +28,8 @@ import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
-import io.crate.expression.reference.file.LineContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.Tuple;
@@ -47,12 +47,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -76,14 +76,15 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     private final List<UriWithGlob> urisWithGlob;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
+    private FileUriCollectPhase.InputFormat inputFormat;
     private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
     private Tuple<FileInput, UriWithGlob> currentInput = null;
     private Iterator<URI> currentInputIterator = null;
     private URI currentUri;
     private BufferedReader currentReader = null;
     private long currentLineNumber;
-    private LineContext lineContext;
     private final Row row;
+    private LineProcessor lineProcessor;
 
     private FileReadingIterator(Collection<String> fileUris,
                                 List<? extends Input<?>> inputs,
@@ -92,7 +93,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                 Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,
                                 int numReaders,
-                                int readerNumber) {
+                                int readerNumber,
+                                FileUriCollectPhase.InputFormat inputFormat) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs) {
             @Override
@@ -101,8 +103,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                     return inputs.get(index).value();
                 } catch (ElasticsearchParseException e) {
                     throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
-                        "Failed to parse JSON in line: %d in file: \"%s\"%n" +
-                        "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
+                        "Failed to parse input in line: %d in file: \"%s\"%n" +
+                            "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
                 }
             }
         };
@@ -112,6 +114,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.readerNumber = readerNumber;
         this.urisWithGlob = getUrisWithGlob(fileUris);
         this.collectorExpressions = collectorExpressions;
+        this.inputFormat = inputFormat;
         initCollectorState();
     }
 
@@ -132,16 +135,16 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  Map<String, FileInputFactory> fileInputFactories,
                                                  Boolean shared,
                                                  int numReaders,
-                                                 int readerNumber) {
+                                                 int readerNumber,
+                                                 FileUriCollectPhase.InputFormat inputFormat) {
         return new CloseAssertingBatchIterator<>(new FileReadingIterator(fileUris, inputs, collectorExpressions,
-            compression, fileInputFactories, shared, numReaders, readerNumber));
+            compression, fileInputFactories, shared, numReaders, readerNumber, inputFormat));
     }
 
     private void initCollectorState() {
-        lineContext = new LineContext();
-        for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
-            collectorExpression.startCollect(lineContext);
-        }
+        lineProcessor = new LineProcessor();
+        lineProcessor.startCollect(collectorExpressions);
+
         List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());
         for (UriWithGlob fileUri : urisWithGlob) {
             try {
@@ -167,10 +170,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 if (line == null) {
                     closeCurrentReader();
                     return moveNext();
-                } else {
-                    lineContext.rawSource(line.getBytes(StandardCharsets.UTF_8));
-                    return true;
                 }
+                lineProcessor.process(line);
+                return true;
             } else if (currentInputIterator != null && currentInputIterator.hasNext()) {
                 advanceToNextUri(currentInput.v1());
                 return moveNext();
@@ -198,6 +200,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         UriWithGlob fileUri = currentInput.v2();
         Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
         List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
+
         if (uris.size() > 0) {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
@@ -209,6 +212,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         if (stream != null) {
             currentReader = createBufferedReader(stream);
             currentLineNumber = 0;
+            lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
         }
     }
 

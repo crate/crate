@@ -22,12 +22,13 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,7 +70,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCopyFromExistingPartitionedTable() throws Exception {
+    public void testCopyFromExistingPartitionedTable() {
         CopyFromAnalyzedStatement analysis = e.analyze("copy parted from '/some/distant/file.ext'");
         assertThat(analysis.table().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
@@ -113,6 +114,24 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
         Object value = ((Literal) analysis.uri()).value();
         assertThat(BytesRefs.toString(value), is(path));
+    }
+
+    @Test
+    public void convertCopyFrom_givenFormatIsSetToJsonInStatement_thenInputFormatIsSetToJson() {
+        CopyFromAnalyzedStatement analysis = e.analyze("copy users from '/some/distant/file.ext' with (format='json')");
+        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.JSON));
+    }
+
+    @Test
+    public void convertCopyFrom_givenFormatIsSetToCsvInStatement_thenInputFormatIsSetToCsv() {
+        CopyFromAnalyzedStatement analysis = e.analyze("copy users from '/some/distant/file.ext' with (format='csv')");
+        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.CSV));
+    }
+
+    @Test
+    public void convertCopyFrom_givenFormatIsNotSetInStatement_thenInputFormatDefaultsToJson() {
+        CopyFromAnalyzedStatement analysis = e.analyze("copy users from '/some/distant/file.ext'");
+        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.JSON));
     }
 
     @Test

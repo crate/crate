@@ -33,6 +33,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -288,8 +289,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                 })),
             false,
             1,
-            0
-        );
+            0,
+            FileUriCollectPhase.InputFormat.JSON);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

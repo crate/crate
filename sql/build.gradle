@@ -22,6 +22,8 @@ dependencies {
     compile "com.google.guava:guava:${versions.guava}"
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-csv:${versions.jacksondataformatcsv}"
+    compile "com.fasterxml.jackson.core:jackson-databind:${versions.jacksondatabind}"
     // Needed by aws-java-sdk-s3 in Java 9
     compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 

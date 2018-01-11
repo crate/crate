@@ -95,8 +95,6 @@ public class WriterProjection extends Projection {
         GZIP
     }
 
-
-
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
                             @Nullable CompressionType compressionType,

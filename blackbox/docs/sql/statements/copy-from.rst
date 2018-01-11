@@ -35,14 +35,34 @@ Description
 import.
 
 The nodes in the cluster will attempt to read the files available at the URI
-and import the data. These files have to be UTF-8 encoded and contain a single
-JSON object per line. Any keys in the object will be added as columns,
-regardless of the previously defined table. Empty lines are simply sikpped.
+and import the data.
+
+Supported Formats
+-----------------
+
+CrateDB accepts both JSON and CSV inputs. The format is inferred from the file
+extension (``.json`` or ``.csv`` respectively) if possible. The format can also
+be provided as an option (see :ref:`with_option`). If a format is not specified
+and the format cannot be inferred, the file will be processed as JSON.
+
+Files must be UTF-8 encoded. Any keys in the object will be added as columns,
+regardless of the previously defined table. Empty lines are skipped.
+
+JSON files must contain a single JSON object per line.
 
 Example JSON data::
 
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
+
+CSV files must contain a header with comma-separated values, which will
+be added as columns.
+
+Example CSV data::
+
+    id,quote
+    1,"Don't panic"
+    2,"Ford, you're turning into a penguin. Stop it."
 
 See also: :ref:`importing_data`.
 
@@ -184,6 +204,9 @@ each column a value.
    row, hence every row will be imported into the specified partition
    regardless of the value provided for the partition columns.
 
+
+.. _with_option:
+
 ``WITH``
 --------
 
@@ -265,6 +288,13 @@ Default: false
 
 ``COPY FROM`` by default won't overwrite rows if a document with the same
 primary key already exists. Set to true to overwrite duplicate rows.
+
+``format``
+''''''''''
+
+This option specifies the format of the input file. Available formats are
+``csv`` or ``json``. If a format is not specified and the format cannot be
+guessed from the file extension, the file will be processed as JSON.
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
 .. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
