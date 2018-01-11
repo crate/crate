@@ -83,7 +83,8 @@ public class FileCollectSource implements CollectSource {
             fileInputFactoryMap,
             fileUriCollectPhase.sharedStorage(),
             readers.length,
-            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
+            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId()),
+            fileUriCollectPhase.inputFormat()
         );
 
         return BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer);

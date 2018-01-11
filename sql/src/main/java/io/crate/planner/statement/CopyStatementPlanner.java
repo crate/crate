@@ -219,7 +219,8 @@ public final class CopyStatementPlanner {
             toCollect,
             projections,
             copyFrom.settings().get("compression", null),
-            copyFrom.settings().getAsBoolean("shared", null)
+            copyFrom.settings().getAsBoolean("shared", null),
+            copyFrom.inputFormat()
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
