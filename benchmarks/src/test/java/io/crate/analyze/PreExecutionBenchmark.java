@@ -116,9 +116,14 @@ public class PreExecutionBenchmark {
             .build(plannerContext, null, -1, 0, null, null, Row.EMPTY, Collections.emptyMap());
     }
 
+    /**
+     * This does not measure the build of the execution plan as this requires that the table is part of the cluster state.
+     * (shard routing information would be required)
+     * This is not possible inside JMH because of missing {@link com.carrotsearch.randomizedtesting.RandomizedContext}.
+     */
     @Benchmark
-    public Plan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() throws Exception {
-        return e.plan("select * from users where id = 1 or id = 2 or id = 3 or id = 4 order by id asc");
+    public Plan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() {
+        return e.logicalPlan("select * from users where id = 1 or id = 2 or id = 3 or id = 4 order by id asc");
     }
 
     @Benchmark

@@ -517,7 +517,7 @@ public class SQLExecutor {
             stmt = (AnalyzedStatement) new RelationNormalizer(functions)
                 .normalize(rewrittenRelation, transactionContext);
         }
-        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
+        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState(), random));
     }
 
     public <T> T plan(String stmt, Row row) {
