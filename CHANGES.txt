@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition that caused DELETE or UPDATE statements to result in an
+  error if a shard was being relocated or in a RECOVERY state.
+
 - Improved error message when using the `DISTINCT` clause on unsupported data
   types. Also improved documentation to note the data type restriction.
 

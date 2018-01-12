@@ -29,7 +29,6 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
 import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
@@ -50,13 +49,12 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
-import io.crate.operation.collect.BlobShardCollectorProvider;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.LuceneShardCollectorProvider;
 import io.crate.operation.collect.RemoteCollectorFactory;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.ShardCollectorProvider;
+import io.crate.operation.collect.ShardCollectorProviderFactory;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedLuceneBatchIteratorFactory;
@@ -101,7 +99,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
@@ -158,22 +155,16 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private static final StaticTableReferenceResolver<UnassignedShard> UNASSIGNED_SHARD_SREFERENCE_RESOLVER =
         new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
 
-    private final Schemas schemas;
     private final IndicesService indicesService;
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
-    private final TransportActionProvider transportActionProvider;
     private final RemoteCollectorFactory remoteCollectorFactory;
     private final SystemCollectSource systemCollectSource;
     private final Executor executor;
     private final EvaluatingNormalizer nodeNormalizer;
     private final ProjectorFactory sharedProjectorFactory;
-    private final BlobIndicesService blobIndicesService;
 
     private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
-    private final Functions functions;
-    private final LuceneQueryBuilder luceneQueryBuilder;
-    private final NodeJobsCounter nodeJobsCounter;
+    private final ShardCollectorProviderFactory shardCollectorProviderFactory;
 
     @Inject
     public ShardCollectSource(Settings settings,
@@ -191,18 +182,21 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService) {
         super(settings);
-        this.luceneQueryBuilder = luceneQueryBuilder;
-        this.schemas = schemas;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
-        this.nodeJobsCounter = nodeJobsCounter;
-        this.threadPool = threadPool;
-        this.transportActionProvider = transportActionProvider;
         this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
         this.executor = new DirectFallbackExecutor(threadPool.executor(ThreadPool.Names.SEARCH));
-        this.blobIndicesService = blobIndicesService;
-        this.functions = functions;
+        this.shardCollectorProviderFactory = new ShardCollectorProviderFactory(
+            clusterService,
+            settings,
+            schemas,
+            threadPool,
+            transportActionProvider,
+            blobIndicesService,
+            functions,
+            luceneQueryBuilder,
+            nodeJobsCounter);
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         nodeNormalizer = new EvaluatingNormalizer(
             functions,
@@ -262,17 +256,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
              * So we wrap the creation in a supplier to create the providers lazy
              */
 
-            Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> {
-                if (isBlobIndex(indexShard.shardId().getIndexName())) {
-                    BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
-                    return new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
-                        threadPool, settings, transportActionProvider);
-                } else {
-                    return new LuceneShardCollectorProvider(
-                        schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
-                        threadPool, settings, transportActionProvider, indexShard);
-                }
-            });
+            Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() ->
+                shardCollectorProviderFactory.create(indexShard)
+            );
             shards.put(indexShard.shardId(), providerSupplier);
 
         }
@@ -470,7 +456,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         throw e;
                     }
                     crateCollectors.add(remoteCollectorFactory.createCollector(
-                        indexName, shardId.id(), collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
+                        shardId, collectPhase, jobCollectContext, shardCollectorProviderFactory));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } catch (Exception e) {
