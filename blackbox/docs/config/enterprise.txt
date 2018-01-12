@@ -204,7 +204,7 @@ Layer Security (TLS).
   | *Runtime:* ``no``
 
   The password used to decrypt the keystore file defined with
-  ```ssl.keystore_filepath``.
+  ``ssl.keystore_filepath``.
 
 **ssl.keystore_key_password**
   | *Runtime:* ``no``
