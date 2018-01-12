@@ -70,17 +70,17 @@ public class PreExecutionBenchmark {
     private PlannerContext plannerContext;
 
     @Setup
-    public void setup() {
+    public void setup() throws Exception {
         threadPool = new TestThreadPool("testing");
         DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
         ClusterService clusterService = createClusterService(Settings.EMPTY, threadPool, localNode);
-        e = SQLExecutor.builder(clusterService, 1, new Random())
-            .enableDefaultTables()
+        long dummySeed = 10;
+        e = SQLExecutor.builder(clusterService, 1, new Random(dummySeed))
+            .addTable("create table users (id int primary key, name string, date timestamp, text string index using fulltext)")
             .build();
         selectStatement = SqlParser.createStatement("select name from users");
         selectAnalysis =
             e.analyzer.boundAnalyze(selectStatement, new TransactionContext(SessionContext.create()), ParameterContext.EMPTY);
-        long dummySeed = 10;
         plannerContext = e.getPlannerContext(clusterService.state(), new Random(dummySeed));
     }
 
@@ -101,7 +101,7 @@ public class PreExecutionBenchmark {
     }
 
     @Benchmark
-    public Plan measureParseAnalyzeAndPlanSimpleSelect() {
+    public ExecutionPlan measureParseAnalyzeAndPlanSimpleSelect() {
         return e.plan("select name from users");
     }
 
@@ -117,7 +117,7 @@ public class PreExecutionBenchmark {
     }
 
     @Benchmark
-    public Plan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() throws Exception {
+    public ExecutionPlan measureParseAnalyzeAndPlanSelectWithMultiPrimaryKeyLookup() {
         return e.plan("select * from users where id = 1 or id = 2 or id = 3 or id = 4 order by id asc");
     }
 
