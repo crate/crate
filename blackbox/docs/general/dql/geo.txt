@@ -80,29 +80,29 @@ Let's insert Austria::
 
 .. Hidden: refresh country
 
-    cr> REFRESH TABLE country;
-    REFRESH OK, 1 row affected  (... sec)
+   cr> REFRESH TABLE country;
+   REFRESH OK, 1 row affected  (... sec)
 
 .. Warning::
 
-    Geoshapes has to be fully valid by `ISO 19107`_. If you have problems
-    importing geo data, they may not be fully valid. In most cases they could
-    be repaired using this tool: https://github.com/tudelft3d/prepair
+   Geoshapes has to be fully valid by `ISO 19107`_. If you have problems
+   importing geo data, they may not be fully valid. In most cases they could be
+   repaired using this tool: https://github.com/tudelft3d/prepair
 
 .. Note::
 
-    When using a polygon shape that resembles a rectangle, and that rectangle
-    is wider than 180 degrees the CrateDB geoshape validator will convert it
-    into a multipolygon consisting of 2 rectangular shapes covering the
-    narrower area between the 4 original points split by the dateline (+/-
-    180deg).
+   When using a polygon shape that resembles a rectangle, and that
+   rectangle is wider than 180 degrees the CrateDB geoshape validator
+   will convert it into a multipolygon consisting of 2 rectangular
+   shapes covering the narrower area between the 4 original points split
+   by the dateline (+/- 180deg).
 
-    This is due to CrateDB operating in the geospatial context of the earth.
+   This is due to CrateDB operating in the geospatial context of the earth.
 
 .. Hidden: refresh countries
 
-    cr> REFRESH TABLE countries;
-    REFRESH OK, 1 row affected  (... sec)
+   cr> REFRESH TABLE countries;
+   REFRESH OK, 1 row affected  (... sec)
 
 :ref:`Geographic points <geo_point_data_type>` can be inserted as double array
 with lon and lat as seen above or as `WKT`_ string.
@@ -141,23 +141,25 @@ geo_shape.
 The matching operation is determined by the ``match_type`` which determines the
 spatial relation we want to match. Available ``match_types`` are:
 
-:intersects: (Default) If the two shapes share some points and/or area, they
-             are intersecting and considered matching using this
-             ``match_type``. This also precludes containment or complete
-             equality.
+:intersects:
+  (Default) If the two shapes share some points and/or area, they are
+  intersecting and considered matching using this ``match_type``. This
+  also precludes containment or complete equality.
 
-:disjoint: If the two shapes share no single point and not area, they are
-           disjoint. This is the opposite of ``intersects``.
+:disjoint:
+  If the two shapes share no single point and not area, they are
+  disjoint. This is the opposite of ``intersects``.
 
-:within: If the indexed ``column_ident`` shape is completely inside the
-         ``query_term`` shape they are considered matching using this
-         ``match_type``.
+:within:
+  If the indexed ``column_ident`` shape is completely inside the
+  ``query_term`` shape they are considered matching using this
+  ``match_type``.
 
 .. NOTE::
 
-    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
-    and on user-created tables. Using the ``MATCH`` predicate on system tables
-    is not supported.
+   The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
+   and on user-created tables. Using the ``MATCH`` predicate on system
+   tables is not supported.
 
 .. NOTE::
 

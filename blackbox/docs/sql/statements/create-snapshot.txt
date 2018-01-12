@@ -61,14 +61,18 @@ the full cluster metadata is included in the snapshot.
 Parameters
 ==========
 
-:repository_name: the name of the repository to create the snapshot in as ident
+:repository_name:
+  The name of the repository to create the snapshot in as ident.
 
-:snapshot_name: the name of the snapshot as ident
+:snapshot_name:
+  The name of the snapshot as ident.
 
-:table_ident: The name (optionally schema-qualified) of an existing
-              table that is to be included in the snapshot
+:table_ident:
+  The name (optionally schema-qualified) of an existing table that is to
+  be included in the snapshot.
 
-:partition_column: Column name by which the table is partitioned
+:partition_column:
+  Column name by which the table is partitioned.
 
 Clauses
 =======
@@ -83,14 +87,15 @@ Clauses
 The following configuration parameters can be used to modify how the snapshot
 is created:
 
-:wait_for_completion: (Default ``false``) By default the request returns once
-                      the snapshot creation started. If set to ``true`` the
-                      request returns after the whole snapshot was created or
-                      an error occurred. The :ref:`sys.snapshots
-                      <sys-snapshots>` table can be queried to track the
-                      snapshot creation progress if ``wait_for_completion`` has
-                      been set to ``false``.
+:wait_for_completion:
+  (Default ``false``) By default the request returns once the snapshot
+  creation started. If set to ``true`` the request returns after the
+  whole snapshot was created or an error occurred. The
+  :ref:`sys.snapshots <sys-snapshots>` table can be queried to track the
+  snapshot creation progress if ``wait_for_completion`` has been set to
+  ``false``.
 
-:ignore_unavailable: (Default ``false``) if a given table does not exist the
-                     command will fail by default. If set to ``true`` these
-                     tables are ignored and not included in the snapshot.
+:ignore_unavailable:
+  (Default ``false``) if a given table does not exist the command will
+  fail by default. If set to ``true`` these tables are ignored and not
+  included in the snapshot.

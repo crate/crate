@@ -36,9 +36,11 @@ For usage of the ``CREATE USER`` statement see
 Parameters
 ==========
 
-:username: The unique name of the database user. The name follows the
-           principles of a SQL identifier (see
-           :ref:`sql_lexical_keywords_identifiers`).
+:username:
+  The unique name of the database user.
+
+  The name follows the principles of a SQL identifier (see
+  :ref:`sql_lexical_keywords_identifiers`).
 
 Clauses
 =======
@@ -48,4 +50,5 @@ Clauses
 
 The following ``user_parameter`` are supported to define a new user account:
 
-:password: The password as cleartext entered as string literal.
+:password:
+  The password as cleartext entered as string literal.

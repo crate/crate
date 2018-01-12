@@ -97,16 +97,17 @@ application when using statements which might produce dynamic data.
 Parameters
 ==========
 
-:table_ident: The identifier (optionally schema-qualified) of an existing
-              table.
+:table_ident:
+  The identifier (optionally schema-qualified) of an existing table.
 
-:column_ident: The name of a column or field in the table pointed to by
-               table_ident.
+:column_ident:
+  The name of a column or field in the table pointed to by *table_ident*.
 
-:expression: An expression or value to assign to the corresponding column.
-             Within a ``ON DUPLICATE KEY UPDATE`` clause the expression may
-             also refer to an expression from VALUES by using ``VALUES (
-             column_ident )``
+:expression:
+  An expression or value to assign to the corresponding column. Within a
+  ``ON DUPLICATE KEY UPDATE`` clause the expression may also refer to an
+  expression from VALUES by using ``VALUES ( column_ident )``
 
-:query: A query (SELECT statement) that supplies the rows to be inserted. Refer
-        to the ``SELECT`` statement for a description of the syntax.
+:query:
+  A query (SELECT statement) that supplies the rows to be inserted.
+  Refer to the ``SELECT`` statement for a description of the syntax.

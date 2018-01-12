@@ -22,9 +22,11 @@ location. This variable is usally defined at the by-distribution shipped
 start-up script. In most cases it is the parent directory of the directory
 containing the ``bin/crate`` executable.
 
-:CRATE_HOME: Home directory of CrateDB installation. Used to refer
-             to default config files, data locations, log files, etc. All
-             configured relative paths will use this directory as a parent.
+:CRATE_HOME:
+  Home directory of CrateDB installation.
+
+  Used to refer to default config files, data locations, log files, etc.
+  All configured relative paths will use this directory as a parent.
 
 ``CRATE_JAVA_OPTS``
 ===================

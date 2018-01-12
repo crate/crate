@@ -45,7 +45,8 @@ being executed on 3 nodes, then ``KILL ALL`` will return 3.
 Parameters
 ==========
 
-:job_id: The `UUID`_ of the currently active job that needs to be killed given
-         as a string literal.
+:job_id:
+  The `UUID`_ of the currently active job that needs to be killed given
+  as a string literal.
 
 .. _`UUID`: http://en.wikipedia.org/wiki/Universally_unique_identifier

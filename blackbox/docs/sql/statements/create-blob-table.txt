@@ -40,8 +40,11 @@ parameters are supported here:
 
 Specifies a custom path for storing blob data of a blob table.
 
-:blobs_path: The custom path for storing blob data as a string literal value or
-             string parameter. The path can be either absolute or relative and
-             must be creatable/writable by the user CrateDB is running as. A
-             relative path value is relative to :ref:`env-crate-home`. This
-             path take precedence over any global configured value.
+:blobs_path:
+  The custom path for storing blob data as a string literal value or
+  string parameter.
+
+  The path can be either absolute or relative and must be
+  creatable/writable by the user CrateDB is running as. A relative path
+  value is relative to :ref:`env-crate-home`. This path take precedence
+  over any global configured value.

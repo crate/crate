@@ -35,8 +35,12 @@ For usage of the ``DENY`` statement see :ref:`administration-privileges`.
 Parameters
 ==========
 
-:identifier: The identifier of the corresponding object, If ``TABLE`` is
-             specified the ``identifier`` should include the table's full
-             qualified name. Otherwise the table will be looked up in the
-             current schema.
-:user_name: The name of an existing user.
+:identifier:
+  The identifier of the corresponding object.
+
+  If ``TABLE`` is specified the ``identifier`` should include the
+  table's full qualified name. Otherwise the table will be looked up in
+  the current schema.
+
+:user_name:
+  The name of an existing user.

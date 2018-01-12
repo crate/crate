@@ -36,9 +36,11 @@ Further configuration parameters are given in the WITH Clause.
 
 .. rubric:: Parameters
 
-:repository_name: the name of the repository as identifier
+:repository_name:
+  The name of the repository as identifier
 
-:type: the type of the repository, see :ref:`ref-create-repository-types`.
+:type:
+  The type of the repository, see :ref:`ref-create-repository-types`.
 
 Clauses
 =======
@@ -55,15 +57,17 @@ The following configuration parameters apply to repositories of all types.
 For further configuration options see the documentation of the repository
 ``type`` (e.g. type :ref:`ref-create-repository-types-fs`).
 
-:max_restore_bytes_per_sec: The maximum rate at which snapshots are restored on
-                            a single node from this repository.
+:max_restore_bytes_per_sec:
+  The maximum rate at which snapshots are restored on a single node from
+  this repository.
 
-                            Default: ``40mb`` per second.
+  Default: ``40mb`` per second.
 
-:max_snapshot_bytes_per_sec: The maximum rate at which snapshots are created on
-                             a single node to this repository.
+:max_snapshot_bytes_per_sec:
+  The maximum rate at which snapshots are created on a single node to
+  this repository.
 
-                             Default: ``40mb`` per second.
+  Default: ``40mb`` per second.
 
 .. _ref-create-repository-types:
 

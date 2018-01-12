@@ -338,10 +338,12 @@ Synopsis
 
     EXTRACT( field FROM expression )
 
-:field: an identifier which identifies the part of the timestamp that should be
-        extracted.
-:expression: an expression that resolves to a timestamp or is castable to
-             timestamp.
+:field:
+  An identifier which identifies the part of the timestamp that should
+  be extracted.
+
+:expression:
+  An expression that resolves to a timestamp or is castable to timestamp.
 
 ::
 
@@ -591,14 +593,14 @@ the other argument must be a column reference.
 
 .. NOTE::
 
-    The algorithm of the calculation which is used when the distance function
-    is used as part of the result column list has a different precision than
-    what is stored inside the index which is utilized if the distance function
-    is part of a WHERE clause.
+   The algorithm of the calculation which is used when the distance
+   function is used as part of the result column list has a different
+   precision than what is stored inside the index which is utilized if
+   the distance function is part of a WHERE clause.
 
-    For example if ``select distance(...)`` returns 0.0 an equality check with
-    ``where distance(...) = 0`` might not yield anything at all due to the
-    precision difference.
+   For example if ``select distance(...)`` returns 0.0 an equality check
+   with ``where distance(...) = 0`` might not yield anything at all due
+   to the precision difference.
 
 .. _scalar_within:
 

@@ -34,5 +34,7 @@ the plan tree.
 Parameters
 ==========
 
-:statement: The statement for which a plan should be returned. Currently only
-            SELECT and COPY FROM statements are supported.
+:statement:
+  The statement for which a plan should be returned.
+
+  Currently only ``SELECT`` and ``COPY FROM`` statements are supported.

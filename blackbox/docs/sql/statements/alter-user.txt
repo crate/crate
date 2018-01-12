@@ -43,10 +43,13 @@ The name by which the user is identified inside the database.
 Changes a user parameter to a different value. The following ``user_parameter``
 are supported to alter an existing user account:
 
-:password: The password as cleartext entered as string literal. ``NULL`` removes
-           the password from the user.
+:password:
+  The password as cleartext entered as string literal.
 
-.. note::
+  ``NULL`` removes the password from the user.
 
-    Passwords cannot be set for the ``crate`` superuser. For security reasons it
-    is recommended to authenticate as ``crate`` using a client certificate.
+.. NOTE::
+
+   Passwords cannot be set for the ``crate`` superuser. For security
+   reasons it is recommended to authenticate as ``crate`` using a client
+   certificate.

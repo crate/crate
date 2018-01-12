@@ -42,15 +42,16 @@ due to the distributed nature of CrateDB, *will remain on the same nodes*
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of the table to
-              be exported.
+:table_ident:
+  The name (optionally schema-qualified) of the table to be exported.
 
-:column: (optional) A list of column expressions that should be exported.
+:column:
+  (optional) A list of column expressions that should be exported.
 
 .. NOTE::
 
-    Declaring columns changes the output to JSON list format, which is
-    currently not supported by the COPY FROM statement.
+   Declaring columns changes the output to JSON list format, which is
+   currently not supported by the COPY FROM statement.
 
 Clauses
 -------
@@ -76,10 +77,11 @@ will be used.
 
 .. NOTE::
 
-    If the s3 scheme is used without specifying any credentials an attempt is
-    made to read these information from the AWS_ACCESS_KEY_ID and
-    AWS_SECRET_KEY environment variables. In addition to that the Java System
-    properties aws.accessKeyId and aws.secretKey are also used as a fallback.
+   If the s3 scheme is used without specifying any credentials an
+   attempt is made to read these information from the AWS_ACCESS_KEY_ID
+   and AWS_SECRET_KEY environment variables. In addition to that the
+   Java System properties aws.accessKeyId and aws.secretKey are also
+   used as a fallback.
 
 .. NOTE::
 
@@ -89,9 +91,10 @@ will be used.
 
 .. NOTE::
 
-  Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x these
-  connections are using the HTTPS protocol. Please make sure you update your
-  firewall rules to allow outgoing connections on port ``443``.
+   Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x
+   these connections are using the HTTPS protocol. Please make sure you
+   update your firewall rules to allow outgoing connections on port
+   ``443``.
 
 Clauses
 =======
@@ -109,19 +112,21 @@ not part of the partitioned tables.
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column: The name of the column by which the table is partitioned.
-                   All partition columns that were part of the
-                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
-                   statement must be specified.
+:partition_column:
+  The name of the column by which the table is partitioned. All
+  partition columns that were part of the :ref:`partitioned_by_clause` of the
+  :ref:`ref-create-table` statement must be specified.
 
-:value: The columns value.
+:value:
+  The columns value.
 
 .. NOTE::
 
-    If ``COPY TO`` is used on a partitioned table without the ``PARTITION``
-    clause, the partition columns and values will be included in the rows of
-    the exported files. If a partition column is a generated column, it will
-    not be included even if the ``PARTITION`` clause is missing.
+   If ``COPY TO`` is used on a partitioned table without the
+   ``PARTITION`` clause, the partition columns and values will be
+   included in the rows of the exported files. If a partition column is
+   a generated column, it will not be included even if the ``PARTITION``
+   clause is missing.
 
 ``WITH``
 --------
@@ -135,7 +140,6 @@ The optional WITH clause can specify parameters for the copy statement.
 Possible copy_parameters are:
 
 .. _compression:
-..
 
 ``compression``
 ...............
@@ -146,7 +150,8 @@ By default the output is not compressed.
 
 Possible values for the ``compression`` setting are:
 
-:gzip: Use gzip_ to compress the data output.
+:gzip:
+  Use gzip_ to compress the data output.
 
 .. _format:
 
@@ -157,14 +162,16 @@ Optional parameter to override default output behavior.
 
 Possible values for the ``format`` settings are:
 
-:json_object: Each row in the result set is serialized as JSON object and
-              written to an output file where one line contains one object.
-              This is the default behavior if no columns are defined. Use
-              this format to import with :ref:`copy_from`.
+:json_object:
+  Each row in the result set is serialized as JSON object and written to
+  an output file where one line contains one object. This is the default
+  behavior if no columns are defined. Use this format to import with
+  :ref:`copy_from`.
 
-:json_array: Each row in the result set is serialized as JSON array, storing
-             one array per line in an output file. This is the default behavior
-             if columns are defined.
+:json_array:
+  Each row in the result set is serialized as JSON array, storing one
+  array per line in an output file. This is the default behavior if
+  columns are defined.
 
 .. _gzip: http://www.gzip.org/
 .. _`Amazon S3`: http://aws.amazon.com/s3/

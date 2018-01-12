@@ -40,19 +40,28 @@ a different set of input arguments.
 Parameters
 ==========
 
-:function_name: The name of the function to create.
+:function_name:
+  The name of the function to create.
 
-:arg_name: The optional name given to an argument. Function arguments do not
-           retain names, but you can name them in your query for documentation
-           purposes.
+:arg_name:
+  The optional name given to an argument. Function arguments do not
+  retain names, but you can name them in your query for documentation
+  purposes.
 
-:arg_type: The data type of a given argument. See :ref:`data-types` for more
-           detailed information about the supported types.
+:arg_type:
+  The data type of a given argument.
 
-:return_type: The returned data type of the function. The return type can be
-              any supported type.
+  See :ref:`data-types` for more detailed information about the
+  supported types.
 
-:language_name: The registered language which should be used for the function.
+:return_type:
+  The returned data type of the function. The return type can be any
+  supported type.
 
-:definition: A string defining the body of the function. See
-             :ref:`string_literal` for more details.
+:language_name:
+  The registered language which should be used for the function.
+
+:definition:
+  A string defining the body of the function.
+
+  See :ref:`string_literal` for more details.

@@ -51,21 +51,30 @@ from scratch. For examples and detailed explanation see
 Parameters
 ==========
 
-:analyzer_name: the globally unique name of the analzyer being created.
+:analyzer_name:
+  The globally unique name of the analzyer being created.
 
-:parent_analyzer_name: the name of the analyzer to inherit defaults from.
+:parent_analyzer_name:
+  The name of the analyzer to inherit defaults from.
 
-:override_parameter: the name of a parameter of the parent analyzer which
-                     should be assigned a new value to.
+:override_parameter:
+  The name of a parameter of the parent analyzer which should be
+  assigned a new value to.
 
-:tokenizer_name: the name of a builtin tokenizer to be used.
+:tokenizer_name:
+  The name of a builtin tokenizer to be used.
 
-:tokenizer_parameter: a name of a parameter for a given tokenizer.
+:tokenizer_parameter:
+  A name of a parameter for a given tokenizer.
 
-:token_filter_name: the name of a builtin token filter to be used.
+:token_filter_name:
+  The name of a builtin token filter to be used.
 
-:token_filter_parameter: a name of a parameter for a given token filter.
+:token_filter_parameter:
+  A name of a parameter for a given token filter.
 
-:char_filter_name: the name of a builtin char filter to be used.
+:char_filter_name:
+  The name of a builtin char filter to be used.
 
-:char_filter_parameter: a name of a parameter for a given char filter.
+:char_filter_parameter:
+  A name of a parameter for a given char filter.

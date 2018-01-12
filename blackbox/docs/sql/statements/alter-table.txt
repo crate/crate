@@ -55,8 +55,8 @@ together with a `PARTITION`_ clause.
 
 See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
 
-:table_ident: The name (optionally schema-qualified) of the table to alter.
-
+:table_ident:
+  The name (optionally schema-qualified) of the table to alter.
 
 .. _ref-alter-table-partition-clause:
 
@@ -80,12 +80,14 @@ columns with a value each to identify the partition to alter.
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column: The name of the column by which the table is partitioned.
-                   All partition columns that were part of the
-                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
-                   statement must be specified.
+:partition_column:
+  The name of the column by which the table is partitioned.
 
-:value: The columns value.
+  All partition columns that were part of the :ref:`partitioned_by_clause` of
+  the :ref:`ref-create-table` statement must be specified.
+
+:value:
+  The columns value.
 
 .. SEEALSO:: :ref:`Alter Partitioned Tables <partitioned_tables_alter>`
 
@@ -99,8 +101,8 @@ Arguments
 Can be used to change a table parameter to a different value.
 Using ``RESET`` will reset the parameter to its default value.
 
-:parameter: The name of the parameter that is set to a new value or its
-            default.
+:parameter:
+  The name of the parameter that is set to a new value or its default.
 
 ``ADD COLUMN``
 --------------
@@ -109,9 +111,11 @@ Can be used to add an additional column to a table. While columns can be added
 at any time, adding a new :ref:`generated column <ref-generated-columns>` is
 only possible if the table is empty.
 
-:data_type:   data type of the column which should be added.
+:data_type:
+  Data type of the column which should be added.
 
-:column_name: Name of the column which should be added.
+:column_name:
+  Name of the column which should be added.
 
 ``OPEN/CLOSE``
 --------------
@@ -158,26 +162,28 @@ where ``reroute_option`` is::
       | CANCEL SHARD shard_id ON node_id [ WITH (allow_primary = {TRUE|FALSE}) ]
     }
 
-:shard_id:  The shard id. Ranges from 0 up to the specified number of
-            :ref:`sys-shards`  shards of a table.
+:shard_id:
+  The shard id. Ranges from 0 up to the specified number of :ref:`sys-shards`
+  shards of a table.
 
-:node_id:   The node ID within the cluster. See :ref:`sys-nodes` how to gain the
-            unique ID.
+:node_id:
+  The node ID within the cluster.
+
+  See :ref:`sys-nodes` how to gain the unique ID.
 
 
 ``REROUTE`` suports the following options to start/stop shard allocation:
 
 **MOVE**
-    A started shard gets moved from one node to another. It requests a
-    ``table_ident`` and a ``shard_id`` to identify the shard that receives the
-    new allocation. Specify ``FROM node_id`` for the node to move the shard from
-    and ``TO node_id`` to move the shard to.
+  A started shard gets moved from one node to another. It requests a
+  ``table_ident`` and a ``shard_id`` to identify the shard that receives
+  the new allocation. Specify ``FROM node_id`` for the node to move the
+  shard from and ``TO node_id`` to move the shard to.
 
 **ALLOCATE REPLICA**
-    Allows to force allocation of an unassigned replica shard on a specific
-    node.
+  Allows to force allocation of an unassigned replica shard on a specific node.
 
 **CANCEL**
-    This cancels the allocation/recovery of a ``shard_id`` of a ``table_ident``
-    on a given ``node_id``. The ``allow_primary`` flag indicates if it is
-    allowed to cancel the allocation of a primary shard.
+  This cancels the allocation/recovery of a ``shard_id`` of a
+  ``table_ident`` on a given ``node_id``. The ``allow_primary`` flag
+  indicates if it is allowed to cancel the allocation of a primary shard.

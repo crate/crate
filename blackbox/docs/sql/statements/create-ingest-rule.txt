@@ -33,11 +33,18 @@ table (``table_ident``).
 Parameters
 ==========
 
-:rule_name:    The rule name
-:source_ident: The ingestion source identifier
-:condition:    A boolean expression using references specific to the ingestion
-               implementation
-:table_ident:  The target table identifier
+:rule_name:
+  The rule name.
+  
+:source_ident:
+  The ingestion source identifier.
+  
+:condition:
+  A boolean expression using references specific to the ingestion
+  implementation.
+  
+:table_ident:
+  The target table identifier.
 
 Notes
 =====

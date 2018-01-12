@@ -31,6 +31,8 @@ created, the creation is aborted and all files created so far are deleted.
 Parameters
 ==========
 
-:repository_name: the name of the repository the snapshot is stored in as ident
+:repository_name:
+  The name of the repository the snapshot is stored in as ident.
 
-:snapshot_name: the name of the snapshot to drop as ident
+:snapshot_name:
+  The name of the snapshot to drop as ident.

@@ -34,4 +34,5 @@ It cannot be used for creating, dropping or restoring snapshots anymore.
 Parameters
 ==========
 
-:repository_name: the name of the repository as identifier
+:repository_name:
+  The name of the repository as identifier
