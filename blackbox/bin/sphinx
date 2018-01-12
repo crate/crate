@@ -3,14 +3,14 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 PATH=$DIR/.venv/bin:$PATH
 if test "$1" == "dev"; then
-    sphinx-autobuild -W $DIR/docs $DIR/docs/out/html
+    sphinx-autobuild -W $DIR/docs $DIR/docs/_out/html
 else
     declare -i RESULT=0
     printf "\033[1mCleaning output folder ...\033[0m\n"
-    rm -rf $DIR/docs/out/
+    rm -rf $DIR/docs/_out
     RESULT+=$?
     printf "\033[1;44mBuilding server docs ...\033[0m\n"
-    sphinx-build -n -W -b html -E $DIR/docs $DIR/docs/out/html
+    sphinx-build -n -W -b html -E $DIR/docs $DIR/docs/_out/html
     RESULT+=$?
     exit $RESULT
 fi

@@ -81,10 +81,7 @@ task cleanDocs {
     doLast {
         FileCollection toDelete = files(
                 crateDist,
-                "$projectDir/docs/out/text",
-                "$projectDir/docs/out/html",
-                "$projectDir/docs/clients/out/text",
-                "$projectDir/docs/clients/out/html"
+                "$projectDir/docs/_out/html",
         )
         toDelete.each {
             File file -> delete file
