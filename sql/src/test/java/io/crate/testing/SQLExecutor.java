@@ -517,17 +517,7 @@ public class SQLExecutor {
             stmt = (AnalyzedStatement) new RelationNormalizer(functions)
                 .normalize(rewrittenRelation, transactionContext);
         }
-        RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), new String[0]);
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
-            routingProvider,
-            UUID.randomUUID(),
-            functions,
-            transactionContext,
-            -1,
-            -1
-        );
-        return (T) planner.plan(stmt, plannerContext);
+        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState(), random));
     }
 
     public <T> T plan(String stmt, Row row) {
