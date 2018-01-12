@@ -101,6 +101,17 @@ directory.
 
 Here, ``<PROJECT_ROOT>`` is the root of your Git repository.
 
+Checkstyle
+----------
+
+The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/rules.xml`.
+Among others, it indicates unused imports, inconsistent formatting, and potential
+bugs. The plugin is run by Gradle after compiling the main sources. It checks the
+main sources only but not the test sources.
+
+If you use IntelliJ, there is a Checkstyle plugin available which let's you check
+Checkstyle compliance from within the IDE.
+
 Test Coverage
 --------------
 
