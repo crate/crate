@@ -52,6 +52,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
@@ -1390,11 +1391,13 @@ public class LuceneQueryBuilder {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
-            // avoid field-cache
-            // reason1: analyzed columns or columns with index off wouldn't work
-            //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
-            // reason2: would have to load each value into the field cache
-            function = (Function) DocReferences.toSourceLookup(function);
+            // rewrite references to source lookup instead of using the docValues column store if:
+            // - no docValues are available for the related column, currently only on objects defined as `ignored`
+            // - docValues value differs from source, currently happening on GeoPoint types as lucene's internal format
+            //   results in precision changes (e.g. longitude 11.0 will be 10.999999966)
+            function = (Function) DocReferences.toSourceLookup(function,
+                r -> r.columnPolicy() == ColumnPolicy.IGNORED
+                     || r.valueType() == DataTypes.GEO_POINT);
 
             final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx();
             @SuppressWarnings("unchecked")

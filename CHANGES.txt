@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Greatly improved performance of queries that uses scalar functions inside the
+  ``WHERE`` clause.
+
 Fixes
 =====
 
