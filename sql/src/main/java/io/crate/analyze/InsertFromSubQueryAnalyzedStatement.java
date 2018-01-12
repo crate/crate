@@ -117,7 +117,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         }
 
         List<Symbol> symbols = new ArrayList<>(columns.size());
-        InputColumns.Context inputContext = null;
+        InputColumns.SourceSymbols sourceSymbols = null;
         for (ColumnIdent column : columns) {
             ColumnIdent subscriptColumn = null;
             if (!column.isTopLevel()) {
@@ -138,10 +138,10 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
                         "Column \"%s\" is required but is missing from the insert statement", column.sqlFqn()));
                 }
 
-                if (inputContext == null) {
-                    inputContext = new InputColumns.Context(targetColumns);
+                if (sourceSymbols == null) {
+                    sourceSymbols = new InputColumns.SourceSymbols(targetColumns);
                 }
-                Symbol symbol = InputColumns.create(generatedReference.generatedExpression(), inputContext);
+                Symbol symbol = InputColumns.create(generatedReference.generatedExpression(), sourceSymbols);
                 symbols.add(symbol);
             }
         }

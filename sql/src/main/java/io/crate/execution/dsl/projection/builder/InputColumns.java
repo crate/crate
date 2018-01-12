@@ -40,17 +40,23 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 
+/**
+ * Provides functions to create {@link InputColumn}s
+ */
 @Singleton
-public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.Context, Symbol> {
+public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.SourceSymbols, Symbol> {
 
     private static final InputColumns INSTANCE = new InputColumns();
 
-    public static class Context {
+    /**
+     * Represents the "source" symbols to which the InputColumns will point to
+     */
+    public static class SourceSymbols {
 
-        final HashMap<Symbol, InputColumn> inputs;
+        private final HashMap<Symbol, InputColumn> inputs;
         final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
 
-        public Context(Collection<? extends Symbol> inputs) {
+        public SourceSymbols(Collection<? extends Symbol> inputs) {
             this.inputs = new HashMap<>(inputs.size());
 
             // non deterministic functions would override each other in a normal hashmap
@@ -75,6 +81,14 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
                 i++;
             }
         }
+
+        public InputColumn getICForSource(Symbol source) {
+            InputColumn inputColumn = inputs.get(source);
+            if (inputColumn == null) {
+                throw new IllegalArgumentException("source " + source + " isn't present in the source symbols: " + inputs.keySet());
+            }
+            return inputColumn;
+        }
     }
 
     /**
@@ -86,39 +100,39 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
      * </p>
      */
     public static Symbol create(Symbol symbolTree, Collection<? extends Symbol> inputSymbols) {
-        return create(symbolTree, new Context(inputSymbols));
+        return create(symbolTree, new SourceSymbols(inputSymbols));
     }
 
     /**
-     * Same as {@link #create(Symbol, Collection)} but allows to re-use a context.
+     * Same as {@link #create(Symbol, Collection)} but allows to re-use {@link SourceSymbols}
      */
-    public static Symbol create(Symbol symbolTree, Context context) {
-        return INSTANCE.process(symbolTree, context);
+    public static Symbol create(Symbol symbolTree, SourceSymbols sourceSymbols) {
+        return INSTANCE.process(symbolTree, sourceSymbols);
     }
 
     /**
      * Same as {@link #create(Symbol, Collection)}, but works for multiple symbols and allows re-using
-     * a context class.
+     * a {@link SourceSymbols} class.
      * <p>
      *     If {@code symbols} and the inputSymbols of the Context class are the same,
      *     it's better to use {@link InputColumn#fromSymbols(Collection)} to create a 1:1 InputColumn mapping.
      * </p>
      */
-    public static List<Symbol> create(Collection<? extends Symbol> symbols, Context context) {
+    public static List<Symbol> create(Collection<? extends Symbol> symbols, SourceSymbols sourceSymbols) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            result.add(INSTANCE.process(symbol, context));
+            result.add(INSTANCE.process(symbol, sourceSymbols));
         }
         return result;
     }
 
     @Override
-    public Symbol visitFunction(Function symbol, final Context context) {
+    public Symbol visitFunction(Function symbol, final SourceSymbols sourceSymbols) {
         Symbol replacement;
         if (symbol.info().isDeterministic()) {
-            replacement = context.inputs.get(symbol);
+            replacement = sourceSymbols.inputs.get(symbol);
         } else {
-            replacement = context.nonDeterministicFunctions.get(symbol);
+            replacement = sourceSymbols.nonDeterministicFunctions.get(symbol);
         }
 
         if (replacement != null) {
@@ -126,33 +140,33 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         }
         ArrayList<Symbol> args = new ArrayList<>(symbol.arguments().size());
         for (Symbol arg : symbol.arguments()) {
-            args.add(process(arg, context));
+            args.add(process(arg, sourceSymbols));
         }
         return new Function(symbol.info(), args);
     }
 
     @Override
-    protected Symbol visitSymbol(Symbol symbol, Context context) {
-        return MoreObjects.firstNonNull(context.inputs.get(symbol), symbol);
+    protected Symbol visitSymbol(Symbol symbol, SourceSymbols sourceSymbols) {
+        return MoreObjects.firstNonNull(sourceSymbols.inputs.get(symbol), symbol);
     }
 
     @Override
-    public Symbol visitReference(Reference ref, Context context) {
+    public Symbol visitReference(Reference ref, SourceSymbols sourceSymbols) {
         if (ref instanceof GeneratedReference) {
             return MoreObjects.firstNonNull(
-                context.inputs.get(ref),
-                visitSymbol(((GeneratedReference) ref).generatedExpression(), context));
+                sourceSymbols.inputs.get(ref),
+                visitSymbol(((GeneratedReference) ref).generatedExpression(), sourceSymbols));
         }
-        return visitSymbol(ref, context);
+        return visitSymbol(ref, sourceSymbols);
     }
 
     @Override
-    public Symbol visitFetchReference(FetchReference fetchReference, Context context) {
+    public Symbol visitFetchReference(FetchReference fetchReference, SourceSymbols sourceSymbols) {
         return fetchReference;
     }
 
     @Override
-    public Symbol visitAggregation(Aggregation symbol, Context context) {
+    public Symbol visitAggregation(Aggregation symbol, SourceSymbols sourceSymbols) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
                                  getClass().getCanonicalName());
     }

@@ -29,12 +29,6 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.projectors.TopN;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -42,6 +36,12 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
+import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.operation.projectors.TopN;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -62,8 +62,8 @@ public class ProjectionBuilder {
                                                        Collection<Function> aggregates,
                                                        AggregateMode mode,
                                                        RowGranularity granularity) {
-        InputColumns.Context context = new InputColumns.Context(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, context);
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
+        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, sourceSymbols);
         return new AggregationProjection(aggregations, granularity, mode);
     }
 
@@ -74,14 +74,14 @@ public class ProjectionBuilder {
         AggregateMode mode,
         RowGranularity requiredGranularity) {
 
-        InputColumns.Context context = new InputColumns.Context(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(values, mode, context);
-        return new GroupProjection(InputColumns.create(keys, context), aggregations, mode, requiredGranularity);
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
+        ArrayList<Aggregation> aggregations = getAggregations(values, mode, sourceSymbols);
+        return new GroupProjection(InputColumns.create(keys, sourceSymbols), aggregations, mode, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
-                                                   InputColumns.Context context) {
+                                                   InputColumns.SourceSymbols sourceSymbols) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE :
@@ -92,12 +92,12 @@ public class ProjectionBuilder {
                 case ITER_PARTIAL:
                     // ITER means that there is no aggregation part upfront, therefore the input
                     // symbols need to be in arguments
-                    aggregationInputs = InputColumns.create(function.arguments(), context);
+                    aggregationInputs = InputColumns.create(function.arguments(), sourceSymbols);
 
                     break;
 
                 case PARTIAL_FINAL:
-                    aggregationInputs = ImmutableList.of(context.inputs.get(function));
+                    aggregationInputs = ImmutableList.of(sourceSymbols.getICForSource(function));
                     break;
 
                 default:

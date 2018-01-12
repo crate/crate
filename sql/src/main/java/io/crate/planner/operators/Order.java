@@ -82,7 +82,7 @@ class Order extends OneInputPlan {
             // This is likely a order by on a virtual table which is sorted as well
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
-        InputColumns.Context ctx = new InputColumns.Context(source.outputs());
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(
             Limit.limitAndOffset(limit, offset),
             0,

@@ -69,7 +69,7 @@ public class ColumnIndexWriterProjectionTest {
         Reference hRef = ref(h, DataTypes.INTEGER);
         List<ColumnIdent> primaryKeys = Arrays.asList(ymd, domain, area, isp);
         List<Reference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
-        InputColumns.Context targetColsCtx = new InputColumns.Context(targetColumns);
+        InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
         List<Symbol> primaryKeySymbols = InputColumns.create(
             Arrays.asList(ymdRef, domainRef, areaRef, ispRef), targetColsCtx);
         List<ColumnIdent> partitionedByColumns = Arrays.asList(ymd, isp);

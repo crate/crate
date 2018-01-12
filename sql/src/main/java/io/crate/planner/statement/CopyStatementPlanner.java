@@ -183,10 +183,10 @@ public final class CopyStatementPlanner {
         String[] excludes = partitionedByNames.size() > 0
             ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null;
 
-        InputColumns.Context inputColsContext = new InputColumns.Context(toCollect);
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(toCollect);
         Symbol clusteredByInputCol = null;
         if (clusteredBy != null) {
-            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), inputColsContext);
+            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), sourceSymbols);
         }
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
             table.ident(),
@@ -194,12 +194,12 @@ public final class CopyStatementPlanner {
             table.getReference(DocSysColumns.RAW),
             new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
             table.primaryKey(),
-            InputColumns.create(table.partitionedByColumns(), inputColsContext),
+            InputColumns.create(table.partitionedByColumns(), sourceSymbols),
             clusteredBy,
             copyFrom.settings(),
             null,
             excludes,
-            InputColumns.create(primaryKeyRefs, inputColsContext),
+            InputColumns.create(primaryKeyRefs, sourceSymbols),
             clusteredByInputCol,
             table.isPartitioned() // autoCreateIndices
         );

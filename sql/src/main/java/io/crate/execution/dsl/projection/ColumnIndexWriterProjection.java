@@ -76,7 +76,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             targetColsExclPartitionCols.add(column);
         }
         this.clusteredBySymbol = clusteredBySymbol;
-        columnSymbols = InputColumns.create(targetColsExclPartitionCols, new InputColumns.Context(columns));
+        columnSymbols = InputColumns.create(targetColsExclPartitionCols, new InputColumns.SourceSymbols(columns));
     }
 
     ColumnIndexWriterProjection(StreamInput in) throws IOException {

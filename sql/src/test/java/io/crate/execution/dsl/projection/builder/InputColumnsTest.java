@@ -54,20 +54,20 @@ public class InputColumnsTest extends CrateUnitTest {
 
         Function newSameFn = (Function) sqlExpressions.asSymbol("random()");
         Function newDifferentFn = (Function) sqlExpressions.asSymbol("random()");
-        InputColumns.Context context = new InputColumns.Context(inputSymbols);
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputSymbols);
 
-        Symbol replaced1 = InputColumns.create(fn1, context);
+        Symbol replaced1 = InputColumns.create(fn1, sourceSymbols);
         assertThat(replaced1, is(instanceOf(InputColumn.class)));
         assertThat(((InputColumn) replaced1).index(), is(2));
 
-        Symbol replaced2 = InputColumns.create(fn2, context);
+        Symbol replaced2 = InputColumns.create(fn2, sourceSymbols);
         assertThat(replaced2, is(instanceOf(InputColumn.class)));
         assertThat(((InputColumn) replaced2).index(), is(3));
 
-        Symbol replaced3 = InputColumns.create(newSameFn, context);
+        Symbol replaced3 = InputColumns.create(newSameFn, sourceSymbols);
         assertThat(replaced3, is(equalTo(newSameFn))); // not replaced
 
-        Symbol replaced4 = InputColumns.create(newDifferentFn, context);
+        Symbol replaced4 = InputColumns.create(newDifferentFn, sourceSymbols);
         assertThat(replaced4, is(equalTo(newDifferentFn))); // not replaced
     }
 }

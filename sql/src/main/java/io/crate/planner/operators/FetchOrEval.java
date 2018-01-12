@@ -420,7 +420,7 @@ class FetchOrEval extends OneInputPlan {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.Context ctx = new InputColumns.Context(sourceOutputs);
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(sourceOutputs);
         executionPlan.addProjection(
             new EvalProjection(InputColumns.create(this.outputs, ctx)),
             executionPlan.resultDescription().limit(),
