@@ -29,10 +29,13 @@ table.
 Parameters
 ==========
 
-:table_name:  The name of the table of which the column information is printed.
+:table_name:
+  The name of the table of which the column information is printed.
 
-:table_schema: The name of the schema the tables are appropriate to. If no
-               schema name is specified the default schema is set to ``doc``.
+:table_schema:
+  The name of the schema the tables are appropriate to.
+
+  If no schema name is specified the default schema is set to ``doc``.
 
 Clauses
 =======

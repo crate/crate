@@ -31,7 +31,8 @@ System and BLOB tables are only listed when they are explicitly specified in
 Parameters
 ==========
 
-:table_schema: The name of the schema the tables are appropriate to.
+:table_schema:
+  The name of the schema the tables are appropriate to.
 
 Clauses
 =======

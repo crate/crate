@@ -324,42 +324,44 @@ information, see :ref:`geo_shape_data_type_index`.
 
 Both of these index types accept the following parameters:
 
-:precision: (Default: ``50m``) Define the maximum precision of the used index
-            and thus for all indexed shapes. Given as string containing a
-            number and an optional distance unit (defaults to ``m``).
+:precision:
+  (Default: ``50m``) Define the maximum precision of the used index and
+  thus for all indexed shapes. Given as string containing a number and
+  an optional distance unit (defaults to ``m``).
 
-            Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
-            (``mi``), ``kilometers`` (``km``), ``meters``(``m``),
-            ``centimeters`` (``cm``), ``millimeters`` (``mm``).
+  Supported units are ``inch`` (``in``), ``yard`` (``yd``), ``miles``
+  (``mi``), ``kilometers`` (``km``), ``meters``(``m``), ``centimeters``
+  (``cm``), ``millimeters`` (``mm``).
 
-:distance_error_pct: (Default: ``0.025`` (2,5%)) The measure of acceptable
-                     error for shapes stored in this column expressed as a
-                     percentage value of the shape size The allowed maximum is
-                     ``0.5`` (50%).
+:distance_error_pct:
+  (Default: ``0.025`` (2,5%)) The measure of acceptable error for shapes
+  stored in this column expressed as a percentage value of the shape
+  size The allowed maximum is ``0.5`` (50%).
 
-                     The percentage will be taken from the diagonal distance
-                     from the center of the bounding box enclosing the shape to
-                     the closest corner of the enclosing box. In effect bigger
-                     shapes will be indexed with lower precision than smaller
-                     shapes. The ratio of precision loss is determined by this
-                     setting, that means the higher the ``distance_error_pct``
-                     the smaller the indexing precision.
+  The percentage will be taken from the diagonal distance from the
+  center of the bounding box enclosing the shape to the closest corner
+  of the enclosing box. In effect bigger shapes will be indexed with
+  lower precision than smaller shapes. The ratio of precision loss is
+  determined by this setting, that means the higher the
+  ``distance_error_pct`` the smaller the indexing precision.
 
-                     This will have the effect of increasing the indexed shape
-                     internally, so e.g. points that are not exactly inside
-                     this shape will end up inside it when it comes to querying
-                     as the shape has grown when indexed.
+  This will have the effect of increasing the indexed shape internally,
+  so e.g. points that are not exactly inside this shape will end up
+  inside it when it comes to querying as the shape has grown when
+  indexed.
 
-:tree_levels: Maximum number of layers to be used by the ``PrefixTree`` defined
-              by the index type (either ``geohash`` or ``quadtree``, see
-              :ref:`geo_shape_data_type_index`). This can be used to control
-              the precision of the used index. Since this parameter requires a
-              certain level of understanting of the underlying implementation,
-              users may use the ``precision`` parameter instead. CrateDB uses
-              the ``tree_levels`` parameter internally and this is what is
-              returned via the ``SHOW CREATE TABLE`` statement even if you use
-              the precision parameter. Defaults to the value which is ``50m``
-              converted to ``precision`` depending on the index type.
+:tree_levels:
+  Maximum number of layers to be used by the ``PrefixTree`` defined by
+  the index type (either ``geohash`` or ``quadtree``. See
+  :ref:`geo_shape_data_type_index`).
+
+  This can be used to control the precision of the used index. Since
+  this parameter requires a certain level of understanting of the
+  underlying implementation, users may use the ``precision`` parameter
+  instead. CrateDB uses the ``tree_levels`` parameter internally and
+  this is what is returned via the ``SHOW CREATE TABLE`` statement even
+  if you use the precision parameter. Defaults to the value which is
+  ``50m`` converted to ``precision`` depending on the index type.
 
 .. _geo_shape_data_type_index:
 

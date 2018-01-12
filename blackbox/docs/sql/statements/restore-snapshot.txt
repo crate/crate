@@ -40,15 +40,18 @@ To cancel a restore operation simply drop the tables that are being restored.
 Parameters
 ==========
 
-:repository_name: the name of the repository of the snapshot to restore as
-                  ident
+:repository_name:
+  The name of the repository of the snapshot to restore as ident.
 
-:snapshot_name: the name of the snapshot as ident
+:snapshot_name:
+  The name of the snapshot as ident.
 
-:table_ident: The name (optionally schema-qualified) of an existing table that
-              is to be restored from the snapshot
+:table_ident:
+  The name (optionally schema-qualified) of an existing table that is to be
+  restored from the snapshot.
 
-:partition_column: Column name by which the table is partitioned
+:partition_column:
+  Column name by which the table is partitioned.
 
 Clauses
 =======
@@ -63,13 +66,14 @@ Clauses
 The following configuration parameters can be used to modify how the snapshot
 is restored to the cluster:
 
-:ignore_unavailable: (Default ``false``) Per default the restore command fails
-                     if a table is given that does not exist in the snapshot.
-                     If set to ``true`` those missing tables are ignored.
+:ignore_unavailable:
+  (Default ``false``) Per default the restore command fails if a table
+  is given that does not exist in the snapshot. If set to ``true`` those
+  missing tables are ignored.
 
-:wait_for_completion: (Default: ``false``) By default the request returns once
-                      the restore operation started. If set to ``true`` the
-                      request returns after all selected tables from the
-                      snapshot are restored or an error occurred. In order to
-                      monitor the restore operation the * :ref:`sys.shards
-                      <sys-shards>` table can be queried.
+:wait_for_completion:
+  (Default: ``false``) By default the request returns once the restore
+  operation started. If set to ``true`` the request returns after all
+  selected tables from the snapshot are restored or an error occurred.
+  In order to monitor the restore operation the * :ref:`sys.shards
+  <sys-shards>` table can be queried.

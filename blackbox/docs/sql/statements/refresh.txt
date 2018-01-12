@@ -47,10 +47,12 @@ see :ref:`sql_ref_refresh_interval`.
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of an existing table that
-              is to be refreshed.
+:table_ident:
+  The name (optionally schema-qualified) of an existing table that is to
+  be refreshed.
 
-:partition_column: Column name by which the table is partitioned.
+:partition_column:
+  Column name by which the table is partitioned.
 
 Clauses
 =======
@@ -62,9 +64,11 @@ Clauses
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column: The name of the column by which the table is partitioned.
-                   All partition columns that were part of the
-                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
-                   statement must be specified.
+:partition_column:
+  The name of the column by which the table is partitioned.
 
-:value: The columns value.
+  All partition columns that were part of the :ref:`partitioned_by_clause` of
+  the :ref:`ref-create-table` statement must be specified.
+
+:value:
+  The columns value.

@@ -50,17 +50,22 @@ applications which use the PostgresSQL wire protocol.
 Parameters
 ==========
 
-:setting_ident: The full qualified setting ident of the setting to set / reset.
+:setting_ident:
+  The full qualified setting ident of the setting to set / reset.
 
-:value: The value to set for the setting.
+:value:
+  The value to set for the setting.
 
-:ident: The ident to set for the setting.
+:ident:
+  The ident to set for the setting.
 
-:setting_value: The new value for the setting. It can be specified as string
-                constants, identifiers, numbers, or comma-separated list of
-                these, as appropriate for the particular setting.
+:setting_value:
+  The new value for the setting. It can be specified as string
+  constants, identifiers, numbers, or comma-separated list of these, as
+  appropriate for the particular setting.
 
-:DEFAULT: Used for resetting the parameter to its default value.
+:DEFAULT:
+  Used for resetting the parameter to its default value.
 
 Persistence
 ===========

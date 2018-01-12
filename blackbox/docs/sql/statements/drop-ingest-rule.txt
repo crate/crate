@@ -29,10 +29,11 @@ Description
 Parameters
 ==========
 
-:IF EXISTS: Do not fail if the rule doesn't exist
+:IF EXISTS:
+  Do not fail if the rule doesn't exist.
 
-:rule_name: The name of the rule to drop
-
+:rule_name:
+  The name of the rule to drop.
 
 Note
 =====
@@ -49,6 +50,6 @@ Drop Ingestion rule ``mqtt_v4_rule``::
 
 .. SEEALSO::
 
-    :ref:`administration-ingestion-rules`
+   :ref:`administration-ingestion-rules`
 
-    :ref:`create-ingest-rule`
+   :ref:`create-ingest-rule`

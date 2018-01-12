@@ -47,10 +47,12 @@ For further information see :ref:`optimize`.
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of an existing table that
-              is to be optimized.
+:table_ident:
+  The name (optionally schema-qualified) of an existing table that is to
+  be optimized.
 
-:partition_column: Column name by which the table is partitioned.
+:partition_column:
+  Column name by which the table is partitioned.
 
 Clauses
 =======
@@ -62,12 +64,14 @@ Clauses
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column: The name of the column by which the table is partitioned.
-                   All partition columns that were part of the
-                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
-                   statement must be specified.
+:partition_column:
+  The name of the column by which the table is partitioned.
 
-:value: The columns value.
+  All partition columns that were part of the :ref:`partitioned_by_clause` of
+  the :ref:`ref-create-table` statement must be specified.
+
+:value:
+  The columns value.
 
 ``WITH``
 --------
@@ -78,30 +82,39 @@ The optional WITH clause can specify parameters for the optimization request.
 
     [ WITH ( optimization_parameter [= value] [, ... ] ) ]
 
-:optimization_parameter: specifies an optional parameter for the optimization
-                         request.
+:optimization_parameter:
+  Specifies an optional parameter for the optimization request.
 
 Available parameters are:
 
-:max_num_segments: The number of segments to merge to. To fully merge the table
-                   or partition set it to 1.
+:max_num_segments:
+  The number of segments to merge to. To fully merge the table or
+  partition set it to ``1``.
 
-                   Defaults to simply checking if a merge is necessary, and if
-                   so, executes it.
+  Defaults to simply checking if a merge is necessary, and if so,
+  executes it.
 
-:only_expunge_deletes: Should the merge process only expunge segments with
-                       deletes in it. In CrateDB, a row is not deleted from a
-                       segment, just marked as deleted. During a merge process
-                       of segments, a new segment is created that does not have
-                       those deletes. This flag allows to only merge segments
-                       that have deletes. Defaults to false.
+:only_expunge_deletes:
+  Should the merge process only expunge segments with deletes in it.
 
-:flush: Instructs if a flush should be performed after the optimization.
-        Defaults to true.
+  In CrateDB, a row is not deleted from a segment, just marked as
+  deleted. During a merge process of segments, a new segment is created
+  that does not have those deletes. This flag allows to only merge
+  segments that have deletes.
 
-:upgrade_segments: Don't optimize but instead upgrade all segments of the
-                   table/partition to the current version of storage engine.
-                   Defaults to false.
+  Defaults to ``false``.
+
+:flush:
+  Instructs if a flush should be performed after the optimization.
+
+  Defaults to ``true``.
+
+:upgrade_segments:
+
+  Don't optimize but instead upgrade all segments of the table/partition
+  to the current version of storage engine.
+
+  Defaults to ``false``.
 
 .. NOTE::
 

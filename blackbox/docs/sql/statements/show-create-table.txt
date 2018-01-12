@@ -31,5 +31,5 @@ tables.
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of the table which should
-              be printed.
+:table_ident:
+  The name (optionally schema-qualified) of the table which should be printed.

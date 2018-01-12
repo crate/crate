@@ -147,12 +147,14 @@ These schemes *do not* support wildcard expansion.
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of an existing table where
-              the data should be put.
+:table_ident:
+  The name (optionally schema-qualified) of an existing table where the
+  data should be put.
 
-:uri: An expression which evaluates to a URI as defined in `RFC2396`_. The
-      supported schemes are listed above. The last part of the path may also
-      contain ``*`` wildcards to match multiple files.
+:uri:
+  An expression which evaluates to a URI as defined in `RFC2396`_. The
+  supported schemes are listed above. The last part of the path may also
+  contain ``*`` wildcards to match multiple files.
 
 Clauses
 =======
@@ -168,12 +170,13 @@ each column a value.
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-:partition_column: The name of the column by which the table is partitioned.
-                   All partition columns that were part of the
-                   :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
-                   statement must be specified.
+:partition_column:
+  The name of the column by which the table is partitioned. All partition
+  columns that were part of the :ref:`partitioned_by_clause` of the
+  :ref:`ref-create-table` statement must be specified.
 
-:value: The column's value.
+:value:
+  The column's value.
 
 .. NOTE::
 

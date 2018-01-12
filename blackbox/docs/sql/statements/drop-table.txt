@@ -32,5 +32,5 @@ referenced table does not exists.
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of the table to be
-              removed.
+:table_ident:
+  The name (optionally schema-qualified) of the table to be removed.

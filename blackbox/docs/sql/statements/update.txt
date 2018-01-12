@@ -31,19 +31,25 @@ columns not explicitly modified retain their previous values.
 Parameters
 ==========
 
-:table_ident: The identifier (optionally schema-qualified) of an
-              existing table.
+:table_ident:
+  The identifier (optionally schema-qualified) of an existing table.
 
-:table_alias: A substitute name for the target table. When an alias is
-              provided, it completely hides the actual name of the table. For
-              example, given ``UPDATE foo AS f``, the remainder of the 'UPDATE'
-              statement must refer to this table as 'f' not 'foo'.
+:table_alias:
+  A substitute name for the target table.
 
-:column_ident: The name of a column in the table identified by table_ident.
-               Subfields can also be defined by using the subscript notation
-               with square brackets.
+  When an alias is provided, it completely hides the actual name of the
+  table. For example, given ``UPDATE foo AS f``, the remainder of the
+  ``UPDATE`` statement must refer to this table as ``f`` not ``foo``.
 
-:expression: An expression to assign to the column.
+:column_ident:
 
-:condition: An expression that returns a value of type boolean. Only rows for
-            which this expression returns true will be updated.
+  The name of a column in the table identified by *table_ident*. Subfields
+  can also be defined by using the subscript notation with square
+  brackets.
+
+:expression:
+  An expression to assign to the column.
+
+:condition:
+  An expression that returns a value of type boolean. Only rows for
+  which this expression returns true will be updated.

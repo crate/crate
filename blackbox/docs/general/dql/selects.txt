@@ -425,8 +425,8 @@ returns ``TRUE`` if the field contains ``NULL`` or is missing.
 Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
-:expr: expression of one of the supported :ref:`data-types` supported by
-       CrateDB.
+:expr:
+  Expression of one of the supported :ref:`data-types` supported by CrateDB.
 
 ::
 
@@ -469,8 +469,8 @@ column references it returns ``FALSE`` if the column does not exist.
 Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
-:expr: expression of one of the supported :ref:`data-types` supported by
-       CrateDB.
+:expr:
+  Expression of one of the supported :ref:`data-types` supported by CrateDB.
 
 ::
 

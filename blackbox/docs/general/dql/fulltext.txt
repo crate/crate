@@ -85,46 +85,51 @@ by default, but can be overridden by adding an ``ORDER BY`` clause.
 Arguments
 .........
 
-:column_ident: A reference to an index column or an existing column that is
-               indexed and of type ``string``. By default every column is
-               indexed but only the raw data is stored, so matching against a
-               ``string`` column without a fulltext index is equivalent to
-               using the ``=`` operator. To perform real fulltext searches use
-               a :ref:`sql_ddl_index_fulltext`.
+:column_ident:
+  A reference to an index column or an existing column that is indexed
+  and of type ``string``.
 
-:boost: a column ident can have a boost attached. That is a weight factor that
-        increases the relevance of a column in respect to the other columns.
-        The default boost is 1.
+  By default every column is indexed but only the raw data is stored, so
+  matching against a ``string`` column without a fulltext index is
+  equivalent to using the ``=`` operator. To perform real fulltext
+  searches use a :ref:`sql_ddl_index_fulltext`.
 
-:query_term: This string is analyzed (using the explicitly given ``analyzer``
-             or the analyzer of the columns to perform the search on) and the
-             resulting tokens are compared to the index. The tokens used for
-             search are combined using the boolean ``OR`` operator unless
-             stated otherwise using the ``operator`` option.
+:boost:
+  A column ident can have a boost attached. That is a weight factor that
+  increases the relevance of a column in respect to the other columns.
+  The default boost is 1.
 
-:match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For
-             details see :ref:`predicates_match_types`.
+:query_term:
+  This string is analyzed (using the explicitly given ``analyzer`` or
+  the analyzer of the columns to perform the search on) and the
+  resulting tokens are compared to the index. The tokens used for search
+  are combined using the boolean ``OR`` operator unless stated otherwise
+  using the ``operator`` option.
 
-.. NOTE::
-
-    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
-    and on user-created tables. Using the ``MATCH`` predicate on system tables
-    is not supported.
-
-.. NOTE::
-
-    One MATCH predicate cannot combine columns of both relations of a join.
+:match_type:
+  Optional. Defaults to ``best_fields`` for fulltext indices. For
+  details see :ref:`predicates_match_types`.
 
 .. NOTE::
 
-    MATCH predicates cannot be used on columns of both relations of a join if
-    they cannot be logically applied to each of them separately. For example:
+   The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
+   and on user-created tables. Using the ``MATCH`` predicate on system tables is
+   not supported.
 
-    This is allowed: FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt,
-    'bar');
+.. NOTE::
 
-    But this is not: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt,
-    'bar');
+   One MATCH predicate cannot combine columns of both relations of a join.
+
+.. NOTE::
+
+   MATCH predicates cannot be used on columns of both relations of a join if
+   they cannot be logically applied to each of them separately. For example:
+
+   This is allowed: FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt,
+   'bar');
+
+   But this is not: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt,
+   'bar');
 
 .. _predicates_match_types:
 
@@ -136,38 +141,41 @@ The match type determines how the ``query_term`` is applied and the
 influencing which documents are considered more relevant. The default
 ``match_type`` for fulltext indices is ``best_fields``.
 
-:best_fields: Use the :ref:`_score <sql_administration_system_column_score>` of
-              the column that matched best. For example if a column contains
-              all the tokens of the ``query_term`` it's considered more
-              relevant than other columns containing only one.
+:best_fields:
+  Use the :ref:`_score <sql_administration_system_column_score>` of the
+  column that matched best. For example if a column contains all the
+  tokens of the ``query_term`` it's considered more relevant than other
+  columns containing only one.
 
-              This type is the default, if omitted.
+  This type is the default, if omitted.
 
-:most_fields: This match type takes the :ref:`_score
-              <sql_administration_system_column_score>` of every matching
-              column and averages their scores.
+:most_fields:
+  This match type takes the :ref:`_score
+  <sql_administration_system_column_score>` of every matching column and
+  averages their scores.
 
-:cross_fields: This match type analyzes the ``query_term`` into tokens and
-               searches all tokens in all given columns at once as if they were
-               one big column (given they have the same analyzer). All tokens
-               have to be present in at least one column, so querying for ``foo
-               bar`` should have the tokens ``foo`` in one column and ``bar``
-               in the same or any other.
+:cross_fields:
+  This match type analyzes the ``query_term`` into tokens and searches
+  all tokens in all given columns at once as if they were one big column
+  (given they have the same analyzer). All tokens have to be present in
+  at least one column, so querying for ``foo bar`` should have the
+  tokens ``foo`` in one column and ``bar`` in the same or any other.
 
-:phrase: This match type differs from ``best_fields`` in that it constructs a
-         phrase query from the ``query_term``. A phrase query will only match
-         if the tokens in the columns are *exactly* in the same order as the
-         analyzed columns from the ``query_term``. So, querying for ``foo bar``
-         (analyzed tokens: ``foo`` and ``bar``) will only match if one of the
-         columns contains those two token in that order - without any other
-         tokens in between.
+:phrase:
+  This match type differs from ``best_fields`` in that it constructs a
+  phrase query from the ``query_term``. A phrase query will only match
+  if the tokens in the columns are *exactly* in the same order as the
+  analyzed columns from the ``query_term``. So, querying for ``foo bar``
+  (analyzed tokens: ``foo`` and ``bar``) will only match if one of the
+  columns contains those two token in that order - without any other
+  tokens in between.
 
-:phrase_prefix: This match type is roughly the same than ``phrase`` but it
-                allows to match by prefix on the last token of the
-                ``query_term``. For example if your query for ``foo ba``, one
-                of the columns has to contain ``foo`` and a token that starts
-                with ``ba`` in that order. So a column containing ``foo baz``
-                would match and ``foo bar`` too.
+:phrase_prefix:
+  This match type is roughly the same than ``phrase`` but it allows to
+  match by prefix on the last token of the ``query_term``. For example
+  if your query for ``foo ba``, one of the columns has to contain
+  ``foo`` and a token that starts with ``ba`` in that order. So a column
+  containing ``foo baz`` would match and ``foo bar`` too.
 
 Options
 ```````
@@ -176,85 +184,100 @@ The match options further distinguish the way the matching process using a
 certain match type works. Not all options are applicable to all match types.
 See the options below for details.
 
-:analyzer: The analyzer used to convert the ``query_term`` into tokens.
+:analyzer:
+  The analyzer used to convert the ``query_term`` into tokens.
 
-:boost: This numeric value is multiplied with the resulting :ref:`_score
-        <sql_administration_system_column_score>` of this ``match`` call. If
-        this ``match`` call is used with other conditions in the where clause a
-        value above ``1.0`` will increase its influence on the overall
-        :ref:`_score <sql_administration_system_column_score>` of the whole
-        query, a value below ``1.0`` will decrease it.
+:boost:
+  This numeric value is multiplied with the resulting :ref:`_score
+  <sql_administration_system_column_score>` of this ``match`` call.
 
-:cutoff_frequency: The token frequency is the number of occurrences of a token
-                   in a column. This option specifies a minimum token frequency
-                   that excludes matching tokens with a higher frequency from
-                   the overall :ref:`_score
-                   <sql_administration_system_column_score>`. Their
-                   :ref:`_score <sql_administration_system_column_score>` is
-                   only included if another token with a lower frequency also
-                   matches. This can be used to suppress results where only
-                   high frequency terms like ``the`` would cause a match.
+  If this ``match`` call is used with other conditions in the where
+  clause a value above ``1.0`` will increase its influence on the overall
+  :ref:`_score <sql_administration_system_column_score>` of the whole query, a
+  value below ``1.0`` will decrease it.
 
-:fuzziness: Can be used to perform fuzzy full text search.
+:cutoff_frequency:
+  The token frequency is the number of occurrences of a token in a
+  column.
 
-            On numeric columns use a numeric, on timestamp columns a long
-            indicating milliseconds, on strings use a number indicating the
-            maximum allowed Levenshtein Edit Distance. Use ``prefix_length``,
-            ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy
-            matching process.
+  This option specifies a minimum token frequency that excludes matching tokens
+  with a higher frequency from the overall :ref:`_score
+  <sql_administration_system_column_score>`. Their :ref:`_score
+  <sql_administration_system_column_score>` is only included if another token
+  with a lower frequency also matches. This can be used to suppress
+  results where only high frequency terms like ``the`` would cause a
+  match.
 
-:fuzzy_rewrite: The same than ``rewrite`` but only applies to queries using
-                ``fuzziness``.
+:fuzziness:
+  Can be used to perform fuzzy full text search.
 
-:max_expansions: When using ``fuzziness`` or ``phrase_prefix`` this options
-                 controls to how many different possible tokens a search token
-                 will be expanded. The ``fuzziness`` controls how big the
-                 distance or difference between the original token and the set
-                 of tokens it is expanded to can be. This option controls how
-                 big this set can get.
+  On numeric columns use a numeric, on timestamp columns a long
+  indicating milliseconds, on strings use a number indicating the
+  maximum allowed Levenshtein Edit Distance. Use ``prefix_length``,
+  ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy
+  matching process.
 
-:minimum_should_match: The number of tokens from the ``query_term`` to match
-                       when ``or`` is used. Defaults to ``1``.
+:fuzzy_rewrite:
+  The same than ``rewrite`` but only applies to queries using
+  ``fuzziness``.
 
-:operator: Can be ``or`` or ``and``. The default is ``or``. It is used to
-           combine the tokens of the ``query_term``. If ``and`` is used, every
-           token from the ``query_term`` has to match. If ``or`` is used only
-           the number of ``minimum_should_match`` have to match.
+:max_expansions:
+  When using ``fuzziness`` or ``phrase_prefix`` this options controls to
+  how many different possible tokens a search token will be expanded.
+  The ``fuzziness`` controls how big the distance or difference between
+  the original token and the set of tokens it is expanded to can be.
+  This option controls how big this set can get.
 
-:prefix_length: When used with ``fuzziness`` option or with ``phrase_prefix``
-                this options controls how long the common prefix of the tokens
-                that are considered as similar (same prefix or fuzziness
-                distance/difference)has to be.
+:minimum_should_match:
+  The number of tokens from the ``query_term`` to match when ``or`` is
+  used. Defaults to ``1``.
 
-:rewrite: When using ``phrase_prefix`` the prefix query is constructed
-          using all possible terms and rewriting them into another kind of
-          query to compute the score. Possible values are
-          ``constant_score_auto``, ``constant_score_boolean``,
-          ``constant_score_filter``, ``scoring_boolean``,``top_terms_N``,
-          ``top_terms_boost_N``. The ``constant_...`` values can be used
-          together with the ``boost`` option to set a constant :ref:`_score
-          <sql_administration_system_column_score>` for rows with a matching
-          prefix or fuzzy match.
+:operator:
+  Can be ``or`` or ``and``. The default is ``or``. It is used to combine
+  the tokens of the ``query_term``. If ``and`` is used, every token from
+  the ``query_term`` has to match. If ``or`` is used only the number of
+  ``minimum_should_match`` have to match.
 
-:slop: When matching for phrases this option controls how exact the phrase
-       match should be (proximity search). If set to ``0`` (the default), the
-       terms must be in the exact order. If two transposed terms should match,
-       a minimum ``slop`` of ``2`` has to be set. Only applicable to ``phrase``
-       and ``phrase_prefix`` queries. As an example with ``slop`` 2, querying
-       for ``foo bar`` will not only match ``foo bar`` but also ``foo what a
-       bar``.
+:prefix_length:
+  When used with ``fuzziness`` option or with ``phrase_prefix`` this
+  options controls how long the common prefix of the tokens that are
+  considered as similar (same prefix or fuzziness
+  distance/difference)has to be.
 
-:tie_breaker: When using ``best_fields``, ``phrase`` or ``phrase_prefix``
-              the :ref:`_score <sql_administration_system_column_score>` of
-              every other column will be multiplied with this value and added
-              to the :ref:`_score <sql_administration_system_column_score>` of
-              the best matching column. Defaults to ``0.0``. Not applicable to
-              match type ``most_fields`` as this type is executed as if it had
-              a ``tie_breaker`` of ``1.0``.
+:rewrite:
+  When using ``phrase_prefix`` the prefix query is constructed using all
+  possible terms and rewriting them into another kind of query to
+  compute the score. Possible values are ``constant_score_auto``,
+  ``constant_score_boolean``, ``constant_score_filter``,
+  ``scoring_boolean``,``top_terms_N``, ``top_terms_boost_N``. The
+  ``constant_...`` values can be used  together with the ``boost`` option to set
+  a constant :ref:`_score <sql_administration_system_column_score>` for rows
+  with a matching prefix or fuzzy match.
 
-:zero_terms_query: If no tokens are generated analyzing the ``query_term`` then
-                   no documents are matched. If ``all`` is given here, all
-                   documents are matched.
+:slop:
+  When matching for phrases this option controls how exact the phrase
+  match should be (proximity search). If set to ``0`` (the default), the
+  terms must be in the exact order. If two transposed terms should
+  match, a minimum ``slop`` of ``2`` has to be set. Only applicable to
+  ``phrase`` and ``phrase_prefix`` queries. As an example with ``slop``
+  2, querying for ``foo bar`` will not only match ``foo bar`` but also
+  ``foo what a bar``.
+
+:tie_breaker:
+  When using ``best_fields``, ``phrase`` or ``phrase_prefix`` the :ref:`_score
+  <sql_administration_system_column_score>` of every other column will be
+  multiplied with this value and added to the :ref:`_score
+  <sql_administration_system_column_score>` of the best matching column.
+
+  Defaults to ``0.0``.
+
+  Not applicable to match type ``most_fields`` as this type is executed
+  as if it had a ``tie_breaker`` of ``1.0``.
+
+:zero_terms_query:
+  If no tokens are generated analyzing the ``query_term`` then no
+  documents are matched. If ``all`` is given here, all documents are
+  matched.
 
 Usage
 =====
