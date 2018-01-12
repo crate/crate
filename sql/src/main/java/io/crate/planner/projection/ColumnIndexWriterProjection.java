@@ -21,13 +21,13 @@
 
 package io.crate.planner.projection;
 
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
+import io.crate.planner.projection.builder.InputColumns;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -43,7 +43,7 @@ import java.util.function.Function;
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private List<Symbol> columnSymbols;
-    private List<Reference> columnReferences;
+    private List<Reference> targetColsExclPartitionCols;
     @Nullable
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
@@ -67,18 +67,16 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         this.partitionedBySymbols = partitionedBySymbols;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
-        this.columnReferences = new ArrayList<>(columns);
+        this.targetColsExclPartitionCols = new ArrayList<>(columns.size() - partitionedByColumns.size());
         this.columnSymbols = new ArrayList<>(columns.size() - partitionedBySymbols.size());
-        this.clusteredBySymbol = clusteredBySymbol;
-
-        for (int i = 0; i < columns.size(); i++) {
-            Reference ref = columns.get(i);
-            if (partitionedByColumns.contains(ref.ident().columnIdent())) {
-                columnReferences.remove(i);
-            } else {
-                this.columnSymbols.add(new InputColumn(i, ref.valueType()));
+        for (Reference column : columns) {
+            if (partitionedByColumns.contains(column.ident().columnIdent())) {
+                continue;
             }
+            targetColsExclPartitionCols.add(column);
         }
+        this.clusteredBySymbol = clusteredBySymbol;
+        columnSymbols = InputColumns.create(targetColsExclPartitionCols, new InputColumns.Context(columns));
     }
 
     ColumnIndexWriterProjection(StreamInput in) throws IOException {
@@ -89,9 +87,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         }
         if (in.readBoolean()) {
             int length = in.readVInt();
-            columnReferences = new ArrayList<>(length);
+            targetColsExclPartitionCols = new ArrayList<>(length);
             for (int i = 0; i < length; i++) {
-                columnReferences.add(Reference.fromStream(in));
+                targetColsExclPartitionCols.add(Reference.fromStream(in));
             }
         }
 
@@ -109,7 +107,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     public List<Reference> columnReferences() {
-        return columnReferences;
+        return targetColsExclPartitionCols;
     }
 
     public Map<Reference, Symbol> onDuplicateKeyAssignments() {
@@ -145,7 +143,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
         ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
 
-        if (!columnReferences.equals(that.columnReferences)) return false;
+        if (!targetColsExclPartitionCols.equals(that.targetColsExclPartitionCols)) return false;
         if (!columnSymbols.equals(that.columnSymbols)) return false;
         return !(onDuplicateKeyAssignments != null ?
                      !onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments)
@@ -156,7 +154,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + columnSymbols.hashCode();
-        result = 31 * result + columnReferences.hashCode();
+        result = 31 * result + targetColsExclPartitionCols.hashCode();
         result = 31 * result + (onDuplicateKeyAssignments != null ? onDuplicateKeyAssignments.hashCode() : 0);
         return result;
     }
@@ -171,12 +169,12 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(true);
             Symbols.toStream(columnSymbols, out);
         }
-        if (columnReferences == null) {
+        if (targetColsExclPartitionCols == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeVInt(columnReferences.size());
-            for (Reference columnIdent : columnReferences) {
+            out.writeVInt(targetColsExclPartitionCols.size());
+            for (Reference columnIdent : targetColsExclPartitionCols) {
                 Reference.toStream(columnIdent, out);
             }
         }

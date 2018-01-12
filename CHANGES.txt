@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could cause ``INSERT INTO`` statements into partitioned
+  tables to not work correctly. This only occurred if a ``query`` instead of
+  the ``VALUES`` clause was used.
+
 - Fixed the evaluation of JavaScript user defined functions that caused CrateDB
   to crash because of an unhandled assertion when providing the UDF with
   EcmaScript 6 arrow function syntax (``var f = (x) => x;``).
