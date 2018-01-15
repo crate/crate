@@ -24,6 +24,9 @@ Fixes
 - Improved error message when using the `DISTINCT` clause on unsupported data
   types. Also improved documentation to note the data type restriction.
 
+- Fix log verbosity by only logging the HTTP SSL enabled/disabled message once
+  at startup.
+
 - Fixed an issue that could cause ``INSERT INTO`` statements into partitioned
   tables to not work correctly. This only occurred if a ``query`` instead of
   the ``VALUES`` clause was used.
