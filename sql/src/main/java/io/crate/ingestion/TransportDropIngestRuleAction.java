@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.rule.ingest;
+package io.crate.ingestion;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
@@ -43,18 +43,18 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportCreateIngestRuleAction extends TransportMasterNodeAction<CreateIngestRuleRequest, IngestRuleResponse> {
+public class TransportDropIngestRuleAction extends TransportMasterNodeAction<DropIngestRuleRequest, IngestRuleResponse> {
 
-    private static final String ACTION_NAME = "crate/sql/create_ingest_rule";
+    private static final String ACTION_NAME = "crate/sql/drop_ingest_rule";
 
     @Inject
-    public TransportCreateIngestRuleAction(Settings settings,
-                                           TransportService transportService,
-                                           ClusterService clusterService,
-                                           ThreadPool threadPool,
-                                           ActionFilters actionFilters,
-                                           IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, CreateIngestRuleRequest::new);
+    public TransportDropIngestRuleAction(Settings settings,
+                                         TransportService transportService,
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         ActionFilters actionFilters,
+                                         IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, DropIngestRuleRequest::new);
     }
 
     @Override
@@ -69,37 +69,35 @@ public class TransportCreateIngestRuleAction extends TransportMasterNodeAction<C
     }
 
     @Override
-    protected void masterOperation(CreateIngestRuleRequest request, ClusterState state, ActionListener<IngestRuleResponse> listener) throws Exception {
-        clusterService.submitStateUpdateTask("create_ingest_rule", new AckedClusterStateUpdateTask<IngestRuleResponse>(Priority.IMMEDIATE, request, listener) {
+    protected void masterOperation(DropIngestRuleRequest request, ClusterState state, ActionListener<IngestRuleResponse> listener) throws Exception {
+        clusterService.submitStateUpdateTask("drop_ingest_rule", new AckedClusterStateUpdateTask<IngestRuleResponse>(Priority.IMMEDIATE, request, listener) {
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
                 MetaData currentMetaData = currentState.metaData();
                 Builder mdBuilder = MetaData.builder(currentMetaData);
-                createIngestRule(mdBuilder, request);
+                dropIngestRule(mdBuilder, request);
                 return ClusterState.builder(currentState).metaData(mdBuilder).build();
             }
 
             @Override
             protected IngestRuleResponse newResponse(boolean acknowledged) {
-                // affected rows count is always 1 as we either create a new rule or an exception occurs
-                // (due to rule already existing or other storage issues)
                 return new IngestRuleResponse(acknowledged);
             }
         });
     }
 
     @VisibleForTesting
-    static void createIngestRule(Builder mdBuilder, CreateIngestRuleRequest request) {
+    static void dropIngestRule(Builder mdBuilder, DropIngestRuleRequest request) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
         IngestRulesMetaData newMetaData = IngestRulesMetaData.copyOf(
             (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE));
-        newMetaData.createIngestRule(request.getSourceIdent(), request.getIngestRule());
+        newMetaData.dropIngestRule(request.getIngestRuleName());
         mdBuilder.putCustom(IngestRulesMetaData.TYPE, newMetaData);
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateIngestRuleRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(DropIngestRuleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

@@ -20,9 +20,13 @@
  * agreement.
  */
 
-package io.crate.operation.rule.ingest;
+package io.crate.ingestion;
 
 import com.google.common.collect.Maps;
+import io.crate.ingestion.CreateIngestRuleRequest;
+import io.crate.ingestion.DropIngestRuleRequest;
+import io.crate.ingestion.TransportCreateIngestRuleAction;
+import io.crate.ingestion.TransportDropIngestRuleAction;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.test.integration.CrateUnitTest;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.rule.ingest;
+package io.crate.ingestion;
 
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;

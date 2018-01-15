@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.rule.ingest;
+package io.crate.ingestion;
 
 import io.crate.metadata.rule.ingest.IngestRule;
 import org.elasticsearch.action.ActionRequestValidationException;
