@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
 import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
@@ -58,6 +59,8 @@ class BulkPortal extends AbstractPortal {
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
     private String query;
     private Statement statement;
+    @Nullable
+    private AnalyzedStatement analyzedStatement;
     private int maxRows = 0;
     private List<? extends DataType> outputTypes;
     private List<Field> fields;
@@ -65,6 +68,7 @@ class BulkPortal extends AbstractPortal {
     BulkPortal(String name,
                String query,
                Statement statement,
+               @Nullable AnalyzedStatement analyzedStatement,
                List<? extends DataType> outputTypes,
                @Nullable List<Field> fields,
                ResultReceiver resultReceiver,
@@ -101,6 +105,7 @@ class BulkPortal extends AbstractPortal {
     public Portal bind(String statementName,
                        String query,
                        Statement statement,
+                       @Nullable AnalyzedStatement analyzedStatement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         this.bulkArgs.add(params);
@@ -122,9 +127,14 @@ class BulkPortal extends AbstractPortal {
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         List<Row> bulkParams = Rows.of(bulkArgs);
         TransactionContext transactionContext = new TransactionContext(sessionContext);
-        Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
-            transactionContext,
-            new ParameterContext(Row.EMPTY, bulkParams));
+
+        if (analyzedStatement == null) {
+            Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
+                transactionContext,
+                new ParameterContext(Row.EMPTY, bulkParams));
+            analyzedStatement = analysis.analyzedStatement();
+        }
+
         UUID jobId = UUID.randomUUID();
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -138,7 +148,7 @@ class BulkPortal extends AbstractPortal {
         );
         Plan plan;
         try {
-            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+            plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;

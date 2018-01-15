@@ -24,11 +24,11 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
@@ -123,18 +123,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation analyzeUnbound(Query query,
                                            TransactionContext transactionContext,
                                            ParamTypeHints paramTypeHints) {
-        return process(query,
-            new StatementAnalysisContext(paramTypeHints, Operation.READ, transactionContext));
+        return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, transactionContext));
     }
 
-    public AnalyzedRelation analyze(Node node, Analysis analysis) {
-        return analyze(
-            node,
-            new StatementAnalysisContext(
-                analysis.parameterContext(),
-                Operation.READ,
-                analysis.transactionContext())
-        );
+    public AnalyzedRelation analyze(Node node,
+                                    TransactionContext transactionContext,
+                                    ParameterContext parameterContext) {
+        return analyze(node, new StatementAnalysisContext(parameterContext, Operation.READ, transactionContext));
     }
 
     @Override

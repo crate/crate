@@ -171,7 +171,7 @@ public class Session {
         try {
             PreparedStmt preparedStmt = getSafeStmt(statementName);
             Portal newPortal = portal.bind(
-                statementName, preparedStmt.query(), preparedStmt.statement(), params, resultFormatCodes);
+                statementName, preparedStmt.query(), preparedStmt.statement(), preparedStmt.analyzedStatement(), params, resultFormatCodes);
             if (portal != newPortal) {
                 portals.put(portalName, newPortal);
                 pendingExecutions.remove(portal);

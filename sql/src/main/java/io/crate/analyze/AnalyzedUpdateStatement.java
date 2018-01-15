@@ -70,4 +70,9 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
             consumer.accept(sourceExpr);
         }
     }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
 }

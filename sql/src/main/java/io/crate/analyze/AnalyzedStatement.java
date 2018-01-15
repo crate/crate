@@ -41,4 +41,12 @@ public interface AnalyzedStatement {
 
     default void visitSymbols(Consumer<? super Symbol> consumer) {
     }
+
+    /**
+     * Defines if an unbound analyzed statement (no parameter are bound yet) can be used
+     * to create execution plans.
+     */
+    default boolean isUnboundPlanningSupported() {
+        return false;
+    }
 }

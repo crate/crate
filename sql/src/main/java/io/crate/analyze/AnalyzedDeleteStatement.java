@@ -59,4 +59,9 @@ public final class AnalyzedDeleteStatement implements AnalyzedStatement {
     public Symbol query() {
         return query;
     }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
 }

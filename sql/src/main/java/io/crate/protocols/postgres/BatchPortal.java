@@ -30,6 +30,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -57,7 +58,7 @@ class BatchPortal extends AbstractPortal {
 
     private final List<List<Object>> batchParams = new ArrayList<>();
     private final List<String> queries = new ArrayList<>();
-    private final List<Analysis> analysis = new ArrayList<>();
+    private final List<AnalyzedStatement> analyzedStatements = new ArrayList<>();
     private final List<FormatCodes.FormatCode[]> resultFormatCodes = new ArrayList<>();
     private final List<List<? extends DataType>> outputTypes = new ArrayList<>();
     private final List<ResultReceiver> resultReceivers = new ArrayList<>();
@@ -66,7 +67,7 @@ class BatchPortal extends AbstractPortal {
 
     BatchPortal(String name,
                 String query,
-                Analysis analysis,
+                AnalyzedStatement analyzedStatement,
                 List<? extends DataType> outputTypes,
                 ResultReceiver resultReceiver,
                 List<Object> params,
@@ -74,7 +75,7 @@ class BatchPortal extends AbstractPortal {
                 PortalContext portalContext) {
         super(name, sessionContext, portalContext);
         queries.add(query);
-        this.analysis.add(analysis);
+        this.analyzedStatements.add(analyzedStatement);
         this.outputTypes.add(outputTypes);
         resultReceivers.add(resultReceiver);
         batchParams.add(params);
@@ -101,38 +102,48 @@ class BatchPortal extends AbstractPortal {
     }
 
     @Override
-    public Portal bind(String statementName, String query, Statement statement,
-                       List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+    public Portal bind(String statementName,
+                       String query,
+                       Statement statement,
+                       @Nullable AnalyzedStatement analyzedStatement,
+                       List<Object> params,
+                       @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         transactionContext = new TransactionContext(sessionContext);
         queries.add(query);
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
-        analysis.add(portalContext.getAnalyzer().boundAnalyze(
-            statement, transactionContext, new ParameterContext(getArgs(), Collections.emptyList())));
+
+        if (analyzedStatement == null) {
+            Analysis analysis = portalContext.getAnalyzer().boundAnalyze(
+                statement, transactionContext, new ParameterContext(getArgs(), Collections.emptyList()));
+            analyzedStatement = analysis.analyzedStatement();
+        }
+
+        analyzedStatements.add(analyzedStatement);
         return this;
     }
 
     @Override
     public List<Field> describe() {
-        Analysis lastAnalysis = analysis.get(analysis.size() - 1);
-        if (lastAnalysis.rootRelation() == null) {
+        AnalyzedStatement lastAnalyzedStatement = analyzedStatements.get(analyzedStatements.size() - 1);
+        if (lastAnalyzedStatement instanceof AnalyzedRelation == false) {
             return null;
         }
-        List<Field> fields = lastAnalysis.rootRelation().fields();
+        List<Field> fields = ((AnalyzedRelation) analyzedStatements).fields();
         outputTypes.add(Symbols.typeView(fields));
         return fields;
     }
 
     @Override
     public void execute(ResultReceiver resultReceiver, int maxRows) {
-        validate(analysis.get(analysis.size() - 1));
+        validate(analyzedStatements.get(analyzedStatements.size() - 1));
         resultReceivers.add(resultReceiver);
     }
 
     @Override
     public CompletableFuture<Void> sync(Planner planner, JobsLogs jobsLogs) {
-        CountdownFutureCallback completionCallback = new CountdownFutureCallback(analysis.size());
-        for (int i = 0; i < analysis.size(); i++) {
+        CountdownFutureCallback completionCallback = new CountdownFutureCallback(analyzedStatements.size());
+        for (int i = 0; i < analyzedStatements.size(); i++) {
             UUID jobId = UUID.randomUUID();
             RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
             PlannerContext plannerContext = new PlannerContext(
@@ -147,7 +158,7 @@ class BatchPortal extends AbstractPortal {
             Plan plan;
             String stmt = queries.get(i);
             try {
-                plan = planner.plan(analysis.get(i).analyzedStatement(), plannerContext);
+                plan = planner.plan(analyzedStatements.get(i), plannerContext);
             } catch (Throwable t) {
                 jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t), sessionContext.user());
                 throw t;
@@ -177,8 +188,7 @@ class BatchPortal extends AbstractPortal {
         return new RowN(batchParams.get(batchParams.size() - 1).toArray());
     }
 
-    private void validate(Analysis analysis) {
-        AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
+    private void validate(AnalyzedStatement analyzedStatement) {
         if (!analyzedStatement.isWriteOperation()) {
             throw new UnsupportedOperationException("Only write operations are allowed in Batch statements");
         }

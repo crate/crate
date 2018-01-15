@@ -24,9 +24,7 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Field;
@@ -80,11 +78,10 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private QueriedRelation rewrite(String stmt) {
-        return (QueriedRelation) analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
+        return (QueriedRelation) analyzer.analyze(SqlParser.createStatement(stmt),
             new TransactionContext(SessionContext.create()),
-            ParameterContext.EMPTY,
-            ParamTypeHints.EMPTY
-        ));
+            ParameterContext.EMPTY
+        );
     }
 
     @Test

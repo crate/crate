@@ -134,7 +134,8 @@ class InsertFromSubQueryAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
-        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
+        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(
+            node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
 
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
         validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());

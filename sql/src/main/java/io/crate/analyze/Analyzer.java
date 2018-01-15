@@ -206,7 +206,10 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
-            AnalyzedRelation relation = relationAnalyzer.analyze(node, analysis);
+            AnalyzedRelation relation = relationAnalyzer.analyze(
+                node,
+                analysis.transactionContext(),
+                analysis.parameterContext());
             analysis.rootRelation(relation);
             return (AnalyzedStatement) relation;
         }

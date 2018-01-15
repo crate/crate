@@ -113,4 +113,9 @@ public interface QueriedRelation extends AnalyzedRelation, AnalyzedStatement {
     default boolean isWriteOperation() {
         return false;
     }
+
+    @Override
+    default boolean isUnboundPlanningSupported() {
+        return true;
+    }
 }

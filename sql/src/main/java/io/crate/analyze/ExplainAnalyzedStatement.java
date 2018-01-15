@@ -84,4 +84,9 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
     }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
 }

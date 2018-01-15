@@ -26,6 +26,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -61,7 +62,8 @@ public class SimplePortal extends AbstractPortal {
     private List<Object> params;
     private String query;
     private Statement statement;
-    private Analysis analysis;
+    @Nullable
+    private AnalyzedStatement analyzedStatement;
     @Nullable
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
@@ -101,6 +103,7 @@ public class SimplePortal extends AbstractPortal {
     public Portal bind(String statementName,
                        String query,
                        Statement statement,
+                       @Nullable  AnalyzedStatement analyzedStatement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
 
@@ -113,18 +116,19 @@ public class SimplePortal extends AbstractPortal {
                 name,
                 this.query,
                 this.statement,
+                analyzedStatement,
                 outputTypes,
                 fields(),
                 resultReceiver, maxRows, this.params, sessionContext, portalContext);
-            return portal.bind(statementName, query, statement, params, resultFormatCodes);
-        } else if (this.statement != null && this.analysis != null) {
+            return portal.bind(statementName, query, statement, null, params, resultFormatCodes);
+        } else if (this.statement != null && this.analyzedStatement != null) {
             assert consumer == null : "Existing portal must not have a consumer";
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();
             }
             BatchPortal portal = new BatchPortal(
-                name, this.query, analysis, outputTypes, resultReceiver, this.params, sessionContext, portalContext);
-            return portal.bind(statementName, query, statement, params, resultFormatCodes);
+                name, this.query, this.analyzedStatement, outputTypes, resultReceiver, this.params, sessionContext, portalContext);
+            return portal.bind(statementName, query, statement, analyzedStatement, params, resultFormatCodes);
         }
 
         this.query = query;
@@ -135,16 +139,19 @@ public class SimplePortal extends AbstractPortal {
         if (transactionContext == null) {
             transactionContext = new TransactionContext(sessionContext);
         }
-        if (analysis == null) {
-            analysis = portalContext.getAnalyzer().boundAnalyze(
+        if (analyzedStatement == null || analyzedStatement.isUnboundPlanningSupported() == false) {
+            Analysis analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 transactionContext,
-                new ParameterContext(this.rowParams, Collections.emptyList()));
-            AnalyzedRelation rootRelation = analysis.rootRelation();
-            if (rootRelation != null) {
-                this.outputTypes = Lists2.copyAndReplace(rootRelation.fields(), Field::valueType);
-            }
+                new ParameterContext(rowParams, Collections.emptyList()));
+            analyzedStatement = analysis.analyzedStatement();
         }
+        if (analyzedStatement instanceof AnalyzedRelation) {
+            AnalyzedRelation rootRelation = (AnalyzedRelation) analyzedStatement;
+            this.outputTypes = Lists2.copyAndReplace(rootRelation.fields(), Field::valueType);
+        }
+
+        this.analyzedStatement = analyzedStatement;
         return this;
     }
 
@@ -155,13 +162,14 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     public void execute(ResultReceiver resultReceiver, int maxRows) {
-        validateReadOnly(analysis);
+        validateReadOnly(analyzedStatement);
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
 
     @Override
     public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
+        assert analyzedStatement != null : "analyzedStatement must not be null";
         UUID jobId = UUID.randomUUID();
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -175,13 +183,13 @@ public class SimplePortal extends AbstractPortal {
         );
         Plan plan;
         try {
-            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+            plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
 
-        if (!analysis.analyzedStatement().isWriteOperation()) {
+        if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
                 resultReceiver, jobId, newJobId -> retryQuery(planner, newJobId));
         }
@@ -250,17 +258,17 @@ public class SimplePortal extends AbstractPortal {
         }
     }
 
-    private void validateReadOnly(Analysis analysis) {
-        if (analysis != null && analysis.analyzedStatement().isWriteOperation() && portalContext.isReadOnly()) {
+    private void validateReadOnly(AnalyzedStatement analyzedStatement) {
+        if (analyzedStatement != null && analyzedStatement.isWriteOperation() && portalContext.isReadOnly()) {
             throw new ReadOnlyException();
         }
     }
 
     private List<Field> fields() {
-        if (analysis.rootRelation() == null) {
+        if (analyzedStatement == null || analyzedStatement instanceof AnalyzedRelation == false) {
             return null;
         }
-        return analysis.rootRelation().fields();
+        return ((AnalyzedRelation) analyzedStatement).fields();
     }
 
 }

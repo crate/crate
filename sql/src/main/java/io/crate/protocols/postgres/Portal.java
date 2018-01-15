@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.expression.symbol.Field;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -45,8 +46,12 @@ public interface Portal {
      * If bind() is called on a synced portal, all pending result receiving operations must be stopped.
      * This is primarily relevant for the UNNAMED simple portal.
      */
-    Portal bind(String statementName, String query, Statement statement,
-                List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes);
+    Portal bind(String statementName,
+                String query,
+                Statement statement,
+                @Nullable AnalyzedStatement analyzedStatement,
+                List<Object> params,
+                @Nullable FormatCodes.FormatCode[] resultFormatCodes);
 
     List<Field> describe();
 
