@@ -31,7 +31,7 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpdateById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;

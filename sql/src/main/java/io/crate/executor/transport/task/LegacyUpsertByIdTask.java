@@ -31,7 +31,7 @@ import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.operation.projectors.RetryListener;
-import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.Logger;

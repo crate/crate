@@ -28,7 +28,7 @@ import io.crate.data.RowConsumer;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.TransportShardDeleteAction;
 import io.crate.metadata.Functions;
-import io.crate.operation.projectors.sharding.ShardingUpsertExecutor;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.DeleteById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.unit.TimeValue;

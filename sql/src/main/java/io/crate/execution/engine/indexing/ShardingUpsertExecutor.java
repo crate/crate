@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.sharding;
+package io.crate.execution.engine.indexing;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
@@ -33,7 +33,6 @@ import io.crate.executor.transport.ShardResponse;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
-import io.crate.operation.projectors.BatchIteratorBackpressureExecutor;
 import io.crate.operation.projectors.RetryListener;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;

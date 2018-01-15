@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.indexing;
 
 import com.google.common.base.Throwables;
 import io.crate.action.FutureActionListener;
@@ -33,6 +33,7 @@ import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.projectors.RetryListener;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
@@ -59,7 +60,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private static final Logger LOGGER = Loggers.getLogger(ShardDMLExecutor.class);
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
-    static final int DEFAULT_BULK_SIZE = 10_000;
+    public static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final int bulkSize;
     private final ScheduledExecutorService scheduler;
@@ -74,15 +75,15 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     private int numItems = -1;
 
-    ShardDMLExecutor(int bulkSize,
-                     ScheduledExecutorService scheduler,
-                     Executor executor,
-                     CollectExpression<Row, ?> uidExpression,
-                     ClusterService clusterService,
-                     NodeJobsCounter nodeJobsCounter,
-                     Supplier<TReq> requestFactory,
-                     Function<String, TItem> itemFactory,
-                     BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
+    public ShardDMLExecutor(int bulkSize,
+                            ScheduledExecutorService scheduler,
+                            Executor executor,
+                            CollectExpression<Row, ?> uidExpression,
+                            ClusterService clusterService,
+                            NodeJobsCounter nodeJobsCounter,
+                            Supplier<TReq> requestFactory,
+                            Function<String, TItem> itemFactory,
+                            BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
         this.executor = executor;

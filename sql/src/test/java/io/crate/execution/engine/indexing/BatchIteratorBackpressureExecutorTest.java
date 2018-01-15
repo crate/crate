@@ -20,10 +20,11 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.execution.engine.indexing.BatchIteratorBackpressureExecutor;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import org.elasticsearch.action.bulk.BackoffPolicy;

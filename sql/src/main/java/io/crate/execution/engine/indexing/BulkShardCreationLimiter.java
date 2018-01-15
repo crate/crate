@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.sharding;
+package io.crate.execution.engine.indexing;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.executor.transport.ShardRequest;

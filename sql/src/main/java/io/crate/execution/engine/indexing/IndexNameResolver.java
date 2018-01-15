@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.indexing;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;

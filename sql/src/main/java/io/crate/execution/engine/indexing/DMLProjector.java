@@ -20,35 +20,28 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.sharding;
+package io.crate.execution.engine.indexing;
 
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Projector;
+import io.crate.data.Row;
 
-class ShardLocation {
-    final ShardId shardId;
-    final String nodeId;
+public class DMLProjector implements Projector {
 
-    ShardLocation(ShardId shardId, String nodeId) {
-        this.shardId = shardId;
-        this.nodeId = nodeId;
+    private final ShardDMLExecutor<?, ?> batchAccumulator;
+
+    public DMLProjector(ShardDMLExecutor<?, ?> batchAccumulator) {
+        this.batchAccumulator = batchAccumulator;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ShardLocation that = (ShardLocation) o;
-
-        if (!shardId.equals(that.shardId)) return false;
-        return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
+    public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator);
     }
 
     @Override
-    public int hashCode() {
-        int result = shardId.hashCode();
-        result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
-        return result;
+    public boolean providesIndependentScroll() {
+        return false;
     }
-
 }
