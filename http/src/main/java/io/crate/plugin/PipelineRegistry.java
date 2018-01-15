@@ -26,10 +26,8 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,8 +42,6 @@ import java.util.function.Supplier;
  */
 @Singleton
 public class PipelineRegistry {
-
-    private static final Logger LOG = Loggers.getLogger(PipelineRegistry.class);
 
     private final List<ChannelPipelineItem> addBeforeList;
     private Provider<SslContext> sslContextProvider;
@@ -101,11 +97,8 @@ public class PipelineRegistry {
         if (sslContextProvider != null) {
             SslContext sslContext = sslContextProvider.get();
             if (sslContext != null) {
-                LOG.info("HTTP SSL support is enabled.");
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);
-            } else {
-                LOG.info("HTTP SSL support is disabled.");
             }
         }
     }
