@@ -27,7 +27,7 @@ import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
-import io.crate.executor.transport.distributed.TransportDistributedResultAction;
+import io.crate.execution.engine.distribution.TransportDistributedResultAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.lucene.LuceneQueryBuilder;

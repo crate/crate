@@ -25,7 +25,7 @@ package io.crate.operation.collect.collectors;
 import com.google.common.collect.Iterables;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.operation.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.logging.log4j.Logger;

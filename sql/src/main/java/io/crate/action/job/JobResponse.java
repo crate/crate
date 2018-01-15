@@ -23,7 +23,7 @@ package io.crate.action.job;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
-import io.crate.executor.transport.StreamBucket;
+import io.crate.execution.engine.distribution.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;

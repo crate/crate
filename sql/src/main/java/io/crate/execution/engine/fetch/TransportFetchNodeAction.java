@@ -28,7 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
-import io.crate.executor.transport.StreamBucket;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;

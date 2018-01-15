@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.transport.StreamBucket;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;

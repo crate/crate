@@ -27,9 +27,9 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.operation.PageResultListener;
-import io.crate.operation.merge.BatchPagingIterator;
-import io.crate.operation.merge.KeyIterable;
-import io.crate.operation.merge.PagingIterator;
+import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;

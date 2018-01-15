@@ -25,11 +25,11 @@ package io.crate.operation.collect.collectors;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.operation.merge.BatchPagingIterator;
-import io.crate.operation.merge.KeyIterable;
-import io.crate.operation.merge.PagingIterator;
-import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.merge.SortedPagingIterator;
+import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 

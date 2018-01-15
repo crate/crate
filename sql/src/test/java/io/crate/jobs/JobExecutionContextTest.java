@@ -29,7 +29,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.stats.JobsLogs;
-import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;

@@ -20,25 +20,29 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.execution.engine.distribution;
 
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.Streamer;
+import io.crate.data.Bucket;
+import io.crate.data.Row1;
+import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-public class BlobOrderedDocCollector extends OrderedDocCollector {
+import static org.junit.Assert.assertThat;
 
-    private final Iterable<Row> rows;
+public class BroadcastingBucketBuilderTest {
 
-    public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
-        super(shardId);
-        this.rows = rows;
-    }
+    @Test
+    public void testBucketIsReUsed() throws Exception {
+        final BroadcastingBucketBuilder builder = new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 3);
+        builder.add(new Row1(10));
 
-    @Override
-    public KeyIterable<ShardId, Row> collect() {
-        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
-        exhausted = true;
-        return new KeyIterable<>(shardId(), rows);
+        Bucket[] buckets = new Bucket[3];
+        builder.build(buckets);
+
+        final Bucket rows = buckets[0];
+        assertThat(rows, Matchers.sameInstance(buckets[1]));
+        assertThat(rows, Matchers.sameInstance(buckets[2]));
     }
 }

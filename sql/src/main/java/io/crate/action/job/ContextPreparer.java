@@ -42,7 +42,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.executor.transport.distributed.SingleBucketBuilder;
+import io.crate.execution.engine.distribution.SingleBucketBuilder;
 import io.crate.jobs.CountContext;
 import io.crate.jobs.ExecutionSubContext;
 import io.crate.jobs.JobExecutionContext;
@@ -63,8 +63,8 @@ import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.count.CountOperation;
 import io.crate.execution.engine.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.merge.PagingIterator;
-import io.crate.operation.projectors.DistributingDownstreamFactory;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
@@ -115,7 +115,7 @@ public class ContextPreparer extends AbstractComponent {
     private final ClusterService clusterService;
     private final CountOperation countOperation;
     private final CircuitBreaker circuitBreaker;
-    private final DistributingDownstreamFactory distributingDownstreamFactory;
+    private final DistributingConsumerFactory distributingConsumerFactory;
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
     private final ProjectorFactory projectorFactory;
@@ -129,7 +129,7 @@ public class ContextPreparer extends AbstractComponent {
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
-                           DistributingDownstreamFactory distributingDownstreamFactory,
+                           DistributingConsumerFactory distributingConsumerFactory,
                            TransportActionProvider transportActionProvider,
                            IndicesService indicesService,
                            Functions functions,
@@ -143,7 +143,7 @@ public class ContextPreparer extends AbstractComponent {
         this.countOperation = countOperation;
         this.pkLookupOperation = new PKLookupOperation(indicesService);
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
-        this.distributingDownstreamFactory = distributingDownstreamFactory;
+        this.distributingConsumerFactory = distributingConsumerFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions);
@@ -169,7 +169,7 @@ public class ContextPreparer extends AbstractComponent {
             clusterService.localNode().getId(),
             contextBuilder,
             logger,
-            distributingDownstreamFactory,
+            distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts);
         registerContextPhases(nodeOperations, preparerContext);
@@ -191,7 +191,7 @@ public class ContextPreparer extends AbstractComponent {
             clusterService.localNode().getId(),
             contextBuilder,
             logger,
-            distributingDownstreamFactory,
+            distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts);
         for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
@@ -402,7 +402,7 @@ public class ContextPreparer extends AbstractComponent {
 
     private static class PreparerContext {
 
-        private final DistributingDownstreamFactory distributingDownstreamFactory;
+        private final DistributingConsumerFactory distributingConsumerFactory;
 
         /**
          * from toKey(phaseId, inputId) to BatchConsumer.
@@ -422,13 +422,13 @@ public class ContextPreparer extends AbstractComponent {
         PreparerContext(String localNodeId,
                         JobExecutionContext.Builder contextBuilder,
                         Logger logger,
-                        DistributingDownstreamFactory distributingDownstreamFactory,
+                        DistributingConsumerFactory distributingConsumerFactory,
                         Collection<? extends NodeOperation> nodeOperations,
                         SharedShardContexts sharedShardContexts) {
             this.contextBuilder = contextBuilder;
             this.logger = logger;
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
-            this.distributingDownstreamFactory = distributingDownstreamFactory;
+            this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
         }
 
@@ -456,7 +456,7 @@ public class ContextPreparer extends AbstractComponent {
             switch (distributionType) {
                 case BROADCAST:
                 case MODULO:
-                    RowConsumer consumer = distributingDownstreamFactory.create(
+                    RowConsumer consumer = distributingConsumerFactory.create(
                         nodeOperation, phase.distributionInfo(), jobId(), pageSize);
                     traceGetBatchConsumer(phase, distributionType.toString(), nodeOperation, consumer);
                     return consumer;

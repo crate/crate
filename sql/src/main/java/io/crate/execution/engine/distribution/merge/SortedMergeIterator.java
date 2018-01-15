@@ -20,25 +20,23 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.execution.engine.distribution.merge;
 
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
 
-public class BlobOrderedDocCollector extends OrderedDocCollector {
+import java.util.Iterator;
 
-    private final Iterable<Row> rows;
+/**
+ * MergingIterator like it is used in guava Iterators.mergedSort
+ * It has (limited) shared object support.
+ * <p>
+ * And it also has a merge function with which additional backing iterables can be added to enable paging.
+ */
+public interface SortedMergeIterator<TKey, TRow> extends Iterator<TRow> {
+    void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables);
 
-    public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
-        super(shardId);
-        this.rows = rows;
-    }
+    boolean isLeastExhausted();
 
-    @Override
-    public KeyIterable<ShardId, Row> collect() {
-        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
-        exhausted = true;
-        return new KeyIterable<>(shardId(), rows);
-    }
+    TKey exhaustedIterable();
+
+    Iterable<TRow> repeat();
 }

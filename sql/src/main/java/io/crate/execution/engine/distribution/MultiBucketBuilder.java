@@ -20,25 +20,32 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.execution.engine.distribution;
 
+import io.crate.data.Bucket;
 import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
 
-public class BlobOrderedDocCollector extends OrderedDocCollector {
+/**
+ * Builder used to build one or more buckets
+ */
+public interface MultiBucketBuilder {
 
-    private final Iterable<Row> rows;
+    /**
+     * add a row to the page
+     */
+    void add(Row row);
 
-    public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
-        super(shardId);
-        this.rows = rows;
-    }
+    /**
+     * current number of rows within the page.
+     * Will be reset to 0 on each build call.
+     */
+    int size();
 
-    @Override
-    public KeyIterable<ShardId, Row> collect() {
-        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
-        exhausted = true;
-        return new KeyIterable<>(shardId(), rows);
-    }
+    /**
+     * Builds the buckets and writes them into the provided array.
+     * The provided array must have size N where N is the number of buckets the page contains.
+     * <p>
+     * N is usually specified in the constructor of a specific PageBuilder implementation.
+     */
+    void build(Bucket[] buckets);
 }

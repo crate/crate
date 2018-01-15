@@ -29,7 +29,7 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.executor.transport.StreamBucket;
+import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Reference;

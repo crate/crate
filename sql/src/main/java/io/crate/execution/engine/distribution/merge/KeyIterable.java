@@ -20,25 +20,26 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.execution.engine.distribution.merge;
 
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
+import java.util.Iterator;
 
-public class BlobOrderedDocCollector extends OrderedDocCollector {
+public class KeyIterable<TKey, TRow> implements Iterable<TRow> {
 
-    private final Iterable<Row> rows;
+    private final TKey key;
+    private final Iterable<TRow> iterable;
 
-    public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
-        super(shardId);
-        this.rows = rows;
+    public KeyIterable(TKey key, Iterable<TRow> iterable) {
+        this.key = key;
+        this.iterable = iterable;
     }
 
     @Override
-    public KeyIterable<ShardId, Row> collect() {
-        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
-        exhausted = true;
-        return new KeyIterable<>(shardId(), rows);
+    public Iterator<TRow> iterator() {
+        return iterable.iterator();
+    }
+
+    public TKey key() {
+        return key;
     }
 }

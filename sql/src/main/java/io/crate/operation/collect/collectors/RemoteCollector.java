@@ -36,7 +36,7 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;

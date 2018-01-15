@@ -20,25 +20,38 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.execution.engine.distribution;
 
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
-public class BlobOrderedDocCollector extends OrderedDocCollector {
+import java.io.IOException;
 
-    private final Iterable<Row> rows;
+public class DistributedResultResponse extends TransportResponse {
 
-    public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
-        super(shardId);
-        this.rows = rows;
+    private boolean needMore = false;
+
+    public DistributedResultResponse() {
+    }
+
+    public DistributedResultResponse(boolean needMore) {
+        this.needMore = needMore;
+    }
+
+    public boolean needMore() {
+        return needMore;
     }
 
     @Override
-    public KeyIterable<ShardId, Row> collect() {
-        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
-        exhausted = true;
-        return new KeyIterable<>(shardId(), rows);
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        needMore = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeBoolean(needMore);
     }
 }
