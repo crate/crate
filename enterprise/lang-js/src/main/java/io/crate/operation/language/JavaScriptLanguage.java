@@ -41,7 +41,7 @@ public class JavaScriptLanguage implements UDFLanguage {
     static final String NAME = "javascript";
 
     private static final NashornScriptEngine ENGINE = (NashornScriptEngine) new NashornScriptEngineFactory()
-        .getScriptEngine("--no-java", "--no-syntax-extensions");
+        .getScriptEngine("--no-java", "--no-syntax-extensions", "--language=es6");
 
     @Inject
     public JavaScriptLanguage(UserDefinedFunctionService udfService) {

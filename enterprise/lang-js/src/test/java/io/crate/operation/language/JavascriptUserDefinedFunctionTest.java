@@ -49,8 +49,10 @@ import java.util.stream.Collectors;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 
 public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTest {
@@ -133,8 +135,15 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         );
 
         String validation = udfService.getLanguage(JS).validate(udfMeta);
-        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
-        assertThat(validation, endsWith("Failed generating bytecode for <eval>:1"));
+        String javaVersion = System.getProperty("java.specification.version");
+        try {
+            if (Integer.parseInt(javaVersion) >= 9) {
+                assertThat(validation, is(nullValue()));
+            }
+        } catch (NumberFormatException e) {
+            assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
+            assertThat(validation, endsWith("Failed generating bytecode for <eval>:1"));
+        }
     }
 
     @Test
