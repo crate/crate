@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.dml;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -32,11 +32,11 @@ import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 
-class SysUpdateProjector implements Projector {
+public class SysUpdateProjector implements Projector {
 
     private final Consumer<Object> rowWriter;
 
-    SysUpdateProjector(Consumer<Object> rowWriter)  {
+    public SysUpdateProjector(Consumer<Object> rowWriter)  {
         this.rowWriter = rowWriter;
     }
 

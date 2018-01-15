@@ -23,7 +23,7 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.data.Row;
-import io.crate.executor.transport.ShardRequest;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;

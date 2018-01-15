@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;

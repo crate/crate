@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
@@ -45,5 +45,4 @@ public class ShardResponseTest extends CrateUnitTest {
         assertThat(bitSet.get(1), is(true));
         assertThat(bitSet.get(2), is(false));
     }
-
 }

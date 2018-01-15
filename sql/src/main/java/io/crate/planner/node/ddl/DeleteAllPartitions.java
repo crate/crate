@@ -25,7 +25,7 @@ package io.crate.planner.node.ddl;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.elasticsearch.DeleteAllPartitionsTask;
+import io.crate.execution.dml.delete.DeleteAllPartitionsTask;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.DependencyCarrier;

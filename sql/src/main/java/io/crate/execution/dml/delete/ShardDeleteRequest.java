@@ -20,9 +20,10 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml.delete;
 
 import com.google.common.base.Objects;
+import io.crate.execution.dml.ShardRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

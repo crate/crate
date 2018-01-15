@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.task;
+package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -31,7 +31,6 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -56,7 +55,7 @@ import java.util.function.Function;
  * Utility class to group requests by shardId and execute them.
  * This is for `byId` type requests where {@link DocKeys} are available.
  */
-class ShardRequestExecutor<Req> {
+public class ShardRequestExecutor<Req> {
 
     private final ClusterService clusterService;
     private final Functions functions;
@@ -65,7 +64,7 @@ class ShardRequestExecutor<Req> {
     private final BiConsumer<Req, ActionListener<ShardResponse>> transportAction;
     private final DocKeys docKeys;
 
-    interface RequestGrouper<R> {
+    public interface RequestGrouper<R> {
 
         R newRequest(ShardId shardId, String routing);
 
@@ -81,12 +80,12 @@ class ShardRequestExecutor<Req> {
         void addItem(R request, int location, String id, @Nullable Long version);
     }
 
-    ShardRequestExecutor(ClusterService clusterService,
-                         Functions functions,
-                         DocTableInfo table,
-                         RequestGrouper<Req> grouper,
-                         BiConsumer<Req, ActionListener<ShardResponse>> transportAction,
-                         DocKeys docKeys) {
+    public ShardRequestExecutor(ClusterService clusterService,
+                                Functions functions,
+                                DocTableInfo table,
+                                RequestGrouper<Req> grouper,
+                                BiConsumer<Req, ActionListener<ShardResponse>> transportAction,
+                                DocKeys docKeys) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.table = table;
@@ -95,7 +94,7 @@ class ShardRequestExecutor<Req> {
         this.docKeys = docKeys;
     }
 
-    void execute(RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public void execute(RowConsumer consumer, Row parameters, Map<SelectSymbol, Object> valuesBySubQuery) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
         grouper.bind(parameters, valuesBySubQuery);
         addRequests(0, parameters, requestsByShard, valuesBySubQuery);
@@ -111,7 +110,7 @@ class ShardRequestExecutor<Req> {
         }
     }
 
-    List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
+    public List<CompletableFuture<Long>> executeBulk(List<Row> bulkParams, Map<SelectSymbol, Object> valuesBySubQuery) {
         HashMap<ShardId, Req> requests = new HashMap<>();
         IntArrayList bulkIndices = new IntArrayList(bulkParams.size() * docKeys.size());
         int location = 0;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
@@ -28,8 +28,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import io.crate.exceptions.JobKilledException;
-import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.execution.jobs.kill.KillAllListener;
+import io.crate.execution.jobs.kill.KillableCallable;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -58,16 +58,16 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
-    TransportShardAction(Settings settings,
-                         String actionName,
-                         TransportService transportService,
-                         IndexNameExpressionResolver indexNameExpressionResolver,
-                         ClusterService clusterService,
-                         IndicesService indicesService,
-                         ThreadPool threadPool,
-                         ShardStateAction shardStateAction,
-                         ActionFilters actionFilters,
-                         Supplier<Request> requestSupplier) {
+    protected TransportShardAction(Settings settings,
+                                   String actionName,
+                                   TransportService transportService,
+                                   IndexNameExpressionResolver indexNameExpressionResolver,
+                                   ClusterService clusterService,
+                                   IndicesService indicesService,
+                                   ThreadPool threadPool,
+                                   ShardStateAction shardStateAction,
+                                   ActionFilters actionFilters,
+                                   Supplier<Request> requestSupplier) {
         super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
             actionFilters, indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.BULK);
     }

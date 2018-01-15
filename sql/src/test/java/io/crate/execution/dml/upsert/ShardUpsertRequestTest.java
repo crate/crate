@@ -20,9 +20,18 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml.upsert;
 
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -33,24 +42,50 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 
-public class ShardDeleteRequestTest extends CrateUnitTest {
+public class ShardUpsertRequestTest extends CrateUnitTest {
+
+    private static final TableIdent CHARACTERS_IDENTS = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
+
+    private static final Reference ID_REF = new Reference(
+        new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER);
+    private static final Reference NAME_REF = new Reference(
+        new ReferenceIdent(CHARACTERS_IDENTS, "name"), RowGranularity.DOC, DataTypes.STRING);
 
     @Test
     public void testStreaming() throws Exception {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
+        String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        ShardDeleteRequest request = new ShardDeleteRequest(shardId, "42", jobId);
+        Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            false,
+            false,
+            assignmentColumns,
+            missingAssignmentColumns,
+            jobId,
+            false
+        ).newRequest(shardId, "42");
+        request.validateConstraints(false);
 
-        request.add(123, new ShardDeleteRequest.Item("99"));
-        request.add(5, new ShardDeleteRequest.Item("42"));
+        request.add(123, new ShardUpsertRequest.Item(
+            "99",
+            null,
+            new Object[]{99, new BytesRef("Marvin")},
+            null));
+        request.add(5, new ShardUpsertRequest.Item(
+            "42",
+            new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
+            null,
+            2L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        ShardDeleteRequest request2 = new ShardDeleteRequest();
+        ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 
         assertThat(request, equalTo(request2));
     }
+
 }

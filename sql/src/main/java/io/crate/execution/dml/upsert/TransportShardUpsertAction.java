@@ -1,25 +1,26 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
@@ -31,7 +32,9 @@ import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -151,7 +154,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         Translog.Location translogLocation = null;
-        for (ShardUpsertRequest.Item item : request.items) {
+        for (ShardUpsertRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
                 // set failure on response and skip all next items.

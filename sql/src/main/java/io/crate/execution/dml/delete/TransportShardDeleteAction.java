@@ -20,9 +20,11 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml.delete;
 
 import io.crate.exceptions.JobKilledException;
+import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.dml.ShardResponse;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -68,7 +70,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                                                                         AtomicBoolean killed) throws IOException {
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
-        for (ShardDeleteRequest.Item item : request.items) {
+        for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
             if (killed.get()) {
                 // set failure on response, mark current item and skip all next items.
@@ -125,7 +127,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Override
     protected WriteReplicaResult<ShardDeleteRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) throws IOException {
         Translog.Location translogLocation = null;
-        for (ShardDeleteRequest.Item item : request.items) {
+        for (ShardDeleteRequest.Item item : request.items()) {
             int location = item.location();
             if (request.skipFromLocation() == location) {
                 // skipping this and all next items, the primary did not processed them (mostly due to a kill request)

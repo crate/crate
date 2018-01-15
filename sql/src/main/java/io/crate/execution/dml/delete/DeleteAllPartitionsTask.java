@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.task.elasticsearch;
+package io.crate.execution.dml.delete;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;

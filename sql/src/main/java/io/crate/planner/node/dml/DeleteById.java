@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.DeleteByIdTask;
+import io.crate.execution.dml.delete.DeleteByIdTask;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;

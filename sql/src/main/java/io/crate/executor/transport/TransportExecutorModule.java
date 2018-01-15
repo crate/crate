@@ -21,6 +21,8 @@
 
 package io.crate.executor.transport;
 
+import io.crate.execution.dml.delete.TransportShardDeleteAction;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.jobs.ContextPreparer;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;

@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.executor.transport.ShardRequest;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;

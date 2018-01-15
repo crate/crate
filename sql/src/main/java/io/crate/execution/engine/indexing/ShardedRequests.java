@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.executor.transport.ShardRequest;
+import io.crate.execution.dml.ShardRequest;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;

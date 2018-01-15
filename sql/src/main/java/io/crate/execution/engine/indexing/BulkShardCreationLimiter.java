@@ -23,7 +23,7 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.executor.transport.ShardRequest;
+import io.crate.execution.dml.ShardRequest;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.logging.Loggers;

@@ -20,13 +20,12 @@
  * agreement.
  */
 
-package io.crate.executor.transport.task;
+package io.crate.execution.dml.delete;
 
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.ShardDeleteRequest;
-import io.crate.executor.transport.TransportShardDeleteAction;
+import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.metadata.Functions;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.DeleteById;

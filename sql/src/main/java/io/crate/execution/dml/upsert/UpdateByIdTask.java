@@ -20,15 +20,14 @@
  * agreement.
  */
 
-package io.crate.executor.transport.task;
+package io.crate.execution.dml.upsert;
 
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.TransportShardUpsertAction;
+import io.crate.execution.dml.ShardRequestExecutor;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;

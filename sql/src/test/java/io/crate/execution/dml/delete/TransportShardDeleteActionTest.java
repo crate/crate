@@ -20,8 +20,9 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.dml.delete;
 
+import io.crate.execution.dml.ShardResponse;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
