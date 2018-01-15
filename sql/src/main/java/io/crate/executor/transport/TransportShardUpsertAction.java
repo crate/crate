@@ -30,7 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;

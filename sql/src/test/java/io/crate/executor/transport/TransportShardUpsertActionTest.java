@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;

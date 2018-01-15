@@ -22,8 +22,8 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.SharedShardContexts;
+import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
@@ -32,8 +32,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
+import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;

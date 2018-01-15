@@ -24,7 +24,7 @@ package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;

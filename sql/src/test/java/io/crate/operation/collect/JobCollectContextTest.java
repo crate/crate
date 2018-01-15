@@ -22,7 +22,7 @@
 package io.crate.operation.collect;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.action.job.SharedShardContexts;
+import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;

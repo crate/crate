@@ -21,15 +21,15 @@
 
 package io.crate.executor.transport;
 
-import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.TransportJobAction;
+import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.execution.engine.distribution.TransportDistributedResultAction;
-import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.lucene.LuceneQueryBuilder;
 import org.elasticsearch.common.inject.AbstractModule;
 

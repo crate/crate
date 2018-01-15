@@ -32,7 +32,7 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;

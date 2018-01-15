@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
+import io.crate.execution.jobs.JobContextService;
+import io.crate.execution.jobs.JobExecutionContext;
 import org.junit.Test;
 
 import java.lang.reflect.Field;

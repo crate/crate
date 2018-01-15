@@ -28,9 +28,9 @@ import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
-import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.operation.projectors.RetryListener;
@@ -67,7 +67,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
+import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
 public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {

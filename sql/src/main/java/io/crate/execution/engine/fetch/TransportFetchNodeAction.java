@@ -30,7 +30,7 @@ import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.executor.transport.Transports;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;

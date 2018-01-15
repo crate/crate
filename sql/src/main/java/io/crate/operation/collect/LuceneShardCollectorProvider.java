@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.action.job.SharedShardContext;
+import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.transport.TransportActionProvider;
@@ -32,7 +32,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollectorBuilder;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;

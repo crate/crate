@@ -118,7 +118,7 @@ public class DistributingConsumerFactory extends AbstractComponent {
      * but they don't care which node ends up with which bucketIdx.
      * </p>
      *
-     * See {@link io.crate.jobs.PageBucketReceiver}
+     * See {@link io.crate.execution.jobs.PageBucketReceiver}
      */
     private int getBucketIdx(Collection<String> nodeIds, byte phaseInputId) {
         ArrayList<String> server = new ArrayList<>(nodeIds);

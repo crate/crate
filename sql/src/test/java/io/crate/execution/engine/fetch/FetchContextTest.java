@@ -23,7 +23,7 @@ package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import io.crate.action.job.SharedShardContexts;
+import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;

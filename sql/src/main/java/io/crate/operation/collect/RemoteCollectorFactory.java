@@ -25,7 +25,7 @@ package io.crate.operation.collect;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.collectors.RemoteCollector;
 import io.crate.planner.distribution.DistributionInfo;

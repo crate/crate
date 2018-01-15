@@ -22,9 +22,9 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.executor.transport.kill.KillAllRequest;
-import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillAllRequest;
+import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.ActionListener;
 import org.junit.Test;

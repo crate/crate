@@ -74,7 +74,7 @@ import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.RowFilter;
 import io.crate.operation.TableSettingsResolver;
 import io.crate.operation.collect.CollectExpression;

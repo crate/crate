@@ -21,10 +21,10 @@
 
 package io.crate.executor.transport;
 
-import io.crate.action.job.TransportJobAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.engine.fetch.TransportFetchNodeAction;
-import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;

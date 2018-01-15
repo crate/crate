@@ -34,7 +34,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

@@ -23,9 +23,9 @@ package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.action.job.SharedShardContext;
-import io.crate.action.job.SharedShardContexts;
-import io.crate.jobs.AbstractExecutionSubContext;
+import io.crate.execution.jobs.SharedShardContext;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;

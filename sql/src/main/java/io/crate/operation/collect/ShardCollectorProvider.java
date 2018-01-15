@@ -22,7 +22,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.action.job.SharedShardContext;
+import io.crate.execution.jobs.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -32,7 +32,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectingRowConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;

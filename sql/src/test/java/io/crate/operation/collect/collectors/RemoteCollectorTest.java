@@ -23,14 +23,14 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.job.JobRequest;
-import io.crate.action.job.JobResponse;
-import io.crate.action.job.TransportJobAction;
+import io.crate.execution.jobs.transport.JobRequest;
+import io.crate.execution.jobs.transport.JobResponse;
+import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.executor.transport.kill.KillJobsRequest;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.stats.JobsLogs;
