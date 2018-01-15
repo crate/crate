@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -41,9 +41,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidAddress;
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidProtocol;
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;

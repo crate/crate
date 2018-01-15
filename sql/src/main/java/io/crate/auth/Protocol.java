@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 public enum Protocol {
 

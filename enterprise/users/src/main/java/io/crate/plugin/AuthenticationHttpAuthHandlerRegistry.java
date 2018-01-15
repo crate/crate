@@ -18,7 +18,7 @@
 
 package io.crate.plugin;
 
-import io.crate.operation.auth.Authentication;
+import io.crate.auth.Authentication;
 import io.crate.protocols.http.HttpAuthUpstreamHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;

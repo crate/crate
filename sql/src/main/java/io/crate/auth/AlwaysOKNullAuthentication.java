@@ -20,27 +20,28 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 import io.crate.operation.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
 
-import javax.annotation.Nullable;
+public class AlwaysOKNullAuthentication implements Authentication {
 
-public interface AuthenticationMethod {
+    private final AuthenticationMethod alwaysOkNull = new AuthenticationMethod() {
+        @Override
+        public User authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
+            return null;
+        }
 
-    /**
-     * @param userName the userName sent with the startup message
-     * @param passwd the password in clear-text or null
-     * @return the user or null; null should be handled as if it's a "guest" user
-     * @throws RuntimeException if the authentication failed
-     */
-    @Nullable
-    User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
+        @Override
+        public String name() {
+            return "alwaysOkNull";
+        }
+    };
 
-    /**
-     * @return unique name of the authentication method
-     */
-    String name();
+    @Override
+    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
+        return alwaysOkNull;
+    }
 }

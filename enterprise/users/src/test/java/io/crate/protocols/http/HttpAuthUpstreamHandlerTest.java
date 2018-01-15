@@ -18,10 +18,10 @@
 
 package io.crate.protocols.http;
 
-import io.crate.operation.auth.AlwaysOKAuthentication;
-import io.crate.operation.auth.AlwaysOKNullAuthentication;
-import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.HostBasedAuthentication;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.Unpooled;

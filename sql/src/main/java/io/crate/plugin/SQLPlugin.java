@@ -46,7 +46,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.auth.AuthSettings;
+import io.crate.auth.AuthSettings;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.operator.OperatorModule;

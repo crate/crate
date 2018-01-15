@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;

@@ -20,14 +20,27 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
+import io.crate.operation.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
+import org.elasticsearch.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 
-public interface Authentication {
+public interface AuthenticationMethod {
 
+    /**
+     * @param userName the userName sent with the startup message
+     * @param passwd the password in clear-text or null
+     * @return the user or null; null should be handled as if it's a "guest" user
+     * @throws RuntimeException if the authentication failed
+     */
     @Nullable
-    AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties);
+    User authenticate(String userName, @Nullable SecureString passwd, ConnectionProperties connProperties);
+
+    /**
+     * @return unique name of the authentication method
+     */
+    String name();
 }

@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;

@@ -16,40 +16,27 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
-import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nullable;
+/**
+ * Fallback if host-based authentication is disabled
+ * and the user management is enabled
+ */
+public class AlwaysOKAuthentication implements Authentication {
 
-public class PasswordAuthenticationMethod implements AuthenticationMethod {
+    private final UserLookup userLookup;
 
-    public static final String NAME = "password";
-    private UserLookup userLookup;
-
-    PasswordAuthenticationMethod(UserLookup userLookup) {
+    @Inject
+    public AlwaysOKAuthentication(UserLookup userLookup) {
         this.userLookup = userLookup;
     }
 
-    @Nullable
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
-        User user = userLookup.findUser(userName);
-        if (user != null && passwd != null && passwd.length() > 0) {
-            SecureHash secureHash = user.password();
-            if (secureHash != null && secureHash.verifyHash(passwd)) {
-                return user;
-            }
-        }
-        throw new RuntimeException("password authentication failed for user \"" + userName + "\"");
-    }
-
-    @Override
-    public String name() {
-        return NAME;
+    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
+        return new TrustAuthenticationMethod(userLookup);
     }
 }

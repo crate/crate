@@ -22,8 +22,8 @@
 
 package io.crate.user;
 
-import io.crate.operation.auth.AlwaysOKNullAuthentication;
-import io.crate.operation.auth.Authentication;
+import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.Authentication;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.common.inject.AbstractModule;
 

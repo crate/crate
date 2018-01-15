@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.auth;
 
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
