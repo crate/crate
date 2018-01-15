@@ -326,7 +326,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByValidationWhenRewritingDistinct() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot GROUP BY 'friends': invalid data type 'object_array'");
+        expectedException.expectMessage("Cannot use DISTINCT on 'friends': invalid data type 'object_array'");
         analyze("select distinct(friends) from users");
     }
 

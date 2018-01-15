@@ -131,6 +131,10 @@ removed from the result set::
     +---------------+
     SELECT 3 rows in set (... sec)
 
+.. note::
+
+   Using `DISTINCT` is only supported on :ref:`sql_ddl_datatypes_primitives`.
+
 .. _sql_dql_where_clause:
 
 ``WHERE`` Clause
