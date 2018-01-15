@@ -43,7 +43,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;

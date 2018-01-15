@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;

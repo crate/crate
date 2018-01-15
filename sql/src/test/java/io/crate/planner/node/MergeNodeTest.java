@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;

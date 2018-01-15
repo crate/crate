@@ -35,7 +35,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
