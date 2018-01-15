@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;

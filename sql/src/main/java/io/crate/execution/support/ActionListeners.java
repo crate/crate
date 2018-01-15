@@ -20,35 +20,29 @@
  * agreement.
  */
 
-package io.crate.planner.node.dcl;
+package io.crate.execution.support;
 
-import io.crate.analyze.DCLStatement;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.RowConsumer;
-import io.crate.execution.support.OneRowActionListener;
-import io.crate.planner.Plan;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.DependencyCarrier;
+import org.elasticsearch.action.ActionListener;
 
-import java.util.Map;
+import java.util.function.BiConsumer;
 
-public class GenericDCLPlan implements Plan {
+public final class ActionListeners {
 
-    private final DCLStatement statement;
-
-    public GenericDCLPlan(DCLStatement statement) {
-        this.statement = statement;
+    private ActionListeners() {
     }
 
-    @Override
-    public void execute(DependencyCarrier executor,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        Map<SelectSymbol, Object> valuesBySubQuery) {
-        executor.dclAction().apply(statement, params)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+
+    public static <T> BiConsumer<? super T, ? super Throwable> asBiConsumer(ActionListener<T> listener) {
+        return (r, f) -> {
+            if (f == null) {
+                listener.onResponse(r);
+            } else {
+                if (f instanceof Exception) {
+                    listener.onFailure(((Exception) f));
+                } else {
+                    listener.onFailure(new RuntimeException(f));
+                }
+            }
+        };
     }
 }

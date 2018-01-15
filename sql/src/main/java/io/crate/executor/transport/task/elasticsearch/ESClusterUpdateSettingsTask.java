@@ -26,7 +26,7 @@ import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.OneRowActionListener;
+import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.sql.tree.Expression;

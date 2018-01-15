@@ -25,7 +25,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.OneRowActionListener;
+import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;

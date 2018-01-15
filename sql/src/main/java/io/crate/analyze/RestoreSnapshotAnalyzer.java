@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.support.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;

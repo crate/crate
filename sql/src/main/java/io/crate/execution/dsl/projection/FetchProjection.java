@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.Paging;
+import io.crate.execution.support.Paging;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamOutput;

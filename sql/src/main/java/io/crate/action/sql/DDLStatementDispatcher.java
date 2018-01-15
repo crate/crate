@@ -52,7 +52,7 @@ import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.executor.transport.AlterTableOperation;
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.support.RepositoryService;
 import io.crate.executor.transport.RerouteActions;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;

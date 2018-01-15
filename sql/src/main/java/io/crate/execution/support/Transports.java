@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;

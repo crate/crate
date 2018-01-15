@@ -22,9 +22,9 @@
 
 package io.crate.execution.jobs.kill;
 
-import io.crate.executor.MultiActionListener;
-import io.crate.executor.transport.NodeAction;
-import io.crate.executor.transport.NodeActionRequestHandler;
+import io.crate.execution.support.MultiActionListener;
+import io.crate.execution.support.NodeAction;
+import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;

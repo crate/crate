@@ -24,9 +24,9 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.executor.transport.NodeAction;
-import io.crate.executor.transport.NodeActionRequestHandler;
-import io.crate.executor.transport.Transports;
+import io.crate.execution.support.NodeAction;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.Transports;
 import io.crate.execution.jobs.DownstreamExecutionSubContext;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;

@@ -20,29 +20,27 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
-import org.elasticsearch.action.ActionListener;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
-import java.util.function.BiConsumer;
+public class ChainableAction<ReturnType> {
 
-public final class ActionListeners {
+    private final Supplier<CompletableFuture<ReturnType>> doSupplier;
+    private final Supplier<CompletableFuture<ReturnType>> undoSupplier;
 
-    private ActionListeners() {
+    public ChainableAction(Supplier<CompletableFuture<ReturnType>> doSupplier,
+                           Supplier<CompletableFuture<ReturnType>> undoSupplier) {
+        this.doSupplier = doSupplier;
+        this.undoSupplier = undoSupplier;
     }
 
+    public CompletableFuture<ReturnType> doIt() {
+        return doSupplier.get();
+    }
 
-    public static <T> BiConsumer<? super T, ? super Throwable> asBiConsumer(ActionListener<T> listener) {
-        return (r, f) -> {
-            if (f == null) {
-                listener.onResponse(r);
-            } else {
-                if (f instanceof Exception) {
-                    listener.onFailure(((Exception) f));
-                } else {
-                    listener.onFailure(new RuntimeException(f));
-                }
-            }
-        };
+    public CompletableFuture<ReturnType> undo() {
+        return undoSupplier.get();
     }
 }

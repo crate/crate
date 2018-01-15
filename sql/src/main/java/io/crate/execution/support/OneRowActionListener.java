@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;

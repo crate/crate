@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.MultiException;
@@ -63,13 +63,13 @@ public class ChainableActionsTest {
         }
 
         @Override
-        CompletableFuture<Integer> doIt() {
+        public CompletableFuture<Integer> doIt() {
             doCalls.add(idx);
             return super.doIt();
         }
 
         @Override
-        CompletableFuture<Integer> undo() {
+        public CompletableFuture<Integer> undo() {
             undoCalls.add(idx);
             return super.undo();
         }

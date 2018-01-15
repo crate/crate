@@ -20,22 +20,15 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.execution.support;
 
-import io.crate.execution.support.RepositoryService;
-import io.crate.sql.tree.DropRepository;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
-class DropRepositoryAnalyzer {
+import java.util.concurrent.CompletableFuture;
 
-    private final RepositoryService repositoryService;
+@FunctionalInterface
+public interface NodeAction<TRequest extends TransportRequest, TResponse extends TransportResponse> {
 
-    DropRepositoryAnalyzer(RepositoryService repositoryService) {
-        this.repositoryService = repositoryService;
-    }
-
-    public DropRepositoryAnalyzedStatement analyze(DropRepository node) {
-        String repositoryName = node.repository();
-        repositoryService.failIfRepositoryDoesNotExist(repositoryName);
-        return new DropRepositoryAnalyzedStatement(repositoryName);
-    }
+    CompletableFuture<TResponse> nodeOperation(TRequest request);
 }

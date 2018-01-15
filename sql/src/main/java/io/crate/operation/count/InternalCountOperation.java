@@ -24,7 +24,7 @@ package io.crate.operation.count;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
-import io.crate.operation.ThreadPools;
+import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;

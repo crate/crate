@@ -20,27 +20,30 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.support;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
+import org.junit.Test;
 
-class ChainableAction<ReturnType> {
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-    private final Supplier<CompletableFuture<ReturnType>> doSupplier;
-    private final Supplier<CompletableFuture<ReturnType>> undoSupplier;
+public class PagingTest {
 
-    ChainableAction(Supplier<CompletableFuture<ReturnType>> doSupplier,
-                    Supplier<CompletableFuture<ReturnType>> undoSupplier) {
-        this.doSupplier = doSupplier;
-        this.undoSupplier = undoSupplier;
+    @Test
+    public void testGetNodePageSize() throws Exception {
+        double weight = 1.0d / 8.0d;
+        int pageSize = Paging.getWeightedPageSize(10_000, weight);
+        assertThat(pageSize, is(1875));
     }
 
-    CompletableFuture<ReturnType> doIt() {
-        return doSupplier.get();
+    @Test
+    public void testSmallLimitWithManyExecutionNodes() throws Exception {
+        int pageSize = Paging.getWeightedPageSize(10, 1.0 / 20.0);
+        assertThat(pageSize, is(10));
     }
 
-    CompletableFuture<ReturnType> undo() {
-        return undoSupplier.get();
+    @Test
+    public void testSmallLimitIsUnchanged() throws Exception {
+        assertThat(Paging.getWeightedPageSize(10, 1.0d / 4), is(10));
     }
 }

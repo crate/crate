@@ -49,7 +49,7 @@ import io.crate.metadata.Routing;
 import io.crate.operation.InputFactory;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.operation.PKLookupOperation;
-import io.crate.operation.Paging;
+import io.crate.execution.support.Paging;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;

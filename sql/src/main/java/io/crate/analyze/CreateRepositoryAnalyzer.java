@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.support.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
 import org.elasticsearch.common.settings.Settings;
 

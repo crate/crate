@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.operation.Paging;
+import io.crate.execution.support.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseSemiJoins;

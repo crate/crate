@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.support.RepositoryService;
 import io.crate.sql.tree.DropSnapshot;
 import org.elasticsearch.common.inject.Singleton;
 

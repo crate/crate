@@ -39,6 +39,8 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
+import io.crate.execution.support.ChainableAction;
+import io.crate.execution.support.ChainableActions;
 import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionRequest;
 import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionResponse;
 import io.crate.executor.transport.ddl.RenameTableRequest;
