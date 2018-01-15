@@ -20,14 +20,14 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.export;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.ColumnIdent;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;

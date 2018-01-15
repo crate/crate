@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.export;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
@@ -31,9 +31,9 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.projectors.writer.Output;
-import io.crate.operation.projectors.writer.OutputFile;
-import io.crate.operation.projectors.writer.OutputS3;
+import io.crate.execution.engine.export.Output;
+import io.crate.execution.engine.export.OutputFile;
+import io.crate.execution.engine.export.OutputS3;
 import io.crate.execution.dsl.projection.WriterProjection;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -79,14 +79,14 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     private final RowWriter rowWriter;
 
-    public FileWriterCountCollector(ExecutorService executorService,
-                                    String uri,
-                                    @Nullable WriterProjection.CompressionType compressionType,
-                                    @Nullable List<Input<?>> inputs,
-                                    Iterable<CollectExpression<Row, ?>> collectExpressions,
-                                    Map<ColumnIdent, Object> overwrites,
-                                    @Nullable List<String> outputNames,
-                                    WriterProjection.OutputFormat outputFormat) {
+    FileWriterCountCollector(ExecutorService executorService,
+                             String uri,
+                             @Nullable WriterProjection.CompressionType compressionType,
+                             @Nullable List<Input<?>> inputs,
+                             Iterable<CollectExpression<Row, ?>> collectExpressions,
+                             Map<ColumnIdent, Object> overwrites,
+                             @Nullable List<String> outputNames,
+                             WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);

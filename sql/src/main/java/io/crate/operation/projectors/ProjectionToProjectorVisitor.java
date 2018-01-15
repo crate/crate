@@ -51,6 +51,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
+import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.FetchProjectorContext;
 import io.crate.execution.engine.fetch.TransportFetchOperation;
