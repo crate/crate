@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
@@ -28,9 +28,6 @@ import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
-import io.crate.executor.transport.NodeFetchRequest;
-import io.crate.executor.transport.NodeFetchResponse;
-import io.crate.executor.transport.TransportFetchNodeAction;
 
 import java.util.Map;
 import java.util.UUID;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.fetch;
+package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;

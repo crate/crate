@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntHashSet;
@@ -31,6 +31,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.executor.transport.StreamBucket;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreakingException;

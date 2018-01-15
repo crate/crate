@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;

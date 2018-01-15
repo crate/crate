@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.fetch;
+package io.crate.execution.engine.fetch;
 
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
@@ -31,7 +31,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
-import io.crate.operation.projectors.fetch.ArrayBackedRow;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;

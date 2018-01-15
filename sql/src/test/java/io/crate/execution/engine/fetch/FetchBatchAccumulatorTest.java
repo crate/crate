@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntHashSet;
@@ -36,6 +36,9 @@ import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.execution.engine.fetch.FetchBatchAccumulator;
+import io.crate.execution.engine.fetch.FetchOperation;
+import io.crate.execution.engine.fetch.FetchProjectorContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;

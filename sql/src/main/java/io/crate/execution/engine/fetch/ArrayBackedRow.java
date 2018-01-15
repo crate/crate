@@ -20,35 +20,30 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
+
+import io.crate.data.Row;
 
 /**
- * Utility class to pack/unpack a fetchId.
- * <p>
- *  A fetchId is a long which contains a readerId and a docId.
- *
- * readerIds are generated in the planner-phase. They're used to identify a shard/indexReader.
- * docIds are part of the lucene api, where they're used to identify documents within an IndexReader.
- * </p>
- *
- * <pre>
- *      4 bytes     |  4 bytes
- *         |             |
- *       readerId      docId
- * </pre>
+ * An array backed row, which returns the inner array upon materialize
  */
-public final class FetchId {
+public class ArrayBackedRow implements Row {
 
+    Object[] cells;
 
-    static int decodeReaderId(long fetchId) {
-        return (int) (fetchId >> 32);
+    @Override
+    public int numColumns() {
+        return cells.length;
     }
 
-    static int decodeDocId(long fetchId) {
-        return (int) fetchId;
+    @Override
+    public Object get(int index) {
+        assert cells != null : "cells must not be null";
+        return cells[index];
     }
 
-    public static long encode(int readerId, int docId) {
-        return ((long) readerId << 32) | (docId & 0xffffffffL);
+    @Override
+    public Object[] materialize() {
+        return cells;
     }
 }

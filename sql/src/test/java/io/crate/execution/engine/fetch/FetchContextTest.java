@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.fetch;
+package io.crate.execution.engine.fetch;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;

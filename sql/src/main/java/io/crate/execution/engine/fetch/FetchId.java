@@ -20,27 +20,35 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+/**
+ * Utility class to pack/unpack a fetchId.
+ * <p>
+ *  A fetchId is a long which contains a readerId and a docId.
+ *
+ * readerIds are generated in the planner-phase. They're used to identify a shard/indexReader.
+ * docIds are part of the lucene api, where they're used to identify documents within an IndexReader.
+ * </p>
+ *
+ * <pre>
+ *      4 bytes     |  4 bytes
+ *         |             |
+ *       readerId      docId
+ * </pre>
+ */
+public final class FetchId {
 
-import java.util.stream.LongStream;
 
-import static org.hamcrest.core.Is.is;
-
-public class FetchIdTest extends CrateUnitTest {
-
-    @Test
-    public void testEncodeAndDecode() throws Exception {
-        LongStream longs = random().longs(50, 0, Long.MAX_VALUE);
-        longs.forEach(this::assertEncodeDecodeMatches);
+    static int decodeReaderId(long fetchId) {
+        return (int) (fetchId >> 32);
     }
 
-    private void assertEncodeDecodeMatches(long val) {
-        int docId = FetchId.decodeDocId(val);
-        int readerId = FetchId.decodeReaderId(val);
+    static int decodeDocId(long fetchId) {
+        return (int) fetchId;
+    }
 
-        assertThat(FetchId.encode(readerId, docId), is(val));
+    public static long encode(int readerId, int docId) {
+        return ((long) readerId << 32) | (docId & 0xffffffffL);
     }
 }

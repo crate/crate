@@ -61,7 +61,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.count.CountOperation;
-import io.crate.operation.fetch.FetchContext;
+import io.crate.execution.engine.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.projectors.DistributingDownstreamFactory;

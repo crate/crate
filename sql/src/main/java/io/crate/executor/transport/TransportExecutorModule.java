@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.TransportJobAction;
+import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.executor.transport.ddl.TransportDropTableAction;
 import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.executor.transport.ddl.TransportRenameTableAction;

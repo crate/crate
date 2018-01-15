@@ -20,30 +20,27 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
-import io.crate.data.Row;
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.Test;
 
-/**
- * An array backed row, which returns the inner array upon materialize
- */
-public class ArrayBackedRow implements Row {
+import java.util.stream.LongStream;
 
-    Object[] cells;
+import static org.hamcrest.core.Is.is;
 
-    @Override
-    public int numColumns() {
-        return cells.length;
+public class FetchIdTest extends CrateUnitTest {
+
+    @Test
+    public void testEncodeAndDecode() throws Exception {
+        LongStream longs = random().longs(50, 0, Long.MAX_VALUE);
+        longs.forEach(this::assertEncodeDecodeMatches);
     }
 
-    @Override
-    public Object get(int index) {
-        assert cells != null : "cells must not be null";
-        return cells[index];
-    }
+    private void assertEncodeDecodeMatches(long val) {
+        int docId = FetchId.decodeDocId(val);
+        int readerId = FetchId.decodeReaderId(val);
 
-    @Override
-    public Object[] materialize() {
-        return cells;
+        assertThat(FetchId.encode(readerId, docId), is(val));
     }
 }

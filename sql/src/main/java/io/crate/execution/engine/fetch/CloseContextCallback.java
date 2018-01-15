@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.fetch;
+package io.crate.execution.engine.fetch;
 
 import java.util.function.BiConsumer;
 

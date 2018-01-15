@@ -23,6 +23,7 @@
 package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -48,7 +49,7 @@ public class DocSysColumns {
 
         /**
          * Column that contains the lucene docId + a readerId.
-         * See {@link io.crate.operation.projectors.fetch.FetchId}
+         * See {@link FetchId}
          */
         public static final String FETCHID = "_fetchid";
     }

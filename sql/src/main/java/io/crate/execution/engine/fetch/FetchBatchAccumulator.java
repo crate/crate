@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.fetch;
+package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -36,7 +36,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.operation.InputRow;
-import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
