@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.task.elasticsearch;
+package io.crate.execution.ddl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;

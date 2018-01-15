@@ -22,7 +22,7 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.OpenCloseTableOrPartitionRequest;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;

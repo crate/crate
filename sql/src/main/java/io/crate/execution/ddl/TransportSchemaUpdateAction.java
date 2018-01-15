@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.ddl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;

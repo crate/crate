@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.ddl;
 
 import io.crate.Constants;
 import io.crate.metadata.Schemas;

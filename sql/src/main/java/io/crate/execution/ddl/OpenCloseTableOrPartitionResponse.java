@@ -20,53 +20,32 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.ddl;
 
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.support.master.MasterNodeRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.Index;
 
 import java.io.IOException;
 
-public class SchemaUpdateRequest extends MasterNodeRequest<SchemaUpdateRequest> {
+public class OpenCloseTableOrPartitionResponse extends AcknowledgedResponse {
 
-    private Index index;
-    private String mappingSource;
-
-    public SchemaUpdateRequest() {
+    OpenCloseTableOrPartitionResponse() {
     }
 
-    public SchemaUpdateRequest(Index index, String mappingSource) {
-        this.index = index;
-        this.mappingSource = mappingSource;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
-    }
-
-    public Index index() {
-        return index;
-    }
-
-    public String mappingSource() {
-        return mappingSource;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        index.writeTo(out);
-        out.writeString(mappingSource);
+    OpenCloseTableOrPartitionResponse(boolean acknowledged) {
+        super(acknowledged);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        index = new Index(in);
-        mappingSource = in.readString();
+        readAcknowledged(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        writeAcknowledged(out);
     }
 }

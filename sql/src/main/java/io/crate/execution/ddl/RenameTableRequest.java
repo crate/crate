@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.ddl;
+package io.crate.execution.ddl;
 
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -32,21 +32,27 @@ import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
-public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
+public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
-    private TableIdent tableIdent;
+    private TableIdent sourceTableIdent;
+    private TableIdent targetTableIdent;
     private boolean isPartitioned;
 
-    public DropTableRequest() {
+    RenameTableRequest() {
     }
 
-    public DropTableRequest(TableIdent tableIdent, boolean isPartitioned) {
-        this.tableIdent = tableIdent;
+    public RenameTableRequest(TableIdent sourceTableIdent, TableIdent targetTableIdent, boolean isPartitioned) {
+        this.sourceTableIdent = sourceTableIdent;
+        this.targetTableIdent = targetTableIdent;
         this.isPartitioned = isPartitioned;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public TableIdent sourceTableIdent() {
+        return sourceTableIdent;
+    }
+
+    public TableIdent targetTableIdent() {
+        return targetTableIdent;
     }
 
     public boolean isPartitioned() {
@@ -56,8 +62,8 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (tableIdent == null) {
-            validationException = addValidationError("table ident must not be null", null);
+        if (sourceTableIdent == null || targetTableIdent == null) {
+            validationException = addValidationError("source and target table ident must not be null", null);
         }
         return validationException;
     }
@@ -65,14 +71,16 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        tableIdent = new TableIdent(in);
+        sourceTableIdent = new TableIdent(in);
+        targetTableIdent = new TableIdent(in);
         isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        tableIdent.writeTo(out);
+        sourceTableIdent.writeTo(out);
+        targetTableIdent.writeTo(out);
         out.writeBoolean(isPartitioned);
     }
 }

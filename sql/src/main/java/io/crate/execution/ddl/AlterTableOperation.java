@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.ddl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
@@ -41,12 +41,12 @@ import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
-import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionRequest;
-import io.crate.executor.transport.ddl.OpenCloseTableOrPartitionResponse;
-import io.crate.executor.transport.ddl.RenameTableRequest;
-import io.crate.executor.transport.ddl.RenameTableResponse;
-import io.crate.executor.transport.ddl.TransportOpenCloseTableOrPartitionAction;
-import io.crate.executor.transport.ddl.TransportRenameTableAction;
+import io.crate.execution.ddl.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.OpenCloseTableOrPartitionResponse;
+import io.crate.execution.ddl.RenameTableRequest;
+import io.crate.execution.ddl.RenameTableResponse;
+import io.crate.execution.ddl.TransportOpenCloseTableOrPartitionAction;
+import io.crate.execution.ddl.TransportRenameTableAction;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;

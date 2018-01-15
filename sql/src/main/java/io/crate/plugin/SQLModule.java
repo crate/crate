@@ -21,9 +21,9 @@
 
 package io.crate.plugin;
 
-import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
-import io.crate.executor.transport.TransportSchemaUpdateAction;
+import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.ingestion.TransportCreateIngestRuleAction;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.ddl;
+package io.crate.execution.ddl;
 
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionRequestValidationException;

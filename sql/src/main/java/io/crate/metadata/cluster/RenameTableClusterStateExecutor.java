@@ -23,7 +23,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.Constants;
-import io.crate.executor.transport.ddl.RenameTableRequest;
+import io.crate.execution.ddl.RenameTableRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;

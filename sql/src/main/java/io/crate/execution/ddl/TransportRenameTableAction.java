@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.ddl;
+package io.crate.execution.ddl;
 
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;

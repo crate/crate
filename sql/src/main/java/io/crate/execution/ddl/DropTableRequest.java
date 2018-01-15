@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.ddl;
+package io.crate.execution.ddl;
 
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -32,27 +32,21 @@ import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
-public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
+public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
-    private TableIdent sourceTableIdent;
-    private TableIdent targetTableIdent;
+    private TableIdent tableIdent;
     private boolean isPartitioned;
 
-    RenameTableRequest() {
+    public DropTableRequest() {
     }
 
-    public RenameTableRequest(TableIdent sourceTableIdent, TableIdent targetTableIdent, boolean isPartitioned) {
-        this.sourceTableIdent = sourceTableIdent;
-        this.targetTableIdent = targetTableIdent;
+    public DropTableRequest(TableIdent tableIdent, boolean isPartitioned) {
+        this.tableIdent = tableIdent;
         this.isPartitioned = isPartitioned;
     }
 
-    public TableIdent sourceTableIdent() {
-        return sourceTableIdent;
-    }
-
-    public TableIdent targetTableIdent() {
-        return targetTableIdent;
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 
     public boolean isPartitioned() {
@@ -62,8 +56,8 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (sourceTableIdent == null || targetTableIdent == null) {
-            validationException = addValidationError("source and target table ident must not be null", null);
+        if (tableIdent == null) {
+            validationException = addValidationError("table ident must not be null", null);
         }
         return validationException;
     }
@@ -71,16 +65,14 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        sourceTableIdent = new TableIdent(in);
-        targetTableIdent = new TableIdent(in);
+        tableIdent = new TableIdent(in);
         isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        sourceTableIdent.writeTo(out);
-        targetTableIdent.writeTo(out);
+        tableIdent.writeTo(out);
         out.writeBoolean(isPartitioned);
     }
 }

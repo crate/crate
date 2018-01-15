@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
-import io.crate.execution.support.RepositoryService;
+import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;

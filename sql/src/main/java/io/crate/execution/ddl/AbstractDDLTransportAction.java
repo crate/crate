@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.ddl;
+package io.crate.execution.ddl;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
