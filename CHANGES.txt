@@ -24,6 +24,9 @@ Changes
 Fixes
 =====
 
+- Improved error message when using the `DISTINCT` clause on unsupported data
+  types. Also improved documentation to note the data type restriction.
+
 - Fix log verbosity by only logging the HTTP SSL enabled/disabled message once
   at startup.
 

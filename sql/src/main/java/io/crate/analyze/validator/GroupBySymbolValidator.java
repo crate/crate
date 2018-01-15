@@ -37,22 +37,36 @@ public class GroupBySymbolValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, null);
+        INNER_VALIDATOR.process(symbol, new Context("Cannot GROUP BY '%s': invalid data type '%s'"));
     }
 
-    private static void validateDataType(Symbol symbol) {
+    public static void validateForDistinctRewrite(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
+        INNER_VALIDATOR.process(symbol, new Context("Cannot use DISTINCT on '%s': invalid data type '%s'"));
+    }
+
+    private static void validateDataType(Symbol symbol, String errorMesage) {
         if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot GROUP BY '%s': invalid data type '%s'",
+                String.format(Locale.ENGLISH, errorMesage,
                     SymbolPrinter.INSTANCE.printSimple(symbol),
                     symbol.valueType()));
         }
     }
 
-    private static class InnerValidator extends SymbolVisitor<Function, Void> {
+    private static class Context {
+        final String invalidTypeErrorMessage;
+        @Nullable
+        Function parentScalar;
+
+        public Context(String invalidTypeErrorMessage) {
+            this.invalidTypeErrorMessage = invalidTypeErrorMessage;
+        }
+    }
+
+    private static class InnerValidator extends SymbolVisitor<Context, Void> {
 
         @Override
-        public Void visitFunction(Function function, @Nullable Function parentScalar) {
+        public Void visitFunction(Function function, Context context) {
             switch (function.info().type()) {
                 case SCALAR:
                     // If is literal no further datatype validation is required
@@ -60,12 +74,12 @@ public class GroupBySymbolValidator {
                         return null;
                     }
 
-                    visitSymbol(function, parentScalar);
-                    if (parentScalar == null) {
-                        parentScalar = function;
+                    visitSymbol(function, context);
+                    if (context.parentScalar == null) {
+                        context.parentScalar = function;
                     }
                     for (Symbol argument : function.arguments()) {
-                        process(argument, parentScalar);
+                        process(argument, context);
                     }
                     break;
                 case AGGREGATE:
@@ -78,22 +92,22 @@ public class GroupBySymbolValidator {
         }
 
         @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, @Nullable Function parentScalar) {
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, @Nullable Function parentScalar) {
+        protected Void visitSymbol(Symbol symbol, Context context) {
             // If is literal no further datatype validation is required
             if (Symbols.allLiterals(symbol)) {
                 return null;
             }
 
-            if (parentScalar == null) {
-                validateDataType(symbol);
+            if (context.parentScalar == null) {
+                validateDataType(symbol, context.invalidTypeErrorMessage);
             } else {
-                validateDataType(parentScalar);
+                validateDataType(context.parentScalar, context.invalidTypeErrorMessage);
             }
             return null;
         }

@@ -405,6 +405,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             .orderBy(newOrderBy)
             .limit(limit)
             .offset(offset);
+
+        // At the time of writing, validation here is not needed as no aggregation function supports/returns
+        // complex types but that could change in future. Also we cannot test it for that reasons.
+        for (Symbol symbol : newQspecSymbols) {
+            GroupBySymbolValidator.validateForDistinctRewrite(symbol);
+        }
+
         relation = new QueriedSelectRelation(relation, relation.fields(), newQuerySpec);
         return relation;
     }
@@ -424,7 +431,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
             if (Aggregations.containsAggregation(symbol) == false) {
-                GroupBySymbolValidator.validate(symbol);
+                GroupBySymbolValidator.validateForDistinctRewrite(symbol);
                 groupBy.add(symbol);
             }
         }
