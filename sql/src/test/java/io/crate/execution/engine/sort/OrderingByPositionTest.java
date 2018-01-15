@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors.sorting;
+package io.crate.execution.engine.sort;
 
 import com.google.common.collect.Ordering;
 import io.crate.test.integration.CrateUnitTest;

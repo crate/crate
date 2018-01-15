@@ -24,7 +24,7 @@ package io.crate.operation.merge;
 
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;

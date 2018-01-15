@@ -22,7 +22,7 @@
 package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
-import io.crate.action.sql.query.LuceneSortGenerator;
+import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.FieldTypeLookup;

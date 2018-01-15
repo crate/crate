@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.TopNProjection;

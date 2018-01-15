@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.sort;
 
 import com.google.common.base.Preconditions;
 import io.crate.data.ArrayBucket;
@@ -28,7 +28,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.projectors.sorting.RowPriorityQueue;
+import io.crate.execution.engine.sort.RowPriorityQueue;
 import org.apache.lucene.util.ArrayUtil;
 
 import java.util.Collection;

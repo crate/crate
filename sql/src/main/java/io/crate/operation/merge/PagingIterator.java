@@ -23,7 +23,7 @@ package io.crate.operation.merge;
 
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
 import org.elasticsearch.common.inject.internal.Nullable;
 

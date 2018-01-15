@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
@@ -29,10 +29,9 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;

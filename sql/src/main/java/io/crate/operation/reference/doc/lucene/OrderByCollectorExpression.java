@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.action.sql.query.SortSymbolVisitor;
+import io.crate.execution.engine.sort.SortSymbolVisitor;
 import io.crate.analyze.OrderBy;
 import io.crate.metadata.Reference;
 import org.apache.lucene.search.FieldDoc;

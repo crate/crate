@@ -27,7 +27,7 @@ import com.google.common.collect.Ordering;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
