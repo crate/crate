@@ -23,7 +23,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.execution.expression.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;

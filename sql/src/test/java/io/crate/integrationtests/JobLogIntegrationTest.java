@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;

@@ -27,7 +27,6 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.operation.PageResultListener;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;

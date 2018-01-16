@@ -23,7 +23,7 @@
 package io.crate.analyze.symbol;
 
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.scalar.arithmetic.ArrayFunction;
+import io.crate.execution.expression.scalar.arithmetic.ArrayFunction;
 
 import java.util.List;
 

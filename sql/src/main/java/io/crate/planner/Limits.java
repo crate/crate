@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
-import io.crate.operation.scalar.conditional.LeastFunction;
+import io.crate.execution.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.execution.expression.scalar.conditional.LeastFunction;
 
 import javax.annotation.Nullable;
 

@@ -30,14 +30,14 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.operation.InputRow;
+import io.crate.execution.expression.InputRow;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.RowShardResolver;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 

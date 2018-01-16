@@ -37,7 +37,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.operation.operator.AndOperator;
+import io.crate.execution.expression.operator.AndOperator;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 

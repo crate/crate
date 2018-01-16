@@ -27,7 +27,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 

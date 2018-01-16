@@ -42,7 +42,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.reference.partitioned.PartitionExpression;
+import io.crate.execution.expression.reference.partitioned.PartitionExpression;
 import io.crate.planner.WhereClauseOptimizer;
 import org.elasticsearch.common.collect.Tuple;
 

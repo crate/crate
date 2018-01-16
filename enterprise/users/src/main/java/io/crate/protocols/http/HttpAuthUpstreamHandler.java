@@ -23,7 +23,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.rest.CrateRestMainAction;

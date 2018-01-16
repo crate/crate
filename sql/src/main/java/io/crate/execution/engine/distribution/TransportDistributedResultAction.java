@@ -31,7 +31,7 @@ import io.crate.execution.jobs.DownstreamExecutionSubContext;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.operation.PageResultListener;
+import io.crate.execution.jobs.PageResultListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.component.AbstractComponent;

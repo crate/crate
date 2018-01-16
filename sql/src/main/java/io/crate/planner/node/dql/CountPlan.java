@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;

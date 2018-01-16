@@ -25,7 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.sql.parser.ParsingException;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;

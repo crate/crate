@@ -22,9 +22,9 @@
 
 package io.crate.integrationtests;
 
-import io.crate.operation.reference.sys.check.SysCheck;
-import io.crate.operation.reference.sys.check.cluster.TablesNeedRecreationSysCheck;
-import io.crate.operation.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
+import io.crate.execution.expression.reference.sys.check.SysCheck;
+import io.crate.execution.expression.reference.sys.check.cluster.TablesNeedRecreationSysCheck;
+import io.crate.execution.expression.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -34,7 +34,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import static io.crate.operation.reference.sys.check.AbstractSysCheck.LINK_PATTERN;
+import static io.crate.execution.expression.reference.sys.check.AbstractSysCheck.LINK_PATTERN;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)

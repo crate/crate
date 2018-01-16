@@ -31,7 +31,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;

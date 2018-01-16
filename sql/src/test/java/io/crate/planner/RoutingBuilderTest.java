@@ -34,7 +34,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.EqOperator;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;

@@ -24,9 +24,9 @@ package io.crate.planner;
 
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.execution.ddl.DDLStatementDispatcher;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.TransportDropTableAction;
-import io.crate.executor.transport.executionphases.PhasesTaskFactory;
+import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.metadata.Functions;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;

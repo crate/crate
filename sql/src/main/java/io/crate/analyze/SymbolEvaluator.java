@@ -28,8 +28,9 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.expression.InputFactory;
 import io.crate.metadata.Functions;
-import io.crate.operation.BaseImplementationSymbolVisitor;
+import io.crate.execution.expression.BaseImplementationSymbolVisitor;
 import io.crate.types.DataType;
 
 import java.util.Map;
@@ -38,7 +39,7 @@ import java.util.Map;
  * Used to evaluate a symbol tree to a value.
  *
  * - This should be preferred over {@link EvaluatingNormalizer} if it's required to fully evaluate the tree
- * - This should be preferred over {@link io.crate.operation.InputFactory} if it's not used repeatedly.
+ * - This should be preferred over {@link InputFactory} if it's not used repeatedly.
  *   (Unless column evaluation is necessary)
  *
  * This does not handle Columns/InputColumns, only Functions, Literals, ParameterSymbols and SubQuery values

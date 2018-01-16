@@ -24,8 +24,8 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.Row;
 import io.crate.execution.dml.ShardRequest;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.RowShardResolver;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;

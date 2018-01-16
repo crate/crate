@@ -31,7 +31,7 @@ import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.support.Transports;
 import io.crate.execution.jobs.JobContextService;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;

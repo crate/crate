@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.exceptions.SQLExceptions;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 
 import java.util.UUID;
 import java.util.function.BiConsumer;

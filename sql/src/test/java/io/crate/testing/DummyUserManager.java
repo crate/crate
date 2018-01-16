@@ -23,10 +23,10 @@
 package io.crate.testing;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
-import io.crate.operation.user.StatementAuthorizedValidator;
-import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.StatementAuthorizedValidator;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.user.SecureHash;
 
 import javax.annotation.Nullable;

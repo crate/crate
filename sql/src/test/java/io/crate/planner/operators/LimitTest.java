@@ -26,7 +26,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Row;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;

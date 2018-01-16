@@ -28,7 +28,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

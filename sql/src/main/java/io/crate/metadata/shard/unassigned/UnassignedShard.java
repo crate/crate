@@ -38,7 +38,7 @@ import org.elasticsearch.index.shard.ShardId;
  * The {@link io.crate.metadata.sys.SysShardsTableInfo} will encode any shards that aren't assigned to a node
  * by negating them using {@link #markUnassigned(int)}
  * <p>
- * The {@link io.crate.operation.collect.sources.ShardCollectSource} will then collect UnassignedShard
+ * The {@link io.crate.execution.engine.collect.sources.ShardCollectSource} will then collect UnassignedShard
  * instances for all shardIds that are negative.
  * <p>
  * This is only for "select ... from sys.shards" queries.

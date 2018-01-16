@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.execution.jobs.kill.KillAllListener;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;

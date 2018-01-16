@@ -26,7 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.operation.operator.EqOperator;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.execution.dsl.phases.NestedLoopPhase;

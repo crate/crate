@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 

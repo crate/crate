@@ -31,7 +31,7 @@ import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;

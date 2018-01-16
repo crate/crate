@@ -37,7 +37,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.execution.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;

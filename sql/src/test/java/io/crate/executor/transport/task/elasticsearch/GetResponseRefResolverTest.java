@@ -23,10 +23,11 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Lists;
+import io.crate.execution.expression.reference.GetResponseRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.get.GetResponse;

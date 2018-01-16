@@ -33,7 +33,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;

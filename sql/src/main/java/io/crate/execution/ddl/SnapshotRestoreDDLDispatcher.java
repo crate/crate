@@ -29,7 +29,7 @@ import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLOperations;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.auth.AuthSettings;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.UserManager;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyUserManager;
 import io.netty.handler.codec.http.HttpHeaderNames;

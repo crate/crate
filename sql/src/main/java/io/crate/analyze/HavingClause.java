@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.operator.AndOperator;
+import io.crate.execution.expression.operator.AndOperator;
 
 import javax.annotation.Nullable;
 

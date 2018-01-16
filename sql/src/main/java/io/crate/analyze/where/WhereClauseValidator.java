@@ -31,10 +31,10 @@ import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.GteOperator;
-import io.crate.operation.operator.any.AnyEqOperator;
-import io.crate.operation.predicate.NotPredicate;
+import io.crate.execution.expression.operator.EqOperator;
+import io.crate.execution.expression.operator.GteOperator;
+import io.crate.execution.expression.operator.any.AnyEqOperator;
+import io.crate.execution.expression.predicate.NotPredicate;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;

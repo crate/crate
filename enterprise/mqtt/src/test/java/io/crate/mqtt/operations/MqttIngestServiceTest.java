@@ -25,7 +25,7 @@ package io.crate.mqtt.operations;
 import io.crate.action.sql.SQLOperations;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
-import io.crate.operation.user.UserLookup;
+import io.crate.auth.user.UserLookup;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.codec.mqtt.MqttPublishMessage;
 import org.junit.Before;

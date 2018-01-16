@@ -40,7 +40,7 @@ import io.crate.ingestion.DropIngestRuleRequest;
 import io.crate.ingestion.IngestRuleResponse;
 import io.crate.ingestion.TransportCreateIngestRuleAction;
 import io.crate.ingestion.TransportDropIngestRuleAction;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.UserManager;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.ParameterExpression;
 import org.elasticsearch.ResourceNotFoundException;

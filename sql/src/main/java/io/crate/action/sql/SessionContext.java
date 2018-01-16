@@ -25,9 +25,9 @@ package io.crate.action.sql;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.Schemas;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
-import io.crate.operation.user.StatementAuthorizedValidator;
-import io.crate.operation.user.User;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.StatementAuthorizedValidator;
+import io.crate.auth.user.User;
 
 import javax.annotation.Nullable;
 import java.util.Objects;

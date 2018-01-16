@@ -26,7 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.crate.mqtt.protocol.MqttProcessor;
 import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.UserManager;
 import io.crate.protocols.postgres.BindPostgresException;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;

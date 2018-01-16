@@ -27,7 +27,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;

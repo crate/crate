@@ -24,7 +24,7 @@ package io.crate.cluster.gracefulstop;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;

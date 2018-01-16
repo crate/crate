@@ -31,13 +31,13 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.operation.collect.sources.InformationSchemaIterables;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.RowContextCollectorExpression.forFunction;
 import static io.crate.metadata.RowContextCollectorExpression.objToBytesRef;
-import static io.crate.operation.collect.sources.InformationSchemaIterables.PK_SUFFIX;
+import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
 
 /**
  * Table which contains the primary keys of all user tables.

@@ -35,7 +35,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.operation.InputRow;
+import io.crate.execution.expression.InputRow;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 

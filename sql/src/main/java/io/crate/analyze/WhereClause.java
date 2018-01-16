@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.operator.AndOperator;
+import io.crate.execution.expression.operator.AndOperator;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.operation.operator.AndOperator;
+import io.crate.execution.expression.operator.AndOperator;
 import io.crate.planner.consumer.QualifiedNameCollector;
 import io.crate.sql.tree.QualifiedName;
 

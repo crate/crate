@@ -23,8 +23,8 @@
 package io.crate.execution.engine.sort;
 
 import io.crate.data.Input;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;

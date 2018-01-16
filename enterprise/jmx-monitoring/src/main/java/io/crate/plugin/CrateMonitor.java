@@ -19,7 +19,7 @@
 package io.crate.plugin;
 
 import io.crate.beans.QueryStats;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;

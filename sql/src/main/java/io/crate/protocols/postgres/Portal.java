@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.symbol.Field;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;

@@ -36,7 +36,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.operation.scalar.FormatFunction;
+import io.crate.execution.expression.scalar.FormatFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;

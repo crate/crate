@@ -77,7 +77,7 @@ public class SemanticSortValidator {
 
         public Void visitMatchPredicate(MatchPredicate matchPredicate, SortContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s predicate cannot be used in an ORDER BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
+                "%s predicate cannot be used in an ORDER BY clause", io.crate.execution.expression.predicate.MatchPredicate.NAME));
         }
 
         @Override

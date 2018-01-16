@@ -18,7 +18,7 @@
 
 package io.crate.module;
 
-import io.crate.operation.AbstractFunctionModule;
+import io.crate.execution.expression.AbstractFunctionModule;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
 

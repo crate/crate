@@ -18,13 +18,13 @@
 
 package io.crate.plugin;
 
-import io.crate.operation.user.TransportAlterUserAction;
-import io.crate.operation.user.TransportCreateUserAction;
-import io.crate.operation.user.TransportDropUserAction;
-import io.crate.operation.user.TransportPrivilegesAction;
-import io.crate.operation.user.UserLookup;
-import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerService;
+import io.crate.auth.user.TransportAlterUserAction;
+import io.crate.auth.user.TransportCreateUserAction;
+import io.crate.auth.user.TransportDropUserAction;
+import io.crate.auth.user.TransportPrivilegesAction;
+import io.crate.auth.user.UserLookup;
+import io.crate.auth.user.UserManager;
+import io.crate.auth.user.UserManagerService;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class UserManagementModule extends AbstractModule {

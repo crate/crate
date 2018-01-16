@@ -24,7 +24,7 @@ package io.crate.planner;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.execution.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;

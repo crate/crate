@@ -30,7 +30,7 @@ import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.export.Output;
 import io.crate.execution.engine.export.OutputFile;
 import io.crate.execution.engine.export.OutputS3;

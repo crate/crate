@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.execution.support.Paging;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;

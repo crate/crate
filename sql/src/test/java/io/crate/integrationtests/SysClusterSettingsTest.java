@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Splitter;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;

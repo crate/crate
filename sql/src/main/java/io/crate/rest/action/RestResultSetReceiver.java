@@ -26,7 +26,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
