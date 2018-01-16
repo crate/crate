@@ -22,17 +22,24 @@
 
 package io.crate.execution.engine;
 
+
 import io.crate.execution.jobs.PageResultListener;
 
-class BucketResultListener implements PageResultListener {
+/**
+ * PageResultListener that raises an exception if `needMore(true)` is called.
+ */
+final class PagingUnsupportedResultListener implements PageResultListener {
 
-    BucketResultListener() {
+    static final PagingUnsupportedResultListener INSTANCE = new PagingUnsupportedResultListener();
+
+    private PagingUnsupportedResultListener() {
     }
 
     @Override
     public void needMore(boolean needMore) {
         if (needMore) {
-            ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
+            throw new IllegalStateException(
+                "A downstream requested more data from an upstream, but that is not supported in direct-response mode");
         }
     }
 }
