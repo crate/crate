@@ -24,7 +24,7 @@ package io.crate.user;
 
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.UserManager;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class UserFallbackModule extends AbstractModule {

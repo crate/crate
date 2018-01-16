@@ -22,7 +22,7 @@
 
 package io.crate.auth;
 
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.settings.SecureString;
 

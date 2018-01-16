@@ -30,7 +30,7 @@ import io.crate.execution.expression.reference.sys.job.JobContext;
 import io.crate.execution.expression.reference.sys.job.JobContextLog;
 import io.crate.execution.expression.reference.sys.operation.OperationContext;
 import io.crate.execution.expression.reference.sys.operation.OperationContextLog;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;

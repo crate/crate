@@ -34,7 +34,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projection;

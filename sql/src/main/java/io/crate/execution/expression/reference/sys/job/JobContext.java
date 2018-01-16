@@ -21,7 +21,7 @@
 
 package io.crate.execution.expression.reference.sys.job;
 
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 
 import javax.annotation.Nullable;
 import java.util.UUID;

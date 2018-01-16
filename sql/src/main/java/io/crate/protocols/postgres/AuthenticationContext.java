@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.auth.AuthenticationMethod;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.SecureString;
 

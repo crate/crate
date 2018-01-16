@@ -18,7 +18,7 @@
 
 package io.crate.auth;
 
-import io.crate.operation.user.UserLookup;
+import io.crate.auth.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.inject.Inject;
 

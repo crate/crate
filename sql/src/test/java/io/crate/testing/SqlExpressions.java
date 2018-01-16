@@ -43,7 +43,7 @@ import io.crate.execution.expression.operator.OperatorModule;
 import io.crate.execution.expression.predicate.PredicateModule;
 import io.crate.execution.expression.scalar.ScalarFunctionModule;
 import io.crate.execution.expression.tablefunctions.TableFunctionModule;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;

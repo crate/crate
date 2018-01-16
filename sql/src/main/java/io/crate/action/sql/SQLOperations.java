@@ -24,8 +24,8 @@ package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;

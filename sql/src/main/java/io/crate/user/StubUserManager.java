@@ -25,10 +25,10 @@ package io.crate.user;
 import io.crate.analyze.user.Privilege;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
-import io.crate.operation.user.StatementAuthorizedValidator;
-import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.StatementAuthorizedValidator;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

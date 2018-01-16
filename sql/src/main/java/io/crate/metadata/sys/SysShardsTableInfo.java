@@ -39,7 +39,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatType;

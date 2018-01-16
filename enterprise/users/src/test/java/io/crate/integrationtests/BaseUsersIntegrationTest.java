@@ -21,8 +21,8 @@ package io.crate.integrationtests;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.user.User;
-import io.crate.operation.user.UserManagerService;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserManagerService;
 import io.crate.testing.SQLResponse;
 import org.junit.Before;
 

@@ -20,7 +20,7 @@
 package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.operation.user.UserManagerService;
+import io.crate.auth.user.UserManagerService;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;

@@ -32,7 +32,7 @@ import io.crate.collections.Lists2;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;

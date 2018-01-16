@@ -29,7 +29,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.operation.user.User;
+import io.crate.auth.user.User;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.QualifiedName;

@@ -54,7 +54,7 @@ import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.execution.expression.udf.UserDefinedFunctionDDLClient;
-import io.crate.operation.user.UserManager;
+import io.crate.auth.user.UserManager;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
