@@ -24,25 +24,25 @@ package io.crate.execution.engine;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import io.crate.execution.jobs.ContextPreparer;
-import io.crate.execution.jobs.transport.JobRequest;
-import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.RowConsumer;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.dsl.phases.NodeOperationGrouper;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.jobs.ContextPreparer;
 import io.crate.execution.jobs.DownstreamExecutionSubContext;
 import io.crate.execution.jobs.ExecutionSubContext;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.execution.dsl.phases.NodeOperationGrouper;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.JobRequest;
+import io.crate.execution.jobs.transport.TransportJobAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
@@ -215,7 +215,7 @@ public class ExecutionPhasesTask {
         if (!localNodeOperations.isEmpty() && !directResponseFutures.isEmpty()) {
             assert directResponseFutures.size() == pageBucketReceivers.size() : "directResponses size must match pageBucketReceivers";
             CompletableFutures.allAsList(directResponseFutures)
-                .whenComplete(new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
+                .whenComplete(BucketForwarder.asConsumer(pageBucketReceivers, bucketIdx, initializationTracker));
             bucketIdx++;
             try {
                 // initializationTracker for localNodeOperations is triggered via SetBucketCallback
@@ -276,7 +276,7 @@ public class ExecutionPhasesTask {
             JobRequest request = new JobRequest(jobId, localNodeId, entry.getValue());
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
-                    new SetBucketActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
+                    BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
             } else {
                 transportJobAction.execute(serverNodeId, request, new FailureOnlyResponseListener(handlerPhases, initializationTracker));
             }
