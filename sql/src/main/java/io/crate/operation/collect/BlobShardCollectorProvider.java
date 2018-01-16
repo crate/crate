@@ -23,14 +23,14 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.action.job.SharedShardContext;
+import io.crate.execution.jobs.SharedShardContext;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.collectors.BlobOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;

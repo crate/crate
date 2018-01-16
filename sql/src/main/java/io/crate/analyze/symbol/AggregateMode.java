@@ -25,7 +25,7 @@ package io.crate.analyze.symbol;
 import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
-import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

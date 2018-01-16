@@ -23,7 +23,7 @@
 package io.crate.executor.transport.executionphases;
 
 import io.crate.data.Bucket;
-import io.crate.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.PageBucketReceiver;
 
 import javax.annotation.Nonnull;
 import java.util.List;

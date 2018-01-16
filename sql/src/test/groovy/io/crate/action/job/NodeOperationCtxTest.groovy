@@ -24,6 +24,7 @@ package io.crate.action.job
 
 import com.carrotsearch.hppc.IntArrayList
 import io.crate.execution.dsl.phases.NodeOperation
+import io.crate.execution.jobs.ContextPreparer
 import io.crate.planner.distribution.DistributionInfo
 import io.crate.testing.StubPhases
 import org.junit.Test

@@ -27,7 +27,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.operation.auth.Authentication;
+import io.crate.auth.Authentication;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;

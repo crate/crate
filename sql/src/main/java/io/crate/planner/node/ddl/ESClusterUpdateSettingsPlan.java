@@ -24,7 +24,7 @@ package io.crate.planner.node.ddl;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
+import io.crate.execution.ddl.ESClusterUpdateSettingsTask;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;

@@ -36,7 +36,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeJobsCounter;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;

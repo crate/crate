@@ -22,7 +22,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.projectors.fetch.FetchId;
+import io.crate.execution.engine.fetch.FetchId;
 import org.apache.lucene.index.LeafReaderContext;
 
 import java.io.IOException;

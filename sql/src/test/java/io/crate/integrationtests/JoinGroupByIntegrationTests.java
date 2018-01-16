@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.data.CollectionBucket;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import org.junit.Before;
 import org.junit.Test;

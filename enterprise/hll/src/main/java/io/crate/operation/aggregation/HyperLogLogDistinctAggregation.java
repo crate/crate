@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.module.HyperLogLogModule;

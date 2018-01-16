@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;

@@ -44,7 +44,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.aggregation.impl.AverageAggregation;
+import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.LikeOperator;
 import io.crate.operation.operator.LteOperator;

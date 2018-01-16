@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.ddl.RepositoryService;
 import io.crate.sql.tree.DropRepository;
 
 class DropRepositoryAnalyzer {

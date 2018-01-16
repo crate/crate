@@ -23,8 +23,9 @@
 package io.crate.executor.transport;
 
 import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.Paging;
+import io.crate.execution.support.Paging;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
@@ -234,7 +235,7 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
      *
      * We branch off for both sides of the Union with different input ids. In contrast
      * to the {@code visitNestedLoop}, we don't have a special iterator which merges the
-     * result from both sides. The {@link io.crate.operation.projectors.DistributingDownstreamFactory}
+     * result from both sides. The {@link DistributingConsumerFactory}
      * generates buckets ids based on the input id and the node id which creates all
      * buckets required to merge the results of both branches.
      */

@@ -19,7 +19,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

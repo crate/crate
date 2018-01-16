@@ -52,7 +52,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
-import io.crate.operation.aggregation.impl.CollectSetAggregation;
+import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.LikeOperator;

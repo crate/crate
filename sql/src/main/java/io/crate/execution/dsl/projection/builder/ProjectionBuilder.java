@@ -40,7 +40,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.operation.projectors.TopN;
 import io.crate.types.DataType;
 

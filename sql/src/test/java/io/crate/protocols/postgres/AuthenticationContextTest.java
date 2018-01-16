@@ -22,10 +22,10 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.operation.auth.AlwaysOKNullAuthentication;
-import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.AuthenticationMethod;
-import io.crate.operation.auth.Protocol;
+import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.auth.Authentication;
+import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Protocol;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

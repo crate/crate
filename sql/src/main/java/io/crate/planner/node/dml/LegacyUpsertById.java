@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.LegacyUpsertByIdTask;
+import io.crate.execution.dml.upsert.LegacyUpsertByIdTask;
 import io.crate.metadata.Reference;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;

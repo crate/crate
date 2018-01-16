@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.operation.auth.Protocol;
+import io.crate.auth.Protocol;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 

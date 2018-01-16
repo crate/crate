@@ -39,7 +39,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
-import io.crate.operation.auth.AuthSettings;
+import io.crate.auth.AuthSettings;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;

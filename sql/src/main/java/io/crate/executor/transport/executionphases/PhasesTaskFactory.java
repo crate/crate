@@ -22,10 +22,10 @@
 
 package io.crate.executor.transport.executionphases;
 
-import io.crate.action.job.ContextPreparer;
-import io.crate.action.job.TransportJobAction;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.jobs.JobContextService;
+import io.crate.execution.jobs.ContextPreparer;
+import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.operation.NodeOperationTree;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;

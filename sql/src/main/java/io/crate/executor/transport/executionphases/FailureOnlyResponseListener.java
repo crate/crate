@@ -22,7 +22,7 @@
 
 package io.crate.executor.transport.executionphases;
 
-import io.crate.action.job.JobResponse;
+import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;

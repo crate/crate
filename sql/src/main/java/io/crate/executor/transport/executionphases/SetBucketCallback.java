@@ -24,7 +24,7 @@ package io.crate.executor.transport.executionphases;
 
 import io.crate.data.Bucket;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.PageBucketReceiver;
 
 import java.util.List;
 import java.util.function.BiConsumer;

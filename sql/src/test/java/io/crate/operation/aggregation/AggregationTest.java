@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;

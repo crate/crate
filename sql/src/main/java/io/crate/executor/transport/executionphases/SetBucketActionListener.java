@@ -23,8 +23,8 @@
 package io.crate.executor.transport.executionphases;
 
 import io.crate.Streamer;
-import io.crate.action.job.JobResponse;
-import io.crate.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.transport.JobResponse;
+import io.crate.execution.jobs.PageBucketReceiver;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;

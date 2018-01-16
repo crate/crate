@@ -18,10 +18,10 @@
 
 package io.crate.plugin;
 
-import io.crate.operation.auth.AlwaysOKAuthentication;
-import io.crate.operation.auth.AuthSettings;
-import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.HostBasedAuthentication;
+import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.Authentication;
+import io.crate.auth.HostBasedAuthentication;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 

@@ -49,7 +49,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
-import io.crate.executor.transport.RepositoryService;
+import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RoutingProvider;

@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;

@@ -26,7 +26,7 @@ package io.crate.operation.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.metadata.Reference;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;

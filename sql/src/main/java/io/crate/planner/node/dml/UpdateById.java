@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.UpdateByIdTask;
+import io.crate.execution.dml.upsert.UpdateByIdTask;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;

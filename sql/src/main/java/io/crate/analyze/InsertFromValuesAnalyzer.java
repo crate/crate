@@ -38,7 +38,7 @@ import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.executor.transport.TransportShardUpsertAction;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;

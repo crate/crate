@@ -22,7 +22,7 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.executor.transport.ddl.DropTableRequest;
+import io.crate.execution.ddl.DropTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.support.IndicesOptions;

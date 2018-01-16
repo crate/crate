@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.operation.Paging;
+import io.crate.execution.support.Paging;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 

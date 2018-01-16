@@ -34,7 +34,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;

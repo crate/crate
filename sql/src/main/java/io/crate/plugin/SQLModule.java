@@ -21,13 +21,13 @@
 
 package io.crate.plugin;
 
-import io.crate.action.sql.DDLStatementDispatcher;
+import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
-import io.crate.executor.transport.TransportSchemaUpdateAction;
+import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.operation.rule.ingest.TransportCreateIngestRuleAction;
-import io.crate.operation.rule.ingest.TransportDropIngestRuleAction;
+import io.crate.ingestion.TransportCreateIngestRuleAction;
+import io.crate.ingestion.TransportDropIngestRuleAction;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.operation.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.operation.udf.UserDefinedFunctionService;
