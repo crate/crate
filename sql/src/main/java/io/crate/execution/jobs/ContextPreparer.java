@@ -54,7 +54,7 @@ import io.crate.operation.RowFilter;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.engine.collect.sources.SystemCollectSource;
-import io.crate.operation.count.CountOperation;
+import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.execution.engine.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.execution.engine.distribution.merge.PagingIterator;

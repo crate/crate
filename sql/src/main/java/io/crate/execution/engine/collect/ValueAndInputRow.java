@@ -36,7 +36,7 @@ import java.util.function.Supplier;
  * <p>
  * This is used for system tables to transform an Iterable of TValue into Row using the supplied inputs and collectExpression.
  * <p>
- * It will keep a reference to the original TValue to be used by {@link io.crate.operation.projectors.SysUpdateProjector}
+ * It will keep a reference to the original TValue to be used by {@link io.crate.execution.dml.SysUpdateProjector}
  */
 public class ValueAndInputRow<TValue> extends InputRow implements Function<TValue, Row>, Supplier<TValue> {
 

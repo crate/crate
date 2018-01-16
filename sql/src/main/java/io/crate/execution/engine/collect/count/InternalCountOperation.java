@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.count;
+package io.crate.execution.engine.collect.count;
 
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;

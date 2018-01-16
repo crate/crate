@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.count;
+package io.crate.execution.engine.collect.count;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;

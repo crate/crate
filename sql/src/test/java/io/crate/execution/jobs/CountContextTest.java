@@ -23,7 +23,7 @@ package io.crate.execution.jobs;
 
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.operation.count.CountOperation;
+import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
