@@ -24,7 +24,7 @@ package io.crate.metadata.information;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.sources.InformationSchemaIterables;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.operation.reference.StaticTableDefinition;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;

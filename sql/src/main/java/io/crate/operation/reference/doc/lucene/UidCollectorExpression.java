@@ -23,7 +23,7 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import org.apache.lucene.util.BytesRef;
 
 public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> {

@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc.blob;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Reference;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 
 import java.io.File;

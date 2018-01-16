@@ -38,7 +38,7 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;

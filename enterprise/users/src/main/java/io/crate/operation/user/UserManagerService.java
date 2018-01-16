@@ -31,7 +31,7 @@ import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
-import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;

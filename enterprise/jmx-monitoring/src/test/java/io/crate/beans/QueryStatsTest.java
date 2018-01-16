@@ -19,7 +19,7 @@
 package io.crate.beans;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import org.junit.Test;

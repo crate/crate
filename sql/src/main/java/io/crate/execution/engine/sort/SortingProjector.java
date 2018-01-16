@@ -30,7 +30,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Collection;
 import java.util.Comparator;

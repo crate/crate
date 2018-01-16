@@ -25,7 +25,7 @@ package io.crate.operation.reference.sys.cluster;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;

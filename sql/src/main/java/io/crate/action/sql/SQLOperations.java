@@ -23,7 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.planner.DependencyCarrier;

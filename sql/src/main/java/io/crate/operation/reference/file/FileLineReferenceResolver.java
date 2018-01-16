@@ -24,7 +24,7 @@ package io.crate.operation.reference.file;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.operation.collect.files.LineCollectorExpression;
+import io.crate.execution.engine.collect.files.LineCollectorExpression;
 
 import java.util.Map;
 import java.util.function.Supplier;

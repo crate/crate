@@ -22,7 +22,7 @@ import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
 import org.junit.Test;

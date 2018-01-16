@@ -34,7 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.DocInputFactory;
+import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;

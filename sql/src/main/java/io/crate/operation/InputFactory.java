@@ -35,8 +35,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.ArrayList;

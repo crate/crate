@@ -27,7 +27,7 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.RowPriorityQueue;
 import org.apache.lucene.util.ArrayUtil;
 

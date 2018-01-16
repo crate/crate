@@ -28,7 +28,7 @@ import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.planner.DependencyCarrier;

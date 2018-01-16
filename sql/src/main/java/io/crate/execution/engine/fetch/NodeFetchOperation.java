@@ -34,7 +34,7 @@ import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;

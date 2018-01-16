@@ -22,7 +22,7 @@
 package io.crate.execution.jobs;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;

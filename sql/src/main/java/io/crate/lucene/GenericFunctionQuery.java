@@ -24,7 +24,7 @@ package io.crate.lucene;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.data.Input;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;

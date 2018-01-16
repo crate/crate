@@ -36,8 +36,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.operation.InputRow;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.RowShardResolver;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 

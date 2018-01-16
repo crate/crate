@@ -20,7 +20,7 @@ package io.crate.beans;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.operation.reference.sys.job.JobContextLog;
 
 import java.util.HashMap;

@@ -28,7 +28,7 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.operation.InputRow;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;

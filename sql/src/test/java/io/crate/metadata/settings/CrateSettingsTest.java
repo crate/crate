@@ -23,7 +23,7 @@
 package io.crate.metadata.settings;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

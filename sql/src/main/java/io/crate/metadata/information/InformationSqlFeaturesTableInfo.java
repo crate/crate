@@ -32,7 +32,7 @@ import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.operation.collect.files.SqlFeatureContext;
+import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

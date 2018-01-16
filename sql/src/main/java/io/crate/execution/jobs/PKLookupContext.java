@@ -32,7 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.InputFactory;
 import io.crate.operation.InputRow;
 import io.crate.operation.PKLookupOperation;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.get.GetResponse;

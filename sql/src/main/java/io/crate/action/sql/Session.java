@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;

@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.search.lookup.SourceLookup;
 

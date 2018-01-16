@@ -47,7 +47,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;

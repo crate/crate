@@ -25,7 +25,7 @@ package io.crate.operation.reference.sys;
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowCollectExpression;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.Collection;
 import java.util.Iterator;

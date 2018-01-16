@@ -28,7 +28,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.node.DummyStatsProvider;
 import io.crate.operation.reference.sys.node.NodeStatsContext;

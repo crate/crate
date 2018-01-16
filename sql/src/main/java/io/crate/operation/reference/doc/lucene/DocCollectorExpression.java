@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc.lucene;
 import com.google.common.base.Joiner;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;

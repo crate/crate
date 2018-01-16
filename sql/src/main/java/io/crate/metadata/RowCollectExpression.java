@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 
 /**
  * Base interface for row based expressions.

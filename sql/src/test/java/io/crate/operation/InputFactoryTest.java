@@ -35,7 +35,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.FunctionExpression;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;

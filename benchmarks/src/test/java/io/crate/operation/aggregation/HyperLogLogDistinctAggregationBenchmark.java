@@ -30,7 +30,7 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.Functions;
 import io.crate.module.HyperLogLogModule;
-import io.crate.operation.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

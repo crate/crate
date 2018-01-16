@@ -28,7 +28,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;

@@ -78,7 +78,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.InputFactory;
 import io.crate.operation.RowFilter;
 import io.crate.operation.TableSettingsResolver;
-import io.crate.operation.collect.CollectExpression;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.operation.reference.StaticTableDefinition;
 import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.types.StringType;

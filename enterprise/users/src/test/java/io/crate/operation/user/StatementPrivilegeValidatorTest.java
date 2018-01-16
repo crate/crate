@@ -30,7 +30,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

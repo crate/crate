@@ -19,7 +19,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
