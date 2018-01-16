@@ -26,7 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.operation.aggregation.RowTransformingBatchIterator;
+import io.crate.execution.engine.pipeline.RowTransformingBatchIterator;
 import io.crate.execution.engine.collect.CollectExpression;
 
 import java.util.List;

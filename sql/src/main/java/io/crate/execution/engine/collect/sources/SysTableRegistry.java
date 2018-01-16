@@ -28,7 +28,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.execution.expression.reference.StaticTableDefinition;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

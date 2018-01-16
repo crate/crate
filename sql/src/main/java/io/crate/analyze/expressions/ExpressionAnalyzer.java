@@ -53,25 +53,25 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
-import io.crate.operation.operator.AndOperator;
-import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.LikeOperator;
-import io.crate.operation.operator.Operator;
-import io.crate.operation.operator.OrOperator;
-import io.crate.operation.operator.RegexpMatchCaseInsensitiveOperator;
-import io.crate.operation.operator.RegexpMatchOperator;
-import io.crate.operation.operator.any.AnyLikeOperator;
-import io.crate.operation.operator.any.AnyNotLikeOperator;
-import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.scalar.ExtractFunctions;
-import io.crate.operation.scalar.SubscriptFunction;
-import io.crate.operation.scalar.SubscriptObjectFunction;
-import io.crate.operation.scalar.arithmetic.ArrayFunction;
-import io.crate.operation.scalar.arithmetic.MapFunction;
-import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.operation.scalar.conditional.IfFunction;
-import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
+import io.crate.execution.expression.operator.AndOperator;
+import io.crate.execution.expression.operator.EqOperator;
+import io.crate.execution.expression.operator.LikeOperator;
+import io.crate.execution.expression.operator.Operator;
+import io.crate.execution.expression.operator.OrOperator;
+import io.crate.execution.expression.operator.RegexpMatchCaseInsensitiveOperator;
+import io.crate.execution.expression.operator.RegexpMatchOperator;
+import io.crate.execution.expression.operator.any.AnyLikeOperator;
+import io.crate.execution.expression.operator.any.AnyNotLikeOperator;
+import io.crate.execution.expression.operator.any.AnyOperator;
+import io.crate.execution.expression.predicate.NotPredicate;
+import io.crate.execution.expression.scalar.ExtractFunctions;
+import io.crate.execution.expression.scalar.SubscriptFunction;
+import io.crate.execution.expression.scalar.SubscriptObjectFunction;
+import io.crate.execution.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.execution.expression.scalar.arithmetic.MapFunction;
+import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
+import io.crate.execution.expression.scalar.conditional.IfFunction;
+import io.crate.execution.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -534,7 +534,7 @@ public class ExpressionAnalyzer {
                 NotPredicate.NAME,
                 ImmutableList.of(
                     allocateFunction(
-                        io.crate.operation.predicate.IsNullPredicate.NAME,
+                        io.crate.execution.expression.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(argument),
                         context)),
                 context);
@@ -672,7 +672,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitIsNullPredicate(IsNullPredicate node, ExpressionAnalysisContext context) {
             Symbol value = process(node.getValue(), context);
 
-            return allocateFunction(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(value), context);
+            return allocateFunction(io.crate.execution.expression.predicate.IsNullPredicate.NAME, ImmutableList.of(value), context);
         }
 
         @Override
@@ -820,7 +820,7 @@ public class ExpressionAnalyzer {
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
             Symbol queryTerm = cast(process(node.value(), context), columnType);
-            String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
+            String matchType = io.crate.execution.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
             for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
@@ -946,7 +946,7 @@ public class ExpressionAnalyzer {
 
     private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
         Preconditions.checkArgument(
-            io.crate.operation.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
+            io.crate.execution.expression.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
             String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
         for (Symbol column : columns) {
             if (!column.valueType().equals(columnType)) {

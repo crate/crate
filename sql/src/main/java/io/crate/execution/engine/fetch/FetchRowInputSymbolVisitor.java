@@ -30,7 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.BaseImplementationSymbolVisitor;
+import io.crate.execution.expression.BaseImplementationSymbolVisitor;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;

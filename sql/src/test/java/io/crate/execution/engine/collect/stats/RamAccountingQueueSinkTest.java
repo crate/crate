@@ -24,9 +24,9 @@ package io.crate.execution.engine.collect.stats;
 
 import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
-import io.crate.operation.reference.sys.job.ContextLog;
-import io.crate.operation.reference.sys.job.JobContext;
-import io.crate.operation.reference.sys.job.JobContextLog;
+import io.crate.execution.expression.reference.sys.job.ContextLog;
+import io.crate.execution.expression.reference.sys.job.JobContext;
+import io.crate.execution.expression.reference.sys.job.JobContextLog;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.unit.TimeValue;

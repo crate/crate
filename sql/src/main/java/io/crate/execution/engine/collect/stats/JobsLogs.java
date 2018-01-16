@@ -22,10 +22,10 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.operation.reference.sys.job.JobContext;
-import io.crate.operation.reference.sys.job.JobContextLog;
-import io.crate.operation.reference.sys.operation.OperationContext;
-import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.execution.expression.reference.sys.job.JobContext;
+import io.crate.execution.expression.reference.sys.job.JobContextLog;
+import io.crate.execution.expression.reference.sys.operation.OperationContext;
+import io.crate.execution.expression.reference.sys.operation.OperationContextLog;
 import io.crate.operation.user.User;
 import org.elasticsearch.common.collect.Tuple;
 

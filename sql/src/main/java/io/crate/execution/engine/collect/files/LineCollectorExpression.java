@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.data.Input;
-import io.crate.operation.reference.file.LineContext;
+import io.crate.execution.expression.reference.file.LineContext;
 
 public abstract class LineCollectorExpression<ReturnType> implements Input<ReturnType> {
 

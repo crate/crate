@@ -22,7 +22,7 @@
 
 package io.crate.breaker;
 
-import io.crate.operation.reference.sys.job.JobContextLog;
+import io.crate.execution.expression.reference.sys.job.JobContextLog;
 
 import javax.annotation.Nullable;
 

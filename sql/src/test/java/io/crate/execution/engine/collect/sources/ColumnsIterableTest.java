@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.reference.information.ColumnContext;
+import io.crate.execution.expression.reference.information.ColumnContext;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
 import org.junit.Test;

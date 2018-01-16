@@ -33,7 +33,7 @@ import io.crate.analyze.symbol.Value;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
 import io.crate.operation.user.User;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;

@@ -35,9 +35,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.operation.reference.MapLookupByPathExpression;
-import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
-import io.crate.operation.reference.partitioned.PartitionsVersionExpression;
+import io.crate.execution.expression.reference.MapLookupByPathExpression;
+import io.crate.execution.expression.reference.partitioned.PartitionsSettingsExpression;
+import io.crate.execution.expression.reference.partitioned.PartitionsVersionExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

@@ -23,7 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.operator.EqOperator;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;

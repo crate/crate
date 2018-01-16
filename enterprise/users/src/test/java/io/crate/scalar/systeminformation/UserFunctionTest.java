@@ -20,7 +20,7 @@ package io.crate.scalar.systeminformation;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.operation.scalar.AbstractScalarFunctionsTest;
+import io.crate.execution.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.operation.user.User;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.testing.SqlExpressions;

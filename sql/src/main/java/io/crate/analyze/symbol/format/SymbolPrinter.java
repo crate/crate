@@ -38,7 +38,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.operation.operator.any.AnyOperator;
+import io.crate.execution.expression.operator.any.AnyOperator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

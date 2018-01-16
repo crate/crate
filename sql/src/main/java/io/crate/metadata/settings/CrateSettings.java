@@ -29,7 +29,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.execution.expression.reference.NestedObjectExpression;
 import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;

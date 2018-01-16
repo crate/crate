@@ -30,7 +30,7 @@ import java.io.IOException;
 /**
  * Dummy {@link org.apache.lucene.search.Scorer} implementation just for passing the
  * <code>score</code> float value of a {@link org.apache.lucene.search.ScoreDoc} to a
- * {@link io.crate.operation.reference.doc.lucene.ScoreCollectorExpression}.
+ * {@link io.crate.execution.expression.reference.doc.lucene.ScoreCollectorExpression}.
  */
 class DummyScorer extends Scorer {
 

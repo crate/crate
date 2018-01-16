@@ -44,10 +44,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
-import io.crate.operation.operator.OrOperator;
-import io.crate.operation.operator.any.AnyNeqOperator;
-import io.crate.operation.operator.any.AnyOperator;
-import io.crate.operation.predicate.NotPredicate;
+import io.crate.execution.expression.operator.OrOperator;
+import io.crate.execution.expression.operator.any.AnyNeqOperator;
+import io.crate.execution.expression.operator.any.AnyOperator;
+import io.crate.execution.expression.predicate.NotPredicate;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
@@ -61,8 +61,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import static io.crate.analyze.expressions.ExpressionAnalyzer.cast;
-import static io.crate.operation.operator.Operators.LOGICAL_OPERATORS;
-import static io.crate.operation.scalar.cast.CastFunctionResolver.isCastFunction;
+import static io.crate.execution.expression.operator.Operators.LOGICAL_OPERATORS;
+import static io.crate.execution.expression.scalar.cast.CastFunctionResolver.isCastFunction;
 
 final class SemiJoins {
 

@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.reference.ReferenceResolver;
+import io.crate.execution.expression.reference.ReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;

@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect;
 import com.google.common.base.Function;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.operation.InputRow;
+import io.crate.execution.expression.InputRow;
 
 import javax.annotation.Nullable;
 import java.util.List;

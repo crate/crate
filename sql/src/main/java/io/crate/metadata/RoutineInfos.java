@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import io.crate.operation.udf.UserDefinedFunctionsMetaData;
+import io.crate.execution.expression.udf.UserDefinedFunctionsMetaData;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;

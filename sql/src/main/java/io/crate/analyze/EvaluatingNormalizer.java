@@ -36,8 +36,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.reference.ReferenceResolver;
-import io.crate.operation.scalar.arithmetic.MapFunction;
+import io.crate.execution.expression.reference.ReferenceResolver;
+import io.crate.execution.expression.scalar.arithmetic.MapFunction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -117,7 +117,7 @@ public class EvaluatingNormalizer {
                 }
 
                 Function function = new Function(
-                    io.crate.operation.predicate.MatchPredicate.INFO,
+                    io.crate.execution.expression.predicate.MatchPredicate.INFO,
                     Arrays.asList(
                         new Function(MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)), columnBoostMapArgs),
                         matchPredicate.queryTerm(),

@@ -28,7 +28,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.operation.reference.ReferenceResolver;
+import io.crate.execution.expression.reference.ReferenceResolver;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 

@@ -21,7 +21,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.execution.expression.udf.UserDefinedFunctionService;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;

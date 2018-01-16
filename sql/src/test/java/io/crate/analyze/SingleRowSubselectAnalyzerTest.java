@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.operation.operator.EqOperator;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;

@@ -38,7 +38,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;

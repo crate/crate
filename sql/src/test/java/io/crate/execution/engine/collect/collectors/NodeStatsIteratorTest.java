@@ -32,7 +32,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.InputFactory;
+import io.crate.execution.expression.InputFactory;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;

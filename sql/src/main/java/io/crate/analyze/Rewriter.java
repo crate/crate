@@ -35,7 +35,7 @@ import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitors;
-import io.crate.operation.operator.AndOperator;
+import io.crate.execution.expression.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 

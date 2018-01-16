@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
+import io.crate.execution.expression.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldDoc;

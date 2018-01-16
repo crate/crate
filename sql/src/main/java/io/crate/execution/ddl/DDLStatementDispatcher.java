@@ -53,7 +53,7 @@ import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.operation.udf.UserDefinedFunctionDDLClient;
+import io.crate.execution.expression.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;

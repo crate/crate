@@ -21,7 +21,7 @@
 
 package io.crate.analyze.symbol;
 
-import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;

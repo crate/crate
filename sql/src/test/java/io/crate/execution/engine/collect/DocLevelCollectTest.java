@@ -43,7 +43,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.operation.operator.EqOperator;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;

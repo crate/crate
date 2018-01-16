@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.operation.AbstractFunctionModule;
+import io.crate.execution.expression.AbstractFunctionModule;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 
 public class AggregationImplModule extends AbstractFunctionModule<AggregationFunction> {

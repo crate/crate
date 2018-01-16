@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.operation.reference.sys.job.ContextLog;
+import io.crate.execution.expression.reference.sys.job.ContextLog;
 
 import java.util.Collections;
 import java.util.Iterator;

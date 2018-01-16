@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.operation.scalar.arithmetic.NegateFunction;
+import io.crate.execution.expression.scalar.arithmetic.NegateFunction;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;

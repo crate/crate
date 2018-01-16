@@ -48,7 +48,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.predicate.MatchPredicate;
+import io.crate.execution.expression.predicate.MatchPredicate;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;

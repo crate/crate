@@ -30,10 +30,10 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
-import io.crate.operation.InputFactory;
-import io.crate.operation.projectors.InputCondition;
+import io.crate.execution.expression.InputFactory;
+import io.crate.execution.expression.InputCondition;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.operation.reference.ReferenceResolver;
+import io.crate.execution.expression.reference.ReferenceResolver;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 

@@ -23,7 +23,7 @@
 package io.crate.metadata.pgcatalog;
 
 import io.crate.metadata.TableIdent;
-import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.execution.expression.reference.StaticTableDefinition;
 import io.crate.protocols.postgres.types.PGTypes;
 
 import java.util.HashMap;

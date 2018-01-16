@@ -27,8 +27,8 @@ import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.operation.operator.Operators;
-import io.crate.operation.predicate.NotPredicate;
+import io.crate.execution.expression.operator.Operators;
+import io.crate.execution.expression.predicate.NotPredicate;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
