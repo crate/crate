@@ -27,7 +27,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;

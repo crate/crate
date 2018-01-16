@@ -20,33 +20,19 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine;
 
-import io.crate.Streamer;
-import io.crate.execution.jobs.transport.JobResponse;
-import io.crate.execution.jobs.PageBucketReceiver;
-import org.elasticsearch.action.ActionListener;
+import io.crate.execution.jobs.PageResultListener;
 
-import javax.annotation.Nonnull;
-import java.util.List;
+class BucketResultListener implements PageResultListener {
 
-class SetBucketActionListener extends SetBucketAction implements ActionListener<JobResponse> {
-
-    private final Streamer<?>[] streamers;
-
-    SetBucketActionListener(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
-        super(pageBucketReceivers, bucketIdx, initializationTracker);
-        streamers = pageBucketReceivers.get(0).streamers();
+    BucketResultListener() {
     }
 
     @Override
-    public void onResponse(JobResponse jobResponse) {
-        jobResponse.streamers(streamers);
-        setBuckets(jobResponse.directResponse());
-    }
-
-    @Override
-    public void onFailure(@Nonnull Exception e) {
-        failed(e);
+    public void needMore(boolean needMore) {
+        if (needMore) {
+            ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
+        }
     }
 }

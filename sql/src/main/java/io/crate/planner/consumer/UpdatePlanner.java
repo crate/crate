@@ -37,7 +37,7 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;

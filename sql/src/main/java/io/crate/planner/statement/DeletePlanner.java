@@ -37,7 +37,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;

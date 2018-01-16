@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.planner.operators;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;

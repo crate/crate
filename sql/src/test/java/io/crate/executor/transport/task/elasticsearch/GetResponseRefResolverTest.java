@@ -23,6 +23,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.Lists;
+import io.crate.execution.expression.reference.GetResponseRefResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;

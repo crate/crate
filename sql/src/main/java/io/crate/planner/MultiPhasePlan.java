@@ -25,7 +25,7 @@ package io.crate.planner;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.MultiPhaseExecutor;
+import io.crate.execution.MultiPhaseExecutor;
 import io.crate.planner.operators.LogicalPlan;
 
 import java.util.Map;

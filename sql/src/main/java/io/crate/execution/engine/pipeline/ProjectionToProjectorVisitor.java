@@ -74,7 +74,7 @@ import io.crate.execution.expression.RowFilter;
 import io.crate.execution.expression.reference.StaticTableDefinition;
 import io.crate.execution.expression.reference.sys.SysRowUpdater;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.engine.collect.stats;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.support.NodeAction;

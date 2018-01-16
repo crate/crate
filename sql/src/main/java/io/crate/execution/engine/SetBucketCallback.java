@@ -20,39 +20,27 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.engine;
 
-import io.crate.execution.expression.reference.sys.node.NodeStatsContext;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.data.Bucket;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.PageBucketReceiver;
 
-import java.io.IOException;
+import java.util.List;
+import java.util.function.BiConsumer;
 
-public class NodeStatsResponse extends TransportResponse {
+class SetBucketCallback extends SetBucketAction implements BiConsumer<List<Bucket>, Throwable> {
 
-    private NodeStatsContext context;
-
-    public NodeStatsResponse() {
-    }
-
-    public NodeStatsResponse(NodeStatsContext context) {
-        this.context = context;
-    }
-
-    public NodeStatsContext nodeStatsContext() {
-        return context;
+    SetBucketCallback(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+        super(pageBucketReceivers, bucketIdx, initializationTracker);
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        context = in.readOptionalStreamable(() -> new NodeStatsContext(true));
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeOptionalStreamable(context);
+    public void accept(List<Bucket> buckets, Throwable throwable) {
+        if (throwable == null) {
+            setBuckets(buckets);
+        } else {
+            failed(SQLExceptions.unwrap(throwable));
+        }
     }
 }

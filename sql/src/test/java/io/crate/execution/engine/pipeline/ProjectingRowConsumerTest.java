@@ -40,7 +40,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.expression.InputFactory;
 import io.crate.execution.expression.operator.EqOperator;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;

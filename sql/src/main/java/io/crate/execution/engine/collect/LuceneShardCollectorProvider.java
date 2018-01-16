@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;

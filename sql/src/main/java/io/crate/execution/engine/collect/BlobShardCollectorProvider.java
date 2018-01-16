@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.Row;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.execution.expression.InputFactory;

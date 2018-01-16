@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.TransportNodeStatsAction;
+import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
 import io.crate.metadata.RowCollectExpression;

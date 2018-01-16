@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.execution.engine;
 
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;

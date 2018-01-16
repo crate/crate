@@ -20,19 +20,39 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine.collect.stats;
 
-import io.crate.execution.jobs.PageResultListener;
+import io.crate.execution.expression.reference.sys.node.NodeStatsContext;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
-class BucketResultListener implements PageResultListener {
+import java.io.IOException;
 
-    BucketResultListener() {
+public class NodeStatsResponse extends TransportResponse {
+
+    private NodeStatsContext context;
+
+    public NodeStatsResponse() {
+    }
+
+    public NodeStatsResponse(NodeStatsContext context) {
+        this.context = context;
+    }
+
+    public NodeStatsContext nodeStatsContext() {
+        return context;
     }
 
     @Override
-    public void needMore(boolean needMore) {
-        if (needMore) {
-            ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
-        }
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        context = in.readOptionalStreamable(() -> new NodeStatsContext(true));
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeOptionalStreamable(context);
     }
 }

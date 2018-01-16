@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine;
 
 import io.crate.data.Bucket;
 import io.crate.execution.jobs.PageBucketReceiver;

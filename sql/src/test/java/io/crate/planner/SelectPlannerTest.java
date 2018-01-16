@@ -32,7 +32,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.executor.transport.NodeOperationTreeGenerator;
+import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;

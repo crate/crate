@@ -42,7 +42,7 @@ import io.crate.breaker.RowAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.engine.distribution.SingleBucketBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;

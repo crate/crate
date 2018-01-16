@@ -28,7 +28,7 @@ import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.executor.transport.TransportExecutorModule;
+import io.crate.execution.TransportExecutorModule;
 import io.crate.ingestion.IngestionModules;
 import io.crate.ingestion.IngestionService;
 import io.crate.execution.jobs.JobContextService;

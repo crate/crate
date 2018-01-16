@@ -20,27 +20,33 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine;
 
-import io.crate.data.Bucket;
-import io.crate.exceptions.SQLExceptions;
+import io.crate.Streamer;
+import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.jobs.PageBucketReceiver;
+import org.elasticsearch.action.ActionListener;
 
+import javax.annotation.Nonnull;
 import java.util.List;
-import java.util.function.BiConsumer;
 
-class SetBucketCallback extends SetBucketAction implements BiConsumer<List<Bucket>, Throwable> {
+class SetBucketActionListener extends SetBucketAction implements ActionListener<JobResponse> {
 
-    SetBucketCallback(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+    private final Streamer<?>[] streamers;
+
+    SetBucketActionListener(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
         super(pageBucketReceivers, bucketIdx, initializationTracker);
+        streamers = pageBucketReceivers.get(0).streamers();
     }
 
     @Override
-    public void accept(List<Bucket> buckets, Throwable throwable) {
-        if (throwable == null) {
-            setBuckets(buckets);
-        } else {
-            failed(SQLExceptions.unwrap(throwable));
-        }
+    public void onResponse(JobResponse jobResponse) {
+        jobResponse.streamers(streamers);
+        setBuckets(jobResponse.directResponse());
+    }
+
+    @Override
+    public void onFailure(@Nonnull Exception e) {
+        failed(e);
     }
 }

@@ -27,7 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.executor.transport.task.elasticsearch.GetResponseRefResolver;
+import io.crate.execution.expression.reference.GetResponseRefResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.execution.expression.InputFactory;
 import io.crate.execution.expression.InputRow;
