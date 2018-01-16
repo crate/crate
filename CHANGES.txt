@@ -24,6 +24,14 @@ Changes
 Fixes
 =====
 
+- Fixed an Admin UI issue that caused the ``Cluster`` tab to not be loaded
+  correctly.
+
+- Map the Tab key to insert spaces instead of a tab character in the query
+  console of the Admin UI.
+
+- Fixed an issue that caused the user name to not be displayed in the Admin UI.
+
 - Fixed a race condition that caused DELETE or UPDATE statements to result in an
   error if a shard was being relocated or in a RECOVERY state.
 
