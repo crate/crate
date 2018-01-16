@@ -38,7 +38,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.expression.operator.AndOperator;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;

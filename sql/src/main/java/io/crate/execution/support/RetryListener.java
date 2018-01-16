@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.support;
 
 import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.action.ActionListener;

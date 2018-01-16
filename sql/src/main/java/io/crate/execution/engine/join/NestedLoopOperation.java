@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.execution.engine.join;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;

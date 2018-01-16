@@ -24,8 +24,8 @@ package io.crate.execution.engine.collect.sources;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;
-import io.crate.operation.projectors.ProjectingRowConsumer;
-import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
+import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.dsl.phases.CollectPhase;
 
 public class ProjectorSetupCollectSource implements CollectSource {

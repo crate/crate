@@ -20,19 +20,10 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine.pipeline;
 
-import io.crate.execution.jobs.PageResultListener;
+public class TopN {
 
-class BucketResultListener implements PageResultListener {
-
-    BucketResultListener() {
-    }
-
-    @Override
-    public void needMore(boolean needMore) {
-        if (needMore) {
-            ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
-        }
-    }
+    public static final int NO_OFFSET = 0;
+    public static final int NO_LIMIT = -1;
 }

@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
@@ -54,7 +54,7 @@ public interface ResultDescription {
      *         This does not indicate if a limit was applied to generate the result,
      *
      *         Therefore if a result was produced by applying the final limit it is allowed to return
-     *         {@link io.crate.operation.projectors.TopN#NO_LIMIT} to indicate that no additional limit needs to be applied.
+     *         {@link TopN#NO_LIMIT} to indicate that no additional limit needs to be applied.
      */
     int limit();
 

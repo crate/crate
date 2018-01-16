@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation;
+package io.crate.execution.engine.collect;
 
 import io.crate.Constants;
 import io.crate.data.BatchIterator;

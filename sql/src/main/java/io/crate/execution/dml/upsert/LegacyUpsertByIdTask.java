@@ -30,7 +30,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.metadata.IndexParts;
-import io.crate.operation.projectors.RetryListener;
+import io.crate.execution.support.RetryListener;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;

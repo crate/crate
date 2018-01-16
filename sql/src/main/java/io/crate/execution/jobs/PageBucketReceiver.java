@@ -26,7 +26,6 @@ import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-import io.crate.operation.PageResultListener;
 
 import java.util.Collection;
 
@@ -49,7 +48,7 @@ import java.util.Collection;
  *   n2: sends bucket with bucketIdx=1
  *
  *  (bucketIdx definition is up to the upstreams, but it needs to be deterministic,
- *  see {@link DistributingConsumerFactory#getBucketIdx(Collection)}
+ *  see {@link DistributingConsumerFactory#getBucketIdx(Collection, byte)}
  *
  *   Once PageBucketReceiver has received all parts of a "Page" (in this case 2 buckets),
  *   it has to call {@link PageResultListener#needMore(boolean)} to indicate if it's done or that more data is needed.

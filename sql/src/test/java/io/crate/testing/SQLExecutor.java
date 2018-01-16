@@ -67,7 +67,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.execution.expression.udf.UserDefinedFunctionService;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;

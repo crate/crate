@@ -20,22 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.pipeline;
+
 
 import io.crate.data.BatchIterator;
-import io.crate.data.CollectingBatchIterator;
+import io.crate.data.FilteringBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 
-public class MergeCountProjector implements Projector {
+import java.util.function.Predicate;
+
+class FilterProjector implements Projector {
+
+    private final Predicate<Row> rowFilterPredicate;
+
+    FilterProjector(Predicate<Row> rowFilterPredicate) {
+        this.rowFilterPredicate = rowFilterPredicate;
+    }
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return CollectingBatchIterator.summingLong(batchIterator);
+        return new FilteringBatchIterator<>(batchIterator, rowFilterPredicate);
     }
 
     @Override
     public boolean providesIndependentScroll() {
-        return true;
+        return false;
     }
 }

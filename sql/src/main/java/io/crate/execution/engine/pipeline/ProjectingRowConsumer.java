@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.pipeline;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;

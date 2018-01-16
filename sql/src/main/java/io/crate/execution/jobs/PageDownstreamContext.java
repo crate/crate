@@ -26,7 +26,6 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.operation.PageResultListener;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;

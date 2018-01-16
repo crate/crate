@@ -26,7 +26,7 @@ import io.crate.execution.jobs.ContextPreparer;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.JobContextService;
-import io.crate.operation.NodeOperationTree;
+import io.crate.execution.dsl.phases.NodeOperationTree;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;

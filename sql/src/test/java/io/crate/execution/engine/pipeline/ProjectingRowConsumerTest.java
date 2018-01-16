@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -34,15 +34,15 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.expression.operator.EqOperator;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.expression.InputFactory;
+import io.crate.execution.expression.operator.EqOperator;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;

@@ -1,25 +1,26 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
@@ -54,6 +55,7 @@ import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.export.FileWriterProjector;
 import io.crate.execution.engine.fetch.FetchProjector;
 import io.crate.execution.engine.fetch.FetchProjectorContext;
@@ -67,6 +69,10 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.expression.InputFactory;
+import io.crate.execution.expression.RowFilter;
+import io.crate.execution.expression.reference.StaticTableDefinition;
+import io.crate.execution.expression.reference.sys.SysRowUpdater;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
@@ -75,12 +81,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.expression.RowFilter;
-import io.crate.operation.TableSettingsResolver;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.expression.reference.StaticTableDefinition;
-import io.crate.execution.expression.reference.sys.SysRowUpdater;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;

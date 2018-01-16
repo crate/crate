@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation;
+package io.crate.execution.jobs;
 
 /**
  * An interface to signal more paging data is needed.

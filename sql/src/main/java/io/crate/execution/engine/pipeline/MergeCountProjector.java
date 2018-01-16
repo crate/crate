@@ -20,38 +20,22 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.execution.engine.pipeline;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.engine.pipeline.RowTransformingBatchIterator;
-import io.crate.execution.engine.collect.CollectExpression;
 
-import java.util.List;
-
-/**
- * Projector which evaluates scalars or extends/cuts columns, see {@link RowTransformingBatchIterator}.
- */
-public class InputRowProjector implements Projector {
-
-    protected final List<Input<?>> inputs;
-    protected final List<? extends CollectExpression<Row, ?>> collectExpressions;
-
-    public InputRowProjector(List<Input<?>> inputs,
-                             List<? extends CollectExpression<Row, ?>> collectExpressions) {
-        this.inputs = inputs;
-        this.collectExpressions = collectExpressions;
-    }
+public class MergeCountProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
-        return new RowTransformingBatchIterator(batchIterator, inputs, collectExpressions);
+        return CollectingBatchIterator.summingLong(batchIterator);
     }
 
     @Override
     public boolean providesIndependentScroll() {
-        return false;
+        return true;
     }
 }

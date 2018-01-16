@@ -24,7 +24,7 @@ package io.crate.executor.transport;
 
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-import io.crate.operation.NodeOperationTree;
+import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.support.Paging;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;

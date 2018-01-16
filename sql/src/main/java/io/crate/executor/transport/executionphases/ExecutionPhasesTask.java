@@ -39,7 +39,7 @@ import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.operation.NodeOperationTree;
+import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;

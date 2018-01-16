@@ -43,7 +43,7 @@ import io.crate.executor.MultiPhaseExecutor;
 import io.crate.executor.transport.ExecutionPlanSymbolMapper;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.Functions;
-import io.crate.operation.NodeOperationTree;
+import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;

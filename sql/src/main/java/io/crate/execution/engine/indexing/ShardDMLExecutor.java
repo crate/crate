@@ -33,7 +33,7 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.operation.projectors.RetryListener;
+import io.crate.execution.support.RetryListener;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;

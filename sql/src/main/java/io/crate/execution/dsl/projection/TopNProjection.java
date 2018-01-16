@@ -26,7 +26,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
-import io.crate.operation.projectors.TopN;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;

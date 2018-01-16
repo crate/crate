@@ -39,7 +39,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.operation.TableSettingsResolver;
+import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.testing.TestingRowConsumer;

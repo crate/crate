@@ -31,7 +31,7 @@ import io.crate.executor.transport.task.elasticsearch.GetResponseRefResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.execution.expression.InputFactory;
 import io.crate.execution.expression.InputRow;
-import io.crate.operation.PKLookupOperation;
+import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.logging.log4j.Logger;

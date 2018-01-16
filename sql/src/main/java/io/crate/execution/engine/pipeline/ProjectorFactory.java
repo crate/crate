@@ -20,19 +20,15 @@
  * agreement.
  */
 
-package io.crate.executor.transport.executionphases;
+package io.crate.execution.engine.pipeline;
 
-import io.crate.execution.jobs.PageResultListener;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Projector;
+import io.crate.execution.dsl.projection.Projection;
 
-class BucketResultListener implements PageResultListener {
+import java.util.UUID;
 
-    BucketResultListener() {
-    }
+public interface ProjectorFactory {
 
-    @Override
-    public void needMore(boolean needMore) {
-        if (needMore) {
-            ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
-        }
-    }
+    Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId);
 }

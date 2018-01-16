@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation;
+package io.crate.execution.engine.pipeline;
 
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
