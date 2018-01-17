@@ -20,3 +20,7 @@ Changes
 
 Fixes
 =====
+
+- Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
+  to support Golang psql drivers.
+
