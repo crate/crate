@@ -72,17 +72,15 @@ public class HostBasedAuthentication implements Authentication {
 
     @Inject
     public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
-        hbaConf = convertHbaSettingsToHbaConf(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
+        hbaConf = convertHbaSettingsToHbaConf(settings);
         this.userLookup = userLookup;
     }
 
-    void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
-        hbaConf = ImmutableSortedMap.<String, Map<String, String>>naturalOrder().putAll(hbaMap).build();
-    }
-
-    private SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
+    @VisibleForTesting
+    SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings settings) {
+        Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings);
         ImmutableSortedMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableSortedMap.naturalOrder();
-        for (Map.Entry<String, Settings> entry : hbaSetting.getAsGroups().entrySet()) {
+        for (Map.Entry<String, Settings> entry : hbaSettings.getAsGroups().entrySet()) {
             hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
         }
         return hostBasedConf.build();

@@ -52,42 +52,36 @@ import static org.mockito.Mockito.when;
 
 public class HostBasedAuthenticationTest extends CrateUnitTest {
 
-    private static final ImmutableMap<String, String> HBA_1 = ImmutableMap.<String, String>builder()
-        .put("user", "crate")
-        .put("address", "127.0.0.1")
-        .put("method", "trust")
-        .put("protocol", "pg")
+    private static final Settings HBA_1 = Settings.builder()
+        .put("auth.host_based.config.1.user", "crate")
+        .put("auth.host_based.config.1.address", "127.0.0.1")
+        .put("auth.host_based.config.1.method", "trust")
+        .put("auth.host_based.config.1.protocol", "pg")
         .build();
 
-    private static final ImmutableMap<String, String> HBA_2 = ImmutableMap.<String, String>builder()
-        .put("user", "crate")
-        .put("address", "0.0.0.0/0")
-        .put("method", "fake")
-        .put("protocol", "pg")
+    private static final Settings HBA_2 = Settings.builder()
+        .put("auth.host_based.config.2.user", "crate")
+        .put("auth.host_based.config.2.address", "0.0.0.0/0")
+        .put("auth.host_based.config.2.method", "fake")
+        .put("auth.host_based.config.2.protocol", "pg")
         .build();
 
-    private static final ImmutableMap<String, String> HBA_3 = ImmutableMap.<String, String>builder()
-        .put("address", "127.0.0.1")
-        .put("method", "md5")
-        .put("protocol", "pg")
+    private static final Settings HBA_3 = Settings.builder()
+        .put("auth.host_based.config.3.address", "127.0.0.1")
+        .put("auth.host_based.config.3.method", "md5")
+        .put("auth.host_based.config.3.protocol", "pg")
         .build();
 
-    private static final ImmutableMap<String, String> HBA_4 = ImmutableMap.<String, String>builder()
-        .put("address", "_local_")
+    private static final Settings HBA_4 = Settings.builder()
+        .put("auth.host_based.config.4.address", "_local_")
         .build();
 
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
 
-    private HostBasedAuthentication authService;
     private SSLSession sslSession;
 
     @Before
     private void setUpTest() throws Exception {
-        Settings settings = Settings.builder()
-            .put(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
-            .build();
-        authService = new HostBasedAuthentication(settings, null);
-
         SelfSignedCertificate ssc = new SelfSignedCertificate();
         SslHandler sslHandler = SslContextBuilder
             .forServer(ssc.certificate(), ssc.privateKey())
@@ -97,20 +91,19 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         sslSession = sslHandler.engine().getSession();
     }
 
-    @SafeVarargs
-    private static Map<String, Map<String, String>> createHbaConf(Map<String, String>... entries) {
+    private static Map<String, Map<String, String>> createHbaConf(Settings... entries) {
         ImmutableMap.Builder<String, Map<String, String>> builder = ImmutableMap.builder();
         int idx = 0;
-        for (Map<String, String> entry : entries) {
-            builder.put(String.valueOf(idx), entry);
+        for (Settings entry : entries) {
+            builder.put(String.valueOf(idx), entry.getAsMap());
             idx++;
         }
         return builder.build();
     }
 
     @Test
-    public void testMissingUserOrAddress() throws Exception {
-        authService.updateHbaConfig(Collections.emptyMap());
+    public void testMissingUserOrAddress() {
+        HostBasedAuthentication authService = new HostBasedAuthentication(Settings.EMPTY, null);
         AuthenticationMethod method;
         method = authService.resolveAuthenticationType(null, new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
@@ -119,24 +112,24 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testEmptyHbaConf() throws Exception {
-        authService.updateHbaConfig(Collections.emptyMap());
+    public void testEmptyHbaConf() {
+        HostBasedAuthentication authService = new HostBasedAuthentication(Settings.EMPTY, null);
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
     }
 
     @Test
-    public void testResolveAuthMethod() throws Exception {
-        authService.updateHbaConfig(createHbaConf(HBA_1));
+    public void testResolveAuthMethod() {
+        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_1, null);
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(method, instanceOf(TrustAuthenticationMethod.class));
     }
 
     @Test
-    public void testFilterEntriesSimple() throws Exception {
-        authService.updateHbaConfig(createHbaConf(HBA_1));
+    public void testFilterEntriesSimple() {
+        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_1, null);
         Optional entry;
 
         entry = authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
@@ -151,8 +144,10 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFilterEntriesCIDR() throws Exception {
-        authService.updateHbaConfig(createHbaConf(HBA_2, HBA_3));
+    public void testFilterEntriesCIDR() {
+        Settings settings = Settings.builder().put(HBA_2).put(HBA_3).build();
+        HostBasedAuthentication authService = new HostBasedAuthentication(settings, null);
+
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
         entry = authService.getEntry("crate",
@@ -172,7 +167,8 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testLocalhostMatchesBothIpv4AndIpv6() {
-        authService.updateHbaConfig(createHbaConf(HBA_4));
+        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_4, null);
+
         Optional<Map.Entry<String, Map<String, String>>> entry;
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
@@ -229,25 +225,26 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     public void testConvertSettingsToConf() throws Exception {
         Settings settings = Settings.builder()
             .put("auth.host_based.enabled", true)
+            .put(HBA_1)
+            .put(HBA_2)
             .put("auth.host_based.config",
-                "0", new String[]{"user", "address", "method", "protocol"}, new String[]{"crate", "127.0.0.1", "trust", "pg"})
-            .put("auth.host_based.config",
-                "1", new String[]{"user", "address", "method", "protocol"}, new String[]{"crate", "0.0.0.0/0", "fake", "pg"})
-            .put("auth.host_based.config",
-                "2", new String[]{}, new String[]{}) // ignored because empty
+                "3", new String[]{}, new String[]{}) // ignored because empty
             .build();
 
         HostBasedAuthentication authService = new HostBasedAuthentication(settings, null);
-        assertThat(authService.hbaConf(), is(createHbaConf(HBA_1, HBA_2)));
+        Settings confirmSettings = Settings.builder().put(HBA_1).put(HBA_2).build();
+        assertThat(authService.hbaConf(), is(authService.convertHbaSettingsToHbaConf(confirmSettings)));
     }
 
     @Test
     public void testPSQLSslOption() {
-        Map<String, String> sslConfig;
+        Settings sslConfig;
+        HostBasedAuthentication authService;
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(HBA_1)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
@@ -255,9 +252,10 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
             not(Optional.empty()));
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(HBA_1)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             is(Optional.empty()));
@@ -265,9 +263,10 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
                 not(Optional.empty()));
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(HBA_1)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
@@ -278,9 +277,9 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testHttpSSLOption() throws Exception {
-        Map<String, String> baseConfig = new HashMap<>();
-        baseConfig.putAll(HBA_1);
-        baseConfig.put(HostBasedAuthentication.KEY_PROTOCOL, "http");
+        Settings baseConfig = Settings.builder().put(HBA_1)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.KEY_PROTOCOL, "http")
+            .build();
 
         SSLSession sslSession = Mockito.mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
@@ -289,24 +288,51 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         ConnectionProperties noSslConnProperties =
             new ConnectionProperties(LOCALHOST, Protocol.HTTP, null);
 
-        Map<String, String> sslConfig;
+        Settings sslConfig;
+        HostBasedAuthentication authService;
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(baseConfig)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.OPTIONAL.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(baseConfig)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(authService.getEntry("crate", noSslConnProperties), is(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
-        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
-            .put(HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE).build();
-        authService.updateHbaConfig(createHbaConf(sslConfig));
+        sslConfig = Settings.builder().put(baseConfig)
+            .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
+            .build();
+        authService = new HostBasedAuthentication(sslConfig, null);
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
         assertThat(authService.getEntry("crate", sslConnProperties), is(Optional.empty()));
+    }
+
+    public void testKeyOrderIsRespectedInHbaConfig() {
+        Settings first = Settings.builder()
+            .put("auth.host_based.config.1.method", "trust")
+            .put("auth.host_based.config.1.protocol", "pg")
+            .build();
+        Settings second = Settings.builder()
+            .put("auth.host_based.config.2.method", "cert")
+            .put("auth.host_based.config.2.protocol", "http")
+            .build();
+
+        // add in reverse order to test natural order of keys in config
+        Settings settings = Settings.builder().put(second).put(first).build();
+        HostBasedAuthentication hba = new HostBasedAuthentication(settings, null);
+
+        AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
+            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, null));
+        assertThat(authMethod, instanceOf(TrustAuthenticationMethod.class));
+
+        AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
+            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.HTTP, null));
+        assertThat(authMethod2, instanceOf(ClientCertAuth.class));
     }
 }
