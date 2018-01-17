@@ -19,7 +19,7 @@
 package io.crate.auth;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.auth.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.inject.Inject;
@@ -29,9 +29,9 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 
 
 public class HostBasedAuthentication implements Authentication {
@@ -67,7 +67,7 @@ public class HostBasedAuthentication implements Authentication {
        ...
      }
      */
-    private Map<String, Map<String, String>> hbaConf;
+    private SortedMap<String, Map<String, String>> hbaConf;
     private final UserLookup userLookup;
 
     @Inject
@@ -77,15 +77,11 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
-        hbaConf = hbaMap;
+        hbaConf = ImmutableSortedMap.<String, Map<String, String>>naturalOrder().putAll(hbaMap).build();
     }
 
-    private Map<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
-        if (hbaSetting.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        ImmutableMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableMap.builder();
+    private SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
+        ImmutableSortedMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableSortedMap.naturalOrder();
         for (Map.Entry<String, Settings> entry : hbaSetting.getAsGroups().entrySet()) {
             hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
         }
