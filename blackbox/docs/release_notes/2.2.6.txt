@@ -4,7 +4,7 @@
 Version 2.2.6
 =============
 
-Released on 2018/01/15.
+Released on 2018/01/17.
 
 .. NOTE::
 
@@ -47,12 +47,13 @@ Fixes
   to crash because of an unhandled assertion when providing the UDF with
   EcmaScript 6 arrow function syntax (``var f = (x) => x;``).
 
-- Fixed an issue where batch operations executed using the postgres protocol
-  returned 0 as row count, even though the actual row count was different.
+- Fixed an issue where batch operations executed using the PosgreSQL wire
+  protocol returned 0 as row count, even though the actual row count was
+  different.
 
 - Fixed a bug which could cause job entries in `sys.jobs` not being removed
-  when a connection error occurred while transferring the results of the job
-  execution.
+  when a connection error occurred while sending the results of the job
+  execution to the client.
 
 - Fixed an issue that caused incorrect results for queries with joins on more
   than 2 tables with implicit join conditions using the ``ON`` clause and where
