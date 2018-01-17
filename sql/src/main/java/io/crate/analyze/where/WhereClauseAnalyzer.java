@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.collections.Lists2;
+import io.crate.execution.expression.reference.partitioned.PartitionExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -42,7 +43,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.expression.reference.partitioned.PartitionExpression;
 import io.crate.planner.WhereClauseOptimizer;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -75,7 +75,10 @@ public class WhereClauseAnalyzer {
         }
         WhereClauseValidator.validate(query);
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
-            query, table.generatedColumns(), table.partitionedByColumns());
+            query,
+            table.generatedColumns(),
+            Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference))
+        );
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, transactionContext);
         }

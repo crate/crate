@@ -18,6 +18,10 @@ Breaking Changes
 Changes
 =======
 
+- In certain cases it's no longer necessary to explicitly add generated columns
+  that are part of a composite primary key to the ``WHERE`` clause in order to
+  get an execution plan with real-time semantics.
+
 - Greatly improved performance of queries that uses scalar functions inside the
   ``WHERE`` clause.
 

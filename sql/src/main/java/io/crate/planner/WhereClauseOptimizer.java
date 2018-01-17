@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
+import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -90,7 +91,10 @@ public final class WhereClauseOptimizer {
                                          Symbol query,
                                          DocTableInfo table,
                                          TransactionContext txnCtx) {
-        query = GeneratedColumnExpander.maybeExpand(query, table.generatedColumns(), table.partitionedByColumns());
+        query = GeneratedColumnExpander.maybeExpand(
+            query,
+            table.generatedColumns(),
+            Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference)));
 
         boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
         List<ColumnIdent> pkCols = pkColsInclVersion(table, versionInQuery);

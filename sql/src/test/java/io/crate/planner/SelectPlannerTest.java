@@ -32,27 +32,11 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationTree;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.CountPlan;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.planner.node.dql.join.JoinType;
-import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -61,6 +45,22 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.join.JoinType;
+import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -71,6 +71,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -96,7 +97,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
@@ -106,6 +107,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
             .addDocTable(bindGeneratedColumnTable())
+            .addTable("create table t_pk_part_generated (ts timestamp, p as date_trunc('day', ts), primary key (ts, p))")
             .build();
     }
 
@@ -692,5 +694,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
         assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
         assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testFilterOnPKSubsetResultsInPKLookupPlanIfTheOtherPKPartIsGenerated() {
+        LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[1]\n" +
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0, 0}"
+        ));
     }
 }

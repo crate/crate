@@ -33,10 +33,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
 import io.crate.execution.expression.operator.AndOperator;
 import io.crate.execution.expression.operator.EqOperator;
 import io.crate.execution.expression.operator.GtOperator;
@@ -48,6 +44,10 @@ import io.crate.execution.expression.scalar.DateTruncFunction;
 import io.crate.execution.expression.scalar.arithmetic.CeilFunction;
 import io.crate.execution.expression.scalar.arithmetic.FloorFunction;
 import io.crate.execution.expression.scalar.arithmetic.RoundFunction;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -83,15 +83,15 @@ public final class GeneratedColumnExpander {
      * <pre>
      *     example for an expansion:
      *
-     *     generatedCols: [day as date_trunc('day', ts)]
-     *     partitionCols: [day]
+     *     generatedCols:       [day as date_trunc('day', ts)]
+     *     expansionCandidates: [day]
      *
      *     input:   ts > $1
      *     output:  ts > $1 and day > date_trunc('day', ts)
      * </pre>
      */
-    public static Symbol maybeExpand(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> partitionCols) {
-        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, partitionCols);
+    public static Symbol maybeExpand(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> expansionCandidates) {
+        return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates);
     }
 
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
@@ -108,9 +108,9 @@ public final class GeneratedColumnExpander {
             super();
         }
 
-        Symbol addComparisons(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> partitionCols) {
+        Symbol addComparisons(Symbol symbol, List<GeneratedReference> generatedCols, List<Reference> expansionCandidates) {
             Multimap<Reference, GeneratedReference> referencedSingleReferences =
-                extractGeneratedReferences(generatedCols, partitionCols);
+                extractGeneratedReferences(generatedCols, expansionCandidates);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
             } else {
