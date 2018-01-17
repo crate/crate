@@ -22,7 +22,12 @@
 
 package io.crate.protocols.postgres.types;
 
+import com.google.common.base.Charsets;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+
+import static org.hamcrest.Matchers.is;
 
 public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
@@ -40,5 +45,20 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
     public void testReadBinary() throws Exception {
         assertBytesReadBinary(
             new byte[]{65, -65, 4, 122, -128, 0, 0, 0}, 1467072000000L);
+    }
+
+    @Test
+    public void testEncodeAsUTF8Text() {
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(1467072000000L), StandardCharsets.UTF_8),
+            is("2016-06-28 00:00:00.000+00"));
+        assertThat(new String(TimestampType.INSTANCE.encodeAsUTF8Text(-93661920000000L), StandardCharsets.UTF_8),
+            is("1000-12-22 00:00:00.000+00 BC"));
+    }
+
+    @Test
+    public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot parse more than 9 digits for fraction of a second");
+        TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(Charsets.UTF_8));
     }
 }
