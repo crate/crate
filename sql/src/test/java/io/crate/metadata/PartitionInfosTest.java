@@ -27,7 +27,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -48,24 +48,24 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     private void addIndexMetaDataToClusterState(IndexMetaData.Builder imdBuilder) throws Exception {
         CompletableFuture<Boolean> processed = new CompletableFuture<>();
-        clusterService.submitStateUpdateTask("test", new ClusterStateUpdateTask() {
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                return ClusterState.builder(currentState)
-                    .metaData(MetaData.builder(currentState.metaData()).put(imdBuilder)).build();
+        ClusterState currentState = clusterService.state();
+        ClusterState newState = ClusterState.builder(currentState)
+            .metaData(MetaData.builder(currentState.metaData())
+                .put(imdBuilder))
+            .build();
+        clusterService.addListener(event -> {
+            if (event.state() == newState) {
+                processed.complete(true);
             }
-
+        });
+        clusterService.getClusterApplierService()
+            .onNewClusterState("test", () -> newState, new ClusterStateTaskListener() {
             @Override
             public void onFailure(String source, Exception e) {
                 processed.completeExceptionally(e);
             }
-
-            @Override
-            public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                processed.complete(true);
-            }
         });
-        processed.get(10, TimeUnit.SECONDS);
+        processed.get(5, TimeUnit.SECONDS);
     }
 
     @Test

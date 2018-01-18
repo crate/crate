@@ -47,9 +47,9 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc) {
-        if (versions != null) {
-            value = versions.get(doc);
+    public void setNextDocId(int doc) throws IOException {
+        if (versions != null && versions.advanceExact(doc)) {
+            value = versions.longValue();
         }
     }
 

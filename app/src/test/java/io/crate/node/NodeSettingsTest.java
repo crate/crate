@@ -29,6 +29,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 
@@ -47,6 +49,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
+import static org.hamcrest.Matchers.contains;
 
 
 public class NodeSettingsTest extends CrateUnitTest {
@@ -58,8 +61,7 @@ public class NodeSettingsTest extends CrateUnitTest {
     private Client client;
     private boolean loggingConfigured = false;
 
-    private String createConfigPath() throws IOException {
-        File home = tmp.newFolder("crate");
+    private Path createConfigPath() throws IOException {
         File config = tmp.newFolder("crate", "config");
 
         Settings pathSettings = Settings.builder()
@@ -72,7 +74,7 @@ public class NodeSettingsTest extends CrateUnitTest {
             yaml.dump(pathSettings.getAsMap(), writer);
         }
 
-        return home.getPath();
+        return config.toPath();
     }
 
     private void doSetup() throws Exception {
@@ -84,14 +86,16 @@ public class NodeSettingsTest extends CrateUnitTest {
             loggingConfigured = true;
         }
         tmp.create();
-        Settings.Builder builder = Settings.builder()
+        Path configPath = createConfigPath();
+        Settings settings = Settings.builder()
             .put("node.name", "node-test")
             .put("node.data", true)
-            .put(PATH_HOME_SETTING.getKey(), createConfigPath())
+            .put(PATH_HOME_SETTING.getKey(), configPath)
             // Avoid connecting to other test nodes
-            .put("discovery.type", "single-node");
+            .put("discovery.type", "single-node")
+            .build();
 
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), Collections.emptyMap());
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(settings, Collections.emptyMap(), configPath);
         node = new CrateNode(environment);
         node.start();
         client = node.client();
@@ -126,7 +130,9 @@ public class NodeSettingsTest extends CrateUnitTest {
     @Test
     public void testDefaultPaths() throws Exception {
         doSetup();
-        assertTrue(node.settings().getAsArray(PATH_DATA_SETTING.getKey())[0].endsWith("data"));
+        assertThat(PATH_DATA_SETTING.get(node.settings()), contains(
+            Matchers.endsWith("data")
+        ));
         assertTrue(node.settings().get(PATH_LOGS_SETTING.getKey()).endsWith("logs"));
     }
 

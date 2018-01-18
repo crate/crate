@@ -35,7 +35,7 @@ import java.util.Collection;
 
 import static org.hamcrest.CoreMatchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override

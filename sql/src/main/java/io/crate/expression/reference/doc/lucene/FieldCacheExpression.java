@@ -37,6 +37,6 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
     }
 
     public void startCollect(CollectorContext context) {
-        indexFieldData = context.fieldData().getForField(fieldType);
+        indexFieldData = (IFD) context.getFieldData(fieldType);
     }
 }

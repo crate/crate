@@ -42,6 +42,7 @@ import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.IfConfig;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.env.Environment;
@@ -50,6 +51,7 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,6 +59,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -144,6 +147,7 @@ public class BootstrapProxy {
 
         Natives.trySetMaxNumberOfThreads();
         Natives.trySetMaxSizeVirtualMemory();
+        Natives.trySetMaxFileSize();
 
         // init lucene random seed. it will use /dev/urandom where available:
         StringHelper.randomId();
@@ -161,7 +165,7 @@ public class BootstrapProxy {
         initializeNatives(
             environment.tmpFile(),
             BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
-            BootstrapSettings.SECCOMP_SETTING.get(settings),
+            BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.get(settings),
             BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
 
         // initialize probes before the security manager is installed
@@ -186,6 +190,8 @@ public class BootstrapProxy {
             throw new BootstrapException(e);
         }
 
+        IfConfig.logIfNecessary();
+
         /*
          * DISABLED setup of security manager due to policy problems with plugins and dependencies.
          */
@@ -199,10 +205,10 @@ public class BootstrapProxy {
         node = new CrateNode(environment) {
 
             @Override
-            protected void validateNodeBeforeAcceptingRequests(Settings settings,
+            protected void validateNodeBeforeAcceptingRequests(BootstrapContext context,
                                                                BoundTransportAddress boundTransportAddress,
                                                                List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
-                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
+                BootstrapChecks.check(context, boundTransportAddress, bootstrapChecks);
             }
         };
 
@@ -221,36 +227,25 @@ public class BootstrapProxy {
         }
     }
 
-    /** Set the system property before anything has a chance to trigger its use */
-    // TODO: why? is it just a bad default somewhere? or is it some BS around 'but the client' garbage <-- my guess
-    @SuppressForbidden(reason = "sets logger prefix on initialization")
-    static void initLoggerPrefix() {
-        System.setProperty("es.logger.prefix", "");
-    }
-
     /**
-     * This method is invoked by {@link Elasticsearch#main(String[])}
-     * to startup elasticsearch.
+     * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
     public static void init(final boolean foreground,
                             final boolean quiet,
-                            Environment environment) throws BootstrapException, NodeValidationException, UserException {
-        // Set the system property before anything has a chance to trigger its use
-        initLoggerPrefix();
-
+                            Environment initialEnv) throws BootstrapException, NodeValidationException, UserException {
         // force the class initializer for BootstrapInfo to run before
         // the security manager is installed
         BootstrapInfo.init();
 
         INSTANCE = new BootstrapProxy();
 
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(
+            initialEnv.settings(), Collections.emptyMap(), initialEnv.configFile());
         try {
             LogConfigurator.configure(environment);
         } catch (IOException e) {
             throw new BootstrapException(e);
         }
-        checkForCustomConfFile();
-
         if (environment.pidFile() != null) {
             try {
                 PidFile.create(environment.pidFile(), true);
@@ -331,7 +326,6 @@ public class BootstrapProxy {
         }
     }
 
-
     @SuppressForbidden(reason = "System#out")
     private static void closeSystOut() {
         System.out.close();
@@ -340,23 +334,6 @@ public class BootstrapProxy {
     @SuppressForbidden(reason = "System#err")
     private static void closeSysError() {
         System.err.close();
-    }
-
-    private static void checkForCustomConfFile() {
-        String confFileSetting = System.getProperty("es.default.config");
-        checkUnsetAndMaybeExit(confFileSetting, "es.default.config");
-        confFileSetting = System.getProperty("es.config");
-        checkUnsetAndMaybeExit(confFileSetting, "es.config");
-        confFileSetting = System.getProperty("elasticsearch.config");
-        checkUnsetAndMaybeExit(confFileSetting, "elasticsearch.config");
-    }
-
-    private static void checkUnsetAndMaybeExit(String confFileSetting, String settingName) {
-        if (confFileSetting != null && confFileSetting.isEmpty() == false) {
-            Logger logger = Loggers.getLogger(BootstrapProxy.class);
-            logger.info("{} is no longer supported. crate.yml must be placed in the config directory and cannot be renamed.", settingName);
-            exit(1);
-        }
     }
 
     @SuppressForbidden(reason = "Allowed to exit explicitly in bootstrap phase")

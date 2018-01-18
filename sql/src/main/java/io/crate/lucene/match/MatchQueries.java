@@ -58,7 +58,9 @@ public final class MatchQueries {
 
         MatchQuery matchQuery = new MatchQuery(queryShardContext);
 
-        matchQuery.setAnalyzer(parsedOptions.analyzer());
+        if (parsedOptions.analyzer() != null) {
+            matchQuery.setAnalyzer(parsedOptions.analyzer());
+        }
         matchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
         matchQuery.setFuzziness(parsedOptions.fuzziness());
         matchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
@@ -85,7 +87,10 @@ public final class MatchQueries {
         if (tieBreaker != null) {
             multiMatchQuery.setTieBreaker(tieBreaker);
         }
-        multiMatchQuery.setAnalyzer(parsedOptions.analyzer());
+        String analyzer = parsedOptions.analyzer();
+        if (analyzer != null) {
+            multiMatchQuery.setAnalyzer(analyzer);
+        }
         multiMatchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
         multiMatchQuery.setFuzziness(parsedOptions.fuzziness());
         multiMatchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());

@@ -42,7 +42,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     }
 
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc) throws IOException {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {

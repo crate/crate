@@ -53,11 +53,12 @@ To get the relevance of a matching row, a specific system column
 contains a numeric score *relative to the other rows*: The higher, the more
 relevant the row::
 
-    cr> select name, _score from locations where match(name_description_ft, 'time') order by _score desc;
+    cr> select name, _score from locations
+    ... where match(name_description_ft, 'time') order by _score desc;
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Bartledan | 1.5112252 |
+    | Bartledan | 1.6672127 |
     | Altair    | 1.3862944 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
@@ -302,7 +303,7 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Bartledan | 1.5112252 |
+    | Bartledan | 1.6672127 |
     | Altair    | 1.3862944 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
@@ -342,15 +343,15 @@ For searching of matching phrases (tokens are in the exact same order) use
     ...     (name_description_ft, race['name'] 1.5, kind 0.75),
     ...     'end of the galaxy'
     ... ) order by _score desc;
-    +-------------------+-----------+
-    | name              |    _score |
-    +-------------------+-----------+
-    | NULL              | 3.3526964 |
-    | Altair            | 1.3862944 |
-    | Aldebaran         | 1.2243153 |
-    | North West Ripple | 0.796588  |
-    | Outer Eastern Rim | 0.796588  |
-    +-------------------+-----------+
+    +-------------------+------------+
+    | name              |     _score |
+    +-------------------+------------+
+    | NULL              | 3.435174   |
+    | Altair            | 1.3862944  |
+    | Aldebaran         | 1.2243153  |
+    | Outer Eastern Rim | 0.8561404  |
+    | North West Ripple | 0.83460975 |
+    +-------------------+------------+
     SELECT 5 rows in set (... sec)
 
 ::
@@ -362,7 +363,7 @@ For searching of matching phrases (tokens are in the exact same order) use
     +------+-------------------------+-----------+
     | name | description             |    _score |
     +------+-------------------------+-----------+
-    | NULL | The end of the Galaxy.% | 3.3526967 |
+    | NULL | The end of the Galaxy.% | 3.4351742 |
     +------+-------------------------+-----------+
     SELECT 1 row in set (... sec)
 
@@ -416,7 +417,7 @@ Anyway let's do it here for demonstration purpose::
     | name      |    _score |
     +-----------+-----------+
     | Altair    | 2.3862944 |
-    | Bartledan | 2.5112252 |
+    | Bartledan | 2.6672127 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 

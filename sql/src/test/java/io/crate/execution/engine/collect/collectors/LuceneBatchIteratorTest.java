@@ -37,15 +37,12 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static org.mockito.Mockito.mock;
 
 public class LuceneBatchIteratorTest extends CrateUnitTest {
 
@@ -80,7 +77,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                     null,
                     false,
                     new CollectorContext(
-                        mock(IndexFieldDataService.class),
+                        mappedFieldType -> null,
                         new CollectorFieldsVisitor(0)
                     ),
                     new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),

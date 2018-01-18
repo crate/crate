@@ -23,21 +23,23 @@
 package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
+import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.elasticsearch.transport.TransportSettings;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.nio.file.Path;
+
+import static org.elasticsearch.transport.TcpTransport.PORT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
@@ -85,7 +87,7 @@ public class CrateSettingsPreparerTest {
 
         assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));
         assertThat(builder.get(HttpTransportSettings.SETTING_HTTP_PORT.getKey()), is(Constants.HTTP_PORT_RANGE));
-        assertThat(builder.get(TransportSettings.PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
+        assertThat(builder.get(PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
         assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
 
         assertThat(builder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()), is("crate"));
@@ -96,11 +98,12 @@ public class CrateSettingsPreparerTest {
     public void testThatCommandLineArgumentsOverrideSettingsFromConfigFile() throws Exception {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
-        builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
+        Path config = PathUtils.get(getClass().getResource("config").toURI());
+        builder.put("path.conf", config);
         builder.put("stats.enabled", true);
         builder.put("cluster.name", "clusterNameOverridden");
         builder.put("path.logs", "/some/other/path");
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
         // Overriding value from crate.yml
         assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
         // Value kept from crate.yml
@@ -115,8 +118,9 @@ public class CrateSettingsPreparerTest {
     public void testConfigSettingsLoaded() throws Exception {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
-        builder.put("path.conf", PathUtils.get(getClass().getResource("config").toURI()));
-        Settings settings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        Path config = PathUtils.get(getClass().getResource("config").toURI());
+        builder.put("path.conf", config);
+        Settings settings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
         // Values from crate.yml
         assertThat(settings.get("cluster.name", null), is("testCluster"));
         assertThat(settings.get("path.logs"), is("/some/path"));
@@ -127,7 +131,8 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("cluster.name", "clusterName");
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        Path config = PathUtils.get(getClass().getResource("config").toURI());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
         assertThat(finalSettings.get("cluster.name", null), is("clusterName"));
     }
 
@@ -136,7 +141,8 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
         builder.put("cluster.name", "elasticsearch");
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        Path config = PathUtils.get(getClass().getResource("config").toURI());
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
         assertThat(finalSettings.get("cluster.name", null), is("crate"));
     }
 
@@ -144,10 +150,11 @@ public class CrateSettingsPreparerTest {
     public void testErrorWithDuplicateSettingInConfigFile() throws Exception {
         Settings.Builder builder = Settings.builder();
         builder.put("path.home", ".");
-        builder.put("path.conf", PathUtils.get(getClass().getResource("config_invalid").toURI()));
-        expectedException.expect(ElasticsearchParseException.class);
-        expectedException.expectMessage("duplicate settings key [stats.enabled] found at line number [2], " +
-                                        "column number [16], previous value [false], current value [true]");
-        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap()).settings();
+        Path config = PathUtils.get(getClass().getResource("config_invalid").toURI());
+        builder.put("path.conf", config);
+        expectedException.expect(SettingsException.class);
+        expectedException.expectMessage("Failed to load settings from");
+        expectedException.expectCause(Matchers.hasProperty("message", containsString("Duplicate field 'stats.enabled'")));
+        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
     }
 }

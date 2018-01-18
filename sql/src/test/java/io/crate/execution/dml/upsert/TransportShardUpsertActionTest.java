@@ -24,8 +24,8 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -57,11 +57,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.ObjectMapper;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -80,10 +81,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -171,7 +175,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             Settings.EMPTY,
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
+            MockTransportService.createNewService(Settings.EMPTY, Version.V_6_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),
@@ -479,6 +483,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(0)).index(any(Engine.Index.class));
+        verify(indexShard, times(0)).applyIndexOperationOnReplica(
+            anyLong(), anyLong(), any(VersionType.class), anyLong(), anyBoolean(), any(SourceToParse.class),
+            any(Consumer.class));
     }
 }

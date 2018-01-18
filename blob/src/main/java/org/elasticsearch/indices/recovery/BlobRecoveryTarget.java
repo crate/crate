@@ -113,7 +113,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
                 request.recoveryId(), request.shardId())) {
                 RecoveryTarget onGoingIndexRecovery = statusSafe.target();
 
-                if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
+                if (onGoingIndexRecovery.cancellableThreads().isCancelled()) {
                     throw new IndexShardClosedException(request.shardId());
                 }
                 BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());

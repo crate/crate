@@ -46,18 +46,19 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId) throws IOException {
         super.setNextDocId(docId);
-        values.setDocument(docId);
-        switch (values.count()) {
-            case 0:
-                value = null;
-                break;
-            case 1:
-                value = values.valueAt(0).compareTo(TRUE_BYTESREF) == 0;
-                break;
-            default:
-                throw new GroupByOnArrayUnsupportedException(columnName);
+        if (values.advanceExact(docId)) {
+            switch (values.docValueCount()) {
+                case 1:
+                    value = values.nextValue().compareTo(TRUE_BYTESREF) == 0;
+                    break;
+
+                default:
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+            }
+        } else {
+            value = null;
         }
     }
 

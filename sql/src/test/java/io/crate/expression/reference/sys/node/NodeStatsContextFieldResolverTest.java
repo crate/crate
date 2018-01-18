@@ -27,7 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -56,7 +56,7 @@ public class NodeStatsContextFieldResolverTest {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
-    private InetSocketTransportAddress postgresAddress;
+    private TransportAddress postgresAddress;
 
     @Before
     public void setup() throws UnknownHostException {
@@ -68,7 +68,7 @@ public class NodeStatsContextFieldResolverTest {
         when(osService.stats()).thenReturn(osStats);
         DiscoveryNode discoveryNode = newNode("node_name", "node_id");
 
-        postgresAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);
+        postgresAddress = new TransportAddress(Inet4Address.getLocalHost(), 5432);
         resolver = new NodeStatsContextFieldResolver(
             () -> discoveryNode,
             monitorService,

@@ -22,9 +22,9 @@
 package io.crate.execution.engine.collect.count;
 
 import io.crate.analyze.WhereClause;
+import io.crate.execution.support.ThreadPools;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
-import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -118,8 +118,7 @@ public class InternalCountOperation implements CountOperation {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 whereClause,
                 indexService.mapperService(),
-                indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis),
-                indexService.fieldData(),
+                indexService.newQueryShardContext(shardId, searcher.reader(), System::currentTimeMillis,  null),
                 indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");

@@ -254,7 +254,7 @@ public class TransportCreatePartitionsAction
 
                 // the context is only used for validation so it's fine to pass fake values for the shard id and the current
                 // timestamp
-                QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L);
+                QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L, null);
                 for (AliasMetaData aliasMetaData : templatesAliases.values()) {
                     if (aliasMetaData.filter() != null) {
                         aliasValidator.validateAliasFilter(
@@ -474,8 +474,11 @@ public class TransportCreatePartitionsAction
         // this means
         for (ObjectCursor<IndexTemplateMetaData> cursor : state.metaData().templates().values()) {
             IndexTemplateMetaData template = cursor.value;
-            if (Regex.simpleMatch(template.template(), firstIndex)) {
-                templates.add(template);
+            for (String pattern : template.getPatterns()) {
+                if (Regex.simpleMatch(pattern, firstIndex)) {
+                    templates.add(template);
+                    break;
+                }
             }
         }
         CollectionUtil.timSort(templates, (o1, o2) -> o2.order() - o1.order());

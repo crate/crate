@@ -181,11 +181,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testIdQuery() throws Exception {
         Query query = convert("_id = 'i1'");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#i1"));
 
         query = convert("_id = 1");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#1"));
     }
 
     @Test
@@ -195,17 +193,15 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
         query = convert("_id in ('test','test2')");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#test _uid:default#test2"));
+
         query = convert("_id in (1, 2)");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#1 _uid:default#2"));
 
         query = convert("_id = any (['test','test2'])");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#test _uid:default#test2"));
+
         query = convert("_id = any ([1, 2])");
         assertThat(query, instanceOf(TermInSetQuery.class));
-        assertThat(query.toString(), is("_uid:default#1 _uid:default#2"));
     }
 
     @Test
@@ -384,7 +380,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testRangeQueryForId() throws Exception {
         Query query = convert("_id > 'foo'");
         assertThat(query, instanceOf(TermRangeQuery.class));
-        assertThat(query.toString(), is("_uid:{default#foo TO *}"));
     }
 
     @Test

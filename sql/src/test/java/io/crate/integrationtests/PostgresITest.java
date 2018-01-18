@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
@@ -83,6 +84,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
 
+        builder.put(PSQL_PORT_SETTING.getKey(), "5432-5532");
         if (useIPv6) {
             builder.put("network.host", "::1");
         } else {

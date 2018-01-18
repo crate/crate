@@ -45,46 +45,49 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
-import static org.elasticsearch.common.Strings.cleanPath;
 import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
-import static org.elasticsearch.transport.TransportSettings.PORT;
+import static org.elasticsearch.transport.TcpTransport.PORT;
 
 public class CrateSettingsPreparer {
 
-    public static Environment prepareEnvironment(Settings settings, Map<String, String> cmdLineSettings) {
-        Settings.Builder builder = Settings.builder();
-        builder.put(settings);
-        builder.put(cmdLineSettings);
+    public static Environment prepareEnvironment(Settings input, Map<String, String> cmdLineSettings, Path configPath) {
+        Settings.Builder newSettings = Settings.builder();
+        newSettings.put(input);
+        newSettings.putProperties(cmdLineSettings, Function.identity());
+        newSettings.replacePropertyPlaceholders();
+        Environment env = new Environment(newSettings.build(), configPath);
 
-        Environment newEnvironment = new Environment(builder.build());
-
-        Path path = newEnvironment.configFile().resolve("crate.yml");
+        newSettings = Settings.builder();
+        Path path = env.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
             try {
-                builder.loadFromPath(path);
+                newSettings.loadFromPath(path);
             } catch (IOException e) {
                 throw new SettingsException("Failed to load settings from " + path.toString(), e);
             }
         }
 
         // override settings with cmdline settings
-        builder.put(cmdLineSettings);
+        newSettings.put(input);
+        newSettings.putProperties(cmdLineSettings, Function.identity());
+        newSettings.replacePropertyPlaceholders();
 
-        validateKnownSettings(builder);
-        applyCrateDefaults(builder);
+        validateKnownSettings(newSettings);
+        applyCrateDefaults(newSettings);
 
-        newEnvironment = new Environment(builder.build());
+        env = new Environment(newSettings.build(), configPath);
 
         // we put back the path.logs so we can use it in the logging configuration file
-        builder.put(
+        newSettings.put(
             Environment.PATH_LOGS_SETTING.getKey(),
-            cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
+            env.logsFile().toAbsolutePath().normalize().toString());
 
-        return new Environment(builder.build());
+        return new Environment(newSettings.build());
     }
 
     static void validateKnownSettings(Settings.Builder builder) {

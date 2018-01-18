@@ -26,9 +26,9 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
@@ -61,7 +61,7 @@ class FetchCollector {
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
         this.ramAccountingContext = ramAccountingContext;
         this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
-        CollectorContext collectorContext = new CollectorContext(indexFieldDataService, fieldsVisitor, readerId);
+        CollectorContext collectorContext = new CollectorContext(indexFieldDataService::getForField, fieldsVisitor, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

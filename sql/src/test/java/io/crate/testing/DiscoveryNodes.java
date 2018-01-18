@@ -24,21 +24,22 @@ package io.crate.testing;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 
 import java.util.Collections;
+
+import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 
 public class DiscoveryNodes {
 
     public static DiscoveryNode newNode(String nodeId) {
-        return new DiscoveryNode(nodeId, LocalTransportAddress.buildUnique(), Version.CURRENT);
+        return new DiscoveryNode(nodeId, buildNewFakeTransportAddress(), Version.CURRENT);
     }
 
     public static DiscoveryNode newNode(String name, String id) {
         return new DiscoveryNode(
             name,
             id,
-            LocalTransportAddress.buildUnique(),
+            buildNewFakeTransportAddress(),
             Collections.emptyMap(),
             Collections.emptySet(),
             Version.CURRENT);

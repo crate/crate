@@ -24,8 +24,8 @@ package io.crate.execution.jobs;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.planner.ExecutionPlan;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
@@ -66,7 +66,7 @@ public class NodeOperationCtxBenchmark {
     public void setupNodeOperations() {
         threadPool = new ThreadPool(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "benchmarkNode").build());
         DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
-        ClusterService clusterService = createClusterService(Settings.EMPTY, threadPool, localNode);
+        ClusterService clusterService = createClusterService(threadPool, localNode);
         SQLExecutor e = SQLExecutor.builder(clusterService, 1, new Random()).build();
         ExecutionPlan executionPlan = e.plan("select name from sys.cluster group by name");
 

@@ -45,11 +45,14 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.relations.SubselectRewriter;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.execution.ddl.RepositoryService;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RoutingProvider;
@@ -67,14 +70,11 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
@@ -82,6 +82,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -100,9 +101,9 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
@@ -129,6 +130,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -209,16 +211,15 @@ public class SQLExecutor {
                 new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
             );
             File tempDir = createTempDir();
-            analysisRegistry = new AnalysisRegistry(
-                new Environment(Settings.builder()
-                    .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
-                    .build()),
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptyMap()
-            );
+            Environment environment = new Environment(Settings.builder()
+                .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
+                .build());
+            try {
+                analysisRegistry = new AnalysisModule(environment, singletonList(new CommonAnalysisPlugin()))
+                    .getAnalysisRegistry();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
                 schemas,
                 new FulltextAnalyzerResolver(clusterService, analysisRegistry),
@@ -240,7 +241,7 @@ public class SQLExecutor {
         private void addNodesToClusterState(ClusterService clusterService, int numNodes) {
             DiscoveryNodes.Builder builder = DiscoveryNodes.builder();
             for (int i = 1; i <= numNodes; i++) {
-                builder.add(new DiscoveryNode("n" + i, LocalTransportAddress.buildUnique(), Version.CURRENT));
+                builder.add(new DiscoveryNode("n" + i, buildNewFakeTransportAddress(), Version.CURRENT));
             }
             builder.localNodeId("n1");
             ClusterServiceUtils.setState(

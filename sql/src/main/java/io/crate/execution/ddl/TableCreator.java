@@ -52,6 +52,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.SortedMap;
 import java.util.concurrent.CompletableFuture;
@@ -105,7 +106,7 @@ public class TableCreator {
             .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping())
             .create(true)
             .settings(settings(statement))
-            .template(statement.templatePrefix())
+            .patterns(Collections.singletonList(statement.templatePrefix()))
             .order(100)
             .alias(new Alias(statement.tableIdent().indexName()));
     }

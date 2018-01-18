@@ -179,7 +179,13 @@ def test_suite():
         host='localhost',
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
-        transport_port=CRATE_TRANSPORT_PORT
+        transport_port=CRATE_TRANSPORT_PORT,
+        settings={
+            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+            "cluster.routing.allocation.disk.watermark.low" : "85%",
+            "cluster.routing.allocation.disk.watermark.high" : "90%",
+            "cluster.routing.allocation.disk.watermark.flood_stage" : "95%",
+        }
     )
     hadoop_layer = HadoopLayer()
     layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
