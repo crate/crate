@@ -61,20 +61,6 @@ public class WithinQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    @IndexVersionCreated(Version.V_2_0_0_ID)
-    public void testWithinFunctionIndexV_2_0() throws Exception {
-        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPolygonQuery(point, [0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 0.0, 0.0])"));
-    }
-
-    @Test
-    @IndexVersionCreated(Version.V_2_3_0_ID)
-    public void testWithinFunctionIndexV_2_3() throws Exception {
-        Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Polygon: [[0.0, 0.0] [1.0, 1.0] [1.0, 2.0] [0.0, 0.0] ]"));
-    }
-
-    @Test
     @IndexVersionCreated(Version.V_5_0_0_ID)
     public void testWithinFunctionIndexV_5_0() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
