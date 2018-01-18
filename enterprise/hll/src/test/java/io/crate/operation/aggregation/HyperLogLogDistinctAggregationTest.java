@@ -25,12 +25,10 @@ import io.crate.module.HyperLogLogModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 import org.junit.Before;
 import org.junit.Test;
@@ -103,43 +101,39 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     @Test
     public void testMurmu3HashCalculationsForAllTypes() throws Exception {
         // double types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE, Version.CURRENT).hash(1.3d),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE).hash(1.3d),
             is(3706823019612663850L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT, Version.CURRENT).hash(1.3f),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT).hash(1.3f),
             is(1386670595997310747L));
 
         // long types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG, Version.CURRENT).hash(1L),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG).hash(1L),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER, Version.CURRENT).hash(1),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER).hash(1),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT, Version.CURRENT).hash(new Short("1")),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT).hash(new Short("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE, Version.CURRENT).hash(new Byte("1")),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE).hash(new Byte("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMP, Version.CURRENT).hash(1512569562000L),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMP).hash(1512569562000L),
             is(-3066297687939346384L));
 
         // bytes types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING, Version.CURRENT).hash("foo"),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING).hash("foo"),
             is(-2129773440516405919L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN, Version.CURRENT).hash(true),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN).hash(true),
             is(7529381342917315814L));
 
         // ip type
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP, Version.CURRENT).hash("127.0.0.1"),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP).hash("127.0.0.1"),
             is(5662530066633765140L));
-        // ip type old indices
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP, Version.V_2_4_2).hash(LegacyIpFieldMapper.ipToLong("127.0.0.1")),
-            is(8879810515845091419L));
     }
 
     @Test
     public void testStreaming() throws Exception {
         HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState(
             BigArrays.NON_RECYCLING_INSTANCE,
-            DataTypes.IP,
-            Version.CURRENT);
+            DataTypes.IP);
         hllState1.init(HyperLogLogPlusPlus.DEFAULT_PRECISION);
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = HyperLogLogDistinctAggregation.HllStateType.INSTANCE.streamer();
