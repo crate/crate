@@ -29,7 +29,6 @@ import io.crate.execution.expression.reference.sys.check.AbstractSysCheck;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -49,26 +48,23 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     public static final String DESCRIPTION =
         "The following tables need to be upgraded for compatibility with future versions of CrateDB: ";
 
-    private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
-                                       "from sys.shards where min_lucene_version not like '" +
-                                       Version.LATEST.major + ".%.%' " +
-                                       "AND (NOT schema_name || '.' || table_name = ANY (?)) " +
-                                       "order by 1";
+    private static final String STMT = "SELECT schema_name || '.' || table_name, min_lucene_version " +
+                                       "FROM sys.shards " +
+                                       "WHERE min_lucene_version not like '" + Version.LATEST.major + ".%.%' " +
+                                       "GROUP BY 1, 2 " +
+                                       "ORDER BY 1";
     private static final int LIMIT = 50_000;
     private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";
 
     private final Logger logger;
-    private final ClusterService clusterService;
     private final Provider<SQLOperations> sqlOperationsProvider;
     private SQLOperations.SQLDirectExecutor sqlDirectExecutor;
     private volatile Collection<String> tablesNeedUpgrade;
 
     @Inject
-    public TablesNeedUpgradeSysCheck(ClusterService clusterService,
-                                     Provider<SQLOperations> sqlOperationsProvider,
+    public TablesNeedUpgradeSysCheck(Provider<SQLOperations> sqlOperationsProvider,
                                      Settings settings) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
-        this.clusterService = clusterService;
         this.sqlOperationsProvider = sqlOperationsProvider;
 
         this.logger = Loggers.getLogger(TablesNeedUpgradeSysCheck.class, settings);
@@ -82,13 +78,9 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public CompletableFuture<?> computeResult() {
-        Collection<String> tablesNeedRecreation =
-            TablesNeedRecreationSysCheck.tablesNeedRecreation(clusterService.state().metaData());
-
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
-        Object[] sqlParam = tablesNeedRecreation.toArray(new String[]{});
         try {
-            directExecutor().execute(new SycCheckResultReceiver(result), Collections.singletonList(sqlParam));
+            directExecutor().execute(new SycCheckResultReceiver(result), Collections.emptyList());
         } catch (Throwable t) {
             result.completeExceptionally(t);
         }
