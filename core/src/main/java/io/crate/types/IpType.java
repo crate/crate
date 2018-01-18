@@ -23,7 +23,6 @@ package io.crate.types;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 
 import java.util.Locale;
 
@@ -31,9 +30,6 @@ public class IpType extends StringType {
 
     public static final int ID = 5;
     public static final IpType INSTANCE = new IpType();
-
-    IpType() {
-    }
 
     @Override
     public int id() {
@@ -59,9 +55,17 @@ public class IpType extends StringType {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
                     longIp));
             }
-            String strIp = LegacyIpFieldMapper.longToIp(longIp);
+            String strIp = longToIp(longIp);
             return new BytesRef(strIp);
         }
+    }
+
+    private static String longToIp(long longIp) {
+        int octet3 = (int) ((longIp >> 24) % 256);
+        int octet2 = (int) ((longIp >> 16) % 256);
+        int octet1 = (int) ((longIp >> 8) % 256);
+        int octet0 = (int) ((longIp) % 256);
+        return octet3 + "." + octet2 + "." + octet1 + "." + octet0;
     }
 
     private void validate(String ip) {
