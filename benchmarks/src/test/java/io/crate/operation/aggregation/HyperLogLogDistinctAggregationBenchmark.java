@@ -64,7 +64,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
         new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(new BytesRef(i))).collect(Collectors.toList());
     private final HyperLogLogDistinctAggregation.Murmur3Hash murmur3Hash =
-        HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING, Version.CURRENT);
+        HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING);
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
     private AggregateCollector collector;
