@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Locale;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.is;
@@ -60,7 +61,7 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
     public void testDecodeEncodeUTF8Text() {
         long expectedMsecs = 1514764800000L;
         String prefix = "2018-01-01 00:00:00";
-        String tzString = String.format("%+03d:00", timezoneDiffInHours);
+        String tzString = String.format(Locale.ENGLISH, "%+03d:00", timezoneDiffInHours);
 
         StringBuilder fullTimestamp = new StringBuilder(prefix);
         appendFractionOfSecDigits(fullTimestamp);
