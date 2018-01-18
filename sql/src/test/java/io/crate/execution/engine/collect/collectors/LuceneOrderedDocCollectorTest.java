@@ -26,7 +26,6 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -44,7 +43,6 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedDocValuesField;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -66,7 +64,7 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
@@ -87,7 +85,8 @@ import static org.mockito.Mockito.mock;
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
-    private LegacyLongFieldMapper.LongFieldType valueFieldType;
+    private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
+    private NumberFieldMapper.NumberFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -110,8 +109,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            doc.add(new LegacyLongFieldMapper.CustomLongNumericField(value, valueFieldType));
-            doc.add(new SortedNumericDocValuesField("value", value));
+            fieldType.createFields("value", value, true, true, false).forEach(doc::add);
         } else {
             // Create a placeholder field
             doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
@@ -134,7 +132,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     }
 
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(REFERENCE),
+        OrderBy orderBy = new OrderBy(ImmutableList.of(REFERENCE),
             new boolean[]{reverseFlag},
             new Boolean[]{nullFirst});
 
@@ -156,15 +154,15 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     }
 
     @Before
-    public void setUp() throws Exception {
-        valueFieldType = new LegacyLongFieldMapper.LongFieldType();
+    public void setUp() {
+        valueFieldType = new NumberFieldMapper.NumberFieldType(fieldType);
         valueFieldType.setName("value");
     }
 
     @Test
-    public void testNextPageQueryWithLastCollectedNullValue() throws Exception {
+    public void testNextPageQueryWithLastCollectedNullValue() {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
-        OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
+        OrderBy orderBy = new OrderBy(Collections.singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
 
         OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
             orderBy, mock(QueryShardContext.class), name -> valueFieldType);
@@ -249,7 +247,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
 
     @Test
-    public void testSearchAfterWithSystemColumn() throws Exception {
+    public void testSearchAfterWithSystemColumn() {
         Reference sysColReference =
             new Reference(
                 new ReferenceIdent(
