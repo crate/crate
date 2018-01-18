@@ -56,4 +56,11 @@ public class DeleteBlobRequest extends ReplicationRequest<DeleteBlobRequest> {
         super.writeTo(out);
         out.write(digest);
     }
+
+    @Override
+    public String toString() {
+        return "DeleteBlobRequest{" +
+               "digest=" + id() +
+               '}';
+    }
 }

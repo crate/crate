@@ -79,4 +79,14 @@ public class PutChunkReplicaRequest extends ReplicationRequest<PutChunkReplicaRe
     public boolean isLast() {
         return isLast;
     }
+
+    @Override
+    public String toString() {
+        return "PutChunkReplicaRequest{" +
+               "sourceNodeId='" + sourceNodeId + '\'' +
+               ", transferId=" + transferId +
+               ", currentPos=" + currentPos +
+               ", isLast=" + isLast +
+               '}';
+    }
 }

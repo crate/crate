@@ -78,4 +78,12 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
     public UUID transferId() {
         return transferId;
     }
+
+    @Override
+    public String toString() {
+        return "BlobTransferRequest{" +
+               "last=" + last +
+               ", transferId=" + transferId +
+               '}';
+    }
 }
