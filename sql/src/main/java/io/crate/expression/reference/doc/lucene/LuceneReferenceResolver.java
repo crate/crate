@@ -46,7 +46,6 @@ import io.crate.types.SetType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.Version;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
@@ -126,10 +125,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case ShortType.ID:
                 return new ShortColumnReference(fqn);
             case IpType.ID:
-                Version indexVersionCreated = indexSettings.getIndexVersionCreated();
-                if (indexVersionCreated.before(Version.V_5_0_0)) {
-                    return new LegacyIPColumnReference(fqn);
-                }
                 return new IpColumnReference(fqn);
             case StringType.ID:
                 return new BytesRefColumnReference(fqn, fieldType);
