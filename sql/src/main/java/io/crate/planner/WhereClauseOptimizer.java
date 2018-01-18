@@ -34,10 +34,13 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 
@@ -60,11 +63,16 @@ public final class WhereClauseOptimizer {
         private final Symbol query;
         private final DocKeys docKeys;
         private final List<List<Symbol>> partitionValues;
+        private final Set<Symbol> clusteredByValues;
 
-        DetailedQuery(Symbol query, DocKeys docKeys, List<List<Symbol>> partitionValues) {
+        DetailedQuery(Symbol query,
+                      DocKeys docKeys,
+                      List<List<Symbol>> partitionValues,
+                      @Nullable Set<Symbol> clusteredByValues) {
             this.query = query;
             this.docKeys = docKeys;
             this.partitionValues = firstNonNull(partitionValues, Collections.emptyList());
+            this.clusteredByValues = clusteredByValues;
         }
 
         public Optional<DocKeys> docKeys() {
@@ -85,16 +93,24 @@ public final class WhereClauseOptimizer {
         public Symbol query() {
             return query;
         }
+
+        @Nullable
+        public Set<Symbol> clusteredBy() {
+            return clusteredByValues;
+        }
     }
 
     public static DetailedQuery optimize(EvaluatingNormalizer normalizer,
                                          Symbol query,
                                          DocTableInfo table,
                                          TransactionContext txnCtx) {
-        query = GeneratedColumnExpander.maybeExpand(
+        Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),
             Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference)));
+        if (!query.equals(queryGenColsProcessed)) {
+            query = normalizer.normalize(queryGenColsProcessed, txnCtx);
+        }
 
         boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
         List<ColumnIdent> pkCols = pkColsInclVersion(table, versionInQuery);
@@ -117,7 +133,18 @@ public final class WhereClauseOptimizer {
         if (table.isPartitioned()) {
             partitionValues = eqExtractor.extractExactMatches(table.partitionedBy(), query, txnCtx);
         }
-        return new DetailedQuery(query, docKeys, partitionValues);
+        Set<Symbol> clusteredBy = null;
+        if (table.clusteredBy() != null) {
+            List<List<Symbol>> clusteredByValues = eqExtractor.extractParentMatches(
+                Collections.singletonList(table.clusteredBy()), query, txnCtx);
+            if (clusteredByValues != null) {
+                clusteredBy = new HashSet<>(clusteredByValues.size());
+                for (List<Symbol> s : clusteredByValues) {
+                    clusteredBy.add(s.get(0));
+                }
+            }
+        }
+        return new DetailedQuery(query, docKeys, partitionValues, clusteredBy);
     }
 
     public static List<Integer> getPartitionIndices(List<ColumnIdent> pkCols, List<ColumnIdent> partitionCols) {

@@ -70,7 +70,7 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, false, transactionContext);
     }
 

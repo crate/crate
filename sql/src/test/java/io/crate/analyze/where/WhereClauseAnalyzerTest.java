@@ -28,6 +28,7 @@ import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.RowN;
@@ -61,6 +62,7 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isNullDocKey;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -197,6 +199,11 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
         QueriedRelation rel = e.analyze(stmt, args);
+        if (rel instanceof QueriedDocTable) {
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
+                getFunctions(), ((QueriedDocTable) rel).tableRelation());
+            return whereClauseAnalyzer.analyze(rel.where().query(), transactionContext);
+        }
         return rel.where();
     }
 

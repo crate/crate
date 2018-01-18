@@ -43,6 +43,9 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
@@ -57,9 +60,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -238,6 +238,10 @@ class Collect extends ZeroInputPlan {
             relation.tableRelation(),
             plannerContext.functions(),
             plannerContext.transactionContext());
+        List<Symbol> boundOutputs = new ArrayList<>(outputs.size());
+        for (Symbol output : outputs) {
+            boundOutputs.add(SubQueryAndParamBinder.convert(output, params, subQueryValues));
+        }
 
         return new RoutedCollectPhase(
             plannerContext.jobId(),
@@ -249,7 +253,7 @@ class Collect extends ZeroInputPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            outputs,
+            boundOutputs,
             Collections.emptyList(),
             where,
             DistributionInfo.DEFAULT_BROADCAST,
