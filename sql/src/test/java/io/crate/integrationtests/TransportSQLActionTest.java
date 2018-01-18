@@ -204,8 +204,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectStarWithOther() throws Exception {
         prepareCreate(getFqn("test"))
             .addMapping("default",
-                "firstName", "type=string",
-                "lastName", "type=string")
+                "firstName", "type=keyword",
+                "lastName", "type=keyword")
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
@@ -248,8 +248,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectStarWithOtherAndAlias() throws Exception {
         prepareCreate(getFqn("test"))
             .addMapping("default",
-                "firstName", "type=string",
-                "lastName", "type=string")
+                "firstName", "type=keyword",
+                "lastName", "type=keyword")
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
@@ -265,8 +265,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testFilterByEmptyString() throws Exception {
         prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "name", "type=string,index=not_analyzed")
+            .addMapping("default", "name", "type=keyword")
             .execute().actionGet();
         ensureYellow();
         client().prepareIndex(getFqn("test"), "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
@@ -314,8 +313,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testFilterByBoolean() throws Exception {
         prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "sunshine", "type=boolean,index=not_analyzed")
+            .addMapping("default", "sunshine", "type=boolean")
             .execute().actionGet();
         ensureYellow();
 

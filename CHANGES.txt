@@ -15,8 +15,44 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- Dropped support for tables that have been created with CrateDB prior to
+  version 2.0. Tables which require upgrading are indicated in the cluster
+  checks, including visually shown in the Admin UI, if running the latest 2.2
+  or 2.3 release. The upgrade of tables needs to happen before updating CrateDB
+  to this version. This can be done by exporting the data with ``COPY TO`` and
+  importing it into a new table with ``COPY FROM``.  Alternatively you can use
+  ``INSERT`` with query.
+
+- Data paths as defined in ``path.data`` must not contain the cluster name as a
+  folder. Data paths which are not compatible with this version are indicated
+  in the node checks, including visually shown in the Admin UI, if running the
+  latest 2.2 or 2.3 release.
+
+- The ``bootstrap.seccomp`` setting that controls system call filters has been
+  replaced in favour of ``bootstrap.system_call_filter``.
+
+- The ``error_trace`` GET parameter of the HTTP endpoint only allows ``true``
+  and ``false`` in lower case. Other values are not allowed any more and will
+  result in a parsing exception.
+
+- Store level throttling settings (``indices.store.throttle.*``) have been
+  removed.
+
+- The gateway recovery table setting ``recovery.initial_shards`` has been
+  removed. Nodes will recover their unassigned local primary shards
+  immediatelly after restart.
+
 Changes
 =======
+
+- CrateDB is now based on Elasticsearch 6.0.1 and Lucene 7.0.1.
+
+- Added new ``cluster.routing.allocation.disk.watermark.flood_stage`` setting,
+  that controls at which disk usage indices should become read-only to prevent
+  running out of disk space.
+
+- Added new tokenizers ``simple_pattern`` and ``simple_pattern_split`` which
+  allow to tokenize text for the fulltext index by a regular expression pattern.
 
 - Changed ``BEGIN`` and ``SET SESSION`` to no longer require ``DQL``
   permissions on the ``CLUSTER`` level.

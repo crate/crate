@@ -27,16 +27,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
+import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
-import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -62,7 +62,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -276,13 +275,10 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         fieldType.setName("x");
         fieldType.freeze();
 
-        for (int i = 0; i < 4; i++) {
-            Document doc = new Document();
-            Field field = new Field(fieldType.name(), "Arthur", fieldType);
-            field.setBoost(i + 1);
-            doc.add(field);
-            w.addDocument(doc);
+        for (int i = 0; i < 3; i++) {
+            addDoc(w, fieldType, "Arthur");
         }
+        addDoc(w, fieldType, "Arthurr"); // not "Arthur" to lower score
         w.commit();
         IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
 
@@ -296,11 +292,11 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         assertThat(Iterables.size(collector.collect()), is(2));
         assertThat(Iterables.size(collector.collect()), is(2));
 
-        collector = collectorWithMinScore(searcher, columnReferences, query, 0.15f);
+        collector = collectorWithMinScore(searcher, columnReferences, query, 0.30f);
         int count = 0;
         // initialSearch -> 2 rows
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.30f));
             count++;
         }
         assertThat(count, is(2));
@@ -308,10 +304,17 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         count = 0;
         // searchMore -> 1 row is below minScore
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.30f));
             count++;
         }
         assertThat(count, is(1));
+    }
+
+    private static void addDoc(IndexWriter w, KeywordFieldMapper.KeywordFieldType fieldType, String value) throws IOException {
+        Document doc = new Document();
+        Field field = new Field(fieldType.name(), value, fieldType);
+        doc.add(field);
+        w.addDocument(doc);
     }
 
     private LuceneOrderedDocCollector collectorWithMinScore(IndexSearcher searcher,
@@ -325,7 +328,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
                 minScore,
                 true,
                 2,
-                new CollectorContext(mock(IndexFieldDataService.class), new CollectorFieldsVisitor(0)),
+                new CollectorContext(mappedFieldType -> null, new CollectorFieldsVisitor(0)),
                 f -> null,
                 new Sort(SortField.FIELD_SCORE),
                 columnReferences,

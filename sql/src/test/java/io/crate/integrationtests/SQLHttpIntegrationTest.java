@@ -35,7 +35,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.Before;
 
@@ -75,8 +74,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     @Before
     public void setup() {
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
-        address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
-            .address();
+        address = httpServerTransport.boundAddress().publishAddress().address();
         httpPost = new HttpPost(String.format(Locale.ENGLISH,
             "%s://%s:%s/_sql?error_trace",
             usesSSL ? "https" : "http", address.getHostName(), address.getPort()));

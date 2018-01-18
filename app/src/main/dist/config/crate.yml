@@ -489,18 +489,6 @@ auth:
 #indices.recovery.retry_internal_long_action_timeout: 30m
 
 
-########################### Store Level Throttling ###########################
-
-# Allows to throttle `merge` (or `all`) process of the store module. Options
-# are: `all | merge | none`
-#indices.store.throttle.type: merge
-
-# If throttling is enabled by indices.store.throttle.type, this setting
-# specifies the maximum bytes per second a store module process can operate
-# with.
-#indices.store.throttle.max_bytes_per_sec: 20mb
-
-
 ################################# Discovery ##################################
 
 # Discovery infrastructure ensures nodes can be found within a cluster
@@ -722,6 +710,11 @@ auth:
 # disk usage on a node rises above this value. It can also be set to an
 # absolute bytes value (like e.g. `500mb`)
 #cluster.routing.allocation.disk.watermark.high: 90%
+
+# Defines the threshold on which CrateDB enforces a read-only block on every
+# index that has at least one shard allocated on a node with at least one disk
+# exceeding the flood stage.
+#cluster.routing.allocation.disk.watermark.flood_stage: 95%
 
 
 ########################## Field Data Circuit Breaker #########################

@@ -30,6 +30,8 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -123,34 +125,28 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return Objects.hashCode(routing, jobId, shardId(), items);
     }
 
+    /**
+     * The description is used when creating transport, replication and search tasks and it defaults to `toString`.
+     * Only return the shard id to avoid the overhead of including all the items.
+     */
+
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{" +
-               "items=" + items +
+        return "ShardRequest{" +
                ", shardId=" + shardId +
                ", timeout=" + timeout +
                '}';
     }
 
-    /**
-     * The description is used when creating transport, replication and search tasks and it defaults to `toString`.
-     * Overriding here to return the parent `toString` to avoid using the local, expensive (printing all items)
-     * `toString`.
-     */
-    @Override
-    public String getDescription() {
-        return super.toString();
-    }
-
     protected abstract I readItem(StreamInput input) throws IOException;
 
-    /**
-     * A single item with just an id and an optional location.
-     */
     public abstract static class Item implements Writeable {
 
         protected final String id;
+        protected long version = Versions.MATCH_ANY;
+
         private int location = -1;
+        private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
 
         public Item(String id) {
             this.id = id;
@@ -158,11 +154,21 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         protected Item(StreamInput in) throws IOException {
             id = in.readString();
+            version = in.readLong();
             location = in.readInt();
+            seqNo = in.readLong();
         }
 
         public String id() {
             return id;
+        }
+
+        public long version() {
+            return version;
+        }
+
+        public void version(long version) {
+            this.version = version;
         }
 
         public void location(int location) {
@@ -173,30 +179,44 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return location;
         }
 
+        public long seqNo() {
+            return seqNo;
+        }
+
+        public void seqNo(long seqNo) {
+            this.seqNo = seqNo;
+        }
+
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
+            out.writeLong(version);
             out.writeInt(location);
+            out.writeLong(seqNo);
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-
             Item item = (Item) o;
-            return location == item.location && id.equals(item.id);
+            return version == item.version &&
+                   location == item.location &&
+                   seqNo == item.seqNo &&
+                   java.util.Objects.equals(id, item.id);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, location);
+            return java.util.Objects.hash(id, version, location, seqNo);
         }
 
         @Override
         public String toString() {
             return "Item{" +
                    "id='" + id + '\'' +
+                   ", version=" + version +
                    ", location=" + location +
+                   ", seqNo=" + seqNo +
                    '}';
         }
     }

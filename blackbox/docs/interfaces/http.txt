@@ -287,7 +287,7 @@ To get more insight into what exactly went wrong an additional ``error_trace``
 GET parameter can be specified to return the stack trace::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
-    ... -X POST '127.0.0.1:4200/_sql?pretty&error_trace=True' -d@- <<- EOF
+    ... -X POST '127.0.0.1:4200/_sql?pretty&error_trace=true' -d@- <<- EOF
     ... {
     ...   "stmt":"select name, position from foo.locations"
     ... }

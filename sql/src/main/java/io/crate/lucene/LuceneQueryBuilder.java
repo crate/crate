@@ -113,8 +113,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.BaseGeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -162,9 +160,8 @@ public class LuceneQueryBuilder {
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
                            QueryShardContext queryShardContext,
-                           IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache, queryShardContext);
+        Context ctx = new Context(functions, mapperService, indexCache, queryShardContext);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
@@ -204,13 +201,11 @@ public class LuceneQueryBuilder {
 
         final DocInputFactory docInputFactory;
         final MapperService mapperService;
-        final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
         final QueryShardContext queryShardContext;
 
         Context(Functions functions,
                 MapperService mapperService,
-                IndexFieldDataService fieldDataService,
                 IndexCache indexCache,
                 QueryShardContext queryShardContext) {
             this.queryShardContext = queryShardContext;
@@ -220,7 +215,6 @@ public class LuceneQueryBuilder {
                 typeLookup,
                 new LuceneReferenceResolver(typeLookup, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
-            this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
         }
 
@@ -1057,7 +1051,7 @@ public class LuceneQueryBuilder {
             }
 
             private static Query getPolygonQuery(Geometry geometry,
-                                                 BaseGeoPointFieldMapper.GeoPointFieldType fieldType) {
+                                                 GeoPointFieldMapper.GeoPointFieldType fieldType) {
                 Coordinate[] coordinates = geometry.getCoordinates();
                 // close the polygon shape if startpoint != endpoint
                 if (!CoordinateArrays.isRing(coordinates)) {
@@ -1115,7 +1109,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private static BaseGeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
             MappedFieldType fieldType = mapperService.fullName(fieldName);
             if (fieldType == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
@@ -1241,12 +1235,12 @@ public class LuceneQueryBuilder {
                 Symbol right = function.arguments().get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
+                    if (ref.ident().columnIdent().equals(DocSysColumns.UID)) {
                         Literal uidLiteral = generateLuceneUIDs(right);
                         return new Function(
                             function.info(),
                             Arrays.asList(
-                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID),
+                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID),
                                 uidLiteral));
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
@@ -1296,7 +1290,7 @@ public class LuceneQueryBuilder {
             @SuppressWarnings("unchecked")
             final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             final CollectorContext collectorContext = new CollectorContext(
-                context.fieldDataService,
+                context.queryShardContext::getForField,
                 new CollectorFieldsVisitor(expressions.size())
             );
 

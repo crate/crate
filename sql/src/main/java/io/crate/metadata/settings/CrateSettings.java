@@ -26,10 +26,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
@@ -57,7 +57,6 @@ import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.discovery.zen.ElectMasterService;
 import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.index.store.IndexStoreConfig;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
@@ -167,6 +166,7 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING, DataTypes.BOOLEAN),
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING, DataTypes.STRING),
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
+            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
             // DISCOVERY
             CrateSetting.of(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING, DataTypes.INTEGER),
             CrateSetting.of(ZenDiscovery.PING_TIMEOUT_SETTING, DataTypes.STRING),
@@ -182,8 +182,6 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING, DataTypes.STRING),
-            CrateSetting.of(IndexStoreConfig.INDICES_STORE_THROTTLE_TYPE_SETTING, DataTypes.STRING),
-            CrateSetting.of(IndexStoreConfig.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC_SETTING, DataTypes.STRING),
             CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
             CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
             CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),

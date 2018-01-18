@@ -310,11 +310,13 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
             randomNode.getHostName(), randomNode.getPort()));
         String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
-        httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
+        httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_JSON));
         CloseableHttpResponse res = httpClient.execute(httpPut);
         assertThat(EntityUtils.toString(res.getEntity()),
             is("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
-               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\",\"_shards\":{\"total\":2,\"successful\":2,\"failed\":0},\"created\":true}"));
+               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\"," +
+               "\"_shards\":{\"total\":2,\"successful\":2,\"failed\":0}," +
+               "\"_seq_no\":0,\"_primary_term\":1}"));
         assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
         assertThat(res.getStatusLine().getStatusCode(), is(201));
     }

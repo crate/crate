@@ -21,7 +21,6 @@
 
 package io.crate.udc.ping;
 
-import io.crate.ClusterId;
 import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
@@ -44,6 +43,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.hasKey;
@@ -91,7 +91,7 @@ public class PingTaskTest extends CrateUnitTest {
         clusterIdService = mock(ClusterIdService.class);
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
 
-        CompletableFuture<ClusterId> clusterIdFuture = CompletableFuture.completedFuture(new ClusterId());
+        CompletableFuture<String> clusterIdFuture = CompletableFuture.completedFuture(UUID.randomUUID().toString());
         when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
         when(clusterService.localNode()).thenReturn(discoveryNode);
         when(discoveryNode.isMasterNode()).thenReturn(true);

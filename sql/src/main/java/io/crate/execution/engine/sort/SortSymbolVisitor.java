@@ -156,8 +156,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 fieldComparatorSource,
                 context.reverseFlag);
         } else {
-            return context.context.fieldData()
-                .getForField(fieldType)
+            return context.context.getFieldData(fieldType)
                 .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst),
                     sortMode, null, context.reverseFlag);
         }

@@ -73,6 +73,7 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -280,8 +281,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String templateName = PartitionName.templateName(sqlExecutor.getDefaultSchema(), "parted");
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
-        assertThat(templatesResponse.getIndexTemplates().get(0).template(),
-            is(templateName + "*"));
+        assertThat(templatesResponse.getIndexTemplates().get(0).patterns(),
+            contains(is(templateName + "*")));
         assertThat(templatesResponse.getIndexTemplates().get(0).name(),
             is(templateName));
         assertTrue(templatesResponse.getIndexTemplates().get(0).getAliases().get(getFqn("parted")) != null);

@@ -28,7 +28,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.node.NodeService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -166,8 +166,8 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
-            mock(MonitorService.class)
-            );
+            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+        );
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));

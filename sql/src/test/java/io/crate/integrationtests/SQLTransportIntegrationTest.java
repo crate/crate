@@ -33,13 +33,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.kill.KillableCallable;
+import io.crate.execution.support.Paging;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -48,8 +50,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.support.Paging;
-import io.crate.auth.user.User;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -73,6 +73,7 @@ import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -81,13 +82,14 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -103,11 +105,11 @@ import org.junit.rules.Timeout;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -118,6 +120,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.is;
@@ -152,12 +155,20 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
+            .put(PSQL_PORT_SETTING.getKey(), 0)
             .build();
     }
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class, HttpTransportPlugin.class);
+        return Arrays.asList(
+            SQLPlugin.class,
+            BlobPlugin.class,
+            CrateCorePlugin.class,
+            HttpTransportPlugin.class,
+            CommonAnalysisPlugin.class,
+            URLRepositoryPlugin.class
+        );
     }
 
     protected SQLResponse response;
@@ -177,11 +188,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 @Override
                 public String pgUrl() {
                     PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
-                    Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
-                    if (addressIter.hasNext()) {
-                        InetSocketTransportAddress address = addressIter.next();
+                    BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
+                    if (boundTransportAddress != null) {
+                        InetSocketAddress address = boundTransportAddress.publishAddress().address();
                         return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/?ssl=%s",
-                            address.getHost(), address.getPort(), useSSL);
+                            address.getHostName(), address.getPort(), useSSL);
                     }
                     return null;
                 }

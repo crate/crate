@@ -22,21 +22,21 @@
 
 package io.crate.expression.reference.sys.node.local;
 
+import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
+import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -52,11 +52,11 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             MonitorService monitorService,
+                             NodeService nodeService,
                              @Nullable HttpServerTransport httpServerTransport,
-                             Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
+        MonitorService monitorService = nodeService.getMonitorService();
         this.osService = monitorService.osService();
         this.jvmService = monitorService.jvmService();
         this.processService = monitorService.processService();
@@ -69,7 +69,7 @@ public class NodeSysExpression extends NestedObjectExpression {
         childImplementations.put(SysNodesTableInfo.SYS_COL_ID,
             new NodeIdExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
-            new NodeNameExpression(discovery));
+            new NodeNameExpression(() -> clusterService.localNode().getName()));
         childImplementations.put(SysNodesTableInfo.SYS_COL_PORT, new NodePortExpression(
             () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
             () -> clusterService.localNode().getAddress()

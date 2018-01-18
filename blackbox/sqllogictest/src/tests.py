@@ -66,7 +66,11 @@ def test_suite():
         transport_port=CRATE_TRANSPORT_PORT,
         settings={
             'stats.enabled': True,
-            'psql.port': CRATE_PSQL_PORT
+            'psql.port': CRATE_PSQL_PORT,
+            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+            "cluster.routing.allocation.disk.watermark.low" : "100k",
+            "cluster.routing.allocation.disk.watermark.high" : "10k",
+            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
         }
     )
     suite.layer = crate_layer

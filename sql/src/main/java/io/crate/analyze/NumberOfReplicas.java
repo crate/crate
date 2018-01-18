@@ -69,7 +69,7 @@ public class NumberOfReplicas {
     public static BytesRef fromSettings(Settings settings) {
         BytesRef numberOfReplicas;
         String autoExpandReplicas = settings.get(AUTO_EXPAND_REPLICAS);
-        if (autoExpandReplicas != null && !Booleans.isExplicitFalse(autoExpandReplicas)) {
+        if (autoExpandReplicas != null && !Booleans.isFalse(autoExpandReplicas)) {
             validateExpandReplicaSetting(autoExpandReplicas);
             numberOfReplicas = new BytesRef(autoExpandReplicas);
         } else {

@@ -21,12 +21,12 @@ package io.crate.mqtt.netty;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.action.sql.SQLOperations;
+import io.crate.auth.user.UserManager;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
 import io.crate.mqtt.operations.MqttIngestService;
 import io.crate.mqtt.protocol.MqttProcessor;
 import io.crate.netty.CrateChannelBootstrapFactory;
-import io.crate.auth.user.UserManager;
 import io.crate.protocols.postgres.BindPostgresException;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;
@@ -52,7 +52,6 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -101,7 +100,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private final boolean isEnabled;
     private final MqttMessageLogger mqttMessageLogger;
     private final List<Channel> serverChannels = new ArrayList<>();
-    private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
+    private final List<TransportAddress> boundAddresses = new ArrayList<>();
     private final SslContextProvider sslContextProvider;
     private ServerBootstrap serverBootstrap;
     private final MqttIngestService mqttIngestService;
@@ -177,8 +176,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         return boundAddress;
     }
 
-    private static int resolvePublishPort(List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
-        for (InetSocketTransportAddress boundAddress : boundAddresses) {
+    private static int resolvePublishPort(List<TransportAddress> boundAddresses, InetAddress publishInetAddress) {
+        for (TransportAddress boundAddress : boundAddresses) {
             InetAddress boundInetAddress = boundAddress.address().getAddress();
             if (boundInetAddress.isAnyLocalAddress() || boundInetAddress.equals(publishInetAddress)) {
                 return boundAddress.getPort();
@@ -187,7 +186,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
 
         // if no matching boundAddress found, check if there is a unique port for all bound addresses
         final IntSet ports = new IntHashSet();
-        for (InetSocketTransportAddress boundAddress : boundAddresses) {
+        for (TransportAddress boundAddress : boundAddresses) {
             ports.add(boundAddress.getPort());
         }
         if (ports.size() == 1) {
@@ -226,7 +225,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         if (logger.isDebugEnabled()) {
             logger.debug("Bound mqtt to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
-        return new InetSocketTransportAddress(boundSocket.get());
+        return new TransportAddress(boundSocket.get());
     }
 
     private BoundTransportAddress resolveBindAddress() {
@@ -235,7 +234,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
             InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
             for (InetAddress address : hostAddresses) {
                 if (address instanceof Inet4Address) {
-                    boundAddresses.add((InetSocketTransportAddress) bindAddress(address));
+                    boundAddresses.add((TransportAddress) bindAddress(address));
                 }
             }
         } catch (IOException e) {
@@ -250,7 +249,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         final int publishPort = resolvePublishPort(boundAddresses, publishInetAddress);
         final InetSocketAddress publishAddress = new InetSocketAddress(publishInetAddress, publishPort);
         return new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]),
-            new InetSocketTransportAddress(publishAddress));
+            new TransportAddress(publishAddress));
     }
 
     @Override

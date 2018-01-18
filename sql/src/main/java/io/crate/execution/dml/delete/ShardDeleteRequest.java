@@ -22,14 +22,11 @@
 
 package io.crate.execution.dml.delete;
 
-import com.google.common.base.Objects;
 import io.crate.execution.dml.ShardRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -86,56 +83,12 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
     public static class Item extends ShardRequest.Item {
 
-        private long version = Versions.MATCH_ANY;
-        private VersionType versionType = VersionType.INTERNAL;
-
         protected Item(StreamInput in) throws IOException {
             super(in);
-            this.version = in.readLong();
-            this.versionType = VersionType.fromValue(in.readByte());
         }
 
         public Item(String id) {
             super(id);
-        }
-
-        public long version() {
-            return version;
-        }
-
-        public void version(long version) {
-            this.version = version;
-        }
-
-        public VersionType versionType() {
-            return versionType;
-        }
-
-        public void versionType(VersionType versionType) {
-            this.versionType = versionType;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!super.equals(o)) return false;
-            if (this == o) return true;
-            if (getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
-            Item item = (Item) o;
-            return version == item.version &&
-                   versionType == item.versionType;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(super.hashCode(), version, versionType);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
-            out.writeLong(version);
-            out.writeByte(versionType.getValue());
         }
     }
 

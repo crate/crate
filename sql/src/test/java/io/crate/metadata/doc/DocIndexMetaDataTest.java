@@ -13,6 +13,7 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -23,7 +24,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
@@ -49,7 +49,6 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +58,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -953,11 +953,14 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     new Environment(Settings.builder()
                         .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
                         .build()),
-                    Collections.emptyMap(),
-                    Collections.emptyMap(),
-                    Collections.emptyMap(),
-                    Collections.emptyMap(),
-                    Collections.emptyMap()
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap(),
+                    emptyMap()
                 )
             ),
             functions,

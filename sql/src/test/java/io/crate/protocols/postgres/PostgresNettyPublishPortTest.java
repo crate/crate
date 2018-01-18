@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.junit.Test;
 
@@ -63,7 +63,7 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
             getByName("127.0.0.3"));
     }
 
-    private InetSocketTransportAddress address(String host, int port) throws UnknownHostException {
-        return new InetSocketTransportAddress(getByName(host), port);
+    private TransportAddress address(String host, int port) throws UnknownHostException {
+        return new TransportAddress(getByName(host), port);
     }
 }
