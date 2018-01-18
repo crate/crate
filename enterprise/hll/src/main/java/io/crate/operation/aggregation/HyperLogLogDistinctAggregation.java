@@ -88,7 +88,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public HllState newState(RamAccountingContext ramAccountingContext,
                              Version indexVersionCreated,
                              BigArrays bigArrays) {
-        return new HllState(bigArrays, dataType, indexVersionCreated);
+        return new HllState(bigArrays, dataType);
     }
 
     @Override
@@ -140,23 +140,20 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public static class HllState implements Comparable<HllState>, Writeable {
 
         private final DataType dataType;
-        private final Version indexVersionCreated;
         private final Murmur3Hash murmur3Hash;
         private final BigArrays bigArrays;
         private HyperLogLogPlusPlus hyperLogLogPlusPlus;
 
-        HllState(BigArrays bigArrays, DataType dataType, Version indexVersionCreated) {
+        HllState(BigArrays bigArrays, DataType dataType) {
             this.bigArrays = bigArrays;
             this.dataType = dataType;
-            this.indexVersionCreated = indexVersionCreated;
-            murmur3Hash = Murmur3Hash.getForType(dataType, indexVersionCreated);
+            murmur3Hash = Murmur3Hash.getForType(dataType);
         }
 
         HllState(StreamInput in) throws IOException {
             bigArrays = BigArrays.NON_RECYCLING_INSTANCE;
             dataType = DataTypes.fromStream(in);
-            indexVersionCreated = Version.readVersion(in);
-            murmur3Hash = Murmur3Hash.getForType(dataType, indexVersionCreated);
+            murmur3Hash = Murmur3Hash.getForType(dataType);
             if (in.readBoolean()) {
                 hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in, bigArrays);
             }
@@ -200,7 +197,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             DataTypes.toStream(dataType, out);
-            Version.writeVersion(indexVersionCreated, out);
             if (isInitialized()) {
                 out.writeBoolean(true);
                 hyperLogLogPlusPlus.writeTo(0, out);
@@ -265,7 +261,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @VisibleForTesting
     abstract static class Murmur3Hash {
 
-        static Murmur3Hash getForType(DataType dataType, Version indexVersionCreated) {
+        static Murmur3Hash getForType(DataType dataType) {
             switch (dataType.id()) {
                 case DoubleType.ID:
                 case FloatType.ID:
@@ -278,13 +274,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     return Long.INSTANCE;
                 case StringType.ID:
                 case BooleanType.ID:
-                    return new Bytes();
                 case IpType.ID:
-                    if (indexVersionCreated.before(Version.V_5_0_0)) {
-                        return Long.INSTANCE;
-                    }
                     return new Bytes();
-
                 default:
                     throw new IllegalArgumentException("data type \"" + dataType + "\" is not supported");
             }
