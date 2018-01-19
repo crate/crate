@@ -26,13 +26,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnPolicy;
@@ -300,8 +300,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
-                        return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
-                            ((ShardedTable) row).routingHashFunction()));
+                        return new BytesRef(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
                     }
                     return null;
                 }))

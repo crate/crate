@@ -32,8 +32,6 @@ public interface ShardedTable {
 
     ColumnIdent clusteredBy();
 
-    String routingHashFunction();
-
     boolean isClosed();
 
     String[] concreteIndices();

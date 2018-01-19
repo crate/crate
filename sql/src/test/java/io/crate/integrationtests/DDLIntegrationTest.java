@@ -63,8 +63,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
+                                 "\"dynamic\":\"true\",\"_meta\":{" +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
+                                 "\"primary_keys\":[\"col1\"]}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
@@ -179,8 +180,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
+                                 "\"dynamic\":\"strict\",\"_meta\":{" +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
+                                 "\"primary_keys\":[\"col1\"]}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
@@ -206,8 +208,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{" +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
-                                 "\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
@@ -221,8 +222,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{" +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
-                                 "\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
@@ -737,9 +737,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":" +
                                  "{\"dynamic\":\"true\"," +
-                                 "\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
-                                 "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
+                                 "\"_meta\":{" +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
+                                 "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"},\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}}}}";

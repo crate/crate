@@ -137,7 +137,7 @@ columns::
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``routing_hash_function``        | The hash function used for internal routing                                        | ``String``  |
+| ``routing_hash_function``        | The name of the hash function used for internal routing                            | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+

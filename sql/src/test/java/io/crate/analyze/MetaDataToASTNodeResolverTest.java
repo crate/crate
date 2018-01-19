@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -91,7 +90,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 partitionedBy,
                 ImmutableList.of(),
                 policy,
-                IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
                 Version.CURRENT,
                 null,
                 false,
