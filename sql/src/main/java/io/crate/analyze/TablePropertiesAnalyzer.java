@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
@@ -64,7 +63,6 @@ public final class TablePropertiesAnalyzer {
             .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_DURABILITY), TableParameterInfo.TRANSLOG_DURABILITY)
             .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
             .put(stripIndexPrefix(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT), TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT)
-            .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
             .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
             .put(stripIndexPrefix(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT), TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
@@ -99,7 +97,6 @@ public final class TablePropertiesAnalyzer {
             .put(TableParameterInfo.TRANSLOG_DURABILITY, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.TRANSLOG_DURABILITY))
             .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
             .put(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_FIELDS_LIMIT))
-            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
             .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT))
             .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
@@ -279,40 +276,6 @@ public final class TablePropertiesAnalyzer {
         @Override
         public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new UnsupportedOperationException("Not supported");
-        }
-    }
-
-    private static class RecoveryInitialShardsApplier extends SettingsAppliers.AbstractSettingsApplier {
-
-        public ImmutableSet<String> ALLOWED_VALUES = ImmutableSet.of(
-            "quorum",
-            "quorum-1",
-            "full",
-            "full-1",
-            "half"
-        );
-
-        public static final Settings DEFAULT = Settings.builder()
-            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
-            .build();
-
-        private RecoveryInitialShardsApplier() {
-            super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), DEFAULT);
-        }
-
-        @SuppressWarnings("SuspiciousMethodCalls")
-        @Override
-        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
-            Object shardsRecoverySettings;
-            try {
-                shardsRecoverySettings = ExpressionToNumberVisitor.convert(expression, parameters).intValue();
-            } catch (IllegalArgumentException e) {
-                shardsRecoverySettings = ExpressionToObjectVisitor.convert(expression, parameters).toString();
-                if (!ALLOWED_VALUES.contains(shardsRecoverySettings)) {
-                    throw invalidException();
-                }
-            }
-            settingsBuilder.put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, shardsRecoverySettings);
         }
     }
 

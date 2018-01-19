@@ -41,7 +41,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
         childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
-        childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
         childImplementations.put(TablesSettingsWriteExpression.NAME, new TablesSettingsWriteExpression());
@@ -143,21 +142,6 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
             childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE));
-        }
-    }
-
-    static class TablesSettingsRecoveryExpression extends AbstractTablesSettingsExpression {
-
-        public static final String NAME = "recovery";
-
-        public TablesSettingsRecoveryExpression() {
-            addChildImplementations();
-        }
-
-        public static final String INITIAL_SHARDS = "initial_shards";
-
-        private void addChildImplementations() {
-            childImplementations.put(INITIAL_SHARDS, new BytesRefTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
         }
     }
 
