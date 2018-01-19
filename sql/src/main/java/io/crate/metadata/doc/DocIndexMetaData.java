@@ -161,18 +161,6 @@ public class DocIndexMetaData {
             null);
     }
 
-    public static String getRoutingHashFunction(Map<String, Object> mappingMap) {
-        return Maps.getNested(
-            Maps.getNested(mappingMap, "_meta", null),
-            IndexMappings.SETTING_ROUTING_HASH_FUNCTION,
-            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION);
-    }
-
-    public static String getRoutingHashFunctionPrettyName(String routingHashFunction) {
-        return IndexMappings.routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction,
-            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION);
-    }
-
     @Nullable
     public static Version getVersionCreated(Map<String, Object> mappingMap) {
         Map<String, Object> versionMap = getVersionMap(mappingMap);
@@ -617,10 +605,6 @@ public class DocIndexMetaData {
 
     ColumnIdent routingCol() {
         return routingCol;
-    }
-
-    String getRoutingHashFunction() {
-        return getRoutingHashFunction(mappingMap);
     }
 
     /**
