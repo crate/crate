@@ -200,7 +200,6 @@ class DocTableInfoBuilder {
             md.partitionedBy(),
             partitions,
             md.columnPolicy(),
-            md.getRoutingHashFunction(),
             md.versionCreated(),
             md.versionUpgraded(),
             md.isClosed(),

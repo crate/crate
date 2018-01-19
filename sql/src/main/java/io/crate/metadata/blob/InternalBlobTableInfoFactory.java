@@ -91,7 +91,6 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
             TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
             blobsPath(indexMetaData.getSettings()),
-            DocIndexMetaData.getRoutingHashFunction(mappingMap),
             DocIndexMetaData.getVersionCreated(mappingMap),
             DocIndexMetaData.getVersionUpgraded(mappingMap),
             indexMetaData.getState() == IndexMetaData.State.CLOSE);

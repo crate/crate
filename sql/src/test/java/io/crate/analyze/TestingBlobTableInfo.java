@@ -25,7 +25,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
@@ -51,7 +50,6 @@ class TestingBlobTableInfo extends BlobTableInfo {
             numberOfReplicas,
             tableParameters,
             blobsPath,
-            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null,
             false);
