@@ -80,7 +80,7 @@ public class Join extends TwoInputPlan {
     final JoinType joinType;
 
     @Nullable
-    private final Symbol joinCondition;
+    final Symbol joinCondition;
     private final boolean isFiltered;
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
@@ -457,5 +457,10 @@ public class Join extends TwoInputPlan {
             // We don't have any cardinality estimates, so just take the bigger table
             return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
         }
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitJoin(this, context);
     }
 }

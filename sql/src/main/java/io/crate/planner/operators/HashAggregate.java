@@ -140,7 +140,7 @@ public class HashAggregate extends OneInputPlan {
             aggregates.get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION)) {
 
             Collect collect = (Collect) collapsed;
-            return new Count(aggregates.get(0), collect.relation.tableRelation(), collect.where);
+            return new Count(aggregates.get(0), collect.relation, collect.where);
         }
         if (collapsed == source) {
             return this;
@@ -161,6 +161,11 @@ public class HashAggregate extends OneInputPlan {
     @Override
     public long numExpectedRows() {
         return 1L;
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitHashAggregate(this, context);
     }
 
     private static class OutputValidatorContext {

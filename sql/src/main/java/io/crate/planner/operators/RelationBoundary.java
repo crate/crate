@@ -132,4 +132,14 @@ public class RelationBoundary extends OneInputPlan {
     protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new RelationBoundary(newSource, relation, outputs, expressionMapping, dependencies);
     }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitRelationBoundary(this, context);
+    }
+
+    @Override
+    public Map<String, Object> explainMap(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+        return source.explainMap(plannerContext, projectionBuilder);
+    }
 }

@@ -151,4 +151,9 @@ class Order extends OneInputPlan {
                ", " + orderBy +
                '}';
     }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitOrder(this, context);
+    }
 }

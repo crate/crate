@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class SysClusterTest extends SQLTransportIntegrationTest {
@@ -57,7 +58,7 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
         execute("explain select * from sys.cluster limit 2"); // using limit to test projection serialization as well
         assertThat(response.rowCount(), is(1L));
         Map<String, Object> map = (Map<String, Object>) response.rows()[0][0];
-        assertThat(map.get("planType"), is("Collect"));
+        assertThat(map.keySet(), contains("Collect"));
     }
 
     @Test

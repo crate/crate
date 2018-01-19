@@ -23,22 +23,22 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.CountPhase;
-import io.crate.planner.node.dql.CountPlan;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.CountPlan;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -52,12 +52,12 @@ public class Count extends ZeroInputPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
-    final AbstractTableRelation<TableInfo> tableRelation;
+    final QueriedTableRelation relation;
     final WhereClause where;
 
-    Count(Function countFunction, AbstractTableRelation<TableInfo> tableRelation, WhereClause where) {
-        super(Collections.singletonList(countFunction), Collections.singletonList(tableRelation));
-        this.tableRelation = tableRelation;
+    Count(Function countFunction, QueriedTableRelation relation, WhereClause where) {
+        super(Collections.singletonList(countFunction), Collections.singletonList(relation.tableRelation()));
+        this.relation = relation;
         this.where = where;
     }
 
@@ -70,16 +70,25 @@ public class Count extends ZeroInputPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
+        // bind all parameters and possible subQuery values and re-analyze the query
+        // (could result in a NO_MATCH, routing could've changed, etc).
+        WhereClause boundWhere = WhereClauseAnalyzer.bindAndAnalyze(
+            where,
+            params,
+            subQueryValues,
+            relation.tableRelation(),
+            plannerContext.functions(),
+            plannerContext.transactionContext());
 
         Routing routing = plannerContext.allocateRouting(
-            tableRelation.tableInfo(),
-            where,
+            relation.tableRelation().tableInfo(),
+            boundWhere,
             RoutingProvider.ShardSelection.ANY,
             plannerContext.transactionContext().sessionContext());
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,
-            where,
+            boundWhere,
             DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergePhase = new MergePhase(
@@ -100,5 +109,10 @@ public class Count extends ZeroInputPlan {
     @Override
     public long numExpectedRows() {
         return 1L;
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitCount(this, context);
     }
 }

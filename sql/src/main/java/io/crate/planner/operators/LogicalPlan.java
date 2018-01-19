@@ -28,14 +28,17 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
+import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +47,7 @@ import java.util.Set;
  * LogicalPlan is a tree of "Operators"
  * This is a representation of the logical order of operators that need to be executed to produce a correct result.
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer)} is used to create the
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, Map)}  is used to create the
  * actual "physical" execution plan.
  *
  * A Operator is something like Limit, OrderBy, HashAggregate, Join, Union, Collect
@@ -58,7 +61,7 @@ import java.util.Set;
  *     Collect [x, y, z]
  * </pre>
  *
- * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer)} is called
+ * {@link #build(PlannerContext, ProjectionBuilder, int, int, OrderBy, Integer, Row, Map)}  is called
  * on the "root" and flows down.
  * Each time each operator may provide "hints" to the children so that they can decide to eagerly apply parts of the
  * operations
@@ -216,4 +219,24 @@ public interface LogicalPlan extends Plan {
                          Map<SelectSymbol, Object> valuesBySubQuery) {
         LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery);
     }
+
+    default Map<String, Object> explainMap(PlannerContext plannerContext,
+                                           ProjectionBuilder projectionBuilder) {
+        try {
+            ExecutionPlan executionPlan = build(
+                plannerContext,
+                projectionBuilder,
+                TopN.NO_LIMIT,
+                0,
+                null,
+                null,
+                Row.EMPTY,
+                Collections.emptyMap());
+            return PlanPrinter.objectMap(executionPlan);
+        } catch (Exception e) {
+            return ExplainLogicalPlan.objectMap(this, plannerContext, projectionBuilder);
+        }
+    }
+
+    <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);
 }

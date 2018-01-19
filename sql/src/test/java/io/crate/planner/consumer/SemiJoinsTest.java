@@ -30,9 +30,8 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.ExecutionPlan;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -43,12 +42,12 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
@@ -147,8 +146,17 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDisabledByDefault() throws Exception {
-        ExecutionPlan executionPlan = executor.plan("select * from t1 where a in (select 'foo')");
-        assertThat(executionPlan, not(instanceOf(NestedLoop.class)));
+        LogicalPlan logicalPlan = executor.logicalPlan("select * from t1 where a in (select 'foo')");
+        assertThat(logicalPlan, isPlan(getFunctions(),
+            "RootBoundary[a, x, i]\n" +
+            "MultiPhase[\n" +
+            "    subQueries[\n" +
+            "        RootBoundary['foo']\n" +
+            "        Collect[.empty_row | ['foo'] | All]\n" +
+            "    ]\n" +
+            "    FetchOrEval[a, x, i]\n" +
+            "    Collect[doc.t1 | [_fetchid] | (a = ANY(SelectSymbol{string_table}))]\n" +
+            "]\n"));
     }
 
     @Test

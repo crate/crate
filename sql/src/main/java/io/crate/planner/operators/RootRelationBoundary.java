@@ -72,4 +72,14 @@ public class RootRelationBoundary extends OneInputPlan {
     public String toString() {
         return "RootBoundary{" + source + '}';
     }
+
+    @Override
+    public Map<String, Object> explainMap(PlannerContext plannerContext, ProjectionBuilder projectionBuilder) {
+        return source.explainMap(plannerContext, projectionBuilder);
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitRootRelationBoundary(this, context);
+    }
 }
