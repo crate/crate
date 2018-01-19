@@ -583,8 +583,7 @@ Routing Allocation
 
    This allocation setting has no effect on recovery of primary shards! Even
    when ``cluster.routing.allocation.enable`` is set to ``none``, nodes will
-   recover their unassigned local primary shards immediatelly after restart, in
-   case the ``recovery.initial_shards`` setting is satisfied.
+   recover their unassigned local primary shards immediatelly after restart.
 
 .. _cluster.routing.rebalance.enable:
 

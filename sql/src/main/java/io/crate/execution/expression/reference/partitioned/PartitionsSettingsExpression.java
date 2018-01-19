@@ -38,7 +38,6 @@ public class PartitionsSettingsExpression extends RowCollectNestedObjectExpressi
         childImplementations.put(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression());
         childImplementations.put(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression());
         childImplementations.put(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression());
-        childImplementations.put(PartitionsSettingsRecoveryExpression.NAME, new PartitionsSettingsRecoveryExpression());
         childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
         childImplementations.put(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression());
         childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
@@ -139,21 +138,6 @@ public class PartitionsSettingsExpression extends RowCollectNestedObjectExpressi
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
             childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE));
-        }
-    }
-
-    static class PartitionsSettingsRecoveryExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
-
-        public static final String NAME = "recovery";
-
-        public PartitionsSettingsRecoveryExpression() {
-            addChildImplementations();
-        }
-
-        public static final String INITIAL_SHARDS = "initial_shards";
-
-        private void addChildImplementations() {
-            childImplementations.put(INITIAL_SHARDS, new PartitionTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
         }
     }
 
