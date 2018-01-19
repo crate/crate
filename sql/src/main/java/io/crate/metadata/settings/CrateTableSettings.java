@@ -65,10 +65,6 @@ public final class CrateTableSettings {
         null,
         IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getDefaultRaw(Settings.EMPTY));
 
-    public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting(
-        TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, "quorum");
-
-
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
         TableParameterInfo.FLUSH_THRESHOLD_SIZE, INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getDefault(Settings.EMPTY));
 

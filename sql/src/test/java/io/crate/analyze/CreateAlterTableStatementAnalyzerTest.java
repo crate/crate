@@ -808,36 +808,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testRecoveryShardsWithString() throws Exception {
-        AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"recovery.initial_shards\"=\"full\")");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("full"));
-
-    }
-
-    @Test
-    public void testRecoveryShardsWithInteger() throws Exception {
-        AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"recovery.initial_shards\"=1)");
-        assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), is("1"));
-
-    }
-
-    @Test
     public void testTranslogSyncInterval() throws Exception {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.sync_interval\"='1s')");
         assertThat(analysis.table().ident().name(), is("users"));
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), is("1000ms"));
 
-    }
-
-    @Test
-    public void testRecoveryShardsValidation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("alter table users set (\"recovery.initial_shards\"=\"foo\")");
     }
 
     @Test
