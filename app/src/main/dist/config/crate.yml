@@ -286,10 +286,6 @@ auth:
 # allocated on a single node.
 #index.routing.allocation.total_shards_per_node: -1
 
-# When using local gateway a particular shard is recovered only if there can
-# be allocated quorum of it’s copies in the cluster.
-#index.recovery.initial_shards: quorum
-
 #disable/enable table warming. Table warming allows to run registered queries
 # to warm up the table before it is available.
 #index.warmer.enabled:true

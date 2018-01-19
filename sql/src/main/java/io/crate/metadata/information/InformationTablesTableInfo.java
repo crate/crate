@@ -108,10 +108,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             ImmutableList.of("routing", "allocation", "enable"));
         static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
             ImmutableList.of("routing", "allocation", "total_shards_per_node"));
-        static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
-            ImmutableList.of("recovery"));
-        static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
-            ImmutableList.of("recovery", "initial_shards"));
         static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
             ImmutableList.of("warmer"));
         static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
@@ -220,10 +216,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
             Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
 
-        static final Reference TABLE_SETTINGS_RECOVERY = createRef(
-            Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
-        static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
-            Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
         static final Reference TABLE_SETTINGS_WARMER = createRef(
             Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
         static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
@@ -373,8 +365,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, References.TABLE_SETTINGS_ROUTING_ALLOCATION)
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
-                .put(Columns.TABLE_SETTINGS_RECOVERY, References.TABLE_SETTINGS_RECOVERY)
-                .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                 .put(Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)
                 .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, References.TABLE_SETTINGS_WARMER_ENABLED)
                 .put(Columns.TABLE_SETTINGS_WRITE, References.TABLE_SETTINGS_WRITE)

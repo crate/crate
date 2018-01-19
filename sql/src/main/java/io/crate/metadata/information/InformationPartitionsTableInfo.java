@@ -111,10 +111,6 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
             InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
 
-        static final Reference TABLE_SETTINGS_RECOVERY = createRef(
-            InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
-        static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
-            InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
         static final Reference TABLE_SETTINGS_WARMER = createRef(
             InformationTablesTableInfo.Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
         static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
@@ -215,8 +211,6 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING, References.TABLE_SETTINGS_MAPPING)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT)
-                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY, References.TABLE_SETTINGS_RECOVERY)
-                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_WARMER_ENABLED, References.TABLE_SETTINGS_WARMER_ENABLED)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, References.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL)

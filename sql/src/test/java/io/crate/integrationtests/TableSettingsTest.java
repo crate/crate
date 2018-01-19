@@ -42,7 +42,6 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"routing.allocation.total_shards_per_node\" = 10, " +
                 "\"translog.sync_interval\" = 3600, " +
                 "\"translog.flush_threshold_size\" = 1000000, " +
-                "\"recovery.initial_shards\" = 'quorum', " +
                 "\"warmer.enabled\" = false, " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000'," +
@@ -67,7 +66,6 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
             assertTrue(((Map<String, Object>) row[0]).containsKey("mapping"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("recovery"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
