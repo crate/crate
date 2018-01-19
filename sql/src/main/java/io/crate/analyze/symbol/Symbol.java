@@ -67,7 +67,15 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
     }
 
     /**
-     * Typically, we only allow casting of Literals and undefined types.
+     * We only allow casting of
+     * {@link Literal},
+     * {@link Function},
+     * {@link ParameterSymbol},
+     * and Symbols whose type is undefined.
+     *
+     * The reasoning behind this is that we want to avoid
+     * query Lucene performance to drop due to casts. This
+     * is true for {@link Field}/{@link io.crate.metadata.Reference}.
      */
     @Override
     public boolean canBeCasted() {

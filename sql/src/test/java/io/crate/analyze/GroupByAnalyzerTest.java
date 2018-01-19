@@ -414,11 +414,13 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.querySpec().having().query(), isFunction("op_="));
         Function havingFunction = (Function) relation.querySpec().having().query();
         assertThat(havingFunction.arguments().size(), is(2));
-        assertThat(havingFunction.arguments().get(0), isFunction("max"));
-        Function maxFunction = (Function) havingFunction.arguments().get(0);
+        assertThat(havingFunction.arguments().get(0), isFunction("to_long"));
+        Function castFunction = (Function) havingFunction.arguments().get(0);
+        assertThat(castFunction.arguments().get(0), isFunction("max"));
+        Function maxFunction = (Function) castFunction.arguments().get(0);
 
         assertThat(maxFunction.arguments().get(0), isReference("bytes"));
-        assertThat(havingFunction.arguments().get(1), isLiteral((byte) 4, DataTypes.BYTE));
+        assertThat(havingFunction.arguments().get(1), isLiteral(4L));
     }
 
     @Test

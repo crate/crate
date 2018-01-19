@@ -110,7 +110,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         QuerySpec querySpec = fromQuery("x = 1 and y = 3 and x + y = 4");
         RelationSplitter splitter = split(querySpec);
 
-        assertThat(querySpec, isSQL("SELECT true WHERE (add(doc.t1.x, doc.t2.y) = 4)"));
+        assertThat(querySpec, isSQL("SELECT true WHERE (to_long(add(doc.t1.x, doc.t2.y)) = 4)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 3)"));
     }
@@ -121,7 +121,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         QuerySpec querySpec = fromQuery("x + y + z = 5").limit(Literal.of(30));
         RelationSplitter splitter = split(querySpec);
 
-        assertThat(querySpec, isSQL("SELECT true WHERE (add(add(doc.t1.x, doc.t2.y), doc.t3.z) = 5) LIMIT 30"));
+        assertThat(querySpec, isSQL("SELECT true WHERE (to_long(add(add(doc.t1.x, doc.t2.y), doc.t3.z)) = 5) LIMIT 30"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
         assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));

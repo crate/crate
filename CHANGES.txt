@@ -28,6 +28,13 @@ Changes
 Fixes
 =====
 
+- Avoid downcasts in function expressions which could lead to reduced precision.
+  For example:
+    Select round(float_col) + 1.1 would result in
+      Select round(float_col) + 1
+    but is now resolved to
+      Select to_float(round(float_col)) + 1.1
+
 - Ensured natural order of config keys for the Host Based Authentication.
 
 - Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol

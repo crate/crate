@@ -120,7 +120,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testHavingGlobalAggregation() throws Exception {
         LogicalPlan plan = plan("select min(a), min(x) from t1 having min(x) < 33 and max(x) > 100");
         assertThat(plan, isPlan("FetchOrEval[min(a), min(x)]\n" +
-                                "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
+                                "Filter[((cast(min(x) AS long) < 33) AND (cast(max(x) AS long) > 100))]\n" +
                                 "Aggregate[min(a), min(x), max(x)]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
     }

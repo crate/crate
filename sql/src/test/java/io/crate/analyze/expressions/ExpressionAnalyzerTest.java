@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.execution.expression.operator.EqOperator;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -303,6 +304,24 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function comparisonFunction = (Function) expressions.asSymbol("doc.t2.i = $1");
         assertThat(comparisonFunction.arguments().get(1), is(instanceOf(ParameterSymbol.class)));
         assertThat(comparisonFunction.arguments().get(1).valueType(), is(DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testColumnsCannotBeCasted() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function symbol = (Function) expressions.asSymbol("doc.t2.i = 1.1");
+        assertThat(symbol.arguments().get(0), isField("i"));
+        assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
+    }
+
+    @Test
+    public void testFunctionsCanBeCasted() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function symbol2 = (Function) expressions.asSymbol("doc.t2.i + 1 = 1");
+        assertThat(symbol2, isFunction(EqOperator.NAME));
+        assertThat(symbol2.arguments().get(0), isFunction("to_long"));
+        assertThat(symbol2.arguments().get(0).valueType(), is(DataTypes.LONG));
+        assertThat(symbol2.arguments().get(1), isLiteral(1L));
     }
 
     @Test

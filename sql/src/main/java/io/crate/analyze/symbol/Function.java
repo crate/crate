@@ -67,6 +67,11 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
+    public boolean canBeCasted() {
+        return info.type() == FunctionInfo.Type.SCALAR || info.type() == FunctionInfo.Type.AGGREGATE;
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.FUNCTION;
     }
