@@ -41,7 +41,6 @@ already existing user-created doc tables in the cluster::
     |    column_policy = 'dynamic',                       |
     |    "mapping.total_fields.limit" = 1000,             |
     |    number_of_replicas = '0-1',                      |
-    |    "recovery.initial_shards" = 'quorum',            |
     |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |

@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.PrimaryShardAllocator;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
 
@@ -64,8 +63,6 @@ public class TableParameterInfo {
     public static final String MAPPING_TOTAL_FIELDS_LIMIT = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey();
     public static final String ALLOCATION_MAX_RETRIES = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getKey();
 
-    @Deprecated
-    public static final String RECOVERY_INITIAL_SHARDS = PrimaryShardAllocator.INDEX_RECOVERY_INITIAL_SHARDS_SETTING.getKey();
     public static final String WARMER_ENABLED = IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey();
     public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey();
 
@@ -86,7 +83,6 @@ public class TableParameterInfo {
             .add(TRANSLOG_DURABILITY)
             .add(TOTAL_SHARDS_PER_NODE)
             .add(MAPPING_TOTAL_FIELDS_LIMIT)
-            .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
             .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
@@ -136,7 +132,6 @@ public class TableParameterInfo {
             .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, CrateTableSettings.ROUTING_ALLOCATION_ENABLE.extract(settings))
             .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
             .put(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT, CrateTableSettings.TOTAL_FIELDS_LIMIT.extract(settings))
-            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
             .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
             .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
             .put(TableParameterInfo.TRANSLOG_DURABILITY, CrateTableSettings.TRANSLOG_DURABILITY.extract(settings))

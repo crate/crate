@@ -45,7 +45,6 @@ public class PartitionedTableParameterInfo extends TableParameterInfo {
             .add(ROUTING_ALLOCATION_ENABLE)
             .add(TOTAL_SHARDS_PER_NODE)
             .add(MAPPING_TOTAL_FIELDS_LIMIT)
-            .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
             .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .build();

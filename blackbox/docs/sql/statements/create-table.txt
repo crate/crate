@@ -446,18 +446,6 @@ the shard unallocated.
 :value:
   Number of retries to allocate a shard. Defaults to 5.
 
-.. _initial_shards_ref:
-
-``recovery.initial_shards``
-...........................
-
-When using local gateway a particular shard is recovered only if there can be
-allocated quorum of its copies in the cluster. It can be set to:
-
-:value:
-  ``quorum`` (default), ``quorum-1``, ``full``, ``full-1`` and number
-  values (e.g. ``1``, ``2`` ...)
-
 ``warming.enable``
 ..................
 
