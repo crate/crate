@@ -158,7 +158,8 @@ public class Analyzer {
             deleteAnalyzer,
             updateAnalyzer,
             insertFromValuesAnalyzer,
-            insertFromSubQueryAnalyzer
+            insertFromSubQueryAnalyzer,
+            explainStatementAnalyzer
         );
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
         this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
