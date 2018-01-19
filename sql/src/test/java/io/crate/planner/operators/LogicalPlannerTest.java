@@ -22,8 +22,10 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
@@ -42,6 +44,7 @@ import org.junit.Test;
 
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.equalTo;
@@ -74,7 +77,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testQTFWithOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 order by a");
         assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
-                                "OrderBy[a]\n" +
+                                "OrderBy['a' ASC]\n" +
                                 "Collect[doc.t1 | [_fetchid, a] | All]\n"));
     }
 
@@ -89,7 +92,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testSimpleSelectQAFAndLimit() throws Exception {
         LogicalPlan plan = plan("select a from t1 order by a limit 10 offset 5");
         assertThat(plan, isPlan("Limit[10;5]\n" +
-                                "OrderBy[a]\n" +
+                                "OrderBy['a' ASC]\n" +
                                 "Collect[doc.t1 | [a] | All]\n"));
     }
 
@@ -99,10 +102,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan("Limit[1;0]\n" +
-                                "OrderBy[x]\n" +
+                                "OrderBy['x' DESC]\n" +
                                 "Boundary[a, x]\n" +
                                 "Limit[3;0]\n" +
-                                "OrderBy[a]\n" +
+                                "OrderBy['a' ASC]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
     }
 
@@ -185,7 +188,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "Join[\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    FetchOrEval[_fetchid, x]\n" +
-                                "    OrderBy[x]\n" +
+                                "    OrderBy['x' ASC]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[y]\n" +
@@ -298,7 +301,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Order) {
                 Order order = (Order) plan;
                 startLine("OrderBy[");
-                addSymbolsList(order.orderBy.orderBySymbols());
+                OrderBy.explainRepresentation(
+                    sb,
+                    order.orderBy.orderBySymbols()
+                        .stream().map(s -> Literal.of(symbolPrinter.printSimple(s))).collect(Collectors.toList()),
+                    order.orderBy.reverseFlags(),
+                    order.orderBy.nullsFirst());
                 sb.append("]\n");
                 plan = order.source;
             }

@@ -50,11 +50,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(sqlExecutor.functions(),  "Boundary[name]\n" +
                                                 "Union[\n" +
                                                     "Boundary[name]\n" +
-                                                    "OrderBy[name]\n" +
+                                                    "OrderBy['name' ASC]\n" +
                                                     "Collect[doc.users | [name] | All]\n" +
                                                 "---\n" +
                                                     "Boundary[text]\n" +
-                                                    "OrderBy[text]\n" +
+                                                    "OrderBy['text' ASC]\n" +
                                                     "Collect[doc.users | [text] | All]\n" +
                                                 "]\n"));
     }
@@ -82,11 +82,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                               "Boundary[name]\n" +
                                                               "Boundary[name]\n" +
                                                               "FetchOrEval[name]\n" +
-                                                              "OrderBy[name]\n" +
+                                                              "OrderBy['name' ASC]\n" +
                                                               "Collect[doc.users | [name, text] | All]\n" +
                                                           "---\n" +
                                                               "Boundary[text]\n" +
-                                                              "OrderBy[text]\n" +
+                                                              "OrderBy['text' ASC]\n" +
                                                               "Collect[doc.users | [text] | All]\n" +
                                                           "]\n"));
     }
