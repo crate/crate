@@ -23,18 +23,15 @@
 package io.crate.metadata;
 
 import io.crate.exceptions.UnavailableShardsException;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.HashFunction;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -224,21 +221,14 @@ public final class RoutingProvider {
         return indexShard;
     }
 
-    @SuppressForbidden(reason = "Math#abs is trappy")
     private static int calculateScaledShardId(IndexMetaData indexMetaData, String effectiveRouting, int partitionOffset) {
-        final HashFunction hashFunction = indexMetaData.routingHashFunction();
-        final int hash = hashFunction.hashRouting(effectiveRouting) + partitionOffset;
-
+        final int hash = Murmur3HashFunction.hash(effectiveRouting) + partitionOffset;
         // we don't use IMD#getNumberOfShards since the index might have been shrunk such that we need to use the size
         // of original index to hash documents
-        if (indexMetaData.getCreationVersion().onOrAfter(Version.V_2_0_0_beta1)) {
-            return Math.floorMod(hash, indexMetaData.getRoutingNumShards()) / indexMetaData.getRoutingFactor();
-        } else {
-            return Math.abs(hash % indexMetaData.getRoutingNumShards()) / indexMetaData.getRoutingFactor();
-        }
+        return Math.floorMod(hash, indexMetaData.getRoutingNumShards()) / indexMetaData.getRoutingFactor();
     }
 
-    static int generateShardId(IndexMetaData indexMetaData, @Nullable String id, @Nullable String routing) {
+    private static int generateShardId(IndexMetaData indexMetaData, @Nullable String id, @Nullable String routing) {
         final String effectiveRouting;
         final int partitionOffset;
 

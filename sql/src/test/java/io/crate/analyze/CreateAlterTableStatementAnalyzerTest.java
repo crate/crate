@@ -32,7 +32,6 @@ import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.IndexMappings;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
@@ -980,15 +979,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX constraint cannot be used on columns of type \"object\"");
         e.analyze("create table test (obj object index off)");
-    }
-
-    @Test
-    public void testCreateTableDefaultRoutingHashFunctionSet() throws Exception {
-        CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table default_routing_hash_set (id int)");
-        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
-        assertThat(metaMapping.get(IndexMappings.SETTING_ROUTING_HASH_FUNCTION),
-                   is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION));
     }
 
     @Test

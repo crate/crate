@@ -64,7 +64,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
     private final Map<String, Object> tableParameters;
-    private final String routingHashFunction;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
@@ -83,7 +82,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          BytesRef numberOfReplicas,
                          Map<String, Object> tableParameters,
                          BytesRef blobsPath,
-                         String routingHashFunction,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed) {
@@ -94,7 +92,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.blobsPath = blobsPath;
         this.tableParameterInfo = new AlterBlobTableParameterInfo();
         this.tableParameters = tableParameters;
-        this.routingHashFunction = routingHashFunction;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
@@ -183,11 +180,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Set<Operation> supportedOperations() {
         return Operation.BLOB_OPERATIONS;
-    }
-
-    @Override
-    public String routingHashFunction() {
-        return routingHashFunction;
     }
 
     @Override

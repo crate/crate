@@ -35,7 +35,6 @@ public class PartitionInfo implements StoredTable {
     private final PartitionName name;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
-    private final String routingHashFunction;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
@@ -45,7 +44,6 @@ public class PartitionInfo implements StoredTable {
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
-                         String routingHashFunction,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed,
@@ -54,7 +52,6 @@ public class PartitionInfo implements StoredTable {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
-        this.routingHashFunction = routingHashFunction;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
         this.closed = closed;
@@ -72,10 +69,6 @@ public class PartitionInfo implements StoredTable {
 
     public BytesRef numberOfReplicas() {
         return numberOfReplicas;
-    }
-
-    public String routingHashFunction() {
-        return routingHashFunction;
     }
 
     public boolean isClosed() {
@@ -114,7 +107,6 @@ public class PartitionInfo implements StoredTable {
             .add("name", name)
             .add("numberOfShards", numberOfShards)
             .add("numberOfReplicas", numberOfReplicas)
-            .add("routingHashFunction", routingHashFunction)
             .add("versionCreated", versionCreated)
             .add("versionUpgraded", versionUpgraded)
             .add("closed", closed)
