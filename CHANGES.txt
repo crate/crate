@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which resulted in an exception when a routing column was
+  compared against a sub-query inside a ``WHERE`` clause.
+
 - Fixed a performance regression resulting in a table scan instead of a NO-MATCH
   if a sub-query used inside a ``WHERE`` clause returns no result
   (https://github.com/crate/crate/issues/6773).

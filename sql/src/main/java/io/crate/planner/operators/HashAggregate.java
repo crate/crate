@@ -163,6 +163,11 @@ public class HashAggregate extends OneInputPlan {
         return 1L;
     }
 
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitHashAggregate(this, context);
+    }
+
     private static class OutputValidatorContext {
         private boolean insideAggregation = false;
     }

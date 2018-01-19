@@ -56,8 +56,8 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 public class GroupHashAggregate extends OneInputPlan {
 
     private static final String DISTRIBUTED_MERGE_PHASE_NAME = "distributed merge";
-    private final List<Function> aggregates;
-    private final List<Symbol> groupKeys;
+    final List<Function> aggregates;
+    final List<Symbol> groupKeys;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
         return (tableStats, parentUsedCols) -> {
@@ -189,6 +189,11 @@ public class GroupHashAggregate extends OneInputPlan {
     public long numExpectedRows() {
         // We don't have any cardinality estimates
         return source.numExpectedRows();
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGroupHashAggregate(this, context);
     }
 
     @Override

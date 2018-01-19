@@ -108,4 +108,9 @@ class Filter extends OneInputPlan {
     protected LogicalPlan updateSource(LogicalPlan newSource) {
         return new Filter(newSource, queryClause);
     }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitFilter(this, context);
+    }
 }

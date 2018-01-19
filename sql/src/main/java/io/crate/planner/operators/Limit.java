@@ -125,6 +125,11 @@ class Limit extends OneInputPlan {
                '}';
     }
 
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitLimit(this, context);
+    }
+
     static int limitAndOffset(int limit, int offset) {
         if (limit == TopN.NO_LIMIT) {
             return limit;

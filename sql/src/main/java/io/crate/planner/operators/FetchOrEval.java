@@ -453,4 +453,9 @@ class FetchOrEval extends OneInputPlan {
                ", out=" + outputs +
                '}';
     }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitFetchOrEval(this, context);
+    }
 }
