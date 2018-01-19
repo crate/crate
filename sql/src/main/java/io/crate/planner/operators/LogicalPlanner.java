@@ -26,6 +26,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
@@ -40,9 +41,10 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
+import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.metadata.Functions;
-import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -52,7 +54,6 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
-import io.crate.execution.dsl.projection.builder.SplitPoints;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -95,11 +96,37 @@ public class LogicalPlanner {
             softLimit = plannerContext.softLimit();
             fetchSize = plannerContext.fetchSize();
         }
-        LogicalPlan plan = plan(
-            selectSymbol.relation(),
-            PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize)
-        );
-        return tryOptimize(plan);
+        QueriedRelation relation = selectSymbol.relation();
+        PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize);
+        subSelectPlannerContext.applySoftLimit(relation.querySpec());
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
+
+        LogicalPlan.Builder planBuilder = prePlan(
+            relation,
+            FetchMode.NEVER_CLEAR,
+            subqueryPlanner,
+            true);
+
+        planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
+        LogicalPlan optimizedPlan = tryOptimize(planBuilder.build(tableStats, Collections.emptySet()));
+        return new RootRelationBoundary(MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner));
+    }
+
+    // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
+    // the building of TermInSetQuery which does a sort on the collection of values.
+    // See issue https://github.com/crate/crate/issues/6755
+    // If the output values are already sorted (even in desc order) no optimization is needed
+    private LogicalPlan.Builder tryOptimizeForInSubquery(SelectSymbol selectSymbol, QueriedRelation relation, LogicalPlan.Builder planBuilder) {
+        if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES) {
+            OrderBy relationOrderBy = relation.orderBy();
+            if (relationOrderBy == null ||
+                relationOrderBy.orderBySymbols().get(0).equals(relation.outputs().get(0)) == false) {
+                return Order.create(
+                    planBuilder,
+                    new OrderBy(relation.outputs(), new boolean[]{false}, new Boolean[]{false}));
+            }
+        }
+        return planBuilder;
     }
 
     public LogicalPlan plan(QueriedRelation queriedRelation,
@@ -133,8 +160,19 @@ public class LogicalPlanner {
                                     FetchMode fetchMode,
                                     SubqueryPlanner subqueryPlanner,
                                     boolean isLastFetch) {
+        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch);
+        if (isLastFetch) {
+            return builder;
+        }
+        return RelationBoundary.create(builder, relation, subqueryPlanner);
+    }
+
+    private static LogicalPlan.Builder prePlan(QueriedRelation relation,
+                                               FetchMode fetchMode,
+                                               SubqueryPlanner subqueryPlanner,
+                                               boolean isLastFetch) {
         SplitPoints splitPoints = SplitPoints.create(relation);
-        LogicalPlan.Builder sourceBuilder =
+        return
             FetchOrEval.create(
                 Limit.create(
                     Order.create(
@@ -161,10 +199,6 @@ public class LogicalPlanner {
                 isLastFetch,
                 relation.limit() != null
             );
-        if (isLastFetch) {
-            return sourceBuilder;
-        }
-        return RelationBoundary.create(sourceBuilder, relation, subqueryPlanner);
     }
 
     private static LogicalPlan.Builder groupByOrAggregate(LogicalPlan.Builder source,
@@ -200,7 +234,7 @@ public class LogicalPlanner {
         if (queriedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner,false),
+                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false),
                 where
             );
         }

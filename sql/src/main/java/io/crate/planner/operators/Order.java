@@ -57,7 +57,7 @@ class Order extends OneInputPlan {
         };
     }
 
-    private Order(LogicalPlan source, OrderBy orderBy) {
+    Order(LogicalPlan source, OrderBy orderBy) {
         super(source, Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols()));
         this.orderBy = orderBy;
     }

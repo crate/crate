@@ -96,7 +96,7 @@ public class PlannerContext {
         return transactionContext;
     }
 
-    void applySoftLimit(QuerySpec querySpec) {
+    public void applySoftLimit(QuerySpec querySpec) {
         if (softLimit > 0 && querySpec.limit() == null) {
             querySpec.limit(Literal.of((long) softLimit));
         }

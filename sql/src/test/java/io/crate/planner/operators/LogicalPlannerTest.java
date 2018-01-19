@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -201,6 +202,40 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("select x, _score from t1");
         assertThat(plan, isPlan("FetchOrEval[x, _score]\n" +
                                 "Collect[doc.t1 | [_fetchid, _score] | All]\n"));
+    }
+
+    @Test
+    public void testInWithSubqueryOrderImplicitlyApplied() {
+        LogicalPlan plan = plan("select x from t1 where x in (select x from t1)");
+        assertThat(plan.dependencies().entrySet().size(), is(1));
+        LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
+        assertThat(subPlan, isPlan("RootBoundary[x]\n" +
+                                   "OrderBy['x' ASC NULLS LAST]\n" +
+                                   "Collect[doc.t1 | [x] | All]\n"));
+    }
+
+    @Test
+    public void testInWithSubqueryOrderImplicitlyAppliedWithExistingOrderBy() {
+        LogicalPlan plan = plan("select x from t1 where x in (select x from t1 order by 1 desc limit 10)");
+        assertThat(plan.dependencies().entrySet().size(), is(1));
+        LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
+        assertThat(subPlan, isPlan("RootBoundary[x]\n" +
+                                   "Limit[10;0]\n" +
+                                   "OrderBy['x' DESC]\n" +
+                                   "Collect[doc.t1 | [x] | All]\n"));
+    }
+
+    @Test
+    public void testInWithSubqueryOrderImplicitlyAppliedWithExistingOrderByOnDifferentField() {
+        LogicalPlan plan = plan("select x from t1 where x in (select x from t1 order by a desc limit 10)");
+        assertThat(plan.dependencies().entrySet().size(), is(1));
+        LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
+        assertThat(subPlan, isPlan("RootBoundary[x]\n" +
+                                   "OrderBy['x' ASC NULLS LAST]\n" +
+                                   "FetchOrEval[x]\n" +
+                                   "Limit[10;0]\n" +
+                                   "OrderBy['a' DESC]\n" +
+                                   "Collect[doc.t1 | [x, a] | All]\n"));
     }
 
     public static LogicalPlan plan(String statement,
@@ -397,5 +432,4 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             return "All";
         }
     }
-
 }
