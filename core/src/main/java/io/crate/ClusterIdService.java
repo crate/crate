@@ -93,7 +93,11 @@ public class ClusterIdService extends AbstractLifecycleComponent implements Clus
     }
 
     private String readClusterIdFromSettings() {
-        return clusterService.state().metaData().transientSettings().get(CLUSTER_ID_SETTINGS_KEY);
+        String id = clusterService.state().metaData().clusterUUID();
+        if ("_na_".equals(id)) {
+            return null;
+        }
+        return id;
     }
 
     private boolean applyClusterIdFromSettings() {
@@ -124,7 +128,7 @@ public class ClusterIdService extends AbstractLifecycleComponent implements Clus
             public ClusterState execute(ClusterState currentState) throws Exception {
                 Settings.Builder transientSettings = Settings.builder();
                 transientSettings.put(currentState.metaData().transientSettings());
-                transientSettings.put(CLUSTER_ID_SETTINGS_KEY, clusterId.value().toString());
+                transientSettings.put(CLUSTER_ID_SETTINGS_KEY, clusterId.value());
 
                 MetaData.Builder metaData = MetaData.builder(currentState.metaData())
                     .persistentSettings(currentState.metaData().persistentSettings())

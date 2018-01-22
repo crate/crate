@@ -50,13 +50,13 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
         String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
-        String clusterId = clusterIdService.clusterId().get().value().toString();
+        String clusterId = clusterIdService.clusterId().get().value();
 
         internalCluster().stopRandomDataNode();
         node_0 = internalCluster().startNode();
 
         clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
-        String clusterId2 = clusterIdService.clusterId().get().value().toString();
+        String clusterId2 = clusterIdService.clusterId().get().value();
         assertNotNull(clusterId2);
 
         assertNotSame(clusterId, clusterId2);

@@ -44,7 +44,7 @@ public class ClusterIdExpression implements ReferenceImplementation<BytesRef> {
         // value could not be ready on node start-up, but is static once set
         try {
             if (value == null && clusterIdService.clusterId().get() != null) {
-                value = new BytesRef(clusterIdService.clusterId().get().value().toString());
+                value = new BytesRef(clusterIdService.clusterId().get().value());
             }
         } catch (InterruptedException | ExecutionException e) {
             return null;
