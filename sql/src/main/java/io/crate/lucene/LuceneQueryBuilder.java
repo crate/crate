@@ -113,7 +113,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -161,9 +160,8 @@ public class LuceneQueryBuilder {
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
                            QueryShardContext queryShardContext,
-                           IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache, queryShardContext);
+        Context ctx = new Context(functions, mapperService, indexCache, queryShardContext);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
@@ -203,13 +201,11 @@ public class LuceneQueryBuilder {
 
         final DocInputFactory docInputFactory;
         final MapperService mapperService;
-        final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
         final QueryShardContext queryShardContext;
 
         Context(Functions functions,
                 MapperService mapperService,
-                IndexFieldDataService fieldDataService,
                 IndexCache indexCache,
                 QueryShardContext queryShardContext) {
             this.queryShardContext = queryShardContext;
@@ -219,7 +215,6 @@ public class LuceneQueryBuilder {
                 typeLookup,
                 new LuceneReferenceResolver(typeLookup, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
-            this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
         }
 
@@ -1295,7 +1290,7 @@ public class LuceneQueryBuilder {
             @SuppressWarnings("unchecked")
             final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             final CollectorContext collectorContext = new CollectorContext(
-                context.fieldDataService,
+                context.queryShardContext::getForField,
                 new CollectorFieldsVisitor(expressions.size())
             );
 
