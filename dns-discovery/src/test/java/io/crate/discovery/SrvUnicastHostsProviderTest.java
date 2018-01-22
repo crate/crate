@@ -24,17 +24,24 @@ package io.crate.discovery;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
-import org.xbill.DNS.*;
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.Record;
+import org.xbill.DNS.SRVRecord;
+import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.TextParseException;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -62,7 +69,10 @@ public class SrvUnicastHostsProviderTest {
         for (int i = 0; i < 4; i++) {
             when(transportService.addressesFromString(eq(String.format(Locale.ENGLISH, "crate%d.internal:44300",
                 i + 1)), anyInt())).thenReturn(new TransportAddress[]{
-                new LocalTransportAddress(String.format(Locale.ENGLISH, "crate%d.internal", i + 1))
+                new TransportAddress(
+                    InetSocketAddress.createUnresolved(
+                        String.format(Locale.ENGLISH, "crate%d.internal", i + 1),
+                        44300))
             });
         }
     }

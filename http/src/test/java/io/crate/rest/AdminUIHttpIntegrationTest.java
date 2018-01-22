@@ -33,7 +33,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.plugins.Plugin;
@@ -80,10 +79,10 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     }
 
     @Before
-    public void setup() throws ExecutionException, InterruptedException, IOException {
+    public void setup() throws IOException {
         Iterable<HttpServerTransport> transports = internalCluster().getInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
-        address = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
+        address = httpTransports.next().boundAddress().publishAddress().address();
         // place index file
         final Path indexDirectory = internalCluster().getInstance(Environment.class).libFile().resolve("site");
         Files.createDirectories(indexDirectory);
