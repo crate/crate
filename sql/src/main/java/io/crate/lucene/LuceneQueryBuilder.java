@@ -114,7 +114,6 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.BaseGeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -1057,7 +1056,7 @@ public class LuceneQueryBuilder {
             }
 
             private static Query getPolygonQuery(Geometry geometry,
-                                                 BaseGeoPointFieldMapper.GeoPointFieldType fieldType) {
+                                                 GeoPointFieldMapper.GeoPointFieldType fieldType) {
                 Coordinate[] coordinates = geometry.getCoordinates();
                 // close the polygon shape if startpoint != endpoint
                 if (!CoordinateArrays.isRing(coordinates)) {
@@ -1115,7 +1114,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private static BaseGeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
             MappedFieldType fieldType = mapperService.fullName(fieldName);
             if (fieldType == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));

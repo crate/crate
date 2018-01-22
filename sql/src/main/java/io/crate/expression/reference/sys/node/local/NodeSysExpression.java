@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.node.local;
 
+import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -69,7 +69,7 @@ public class NodeSysExpression extends NestedObjectExpression {
         childImplementations.put(SysNodesTableInfo.SYS_COL_ID,
             new NodeIdExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
-            new NodeNameExpression(discovery));
+            new NodeNameExpression(() -> clusterService.localNode().getName()));
         childImplementations.put(SysNodesTableInfo.SYS_COL_PORT, new NodePortExpression(
             () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
             () -> clusterService.localNode().getAddress()

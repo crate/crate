@@ -27,14 +27,17 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.ConstraintsValidator;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.dml.TransportShardAction;
-import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.jobs.JobContextService;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -46,9 +49,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.expression.InputFactory;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.reference.ReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -82,7 +82,6 @@ import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParentFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.index.mapper.TTLFieldMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -282,7 +281,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         GetResult getResult = indexShard.getService().get(
             request.type(),
             item.id(),
-            new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
+            new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME},
             true,
             Versions.MATCH_ANY,
             VersionType.INTERNAL,

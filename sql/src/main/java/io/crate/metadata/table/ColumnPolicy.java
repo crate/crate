@@ -58,10 +58,10 @@ public enum ColumnPolicy {
     }
 
     public static ColumnPolicy of(String dynamic) {
-        if (Booleans.isExplicitTrue(dynamic)) {
+        if (Booleans.isTrue(dynamic)) {
             return DYNAMIC;
         }
-        if (Booleans.isExplicitFalse(dynamic)) {
+        if (Booleans.isFalse(dynamic)) {
             return IGNORED;
         }
         if (dynamic.equalsIgnoreCase("strict")) {

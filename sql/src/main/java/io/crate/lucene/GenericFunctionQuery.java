@@ -84,7 +84,7 @@ class GenericFunctionQuery extends Query {
     }
 
     @Override
-    public Weight createWeight(IndexSearcher searcher, boolean needsScores) throws IOException {
+    public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
         return new Weight(this) {
             @Override
             public void extractTerms(Set<Term> terms) {
@@ -106,15 +106,6 @@ class GenericFunctionQuery extends Query {
                 } else {
                     return Explanation.match(0f, "No match on id " + doc);
                 }
-            }
-
-            @Override
-            public float getValueForNormalization() throws IOException {
-                return 0;
-            }
-
-            @Override
-            public void normalize(float norm, float boost) {
             }
 
             @Override

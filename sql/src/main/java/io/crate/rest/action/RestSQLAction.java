@@ -32,17 +32,17 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbols;
+import io.crate.auth.AuthSettings;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import io.crate.auth.user.User;
-import io.crate.auth.user.UserManager;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbols;
 import io.crate.rest.CrateRestMainAction;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.elasticsearch.client.node.NodeClient;
@@ -102,6 +102,11 @@ public class RestSQLAction extends BaseRestHandler {
             channel,
             new SQLActionException(errorMsg, 4000, RestStatus.BAD_REQUEST)
         ));
+    }
+
+    @Override
+    public String getName() {
+        return "sql";
     }
 
     @Override

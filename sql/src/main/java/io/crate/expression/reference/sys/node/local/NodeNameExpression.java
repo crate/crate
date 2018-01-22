@@ -24,24 +24,23 @@ package io.crate.expression.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.common.lucene.BytesRefs;
+
+import java.util.function.Supplier;
 
 class NodeNameExpression implements ReferenceImplementation<BytesRef> {
 
-    private final Discovery discovery;
+    private final Supplier<String> nodeNameSupplier;
     private BytesRef value = null;
 
-    NodeNameExpression(Discovery discovery) {
-        this.discovery = discovery;
+    NodeNameExpression(Supplier<String> nodeNameSupplier) {
+        this.nodeNameSupplier = nodeNameSupplier;
     }
 
     @Override
     public BytesRef value() {
-        // value could not be ready on node start-up, but is static once set
-        DiscoveryNode node = discovery.localNode();
-        if (value == null && node != null) {
-            value = new BytesRef(node.getName());
+        if (value == null) {
+            value = BytesRefs.toBytesRef(nodeNameSupplier.get());
         }
         return value;
     }

@@ -41,12 +41,6 @@ import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
-import io.crate.execution.ddl.OpenCloseTableOrPartitionRequest;
-import io.crate.execution.ddl.OpenCloseTableOrPartitionResponse;
-import io.crate.execution.ddl.RenameTableRequest;
-import io.crate.execution.ddl.RenameTableResponse;
-import io.crate.execution.ddl.TransportOpenCloseTableOrPartitionAction;
-import io.crate.execution.ddl.TransportRenameTableAction;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -410,7 +404,7 @@ public class AlterTableOperation {
             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
             .order(indexTemplateMetaData.order())
             .settings(settings)
-            .template(indexTemplateMetaData.template())
+            .patterns(indexTemplateMetaData.getPatterns())
             .alias(new Alias(tableIdent.indexName()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
