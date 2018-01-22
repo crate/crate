@@ -43,11 +43,11 @@ public class BlobRecoveryStatus {
     }
 
     public boolean canceled() {
-        return recoveryTarget.CancellableThreads().isCancelled();
+        return recoveryTarget.cancellableThreads().isCancelled();
     }
 
     public void sentCanceledToSource() {
-        recoveryTarget.CancellableThreads().checkForCancel();
+        recoveryTarget.cancellableThreads().checkForCancel();
     }
 
     public ShardId shardId() {
