@@ -24,8 +24,8 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -171,7 +171,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             Settings.EMPTY,
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
+            MockTransportService.createNewService(Settings.EMPTY, Version.V_6_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(SchemaUpdateClient.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),
@@ -479,6 +479,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(0)).index(any(Engine.Index.class));
+        verify(indexShard, times(0)).applyIndexOperationOnReplica(any(), any(), any(), any(), any(), any(), any());
     }
 }

@@ -38,6 +38,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -236,6 +237,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
      */
     public static class Item extends ShardRequest.Item {
 
+        private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         private long version = Versions.MATCH_ANY;
         private VersionType versionType = VersionType.INTERNAL;
         private IndexRequest.OpType opType = IndexRequest.OpType.INDEX;
@@ -264,6 +266,14 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.version = version;
             }
             this.insertValues = insertValues;
+        }
+
+        public long seqNo() {
+            return seqNo;
+        }
+
+        public void seqNo(long seqNo) {
+            this.seqNo = seqNo;
         }
 
         public long version() {

@@ -84,7 +84,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     @VisibleForTesting
     @Override
-    protected WritePrimaryResult<Request, ShardResponse> shardOperationOnPrimary(Request shardRequest, IndexShard indexShard) throws Exception {
+    protected WritePrimaryResult<Request, ShardResponse> shardOperationOnPrimary(Request shardRequest, IndexShard indexShard) {
         KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
             new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>() {
                 @Override
@@ -98,12 +98,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     @Override
     protected WriteReplicaResult<Request> shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
-        KillableWrapper<WriteReplicaResult<Request>> callable = new KillableWrapper<WriteReplicaResult<Request>>() {
-            @Override
-            public WriteReplicaResult<Request> call() throws Exception {
-                return processRequestItemsOnReplica(indexShard, replicaRequest);
-            }
-
+        KillableWrapper<WriteReplicaResult<Request>> callable =
+            new KillableWrapper<WriteReplicaResult<Request>>() {
+                @Override
+                public WriteReplicaResult<Request> call() throws Exception {
+                    return processRequestItemsOnReplica(indexShard, replicaRequest);
+                }
         };
         return wrapOperationInKillable(replicaRequest, callable);
     }

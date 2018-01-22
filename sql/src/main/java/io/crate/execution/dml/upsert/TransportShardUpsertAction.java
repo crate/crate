@@ -55,7 +55,6 @@ import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -78,6 +77,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParentFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
@@ -103,7 +103,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
@@ -208,7 +210,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            Engine.IndexResult indexResult = shardIndexOperationOnReplica(request, item, indexShard);
+            SourceToParse sourceToParse = SourceToParse.source(request.index(),
+                MapperService.DEFAULT_MAPPING, item.id(), item.source(), XContentType.JSON);
+
+            Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
+                item.seqNo(),
+                item.version(),
+                VersionType.INTERNAL,
+                -1,
+                false,
+                sourceToParse,
+                getMappingUpdateConsumer(request)
+            );
             location = indexResult.getTranslogLocation();
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
@@ -244,9 +257,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             version = sourceAndVersion.version;
         }
 
-        Engine.Index operation = prepareIndexOnPrimary(indexShard, version, request, item);
-        operation = updateMappingIfRequired(request, item, version, indexShard, operation);
-        Engine.IndexResult indexResult = indexShard.index(operation);
+        SourceToParse sourceToParse = SourceToParse.source(request.index(),
+            MapperService.DEFAULT_MAPPING, item.id(), item.source(), XContentType.JSON);
+
+        Engine.IndexResult indexResult = indexShard.applyIndexOperationOnPrimary(
+            version,
+            VersionType.INTERNAL,
+            sourceToParse,
+            -1,
+            retryCount > 0,
+            getMappingUpdateConsumer(request)
+        );
 
         Exception failure = indexResult.getFailure();
         if (failure != null) {
@@ -268,7 +289,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             throw failure;
         }
 
-        // update the version on request for the replicas
+        // update the seqNo and version on request for the replicas
+        item.seqNo(indexResult.getSeqNo());
         item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
         item.version(indexResult.getVersion());
 
@@ -455,45 +477,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return source;
     }
 
-    private Engine.Index prepareIndexOnPrimary(IndexShard indexShard,
-                                               long version,
-                                               ShardUpsertRequest request,
-                                               ShardUpsertRequest.Item item) {
-        SourceToParse sourceToParse = SourceToParse.source(
-            SourceToParse.Origin.PRIMARY,
-            indexShard.shardId().getIndexName(),
-            request.type(),
-            item.id(),
-            item.source(),
-            XContentType.JSON
-        );
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("[{}] shard operation with opType={} id={} version={}  source={}",
-                indexShard.shardId(), item.opType(), item.id(), version, item.source().utf8ToString());
-        }
-        return indexShard.prepareIndexOnPrimary(
-            sourceToParse, version, item.versionType(), -1, request.isRetry());
-    }
-
-    private Engine.Index updateMappingIfRequired(ShardUpsertRequest request,
-                                                 ShardUpsertRequest.Item item,
-                                                 long version,
-                                                 IndexShard indexShard,
-                                                 Engine.Index operation) throws Exception {
-        Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
-        if (update != null) {
-            validateMapping(update.root().iterator(), false);
-
-            schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), update);
-
-            operation = prepareIndexOnPrimary(indexShard, version, request, item);
-            if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
-                throw new ReplicationOperation.RetryOnPrimaryException(request.shardId(),
-                    "Dynamics mappings are not available on the node that holds the primary yet");
+    private Consumer<Mapping> getMappingUpdateConsumer(ShardUpsertRequest request) {
+        return updatedMapping -> {
+            validateMapping(updatedMapping.root().iterator(), false);
+            try {
+                schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), updatedMapping);
+            } catch (TimeoutException e) {
+                throw new RuntimeException("Couldn't update mapping on master", e);
             }
-        }
-        return operation;
+        };
     }
 
     @VisibleForTesting
@@ -507,37 +499,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             validateMapping(mapper.iterator(), true);
         }
-    }
-
-    private Engine.IndexResult shardIndexOperationOnReplica(ShardUpsertRequest request,
-                                                            ShardUpsertRequest.Item item,
-                                                            IndexShard indexShard) throws IOException {
-        SourceToParse sourceToParse = SourceToParse.source(
-                SourceToParse.Origin.REPLICA,
-                request.index(), request.type(),
-                item.id(), item.source(),
-                XContentType.JSON)
-            .routing(request.routing());
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("[{} (R)] Index document id={} source={} opType={} version={} versionType={}",
-                indexShard.shardId(),
-                item.id(),
-                item.source().utf8ToString(),
-                item.opType(),
-                item.version(),
-                item.versionType());
-        }
-        Engine.Index index = indexShard.prepareIndexOnReplica(
-            sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
-
-        Mapping update = index.parsedDoc().dynamicMappingsUpdate();
-        if (update != null) {
-            throw new RetryOnReplicaException(
-                indexShard.shardId(),
-                "Mappings are not available on the replica yet, triggered update: " + update);
-        }
-        return indexShard.index(index);
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
