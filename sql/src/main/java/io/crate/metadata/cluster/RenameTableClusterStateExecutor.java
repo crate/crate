@@ -51,6 +51,7 @@ import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -200,7 +201,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData.builder(targetTemplateName)
             .order(sourceTemplateMetaData.order())
             .settings(sourceTemplateMetaData.settings())
-            .template(targetTemplatePrefix)
+            .patterns(Collections.singletonList(targetTemplatePrefix))
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, sourceTemplateMetaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE))
             .putAlias(AliasMetaData.builder(targetIdent.indexName()));
         IndexTemplateMetaData newTemplate = templateBuilder.build();
