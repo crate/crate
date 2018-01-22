@@ -55,6 +55,7 @@ import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
@@ -689,7 +690,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             Random random = RandomizedContext.current().getRandom();
             while (true) {
                 String schemaName = RandomStrings.randomAsciiOfLengthBetween(random, 1, 20).toLowerCase();
-                if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName)) {
+                if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName) && !Identifiers.isKeyWord(schemaName)) {
                     return schemaName;
                 }
             }
