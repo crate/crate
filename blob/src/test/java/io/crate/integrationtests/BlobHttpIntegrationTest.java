@@ -40,7 +40,6 @@ import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Before;
@@ -79,13 +78,12 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
-        randomNode = ((InetSocketTransportAddress) internalCluster().getInstances(HttpServerTransport.class)
-            .iterator().next()
-            .boundAddress().publishAddress()).address();
+        randomNode = internalCluster().getInstances(HttpServerTransport.class)
+            .iterator().next().boundAddress().publishAddress().address();
         Iterable<HttpServerTransport> transports = internalCluster().getDataNodeInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
-        dataNode1 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
-        dataNode2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
+        dataNode1 = httpTransports.next().boundAddress().publishAddress().address();
+        dataNode2 = httpTransports.next().boundAddress().publishAddress().address();
         BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         Settings indexSettings = Settings.builder()
