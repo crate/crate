@@ -70,7 +70,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) throws Exception {
+    protected PrimaryResult<PutChunkReplicaRequest, PutChunkResponse> shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) {
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
 
@@ -82,7 +82,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
         replicaRequest.index(request.index());
-        return new PrimaryResult(replicaRequest, response);
+        return new PrimaryResult<>(replicaRequest, response);
     }
 
     @Override
