@@ -60,7 +60,7 @@ public class Identifiers {
         return isKeyWord(identifier);
     }
 
-    private static boolean isKeyWord(String identifier) {
+    public static boolean isKeyWord(String identifier) {
         if (identifier.length() < 1) {
             return false;
         }
