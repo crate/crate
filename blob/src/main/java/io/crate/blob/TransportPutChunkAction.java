@@ -26,7 +26,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -63,11 +62,11 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected void resolveRequest(MetaData metaData, IndexMetaData indexMetaData, PutChunkRequest request) {
+    protected void resolveRequest(IndexMetaData indexMetaData, PutChunkRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting().indexShards(
             clusterService.state(), request.index(), null, request.digest());
         request.setShardId(shardIterator.shardId());
-        super.resolveRequest(metaData, indexMetaData, request);
+        super.resolveRequest(indexMetaData, request);
     }
 
     @Override
