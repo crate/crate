@@ -123,23 +123,17 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return Objects.hashCode(routing, jobId, shardId(), items);
     }
 
+    /**
+     * The description is used when creating transport, replication and search tasks and it defaults to `toString`.
+     * Only return the shard id to avoid the overhead of including all the items.
+     */
+
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{" +
-               "items=" + items +
+        return "ShardRequest{" +
                ", shardId=" + shardId +
                ", timeout=" + timeout +
                '}';
-    }
-
-    /**
-     * The description is used when creating transport, replication and search tasks and it defaults to `toString`.
-     * Overriding here to return the parent `toString` to avoid using the local, expensive (printing all items)
-     * `toString`.
-     */
-    @Override
-    public String getDescription() {
-        return super.toString();
     }
 
     protected abstract I readItem(StreamInput input) throws IOException;
