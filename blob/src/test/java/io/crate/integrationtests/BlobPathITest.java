@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -76,8 +75,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
-        InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport
-            .boundAddress().publishAddress()).address();
+        InetSocketAddress address = httpServerTransport.boundAddress().publishAddress().address();
         client = new BlobHttpClient(address);
     }
 
