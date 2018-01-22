@@ -18,32 +18,5 @@ Breaking Changes
 Changes
 =======
 
-- In certain cases it's no longer necessary to explicitly add generated columns
-  that are part of a composite primary key to the ``WHERE`` clause in order to
-  get an execution plan with real-time semantics.
-
-- Greatly improved performance of queries that uses scalar functions inside the
-  ``WHERE`` clause.
-
 Fixes
 =====
-
-- Avoid downcasts in function expressions which could lead to reduced precision.
-  For example:
-    Select round(float_col) + 1.1 would result in
-      Select round(float_col) + 1
-    but is now resolved to
-      Select to_float(round(float_col)) + 1.1
-
-- Ensured natural order of config keys for the Host Based Authentication.
-
-- Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
-  to support Golang psql drivers.
-
-- Fixed an Admin UI issue that caused the ``Cluster`` tab to not be loaded
-  correctly.
-
-- Map the Tab key to insert spaces instead of a tab character in the query
-  console of the Admin UI.
-
-- Fixed an issue that caused the user name to not be displayed in the Admin UI.

@@ -1,0 +1,61 @@
+.. _version_2.3.1:
+
+=============
+Version 2.3.1
+=============
+
+Released on 2018/01/22.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_1.1.3` or higher before you upgrade to 2.3.1.
+
+   If you want to perform a `rolling upgrade`_, your current CrateDB
+   version number must be at least :ref:`version_2.3.0`. Any upgrade
+   from a version prior to this will require a `full restart upgrade`_.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Changelog
+=========
+
+Changes
+-------
+
+- In certain cases it's no longer necessary to explicitly add generated columns
+  that are part of a composite primary key to the ``WHERE`` clause in order to
+  get an execution plan with real-time semantics.
+
+- Greatly improved performance of queries that uses scalar functions inside the
+  ``WHERE`` clause.
+
+Fixes
+-----
+
+- Avoid downcasts in function expressions which could lead to reduced
+  precision. For example ::
+
+    SELECT round(float_col) + 1.1 would result in
+      SELECT round(float_col) + 1
+    but is now resolved to
+      SELECT to_float(round(float_col)) + 1.1
+
+- Ensured natural order of config keys for Host Based Authentication.
+
+- Fixed encoding/decoding of ``Timestamp`` type for PostgreSQL wire protocol
+  to support Golang psql drivers.
+
+- Fixed an Admin UI issue that caused the ``Cluster`` tab to not be loaded
+  correctly.
+
+- Map the Tab key to insert spaces instead of a tab character in the query
+  console of the Admin UI.
+
+- Fixed an issue that caused the user name to not be displayed in the Admin UI.
