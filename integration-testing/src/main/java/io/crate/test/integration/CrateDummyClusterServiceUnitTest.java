@@ -23,18 +23,14 @@
 package io.crate.test.integration;
 
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,10 +39,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -89,20 +83,12 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     private ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings) {
         Set<Setting<?>> clusterSettingsSet = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettingsSet.addAll(additionalClusterSettings);
-        DiscoveryNode discoveryNode = new DiscoveryNode(
-            "node-name",
-            NODE_ID,
-            LocalTransportAddress.buildUnique(),
-            Collections.emptyMap(),
-            new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),
-            Version.CURRENT
-        );
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
         ClusterService clusterService = new ClusterService(
             Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
             clusterSettings,
             THREAD_POOL,
-            () -> discoveryNode
+            Collections.emptyMap()
         );
         clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
 
@@ -116,9 +102,6 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
                 // skip
             }
         });
-        clusterService.setClusterStatePublisher((event, ackListener) -> {
-        });
-        clusterService.setDiscoverySettings(new DiscoverySettings(Settings.EMPTY, clusterSettings));
         clusterService.start();
         final DiscoveryNodes.Builder nodes = DiscoveryNodes.builder(clusterService.state().nodes());
         nodes.masterNodeId(clusterService.localNode().getId());
