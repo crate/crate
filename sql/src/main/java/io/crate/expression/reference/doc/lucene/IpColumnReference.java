@@ -22,7 +22,6 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
@@ -48,16 +47,20 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId) throws IOException {
         if (values == null) {
             value = null;
         } else {
-            BytesRef bytesRef = values.get(docId);
-            if (bytesRef.length == 0) {
-                value = null;
+            if (values.advanceExact(docId)) {
+                BytesRef bytesRef = values.binaryValue();
+                if (bytesRef.length == 0) {
+                    value = null;
+                } else {
+                    String format = DocValueFormat.IP.format(bytesRef);
+                    value = BytesRefs.toBytesRef(format);
+                }
             } else {
-                String format = DocValueFormat.IP.format(bytesRef);
-                value = BytesRefs.toBytesRef(format);
+                value = null;
             }
         }
     }
@@ -74,29 +77,7 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
         if (singleton != null) {
             values = singleton;
         } else {
-            values = new SortedDocValues() {
-                @Override
-                public int getOrd(int docID) {
-                    setDocValues.setDocument(docID);
-                    int ord = (int) setDocValues.nextOrd();
-
-                    if (ord != SortedSetDocValues.NO_MORE_ORDS &&
-                        setDocValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                        throw new GroupByOnArrayUnsupportedException(columnName);
-                    }
-                    return ord;
-                }
-
-                @Override
-                public BytesRef lookupOrd(int ord) {
-                    return setDocValues.lookupOrd(ord);
-                }
-
-                @Override
-                public int getValueCount() {
-                    return (int) setDocValues.getValueCount();
-                }
-            };
+            throw new UnsupportedOperationException("NYI");
         }
     }
 }

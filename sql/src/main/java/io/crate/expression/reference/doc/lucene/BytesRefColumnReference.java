@@ -21,10 +21,9 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.exceptions.ValidationException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.RandomAccessOrds;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -33,7 +32,7 @@ import java.io.IOException;
 
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
-    private RandomAccessOrds values;
+    private SortedSetDocValues values;
     private BytesRef value;
 
     public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
@@ -46,18 +45,12 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId) throws IOException {
         super.setNextDocId(docId);
-        values.setDocument(docId);
-        switch (values.cardinality()) {
-            case 0:
-                value = null;
-                break;
-            case 1:
-                value = BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
-                break;
-            default:
-                throw new GroupByOnArrayUnsupportedException(columnName);
+        if (values.advanceExact(docId)) {
+            value = BytesRef.deepCopyOf(values.lookupOrd(values.nextOrd()));
+        } else {
+            value = null;
         }
     }
 
