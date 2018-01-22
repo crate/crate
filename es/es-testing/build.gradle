@@ -13,6 +13,7 @@ dependencies {
     compile "commons-logging:commons-logging:${versions.commonslogging}"
     compile "commons-codec:commons-codec:${versions.commonscodec}"
     compile "org.elasticsearch:securemock:${versions.securemock}"
+    compile "org.elasticsearch:mocksocket:${versions.mocksocket}"
 
     // crate extra dependencies
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
