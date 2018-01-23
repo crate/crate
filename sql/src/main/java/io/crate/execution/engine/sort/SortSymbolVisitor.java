@@ -29,14 +29,14 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
+import io.crate.execution.engine.collect.DocInputFactory;
+import io.crate.execution.expression.InputFactory;
+import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
+import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.engine.collect.DocInputFactory;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
-import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -45,6 +45,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -149,7 +150,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
 
         String indexName;
-        IndexFieldData.XFieldComparatorSource fieldComparatorSource;
+        FieldComparatorSource fieldComparatorSource;
         MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
         if (fieldType == null) {
             indexName = columnIdent.fqn();

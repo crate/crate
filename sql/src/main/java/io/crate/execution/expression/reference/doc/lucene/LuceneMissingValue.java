@@ -21,22 +21,11 @@
 
 package io.crate.execution.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.sort.SortSymbolVisitor;
 import io.crate.analyze.OrderBy;
+import io.crate.execution.engine.sort.SortSymbolVisitor;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
 
 public class LuceneMissingValue {
-
-    private static final BytesRef MAX_TERM;
-
-    static {
-        BytesRefBuilder builder = new BytesRefBuilder();
-        final char[] chars = Character.toChars(Character.MAX_CODE_POINT);
-        builder.copyChars(chars, 0, chars.length);
-        MAX_TERM = builder.toBytesRef();
-    }
 
     public static Object missingValue(OrderBy orderBy, int orderIndex) {
         assert orderIndex <= orderBy.orderBySymbols().size() : "orderIndex must be < number of orderBy symbols";
@@ -63,7 +52,7 @@ public class LuceneMissingValue {
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
             case STRING:
             case STRING_VAL:
-                return min ? null : MAX_TERM;
+                return null;
             default:
                 throw new UnsupportedOperationException("Unsupported reduced type: " + type);
         }

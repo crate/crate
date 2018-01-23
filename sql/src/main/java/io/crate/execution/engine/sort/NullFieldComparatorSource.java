@@ -22,12 +22,13 @@
 
 package io.crate.execution.engine.sort;
 
+import io.crate.execution.expression.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 
 import java.io.IOException;
 
@@ -37,9 +38,8 @@ import java.io.IOException;
  * <p>
  * Only used on shards with no values for the compared field.
  */
-class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
+class NullFieldComparatorSource extends FieldComparatorSource {
 
-    private final SortField.Type sortFieldType;
     private final Object missingValue;
     private static final LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
         @Override
@@ -66,13 +66,7 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
     };
 
     NullFieldComparatorSource(SortField.Type sortFieldType, boolean reversed, Boolean nullsFirst) {
-        this.sortFieldType = sortFieldType;
-        missingValue = missingObject(SortOrder.missing(reversed, nullsFirst), reversed);
-    }
-
-    @Override
-    public SortField.Type reducedType() {
-        return sortFieldType;
+        missingValue = LuceneMissingValue.missingValue(reversed, nullsFirst, sortFieldType);
     }
 
     @Override
