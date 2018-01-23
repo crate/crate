@@ -43,7 +43,7 @@ import java.util.Map;
 public class Insert extends OneInputPlan {
 
     private final QueriedRelation relation;
-    private final ColumnIndexWriterProjection projection;
+    final ColumnIndexWriterProjection projection;
 
     public Insert(LogicalPlan source, QueriedRelation relation, ColumnIndexWriterProjection projection) {
         super(source);
@@ -94,5 +94,10 @@ public class Insert extends OneInputPlan {
     @Override
     public long numExpectedRows() {
         return 1;
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitInsert(this, context);
     }
 }

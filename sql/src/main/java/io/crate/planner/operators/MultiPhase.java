@@ -26,11 +26,11 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -77,5 +77,10 @@ public class MultiPhase extends OneInputPlan {
     @Override
     public long numExpectedRows() {
         return source.numExpectedRows();
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitMultiPhase(this, context);
     }
 }

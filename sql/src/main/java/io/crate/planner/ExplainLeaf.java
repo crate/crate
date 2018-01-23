@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +36,7 @@ public interface ExplainLeaf {
     String representation();
 
 
-    static String printList(List<? extends ExplainLeaf> leaves) {
+    static String printList(Collection<? extends ExplainLeaf> leaves) {
         return leaves.stream()
             .map(ExplainLeaf::representation)
             .collect(Collectors.joining(", "));

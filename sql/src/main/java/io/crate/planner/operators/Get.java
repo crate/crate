@@ -131,8 +131,14 @@ public class Get extends ZeroInputPlan {
         );
     }
 
+    @Override
     public long numExpectedRows() {
         return docKeys.size();
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitGet(this, context);
     }
 
     public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> partitionValues) {

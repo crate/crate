@@ -39,6 +39,7 @@ import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
+import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -88,7 +89,7 @@ class Collect extends ZeroInputPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final QueriedTableRelation relation;
-    final WhereClause where;
+    WhereClause where;
 
     final TableInfo tableInfo;
     private final long numExpectedRows;
@@ -225,6 +226,19 @@ class Collect extends ZeroInputPlan {
                 where
             );
         }
+
+        // bind all parameters and possible subQuery values and re-analyze the query
+        // (could result in a NO_MATCH, routing could've changed, etc).
+        // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
+        // (e.g. GroupHashAggregate will build different plans based on the collect routing)
+        where = WhereClauseAnalyzer.bindAndAnalyze(
+            where,
+            params,
+            subQueryValues,
+            relation.tableRelation(),
+            plannerContext.functions(),
+            plannerContext.transactionContext());
+
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -271,6 +285,11 @@ class Collect extends ZeroInputPlan {
                ", [" + ExplainLeaf.printList(outputs) +
                "], " + where +
                '}';
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitCollect(this, context);
     }
 
     private static final  class NoPredicateVisitor extends SymbolVisitor<Void, Void> {

@@ -23,7 +23,10 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.node.management.ExplainPlan;
+import io.crate.planner.operators.ExplainLogicalPlan;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -32,6 +35,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.greaterThan;
 
 public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -54,7 +58,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testExplain() throws Exception {
+    public void testExplain() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
             ExplainPlan plan = e.plan("explain " + statement);
             assertNotNull(plan);
@@ -63,12 +67,15 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPrinter() throws Exception {
+    public void testPrinter() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExecutionPlan plan = e.plan(statement);
+            LogicalPlan plan = e.logicalPlan(statement);
             Map<String, Object> map = null;
             try {
-                map = PlanPrinter.objectMap(plan);
+                map = ExplainLogicalPlan.explainMap(
+                    plan,
+                    e.getPlannerContext(clusterService.state()),
+                    new ProjectionBuilder(getFunctions()));
             } catch (Exception e) {
                 fail("statement not printable: " + statement);
             }

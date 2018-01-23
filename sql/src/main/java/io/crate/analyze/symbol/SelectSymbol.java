@@ -93,7 +93,7 @@ public class SelectSymbol extends Symbol {
 
     @Override
     public String representation() {
-        return "SubQuery{" + relation.getQualifiedName() + '}';
+        return "SubQuery{" + relation.getQualifiedName() + "}@" + hashCode();
     }
 
     public ResultType getResultType() {

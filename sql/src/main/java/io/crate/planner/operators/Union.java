@@ -196,6 +196,11 @@ public class Union extends TwoInputPlan {
         return lhs.numExpectedRows() + rhs.numExpectedRows();
     }
 
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitUnion(this, context);
+    }
+
     /**
      * Wraps the plan inside a Merge plan if limit or offset need to be applied.
      */

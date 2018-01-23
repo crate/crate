@@ -27,12 +27,12 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 
@@ -61,16 +61,7 @@ public class ExplainPlan implements Plan {
         Map<String, Object> map;
         try {
             if (subPlan instanceof LogicalPlan) {
-                ExecutionPlan executionPlan = ((LogicalPlan) subPlan).build(
-                    plannerContext,
-                    executor.projectionBuilder(),
-                    TopN.NO_LIMIT,
-                    0,
-                    null,
-                    null,
-                    params,
-                    valuesBySubQuery);
-                map = PlanPrinter.objectMap(executionPlan);
+                map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
             } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
                 ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
                     executor.clusterService().state().nodes(),

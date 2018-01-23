@@ -27,12 +27,15 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.SymbolToTrueVisitor;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.collections.Lists2;
+import io.crate.data.Row;
 import io.crate.execution.expression.reference.partitioned.PartitionExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -44,6 +47,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.WhereClauseOptimizer;
+import io.crate.planner.operators.SubQueryAndParamBinder;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -56,6 +60,27 @@ import java.util.Map;
 import java.util.Set;
 
 public class WhereClauseAnalyzer {
+
+    /**
+     * Replace parameters and sub-queries with the related values and analyze the query afterwards.
+     */
+    public static WhereClause bindAndAnalyze(WhereClause where,
+                                                                                Row params,
+                                                                                Map<SelectSymbol, Object> subQueryValues,
+                                                                                AbstractTableRelation tableRelation,
+                                                                                Functions functions,
+                                                                                TransactionContext transactionContext) {
+        if (where.hasQuery()) {
+            Symbol query = SubQueryAndParamBinder.convert(where.query(), params, subQueryValues);
+            if (tableRelation instanceof DocTableRelation) {
+                WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, (DocTableRelation) tableRelation);
+                return whereClauseAnalyzer.analyze(query, transactionContext);
+            } else {
+                return new WhereClause(query);
+            }
+        }
+        return where;
+    }
 
     private final Functions functions;
     private final DocTableInfo table;

@@ -683,4 +683,20 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "5\n" +
                 "6\n"));
     }
+
+    /**
+     * Test that results from subQueries are bound to the parent query's where clause
+     * BEFORE creating any execution phase (for this test case: before resolving the routing)
+     */
+    @Test
+    public void testWhereSubsSelectAsClusteredByValue() {
+        execute("create table t1 (id int, r int) clustered by(r)");
+        execute("insert into t1 (id, r) values (1, 1), (2, 2)");
+        refresh();
+        execute("select id from t1 where r = (select r from t1 where id = 1)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select count(*) from t1 where r = (select r from t1 where id = 1)");
+        assertThat(response.rowCount(), is(1L));
+    }
 }
