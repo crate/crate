@@ -30,6 +30,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -145,6 +146,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         protected final String id;
         private int location = -1;
+        private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
 
         public Item(String id) {
             this.id = id;
@@ -165,6 +167,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         public int location() {
             return location;
+        }
+
+        public long seqNo() {
+            return seqNo;
+        }
+
+        public void seqNo(long seqNo) {
+            this.seqNo = seqNo;
         }
 
         public void writeTo(StreamOutput out) throws IOException {
