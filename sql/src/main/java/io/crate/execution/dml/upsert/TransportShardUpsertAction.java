@@ -117,7 +117,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private static final String ACTION_NAME = "indices:crate/data/write/upsert";
 
-    private final SchemaUpdateClient schemaUpdateClient;
     private final Schemas schemas;
     private final InputFactory inputFactory;
 
@@ -135,8 +134,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       Schemas schemas,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
-            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new);
-        this.schemaUpdateClient = schemaUpdateClient;
+            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new, schemaUpdateClient);
         this.schemas = schemas;
         this.inputFactory = new InputFactory(functions);
         jobContextService.addListener(this);
@@ -475,30 +473,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         return source;
-    }
-
-    private Consumer<Mapping> getMappingUpdateConsumer(ShardUpsertRequest request) {
-        return updatedMapping -> {
-            validateMapping(updatedMapping.root().iterator(), false);
-            try {
-                schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), updatedMapping);
-            } catch (TimeoutException e) {
-                throw new RuntimeException("Couldn't update mapping on master", e);
-            }
-        };
-    }
-
-    @VisibleForTesting
-    static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
-        while (mappers.hasNext()) {
-            Mapper mapper = mappers.next();
-            if (nested) {
-                ColumnIdent.validateObjectKey(mapper.simpleName());
-            } else {
-                ColumnIdent.validateColumnName(mapper.simpleName());
-            }
-            validateMapping(mapper.iterator(), true);
-        }
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,

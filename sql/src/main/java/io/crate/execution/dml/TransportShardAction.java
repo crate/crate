@@ -28,14 +28,19 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import io.crate.exceptions.JobKilledException;
+import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -44,8 +49,11 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -58,6 +66,8 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
+    private final SchemaUpdateClient schemaUpdateClient;
+
     protected TransportShardAction(Settings settings,
                                    String actionName,
                                    TransportService transportService,
@@ -67,9 +77,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
                                    ActionFilters actionFilters,
-                                   Supplier<Request> requestSupplier) {
+                                   Supplier<Request> requestSupplier,
+                                   SchemaUpdateClient schemaUpdateClient) {
         super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
             actionFilters, indexNameExpressionResolver, requestSupplier, requestSupplier,ThreadPool.Names.BULK);
+
+        this.schemaUpdateClient = schemaUpdateClient;
     }
 
     @Override
@@ -155,6 +168,30 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         @Override
         public void kill(@Nullable Throwable t) {
             killed.getAndSet(true);
+        }
+    }
+
+    protected Consumer<Mapping> getMappingUpdateConsumer(Request request) {
+        return updatedMapping -> {
+            validateMapping(updatedMapping.root().iterator(), false);
+            try {
+                schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), updatedMapping);
+            } catch (TimeoutException e) {
+                throw new RuntimeException("Couldn't update mapping on master", e);
+            }
+        };
+    }
+
+    @VisibleForTesting
+    static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
+        while (mappers.hasNext()) {
+            Mapper mapper = mappers.next();
+            if (nested) {
+                ColumnIdent.validateObjectKey(mapper.simpleName());
+            } else {
+                ColumnIdent.validateColumnName(mapper.simpleName());
+            }
+            validateMapping(mapper.iterator(), true);
         }
     }
 }
