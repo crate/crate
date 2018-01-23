@@ -30,7 +30,6 @@ import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
@@ -54,7 +53,6 @@ public class NodeSysExpression extends NestedObjectExpression {
     public NodeSysExpression(ClusterService clusterService,
                              MonitorService monitorService,
                              @Nullable HttpServerTransport httpServerTransport,
-                             Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
         this.osService = monitorService.osService();

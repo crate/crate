@@ -44,13 +44,11 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope()
 @UseRandomizedSession(schema = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 

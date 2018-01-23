@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,11 +68,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         ClusterState state =
             ClusterState.builder(ClusterName.DEFAULT)
                         .nodes(DiscoveryNodes.builder()
-                                             .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(),
+                                             .add(new DiscoveryNode("n1", buildNewFakeTransportAddress(),
                                                                     Version.CURRENT))
-                                             .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(),
+                                             .add(new DiscoveryNode("n2", buildNewFakeTransportAddress(),
                                                                     Version.CURRENT))
-                                             .add(new DiscoveryNode("n3", LocalTransportAddress.buildUnique(),
+                                             .add(new DiscoveryNode("n3", buildNewFakeTransportAddress(),
                                                                     Version.CURRENT))
                                              .localNodeId("n1")
                               )

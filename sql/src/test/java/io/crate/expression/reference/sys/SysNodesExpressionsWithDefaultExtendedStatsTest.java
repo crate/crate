@@ -21,18 +21,16 @@
  */
 package io.crate.expression.reference.sys;
 
+import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.sys.node.local.NodeSysExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.local.LocalDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.MonitorService;
@@ -42,7 +40,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -71,20 +68,14 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
             .put("node.data", false)
             .put("node.master", false)
             .build();
-        LocalDiscovery localDiscovery = new LocalDiscovery(
-            settings,
-            clusterService,
-            clusterService.getClusterSettings(),
-            new NamedWriteableRegistry(Collections.emptyList()));
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
-        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
+        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL, () -> null);
         fsService = monitorService.fsService();
         nodeExpression = new NodeSysExpression(
             clusterService,
             monitorService,
             null,
-            localDiscovery,
             THREAD_POOL,
             new ExtendedNodeInfo()
         );

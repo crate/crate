@@ -1,35 +1,34 @@
+
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.apache.lucene.index;
 
+import org.apache.lucene.index.PointValues.IntersectVisitor;
+import org.apache.lucene.index.PointValues.Relation;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.VirtualMethod;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * A {@link FilterLeafReader} that can be used to apply
@@ -56,19 +55,29 @@ public class AssertingLeafReader extends FilterLeafReader {
         assert in.numDeletedDocs() + in.numDocs() == in.maxDoc();
         assert !in.hasDeletions() || in.numDeletedDocs() > 0 && in.numDocs() < in.maxDoc();
 
-        addCoreClosedListener(new CoreClosedListener() {
-            @Override
-            public void onClose(Object ownerCoreCacheKey) throws IOException {
-                final Object expectedKey = getCoreCacheKey();
-                assert expectedKey == ownerCoreCacheKey
-                    : "Core closed listener called on a different key " + expectedKey + " <> " + ownerCoreCacheKey;
-            }
-        });
+        CacheHelper coreCacheHelper = in.getCoreCacheHelper();
+        if (coreCacheHelper != null) {
+            coreCacheHelper.addClosedListener(cacheKey -> {
+                final Object expectedKey = coreCacheHelper.getKey();
+                assert expectedKey == cacheKey
+                    : "Core closed listener called on a different key " + expectedKey + " <> " + cacheKey;
+            });
+        }
+
+        CacheHelper readerCacheHelper = in.getReaderCacheHelper();
+        if (readerCacheHelper != null) {
+            readerCacheHelper.addClosedListener(cacheKey -> {
+                final Object expectedKey = readerCacheHelper.getKey();
+                assert expectedKey == cacheKey
+                    : "Core closed listener called on a different key " + expectedKey + " <> " + cacheKey;
+            });
+        }
     }
 
     @Override
-    public Fields fields() throws IOException {
-        return new AssertingFields(super.fields());
+    public Terms terms(String field) throws IOException {
+        Terms terms = super.terms(field);
+        return terms == null ? null : new AssertingTerms(terms);
     }
 
     @Override
@@ -134,6 +143,11 @@ public class AssertingLeafReader extends FilterLeafReader {
             TermsEnum termsEnum = super.iterator();
             assert termsEnum != null;
             return new AssertingTermsEnum(termsEnum);
+        }
+
+        @Override
+        public String toString() {
+            return "AssertingTerms(" + in + ")";
         }
     }
 
@@ -400,17 +414,77 @@ public class AssertingLeafReader extends FilterLeafReader {
         private final Thread creationThread = Thread.currentThread();
         private final NumericDocValues in;
         private final int maxDoc;
+        private int lastDocID = -1;
+        private boolean exists;
 
         public AssertingNumericDocValues(NumericDocValues in, int maxDoc) {
             this.in = in;
             this.maxDoc = maxDoc;
+            // should start unpositioned:
+            assert in.docID() == -1;
         }
 
         @Override
-        public long get(int docID) {
+        public int docID() {
             assertThread("Numeric doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc;
-            return in.get(docID);
+            return in.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            int docID = in.nextDoc();
+            assert docID > lastDocID;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            assert docID == in.docID();
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target > in.docID();
+            int docID = in.advance(target);
+            assert docID >= target;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target >= in.docID();
+            assert target < maxDoc;
+            exists = in.advanceExact(target);
+            assert in.docID() == target;
+            lastDocID = target;
+            return exists;
+        }
+
+        @Override
+        public long cost() {
+            assertThread("Numeric doc values", creationThread);
+            long cost = in.cost();
+            assert cost >= 0;
+            return cost;
+        }
+
+        @Override
+        public long longValue() throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert exists;
+            return in.longValue();
+        }
+
+        @Override
+        public String toString() {
+            return "AssertingNumericDocValues(" + in + ")";
         }
     }
 
@@ -419,19 +493,77 @@ public class AssertingLeafReader extends FilterLeafReader {
         private final Thread creationThread = Thread.currentThread();
         private final BinaryDocValues in;
         private final int maxDoc;
+        private int lastDocID = -1;
+        private boolean exists;
 
         public AssertingBinaryDocValues(BinaryDocValues in, int maxDoc) {
             this.in = in;
             this.maxDoc = maxDoc;
+            // should start unpositioned:
+            assert in.docID() == -1;
         }
 
         @Override
-        public BytesRef get(int docID) {
+        public int docID() {
             assertThread("Binary doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc;
-            final BytesRef result = in.get(docID);
-            assert result.isValid();
-            return result;
+            return in.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+            assertThread("Binary doc values", creationThread);
+            int docID = in.nextDoc();
+            assert docID > lastDocID;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            assert docID == in.docID();
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+            assertThread("Binary doc values", creationThread);
+            assert target >= 0;
+            assert target > in.docID();
+            int docID = in.advance(target);
+            assert docID >= target;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target >= in.docID();
+            assert target < maxDoc;
+            exists = in.advanceExact(target);
+            assert in.docID() == target;
+            lastDocID = target;
+            return exists;
+        }
+
+        @Override
+        public long cost() {
+            assertThread("Binary doc values", creationThread);
+            long cost = in.cost();
+            assert cost >= 0;
+            return cost;
+        }
+
+        @Override
+        public BytesRef binaryValue() throws IOException {
+            assertThread("Binary doc values", creationThread);
+            assert exists;
+            return in.binaryValue();
+        }
+
+        @Override
+        public String toString() {
+            return "AssertingBinaryDocValues(" + in + ")";
         }
     }
 
@@ -441,6 +573,8 @@ public class AssertingLeafReader extends FilterLeafReader {
         private final SortedDocValues in;
         private final int maxDoc;
         private final int valueCount;
+        private int lastDocID = -1;
+        private boolean exists;
 
         public AssertingSortedDocValues(SortedDocValues in, int maxDoc) {
             this.in = in;
@@ -450,16 +584,67 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public int getOrd(int docID) {
+        public int docID() {
             assertThread("Sorted doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc;
-            int ord = in.getOrd(docID);
+            return in.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+            assertThread("Sorted doc values", creationThread);
+            int docID = in.nextDoc();
+            assert docID > lastDocID;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            assert docID == in.docID();
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+            assertThread("Sorted doc values", creationThread);
+            assert target >= 0;
+            assert target > in.docID();
+            int docID = in.advance(target);
+            assert docID >= target;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            lastDocID = docID;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target >= in.docID();
+            assert target < maxDoc;
+            exists = in.advanceExact(target);
+            assert in.docID() == target;
+            lastDocID = target;
+            return exists;
+        }
+
+        @Override
+        public long cost() {
+            assertThread("Sorted doc values", creationThread);
+            long cost = in.cost();
+            assert cost >= 0;
+            return cost;
+        }
+
+        @Override
+        public int ordValue() throws IOException {
+            assertThread("Sorted doc values", creationThread);
+            assert exists;
+            int ord = in.ordValue();
             assert ord >= -1 && ord < valueCount;
             return ord;
         }
 
         @Override
-        public BytesRef lookupOrd(int ord) {
+        public BytesRef lookupOrd(int ord) throws IOException {
             assertThread("Sorted doc values", creationThread);
             assert ord >= 0 && ord < valueCount;
             final BytesRef result = in.lookupOrd(ord);
@@ -476,16 +661,15 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public BytesRef get(int docID) {
+        public BytesRef binaryValue() throws IOException {
             assertThread("Sorted doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc;
-            final BytesRef result = in.get(docID);
+            final BytesRef result = in.binaryValue();
             assert result.isValid();
             return result;
         }
 
         @Override
-        public int lookupTerm(BytesRef key) {
+        public int lookupTerm(BytesRef key) throws IOException {
             assertThread("Sorted doc values", creationThread);
             assert key.isValid();
             int result = in.lookupTerm(key);
@@ -495,11 +679,14 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedSetDocValues but with additional asserts */
+    /** Wraps a SortedNumericDocValues but with additional asserts */
     public static class AssertingSortedNumericDocValues extends SortedNumericDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedNumericDocValues in;
         private final int maxDoc;
+        private int lastDocID = -1;
+        private int valueUpto;
+        private boolean exists;
 
         public AssertingSortedNumericDocValues(SortedNumericDocValues in, int maxDoc) {
             this.in = in;
@@ -507,109 +694,74 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public void setDocument(int doc) {
-            assertThread("Sorted numeric doc values", creationThread);
-            assert doc >= 0 && doc < maxDoc;
-            in.setDocument(doc);
-            // check the values are actually sorted
-            long previous = Long.MIN_VALUE;
-            for (int i = 0; i < in.count(); i++) {
-                long v = in.valueAt(i);
-                assert v >= previous;
-                previous = v;
-            }
+        public int docID() {
+            return in.docID();
         }
 
         @Override
-        public long valueAt(int index) {
+        public int nextDoc() throws IOException {
             assertThread("Sorted numeric doc values", creationThread);
-            assert index < in.count();
-            return in.valueAt(index);
+            int docID = in.nextDoc();
+            assert docID > lastDocID;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            assert docID == in.docID();
+            lastDocID = docID;
+            valueUpto = 0;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
         }
 
         @Override
-        public int count() {
+        public int advance(int target) throws IOException {
             assertThread("Sorted numeric doc values", creationThread);
-            return in.count();
-        }
-    }
-
-    /** Wraps a RandomAccessOrds but with additional asserts */
-    public static class AssertingRandomAccessOrds extends RandomAccessOrds {
-        private final Thread creationThread = Thread.currentThread();
-        private final RandomAccessOrds in;
-        private final int maxDoc;
-        private final long valueCount;
-        long lastOrd = NO_MORE_ORDS;
-
-        public AssertingRandomAccessOrds(RandomAccessOrds in, int maxDoc) {
-            this.in = in;
-            this.maxDoc = maxDoc;
-            this.valueCount = in.getValueCount();
-            assert valueCount >= 0;
+            assert target >= 0;
+            assert target > in.docID();
+            int docID = in.advance(target);
+            assert docID == in.docID();
+            assert docID >= target;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            lastDocID = docID;
+            valueUpto = 0;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
         }
 
         @Override
-        public long nextOrd() {
-            assertThread("Sorted numeric doc values", creationThread);
-            assert lastOrd != NO_MORE_ORDS;
-            long ord = in.nextOrd();
-            assert ord < valueCount;
-            assert ord == NO_MORE_ORDS || ord > lastOrd;
-            lastOrd = ord;
-            return ord;
+        public boolean advanceExact(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target >= in.docID();
+            assert target < maxDoc;
+            exists = in.advanceExact(target);
+            assert in.docID() == target;
+            lastDocID = target;
+            valueUpto = 0;
+            return exists;
         }
 
         @Override
-        public void setDocument(int docID) {
+        public long cost() {
             assertThread("Sorted numeric doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc : "docid=" + docID + ",maxDoc=" + maxDoc;
-            in.setDocument(docID);
-            lastOrd = -2;
+            long cost = in.cost();
+            assert cost >= 0;
+            return cost;
         }
 
         @Override
-        public BytesRef lookupOrd(long ord) {
+        public long nextValue() throws IOException {
             assertThread("Sorted numeric doc values", creationThread);
-            assert ord >= 0 && ord < valueCount;
-            final BytesRef result = in.lookupOrd(ord);
-            assert result.isValid();
-            return result;
+            assert exists;
+            assert valueUpto < in.docValueCount(): "valueUpto=" + valueUpto + " in.docValueCount()=" + in.docValueCount();
+            valueUpto++;
+            return in.nextValue();
         }
 
         @Override
-        public long getValueCount() {
+        public int docValueCount() {
             assertThread("Sorted numeric doc values", creationThread);
-            long valueCount = in.getValueCount();
-            assert valueCount == this.valueCount; // should not change
-            return valueCount;
-        }
-
-        @Override
-        public long lookupTerm(BytesRef key) {
-            assertThread("Sorted numeric doc values", creationThread);
-            assert key.isValid();
-            long result = in.lookupTerm(key);
-            assert result < valueCount;
-            assert key.isValid();
-            return result;
-        }
-
-        @Override
-        public long ordAt(int index) {
-            assertThread("Sorted numeric doc values", creationThread);
-            assert index < in.cardinality();
-            long ord = in.ordAt(index);
-            assert ord >= 0 && ord < valueCount;
-            return ord;
-        }
-
-        @Override
-        public int cardinality() {
-            assertThread("Sorted numeric doc values", creationThread);
-            int cardinality = in.cardinality();
-            assert cardinality >= 0;
-            return cardinality;
+            assert exists;
+            assert in.docValueCount() > 0;
+            return in.docValueCount();
         }
     }
 
@@ -619,7 +771,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         private final SortedSetDocValues in;
         private final int maxDoc;
         private final long valueCount;
-        long lastOrd = NO_MORE_ORDS;
+        private int lastDocID = -1;
+        private long lastOrd = NO_MORE_ORDS;
+        private boolean exists;
 
         public AssertingSortedSetDocValues(SortedSetDocValues in, int maxDoc) {
             this.in = in;
@@ -629,9 +783,65 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public long nextOrd() {
-            assertThread("Sorted numeric doc values", creationThread);
+        public int docID() {
+            assertThread("Sorted set doc values", creationThread);
+            return in.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+            assertThread("Sorted set doc values", creationThread);
+            int docID = in.nextDoc();
+            assert docID > lastDocID;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            assert docID == in.docID();
+            lastDocID = docID;
+            lastOrd = -2;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+            assertThread("Sorted set doc values", creationThread);
+            assert target >= 0;
+            assert target > in.docID();
+            int docID = in.advance(target);
+            assert docID == in.docID();
+            assert docID >= target;
+            assert docID == NO_MORE_DOCS || docID < maxDoc;
+            lastDocID = docID;
+            lastOrd = -2;
+            exists = docID != NO_MORE_DOCS;
+            return docID;
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+            assertThread("Numeric doc values", creationThread);
+            assert target >= 0;
+            assert target >= in.docID();
+            assert target < maxDoc;
+            exists = in.advanceExact(target);
+            assert in.docID() == target;
+            lastDocID = target;
+            lastOrd = -2;
+            return exists;
+        }
+
+        @Override
+        public long cost() {
+            assertThread("Sorted set doc values", creationThread);
+            long cost = in.cost();
+            assert cost >= 0;
+            return cost;
+        }
+
+        @Override
+        public long nextOrd() throws IOException {
+            assertThread("Sorted set doc values", creationThread);
             assert lastOrd != NO_MORE_ORDS;
+            assert exists;
             long ord = in.nextOrd();
             assert ord < valueCount;
             assert ord == NO_MORE_ORDS || ord > lastOrd;
@@ -640,16 +850,8 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public void setDocument(int docID) {
-            assertThread("Sorted numeric doc values", creationThread);
-            assert docID >= 0 && docID < maxDoc : "docid=" + docID + ",maxDoc=" + maxDoc;
-            in.setDocument(docID);
-            lastOrd = -2;
-        }
-
-        @Override
-        public BytesRef lookupOrd(long ord) {
-            assertThread("Sorted numeric doc values", creationThread);
+        public BytesRef lookupOrd(long ord) throws IOException {
+            assertThread("Sorted set doc values", creationThread);
             assert ord >= 0 && ord < valueCount;
             final BytesRef result = in.lookupOrd(ord);
             assert result.isValid();
@@ -658,20 +860,167 @@ public class AssertingLeafReader extends FilterLeafReader {
 
         @Override
         public long getValueCount() {
-            assertThread("Sorted numeric doc values", creationThread);
+            assertThread("Sorted set doc values", creationThread);
             long valueCount = in.getValueCount();
             assert valueCount == this.valueCount; // should not change
             return valueCount;
         }
 
         @Override
-        public long lookupTerm(BytesRef key) {
-            assertThread("Sorted numeric doc values", creationThread);
+        public long lookupTerm(BytesRef key) throws IOException {
+            assertThread("Sorted set doc values", creationThread);
             assert key.isValid();
             long result = in.lookupTerm(key);
             assert result < valueCount;
             assert key.isValid();
             return result;
+        }
+    }
+
+    /** Wraps a SortedSetDocValues but with additional asserts */
+    public static class AssertingPointValues extends PointValues {
+
+        private final PointValues in;
+
+        /** Sole constructor. */
+        public AssertingPointValues(PointValues in, int maxDoc) {
+            this.in = in;
+            assertStats(maxDoc);
+        }
+
+        public PointValues getWrapped() { return in; }
+
+        private void assertStats(int maxDoc) {
+            assert in.size() > 0;
+            assert in.getDocCount() > 0;
+            assert in.getDocCount() <= in.size();
+            assert in.getDocCount() <= maxDoc;
+        }
+
+        @Override
+        public void intersect(IntersectVisitor visitor) throws IOException {
+            in.intersect(new AssertingIntersectVisitor(in.getNumDimensions(), in.getBytesPerDimension(), visitor));
+        }
+
+        @Override
+        public long estimatePointCount(IntersectVisitor visitor) {
+            long cost = in.estimatePointCount(visitor);
+            assert cost >= 0;
+            return cost;
+        }
+
+        @Override
+        public byte[] getMinPackedValue() throws IOException {
+            return Objects.requireNonNull(in.getMinPackedValue());
+        }
+
+        @Override
+        public byte[] getMaxPackedValue() throws IOException {
+            return Objects.requireNonNull(in.getMaxPackedValue());
+        }
+
+        @Override
+        public int getNumDimensions() throws IOException {
+            return in.getNumDimensions();
+        }
+
+        @Override
+        public int getBytesPerDimension() throws IOException {
+            return in.getBytesPerDimension();
+        }
+
+        @Override
+        public long size() {
+            return in.size();
+        }
+
+        @Override
+        public int getDocCount() {
+            return in.getDocCount();
+        }
+
+    }
+
+    /** Validates in the 1D case that all points are visited in order, and point values are in bounds of the last cell checked */
+    static class AssertingIntersectVisitor implements IntersectVisitor {
+        final IntersectVisitor in;
+        final int numDims;
+        final int bytesPerDim;
+        final byte[] lastDocValue;
+        final byte[] lastMinPackedValue;
+        final byte[] lastMaxPackedValue;
+        private Relation lastCompareResult;
+        private int lastDocID = -1;
+        private int docBudget;
+
+        AssertingIntersectVisitor(int numDims, int bytesPerDim, IntersectVisitor in) {
+            this.in = in;
+            this.numDims = numDims;
+            this.bytesPerDim = bytesPerDim;
+            lastMaxPackedValue = new byte[numDims*bytesPerDim];
+            lastMinPackedValue = new byte[numDims*bytesPerDim];
+            if (numDims == 1) {
+                lastDocValue = new byte[bytesPerDim];
+            } else {
+                lastDocValue = null;
+            }
+        }
+
+        @Override
+        public void visit(int docID) throws IOException {
+            assert --docBudget >= 0 : "called add() more times than the last call to grow() reserved";
+
+            // This method, not filtering each hit, should only be invoked when the cell is inside the query shape:
+            assert lastCompareResult == Relation.CELL_INSIDE_QUERY;
+            in.visit(docID);
+        }
+
+        @Override
+        public void visit(int docID, byte[] packedValue) throws IOException {
+            assert --docBudget >= 0 : "called add() more times than the last call to grow() reserved";
+
+            // This method, to filter each doc's value, should only be invoked when the cell crosses the query shape:
+            assert lastCompareResult == PointValues.Relation.CELL_CROSSES_QUERY;
+
+            // This doc's packed value should be contained in the last cell passed to compare:
+            for(int dim=0;dim<numDims;dim++) {
+                assert StringHelper.compare(bytesPerDim, lastMinPackedValue, dim*bytesPerDim, packedValue, dim*bytesPerDim) <= 0: "dim=" + dim + " of " +  numDims + " value=" + new BytesRef(packedValue);
+                assert StringHelper.compare(bytesPerDim, lastMaxPackedValue, dim*bytesPerDim, packedValue, dim*bytesPerDim) >= 0: "dim=" + dim + " of " +  numDims + " value=" + new BytesRef(packedValue);
+            }
+
+            // TODO: we should assert that this "matches" whatever relation the last call to compare had returned
+            assert packedValue.length == numDims * bytesPerDim;
+            if (numDims == 1) {
+                int cmp = StringHelper.compare(bytesPerDim, lastDocValue, 0, packedValue, 0);
+                if (cmp < 0) {
+                    // ok
+                } else if (cmp == 0) {
+                    assert lastDocID <= docID: "doc ids are out of order when point values are the same!";
+                } else {
+                    // out of order!
+                    assert false: "point values are out of order";
+                }
+                System.arraycopy(packedValue, 0, lastDocValue, 0, bytesPerDim);
+                lastDocID = docID;
+            }
+            in.visit(docID, packedValue);
+        }
+
+        @Override
+        public void grow(int count) {
+            in.grow(count);
+            docBudget = count;
+        }
+
+        @Override
+        public Relation compare(byte[] minPackedValue, byte[] maxPackedValue) {
+            for(int dim=0;dim<numDims;dim++) {
+                assert StringHelper.compare(bytesPerDim, minPackedValue, dim*bytesPerDim, maxPackedValue, dim*bytesPerDim) <= 0;
+            }
+            System.arraycopy(maxPackedValue, 0, lastMaxPackedValue, 0, numDims*bytesPerDim);
+            System.arraycopy(minPackedValue, 0, lastMinPackedValue, 0, numDims*bytesPerDim);
+            lastCompareResult = in.compare(minPackedValue, maxPackedValue);
+            return lastCompareResult;
         }
     }
 
@@ -738,11 +1087,7 @@ public class AssertingLeafReader extends FilterLeafReader {
         if (dv != null) {
             assert fi != null;
             assert fi.getDocValuesType() == DocValuesType.SORTED_SET;
-            if (dv instanceof RandomAccessOrds) {
-                return new AssertingRandomAccessOrds((RandomAccessOrds) dv, maxDoc());
-            } else {
-                return new AssertingSortedSetDocValues(dv, maxDoc());
-            }
+            return new AssertingSortedSetDocValues(dv, maxDoc());
         } else {
             assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_SET;
             return null;
@@ -761,6 +1106,15 @@ public class AssertingLeafReader extends FilterLeafReader {
             assert fi == null || fi.hasNorms() == false;
             return null;
         }
+    }
+
+    @Override
+    public PointValues getPointValues(String field) throws IOException {
+        PointValues values = in.getPointValues(field);
+        if (values == null) {
+            return null;
+        }
+        return new AssertingPointValues(values, maxDoc());
     }
 
     /** Wraps a Bits but with additional asserts */
@@ -799,30 +1153,15 @@ public class AssertingLeafReader extends FilterLeafReader {
         return liveDocs;
     }
 
-    @Override
-    public Bits getDocsWithField(String field) throws IOException {
-        Bits docsWithField = super.getDocsWithField(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (docsWithField != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() != DocValuesType.NONE;
-            assert maxDoc() == docsWithField.length();
-            docsWithField = new AssertingBits(docsWithField);
-        } else {
-            assert fi == null || fi.getDocValuesType() == DocValuesType.NONE;
-        }
-        return docsWithField;
-    }
-
     // we don't change behavior of the reader: just validate the API.
 
     @Override
-    public Object getCoreCacheKey() {
-        return in.getCoreCacheKey();
+    public CacheHelper getCoreCacheHelper() {
+        return in.getCoreCacheHelper();
     }
 
     @Override
-    public Object getCombinedCoreAndDeletesKey() {
-        return in.getCombinedCoreAndDeletesKey();
+    public CacheHelper getReaderCacheHelper() {
+        return in.getReaderCacheHelper();
     }
 }

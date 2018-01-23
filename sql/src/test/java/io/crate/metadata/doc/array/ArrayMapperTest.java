@@ -73,7 +73,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, randomDynamicTemplates = false, supportsDedicatedMasters = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     public static final String INDEX = "my_index";

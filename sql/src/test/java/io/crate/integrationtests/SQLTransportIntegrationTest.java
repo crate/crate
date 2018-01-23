@@ -33,13 +33,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
+import io.crate.execution.jobs.kill.KillableCallable;
+import io.crate.execution.support.Paging;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -48,8 +50,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.support.Paging;
-import io.crate.auth.user.User;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -81,7 +81,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -177,11 +177,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                 @Override
                 public String pgUrl() {
                     PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
-                    Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
+                    Iterator<TransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
                     if (addressIter.hasNext()) {
-                        InetSocketTransportAddress address = addressIter.next();
+                        TransportAddress address = addressIter.next();
                         return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/?ssl=%s",
-                            address.getHost(), address.getPort(), useSSL);
+                            address.address().getHostName(), address.getPort(), useSSL);
                     }
                     return null;
                 }

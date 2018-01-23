@@ -28,12 +28,12 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 @UseJdbc(0) // create/drop function has no rowcount
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
