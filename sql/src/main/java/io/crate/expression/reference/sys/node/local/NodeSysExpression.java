@@ -36,6 +36,7 @@ import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
+import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -51,10 +52,11 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             MonitorService monitorService,
+                             NodeService nodeService,
                              @Nullable HttpServerTransport httpServerTransport,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
+        MonitorService monitorService = nodeService.getMonitorService();
         this.osService = monitorService.osService();
         this.jvmService = monitorService.jvmService();
         this.processService = monitorService.processService();

@@ -35,6 +35,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
+import org.elasticsearch.node.NodeService;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +48,8 @@ import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
 public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyClusterServiceUnitTest {
@@ -72,9 +75,11 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL, () -> null);
         fsService = monitorService.fsService();
+        NodeService nodeService = mock(NodeService.class);
+        when(nodeService.getMonitorService()).thenReturn(monitorService);
         nodeExpression = new NodeSysExpression(
             clusterService,
-            monitorService,
+            nodeService,
             null,
             THREAD_POOL,
             new ExtendedNodeInfo()

@@ -23,6 +23,10 @@ package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import io.crate.execution.engine.collect.files.SqlFeatureContext;
+import io.crate.execution.engine.collect.files.SqlFeaturesIterable;
+import io.crate.expression.reference.information.ColumnContext;
+import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
@@ -43,10 +47,6 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.engine.collect.files.SqlFeatureContext;
-import io.crate.execution.engine.collect.files.SqlFeaturesIterable;
-import io.crate.expression.reference.information.ColumnContext;
-import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -112,7 +112,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         referentialConstraints = FluentIterable.from(Collections.emptyList());
 
-        createMetaDataBasedIterables(clusterService.state().getMetaData());
         clusterService.addListener(this);
     }
 

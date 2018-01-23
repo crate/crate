@@ -46,6 +46,7 @@ import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
+import org.elasticsearch.node.NodeService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,9 +89,12 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
         BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{httpAddress}, httpAddress);
         when(httpServer.info()).thenReturn(new HttpInfo(boundAddress, 10));
 
+        NodeService nodeService = mock(NodeService.class);
+        when(nodeService.getMonitorService()).thenReturn(monitorService);
+
         nodeSysExpression = new NodeSysExpression(
             clusterService,
-            monitorService,
+            nodeService,
             httpServer,
             THREAD_POOL,
             new ExtendedNodeInfo()

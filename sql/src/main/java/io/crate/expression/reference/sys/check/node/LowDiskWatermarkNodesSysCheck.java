@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.node.NodeService;
 
 @Singleton
 public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
@@ -38,8 +38,8 @@ public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
     @Inject
     public LowDiskWatermarkNodesSysCheck(ClusterService clusterService,
                                          Settings settings,
-                                         MonitorService monitorService) {
-        super(ID, DESCRIPTION, Severity.HIGH, clusterService, monitorService.fsService(), settings);
+                                         NodeService nodeService) {
+        super(ID, DESCRIPTION, Severity.HIGH, clusterService, nodeService.getMonitorService().fsService(), settings);
     }
 
     @Override
