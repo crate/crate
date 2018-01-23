@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -47,7 +46,6 @@ import io.crate.types.StringType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
@@ -137,14 +135,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             if (DocSysColumns.SCORE.equals(columnIdent)) {
                 return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
             } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
-                return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context,
-                    LUCENE_TYPE_MAP.get(symbol.valueType()), false);
+                return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context, false);
             }
         }
         if (symbol.isColumnStoreDisabled()) {
             SortField.Type type = LUCENE_TYPE_MAP.get(symbol.valueType());
-            SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
-            return customSortField(symbol.toString(), symbol, context, reducedType, type == null);
+            return customSortField(symbol.toString(), symbol, context, type == null);
         }
 
         MultiValueMode sortMode = context.reverseFlag ? MultiValueMode.MAX : MultiValueMode.MIN;
@@ -173,8 +169,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // our boolean functions return booleans, no BytesRefs, handle them differently
         // this is a hack, but that is how it worked before, so who cares :)
         SortField.Type type = function.valueType().equals(DataTypes.BOOLEAN) ? null : LUCENE_TYPE_MAP.get(function.valueType());
-        SortField.Type reducedType = MoreObjects.firstNonNull(type, SortField.Type.DOC);
-        return customSortField(function.toString(), function, context, reducedType, type == null);
+        return customSortField(function.toString(), function, context, type == null);
     }
 
     @Override
@@ -186,13 +181,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     private SortField customSortField(String name,
                                       final Symbol symbol,
                                       final SortSymbolContext context,
-                                      final SortField.Type reducedType,
                                       final boolean missingNullValue) {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx();
         final Input input = inputContext.add(symbol);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
 
-        return new SortField(name, new IndexFieldData.XFieldComparatorSource() {
+        return new SortField(name, new FieldComparatorSource() {
             @Override
             public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) {
                 for (LuceneCollectorExpression collectorExpression : expressions) {
@@ -223,11 +217,6 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                         missingValue
                     );
                 }
-            }
-
-            @Override
-            public SortField.Type reducedType() {
-                return reducedType;
             }
         }, context.reverseFlag);
     }

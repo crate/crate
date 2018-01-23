@@ -24,8 +24,8 @@ package io.crate.execution.engine.sort;
 
 class SortOrder {
 
-    static Object missing(boolean reverseFlag, Boolean nullFirst) {
-        Object missing = "_last";
+    static String missing(boolean reverseFlag, Boolean nullFirst) {
+        String missing = "_last";
         if (reverseFlag) {
             missing = "_first";     // null > 'anyValue'; null values at the beginning.
         }
