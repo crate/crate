@@ -356,7 +356,7 @@ auth:
 # it _never_ swaps.
 #
 # Set this property to true to lock the memory:
-#bootstrap.mlockall: true
+#bootstrap.memory_lock: true
 
 # Make sure that the machine has enough memory to allocate for CrateDB,
 # leaving enough memory for the operating system itself.
