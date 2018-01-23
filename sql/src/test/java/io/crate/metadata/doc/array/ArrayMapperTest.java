@@ -178,21 +178,9 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .endObject()
             .endObject().endObject().endObject()
             .string();
-        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
 
-        try {
-            BytesReference bytesReference = XContentFactory.jsonBuilder()
-                .startObject()
-                .field("array_field", "a")
-                .endObject()
-                .bytes();
-            SourceToParse sourceToParse = SourceToParse.source(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
-            mapper.parse(sourceToParse);
-            fail("array_field parsed simple field");
-        } catch (MapperParsingException e) {
-            assertThat(e.getCause(), instanceOf(IllegalStateException.class));
-            assertThat(e.getCause().getMessage(), is("Can't get text on a END_OBJECT at 1:19"));
-        }
+        expectedException.expect(MapperParsingException.class);
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
     }
 
     @Test
