@@ -21,20 +21,21 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
-public class IdCollectorExpression extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
+public class IdCollectorExpression extends FieldCacheExpression<IndexFieldData, BytesRef> {
 
     public static final String COLUMN_NAME = DocSysColumns.ID.name();
 
-    private SortedSetDocValues values;
+    private SortedBinaryDocValues values;
     private BytesRef value;
 
     public IdCollectorExpression(MappedFieldType mappedFieldType) {
@@ -45,7 +46,14 @@ public class IdCollectorExpression extends FieldCacheExpression<IndexOrdinalsFie
     public void setNextDocId(int docId) throws IOException {
         super.setNextDocId(docId);
         if (values.advanceExact(docId)) {
-            value = BytesRef.deepCopyOf(values.lookupOrd(values.nextOrd()));
+            switch (values.docValueCount()) {
+                case 1:
+                    value = BytesRef.deepCopyOf(values.nextValue());
+                    break;
+
+                default:
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+            }
         } else {
             value = null;
         }
@@ -57,7 +65,7 @@ public class IdCollectorExpression extends FieldCacheExpression<IndexOrdinalsFie
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
-        values = indexFieldData.load(context).getOrdinalsValues();
+    public void setNextReader(LeafReaderContext context) {
+        values = indexFieldData.load(context).getBytesValues();
     }
 }
