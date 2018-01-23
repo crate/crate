@@ -236,8 +236,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
      */
     public static class Item extends ShardRequest.Item {
 
-        private long version = Versions.MATCH_ANY;
-        private VersionType versionType = VersionType.INTERNAL;
         private IndexRequest.OpType opType = IndexRequest.OpType.INDEX;
         @Nullable
         private BytesReference source;
@@ -264,22 +262,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.version = version;
             }
             this.insertValues = insertValues;
-        }
-
-        public long version() {
-            return version;
-        }
-
-        public void version(long version) {
-            this.version = version;
-        }
-
-        public VersionType versionType() {
-            return versionType;
-        }
-
-        public void versionType(VersionType versionType) {
-            this.versionType = versionType;
         }
 
         public IndexRequest.OpType opType() {
@@ -330,8 +312,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
-            this.version = Version.readVersion(in).id;
-            versionType = VersionType.fromValue(in.readByte());
             opType = IndexRequest.OpType.fromId(in.readByte());
             if (in.readBoolean()) {
                 source = in.readBytesReference();
@@ -359,8 +339,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeVInt(0);
             }
 
-            Version.writeVersion(Version.fromId((int) version), out);
-            out.writeByte(versionType.getValue());
             out.writeByte(opType.getId());
             boolean sourceAvailable = source != null;
             out.writeBoolean(sourceAvailable);

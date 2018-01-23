@@ -30,6 +30,8 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -139,12 +141,12 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     protected abstract I readItem(StreamInput input) throws IOException;
 
-    /**
-     * A single item with just an id and an optional location.
-     */
     public abstract static class Item implements Writeable {
 
         protected final String id;
+        protected long version = Versions.MATCH_ANY;
+        protected VersionType versionType = VersionType.INTERNAL;
+
         private int location = -1;
         private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
 
@@ -154,11 +156,30 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         protected Item(StreamInput in) throws IOException {
             id = in.readString();
+            version = in.readLong();
+            versionType = VersionType.fromValue(in.readByte());
             location = in.readInt();
+            seqNo = in.readLong();
         }
 
         public String id() {
             return id;
+        }
+
+        public long version() {
+            return version;
+        }
+
+        public void version(long version) {
+            this.version = version;
+        }
+
+        public VersionType versionType() {
+            return versionType;
+        }
+
+        public void versionType(VersionType versionType) {
+            this.versionType = versionType;
         }
 
         public void location(int location) {
@@ -179,28 +200,37 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
+            out.writeLong(version);
+            out.writeByte(versionType.getValue());
             out.writeInt(location);
+            out.writeLong(seqNo);
         }
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-
             Item item = (Item) o;
-            return location == item.location && id.equals(item.id);
+            return version == item.version &&
+                   location == item.location &&
+                   seqNo == item.seqNo &&
+                   java.util.Objects.equals(id, item.id) &&
+                   versionType == item.versionType;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(id, location);
+            return java.util.Objects.hash(id, version, versionType, location, seqNo);
         }
 
         @Override
         public String toString() {
             return "Item{" +
                    "id='" + id + '\'' +
+                   ", version=" + version +
+                   ", versionType=" + versionType +
                    ", location=" + location +
+                   ", seqNo=" + seqNo +
                    '}';
         }
     }
