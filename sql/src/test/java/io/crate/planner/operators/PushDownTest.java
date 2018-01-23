@@ -26,21 +26,26 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.planner.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 
 public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
-    @Test
-    public void testOrderByOnUnionIsMovedBeneathUnion() {
+    private TableStats tableStats;
+    private SQLExecutor sqlExecutor;
 
-        TableStats tableStats = new TableStats();
-
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+    @Before
+    public void setup() {
+        tableStats = new TableStats();
+        sqlExecutor = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .build();
+    }
 
+    @Test
+    public void testOrderByOnUnionIsMovedBeneathUnion() {
         LogicalPlan plan = LogicalPlannerTest.plan(
             "Select name from users union all select text from users order by name",
             sqlExecutor,
@@ -61,13 +66,6 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByOnUnionIsCombinedWithOrderByBeneathUnion() {
-
-        TableStats tableStats = new TableStats();
-
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO)
-            .build();
-
         LogicalPlan plan = LogicalPlannerTest.plan(
             "Select * from (select name from users order by text) a " +
             "union all " +
