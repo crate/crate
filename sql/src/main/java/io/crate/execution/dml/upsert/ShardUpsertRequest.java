@@ -29,7 +29,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -37,7 +36,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
