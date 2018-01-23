@@ -23,8 +23,8 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -52,12 +52,12 @@ public class Count extends ZeroInputPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
-    final QueriedTableRelation relation;
+    final AbstractTableRelation tableRelation;
     final WhereClause where;
 
-    Count(Function countFunction, QueriedTableRelation relation, WhereClause where) {
-        super(Collections.singletonList(countFunction), Collections.singletonList(relation.tableRelation()));
-        this.relation = relation;
+    Count(Function countFunction, AbstractTableRelation tableRelation, WhereClause where) {
+        super(Collections.singletonList(countFunction), Collections.singletonList(tableRelation));
+        this.tableRelation = tableRelation;
         this.where = where;
     }
 
@@ -76,12 +76,12 @@ public class Count extends ZeroInputPlan {
             where,
             params,
             subQueryValues,
-            relation.tableRelation(),
+            tableRelation,
             plannerContext.functions(),
             plannerContext.transactionContext());
 
         Routing routing = plannerContext.allocateRouting(
-            relation.tableRelation().tableInfo(),
+            tableRelation.tableInfo(),
             boundWhere,
             RoutingProvider.ShardSelection.ANY,
             plannerContext.transactionContext().sessionContext());

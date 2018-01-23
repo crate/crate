@@ -32,6 +32,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.ExplainLogicalPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 
@@ -60,7 +61,7 @@ public class ExplainPlan implements Plan {
         Map<String, Object> map;
         try {
             if (subPlan instanceof LogicalPlan) {
-                map = ((LogicalPlan) subPlan).explainMap(plannerContext, executor.projectionBuilder());
+                map = ExplainLogicalPlan.explainMap((LogicalPlan) subPlan, plannerContext, executor.projectionBuilder());
             } else if (subPlan instanceof CopyStatementPlanner.CopyFrom) {
                 ExecutionPlan executionPlan = CopyStatementPlanner.planCopyFromExecution(
                     executor.clusterService().state().nodes(),

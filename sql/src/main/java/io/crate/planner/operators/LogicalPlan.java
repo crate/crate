@@ -29,16 +29,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -218,24 +215,6 @@ public interface LogicalPlan extends Plan {
                          Row params,
                          Map<SelectSymbol, Object> valuesBySubQuery) {
         LogicalPlanner.execute(this, executor, plannerContext, consumer, params, valuesBySubQuery);
-    }
-
-    default Map<String, Object> explainMap(PlannerContext plannerContext,
-                                           ProjectionBuilder projectionBuilder) {
-        try {
-            ExecutionPlan executionPlan = build(
-                plannerContext,
-                projectionBuilder,
-                TopN.NO_LIMIT,
-                0,
-                null,
-                null,
-                Row.EMPTY,
-                Collections.emptyMap());
-            return PlanPrinter.objectMap(executionPlan);
-        } catch (Exception e) {
-            return ExplainLogicalPlan.objectMap(this, plannerContext, projectionBuilder);
-        }
     }
 
     <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context);

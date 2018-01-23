@@ -140,7 +140,7 @@ public class HashAggregate extends OneInputPlan {
             aggregates.get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION)) {
 
             Collect collect = (Collect) collapsed;
-            return new Count(aggregates.get(0), collect.relation, collect.where);
+            return new Count(aggregates.get(0), collect.relation.tableRelation(), collect.where);
         }
         if (collapsed == source) {
             return this;

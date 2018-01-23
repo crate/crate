@@ -343,7 +343,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Count) {
                 Count count = (Count) plan;
                 startLine("Count[");
-                sb.append(count.relation.tableRelation().tableInfo().ident());
+                sb.append(count.tableRelation.tableInfo().ident());
                 sb.append(" | ");
                 sb.append(printQueryClause(symbolPrinter, count.where));
                 sb.append("]\n");

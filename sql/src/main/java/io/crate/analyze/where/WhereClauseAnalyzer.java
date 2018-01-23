@@ -64,10 +64,10 @@ public class WhereClauseAnalyzer {
     /**
      * Replace parameters and sub-queries with the related values and analyze the query afterwards.
      */
-    public static <TR extends AbstractTableRelation> WhereClause bindAndAnalyze(WhereClause where,
+    public static WhereClause bindAndAnalyze(WhereClause where,
                                                                                 Row params,
                                                                                 Map<SelectSymbol, Object> subQueryValues,
-                                                                                TR tableRelation,
+                                                                                AbstractTableRelation tableRelation,
                                                                                 Functions functions,
                                                                                 TransactionContext transactionContext) {
         if (where.hasQuery()) {
