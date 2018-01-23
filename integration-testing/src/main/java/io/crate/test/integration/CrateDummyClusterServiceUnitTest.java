@@ -26,12 +26,13 @@ import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -102,10 +103,12 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
                 // skip
             }
         });
+        ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();
+        clusterApplierService.setInitialState(ClusterState.EMPTY_STATE);
+        MasterService masterService = clusterService.getMasterService();
+        masterService.setClusterStatePublisher((clusterChangedEvent, ackListener) -> { });
+        masterService.setClusterStateSupplier(() -> ClusterState.EMPTY_STATE);
         clusterService.start();
-        final DiscoveryNodes.Builder nodes = DiscoveryNodes.builder(clusterService.state().nodes());
-        nodes.masterNodeId(clusterService.localNode().getId());
-        ClusterServiceUtils.setState(clusterService, ClusterState.builder(clusterService.state()).nodes(nodes));
         return clusterService;
     }
 }
