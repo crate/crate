@@ -45,7 +45,8 @@ public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnit
             Settings.EMPTY,
             jobContextService,
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
+            MockTransportService.createNewService(
+                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
         );
 
         transportKillAllNodeAction.nodeOperation(new KillAllRequest()).get(5, TimeUnit.SECONDS);

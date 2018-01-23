@@ -47,7 +47,8 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
             Settings.EMPTY,
             jobContextService,
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
+            MockTransportService.createNewService(
+                Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings())
         );
 
         List<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());

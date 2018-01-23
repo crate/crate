@@ -183,7 +183,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     }
 
     @VisibleForTesting
-    static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
+    public static void validateMapping(Iterator<Mapper> mappers, boolean nested) {
         while (mappers.hasNext()) {
             Mapper mapper = mappers.next();
             if (nested) {

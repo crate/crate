@@ -25,11 +25,17 @@ package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
-import io.crate.metadata.Reference;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
+import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.execution.expression.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
+import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.execution.expression.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.metadata.Reference;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -45,7 +51,6 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +63,6 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.mockito.Mockito.mock;
 
 public class OrderedLuceneBatchIteratorFactoryTest {
 
@@ -122,7 +126,7 @@ public class OrderedLuceneBatchIteratorFactoryTest {
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
         CollectorContext collectorContext = new CollectorContext(
-            mock(IndexFieldDataService.class),
+            mappedFieldType -> null,
             new CollectorFieldsVisitor(0)
         );
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
