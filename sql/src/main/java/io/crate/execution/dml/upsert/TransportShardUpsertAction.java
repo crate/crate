@@ -204,7 +204,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 continue;
             }
             SourceToParse sourceToParse = SourceToParse.source(request.index(),
-                MapperService.DEFAULT_MAPPING, item.id(), item.source(), XContentType.JSON);
+                request.type(), item.id(), item.source(), XContentType.JSON);
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
