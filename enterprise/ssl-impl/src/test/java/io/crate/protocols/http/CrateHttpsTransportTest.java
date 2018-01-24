@@ -40,11 +40,11 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Collections;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.AdditionalMatchers.aryEq;
 
 public class CrateHttpsTransportTest extends CrateUnitTest {
 
@@ -70,11 +70,17 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
 
-        NetworkService networkService = Mockito.mock(NetworkService.class);
-        Mockito.when(networkService.resolveBindHostAddresses(aryEq(new String[0])))
-            .thenReturn(new InetAddress[]{ InetAddresses.forString("127.0.0.1") });
-        Mockito.when(networkService.resolvePublishHostAddresses(aryEq(new String[0])))
-            .thenReturn(InetAddresses.forString("127.0.0.1"));
+        NetworkService networkService = new NetworkService(Collections.singletonList(new NetworkService.CustomNameResolver() {
+            @Override
+            public InetAddress[] resolveDefault() {
+                return new InetAddress[] { InetAddresses.forString("127.0.0.1") };
+            }
+
+            @Override
+            public InetAddress[] resolveIfPossible(String value) throws IOException {
+                return new InetAddress[] { InetAddresses.forString("127.0.0.1") };
+            }
+        }));
 
         PipelineRegistry pipelineRegistry = new PipelineRegistry();
         new SslContextProvider(settings, pipelineRegistry);
