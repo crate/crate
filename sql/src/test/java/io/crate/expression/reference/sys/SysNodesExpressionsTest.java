@@ -170,7 +170,7 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> v = port.value();
         assertEquals(44200, v.get("http"));
-        assertEquals(-1, v.get("transport"));
+        assertEquals(1, v.get("transport"));
     }
 
     @Test
