@@ -22,10 +22,21 @@
 
 package io.crate.discovery;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.MockTcpTransport;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.xbill.DNS.DClass;
@@ -35,21 +46,20 @@ import org.xbill.DNS.SRVRecord;
 import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.TextParseException;
 
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SrvUnicastHostsProviderTest {
 
     private TransportService transportService;
+    private ThreadPool threadPool;
 
     private abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
 
@@ -65,16 +75,49 @@ public class SrvUnicastHostsProviderTest {
 
     @Before
     public void mockTransportService() throws Exception {
-        transportService = mock(TransportService.class);
-        for (int i = 0; i < 4; i++) {
-            when(transportService.addressesFromString(eq(String.format(Locale.ENGLISH, "crate%d.internal:44300",
-                i + 1)), anyInt())).thenReturn(new TransportAddress[]{
-                new TransportAddress(
-                    InetSocketAddress.createUnresolved(
-                        String.format(Locale.ENGLISH, "crate%d.internal", i + 1),
-                        44300))
-            });
-        }
+        threadPool = new TestThreadPool("dummy", Settings.EMPTY);
+        MockTcpTransport transport = new MockTcpTransport(
+            Settings.EMPTY,
+            threadPool,
+            BigArrays.NON_RECYCLING_INSTANCE,
+            new NoneCircuitBreakerService(),
+            new NamedWriteableRegistry(ClusterModule.getNamedWriteables()),
+            new NetworkService(Collections.emptyList())
+        );
+        transportService = new TransportService(
+            Settings.EMPTY,
+            transport,
+            threadPool,
+            TransportService.NOOP_TRANSPORT_INTERCEPTOR,
+            boundAddress -> new DiscoveryNode(
+                "dummy",
+                UUIDs.randomBase64UUID(),
+                boundAddress.publishAddress(),
+                Collections.emptyMap(),
+                Collections.emptySet(),
+                Version.CURRENT
+            ),
+            null
+        ) {
+            @Override
+            public TransportAddress[] addressesFromString(String address, int perAddressLimit) {
+                int num = Integer.parseInt(address.substring("crate".length(), address.indexOf(".")));
+                byte[] dummyIp = new byte[] { 0, 0, 0, 0 };
+                try {
+                    return new TransportAddress[] {
+                        new TransportAddress(InetAddress.getByAddress("crate" + num + ".internal", dummyIp), 44300)
+                    };
+                } catch (UnknownHostException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
+    @After
+    public void releaseThreadPool() throws Exception {
+        threadPool.shutdown();
+        threadPool.awaitTermination(30, TimeUnit.SECONDS);
     }
 
     @Test
