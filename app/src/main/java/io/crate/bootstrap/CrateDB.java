@@ -41,6 +41,7 @@ import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -83,13 +84,17 @@ public class CrateDB extends EnvironmentAwareCommand {
         }
     }
 
-    private static int main(final String[] args, final CrateDB elasticsearch, final Terminal terminal) throws Exception {
-        return elasticsearch.main(args, terminal);
+    private static int main(final String[] args, final CrateDB crateDb, final Terminal terminal) throws Exception {
+        return crateDb.main(args, terminal);
     }
 
     @Override
-    protected Environment createEnv(Terminal terminal, Map<String, String> settings) {
-        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings);
+    protected Environment createEnv(Terminal terminal, Map<String, String> settings) throws UserException {
+        final String esPathConf = System.getProperty("es.path.conf");
+        if (esPathConf == null) {
+            throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set");
+        }
+        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, Paths.get(esPathConf));
     }
 
     @Override
