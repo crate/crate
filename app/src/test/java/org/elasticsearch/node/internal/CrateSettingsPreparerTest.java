@@ -29,15 +29,14 @@ import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.elasticsearch.transport.TransportSettings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.elasticsearch.transport.TcpTransport.PORT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
@@ -85,7 +84,7 @@ public class CrateSettingsPreparerTest {
 
         assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));
         assertThat(builder.get(HttpTransportSettings.SETTING_HTTP_PORT.getKey()), is(Constants.HTTP_PORT_RANGE));
-        assertThat(builder.get(TransportSettings.PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
+        assertThat(builder.get(PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
         assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
 
         assertThat(builder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()), is("crate"));

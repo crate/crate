@@ -46,12 +46,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static org.elasticsearch.common.Strings.cleanPath;
 import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
-import static org.elasticsearch.transport.TransportSettings.PORT;
+import static org.elasticsearch.transport.TcpTransport.PORT;
 
 public class CrateSettingsPreparer {
 
@@ -82,7 +81,7 @@ public class CrateSettingsPreparer {
         // we put back the path.logs so we can use it in the logging configuration file
         builder.put(
             Environment.PATH_LOGS_SETTING.getKey(),
-            cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
+            newEnvironment.logsFile().toAbsolutePath().normalize().toString());
 
         return new Environment(builder.build());
     }

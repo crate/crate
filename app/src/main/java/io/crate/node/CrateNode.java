@@ -63,7 +63,11 @@ public class CrateNode extends Node {
     }
 
     @Override
-    protected void startUpLogging(Logger logger, Settings tmpSettings, boolean hadPredefinedNodeName) {
+    protected void startUpLogging(Logger logger,
+                                  Settings tmpSettings,
+                                  String nodeName,
+                                  String nodeId,
+                                  boolean hadPredefinedNodeName) {
         final JvmInfo jvmInfo = JvmInfo.jvmInfo();
         logger.info(
             "CrateDB version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",

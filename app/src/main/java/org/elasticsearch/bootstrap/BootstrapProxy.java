@@ -161,7 +161,7 @@ public class BootstrapProxy {
         initializeNatives(
             environment.tmpFile(),
             BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
-            BootstrapSettings.SECCOMP_SETTING.get(settings),
+            BootstrapSettings.SYSTEM_CALL_FILTER_SETTING.get(settings),
             BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
 
         // initialize probes before the security manager is installed
@@ -199,10 +199,10 @@ public class BootstrapProxy {
         node = new CrateNode(environment) {
 
             @Override
-            protected void validateNodeBeforeAcceptingRequests(Settings settings,
+            protected void validateNodeBeforeAcceptingRequests(BootstrapContext context,
                                                                BoundTransportAddress boundTransportAddress,
                                                                List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
-                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
+                BootstrapChecks.check(context, boundTransportAddress, bootstrapChecks);
             }
         };
 
