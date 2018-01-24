@@ -1,0 +1,17 @@
+
+dependencies {
+    compile project(':es:es-core')
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['../upstream/modules/analysis-common/src/main/java']
+    }
+}
+
+idea {
+    module {
+        contentRoot = file('../upstream/modules/analysis-common/src/main')
+        excludeDirs += file('build')
+    }
+}

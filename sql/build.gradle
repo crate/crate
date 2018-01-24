@@ -26,6 +26,7 @@ dependencies {
     compile "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
     testCompile project(':integration-testing')
+    testCompile project(':es:es-analysis-common')
     testCompile project(path: ':dex', configuration: 'testOutput')
     testCompile 'org.skyscreamer:jsonassert:1.3.0'
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"

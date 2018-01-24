@@ -82,6 +82,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -127,7 +128,6 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONL
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
@@ -215,7 +215,8 @@ public class SQLExecutor {
                 .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
                 .build());
             try {
-                analysisRegistry = new AnalysisModule(environment, emptyList()).getAnalysisRegistry();
+                analysisRegistry = new AnalysisModule(environment, singletonList(new CommonAnalysisPlugin()))
+                    .getAnalysisRegistry();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
