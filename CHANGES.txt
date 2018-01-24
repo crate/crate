@@ -24,3 +24,6 @@ Changes
 
 Fixes
 =====
+
+- Removed non-existant syscall that caused CrateDB to crash on startup with
+  certain Ubuntu kernel versions.
