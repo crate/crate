@@ -102,6 +102,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 
@@ -126,7 +127,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONL
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
@@ -210,19 +211,14 @@ public class SQLExecutor {
                 new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
             );
             File tempDir = createTempDir();
-            analysisRegistry = new AnalysisRegistry(
-                new Environment(Settings.builder()
-                    .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
-                    .build()),
-                emptyMap(),
-                emptyMap(),
-                emptyMap(),
-                emptyMap(),
-                emptyMap(),
-                emptyMap(),
-                emptyMap(),
-                emptyMap()
-            );
+            Environment environment = new Environment(Settings.builder()
+                .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
+                .build());
+            try {
+                analysisRegistry = new AnalysisModule(environment, emptyList()).getAnalysisRegistry();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
                 schemas,
                 new FulltextAnalyzerResolver(clusterService, analysisRegistry),
