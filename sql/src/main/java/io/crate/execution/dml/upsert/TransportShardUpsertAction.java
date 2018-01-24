@@ -282,10 +282,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         // update the seqNo and version on request for the replicas
         item.seqNo(indexResult.getSeqNo());
-        item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
         item.version(indexResult.getVersion());
-
-        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
         return indexResult.getTranslogLocation();
     }

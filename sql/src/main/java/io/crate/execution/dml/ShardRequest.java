@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -145,7 +144,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         protected final String id;
         protected long version = Versions.MATCH_ANY;
-        protected VersionType versionType = VersionType.INTERNAL;
 
         private int location = -1;
         private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
@@ -157,7 +155,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         protected Item(StreamInput in) throws IOException {
             id = in.readString();
             version = in.readLong();
-            versionType = VersionType.fromValue(in.readByte());
             location = in.readInt();
             seqNo = in.readLong();
         }
@@ -172,14 +169,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
         public void version(long version) {
             this.version = version;
-        }
-
-        public VersionType versionType() {
-            return versionType;
-        }
-
-        public void versionType(VersionType versionType) {
-            this.versionType = versionType;
         }
 
         public void location(int location) {
@@ -201,7 +190,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
             out.writeLong(version);
-            out.writeByte(versionType.getValue());
             out.writeInt(location);
             out.writeLong(seqNo);
         }
@@ -214,13 +202,12 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return version == item.version &&
                    location == item.location &&
                    seqNo == item.seqNo &&
-                   java.util.Objects.equals(id, item.id) &&
-                   versionType == item.versionType;
+                   java.util.Objects.equals(id, item.id);
         }
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(id, version, versionType, location, seqNo);
+            return java.util.Objects.hash(id, version, location, seqNo);
         }
 
         @Override
@@ -228,7 +215,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return "Item{" +
                    "id='" + id + '\'' +
                    ", version=" + version +
-                   ", versionType=" + versionType +
                    ", location=" + location +
                    ", seqNo=" + seqNo +
                    '}';
