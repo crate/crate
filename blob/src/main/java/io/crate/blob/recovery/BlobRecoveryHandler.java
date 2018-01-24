@@ -121,7 +121,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     @Override
-    protected void phase1Hook() throws Exception {
+    protected void blobRecoveryHook() throws Exception {
         logger.debug("[{}][{}] recovery [phase1] to {}: start",
             request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
         final StopWatch stopWatch = new StopWatch().start();
