@@ -55,7 +55,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -64,6 +63,8 @@ import java.util.PrimitiveIterator;
 import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
+
+import static java.util.Collections.emptyList;
 
 public class InformationSchemaIterables implements ClusterStateListener {
 
@@ -79,11 +80,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final FluentIterable<TableInfo> primaryKeyTableInfos;
     private final FluentIterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
-    private final FluentIterable<Void> referentialConstraints;
+    private final Iterable<Void> referentialConstraints;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
-    private FluentIterable<RoutineInfo> routines;
+    private Iterable<RoutineInfo> routines;
     private Iterable<IngestionRuleInfo> ingestionRules;
+    private boolean initialClusterStateReceived = false;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
@@ -110,8 +112,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         sqlFeatures = new SqlFeaturesIterable();
 
-        referentialConstraints = FluentIterable.from(Collections.emptyList());
-
+        referentialConstraints = emptyList();
+        // these are initialized on a clusterState change
+        routines = emptyList();
+        ingestionRules = emptyList();
         clusterService.addListener(this);
     }
 
@@ -166,12 +170,17 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
-        if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false &&
-            changedCustomMetaDataSet.contains(IngestRulesMetaData.TYPE) == false) {
-            return;
+        if (initialClusterStateReceived) {
+            Set<String> changedCustomMetaDataSet = event.changedCustomMetaDataSet();
+            if (changedCustomMetaDataSet.contains(UserDefinedFunctionsMetaData.TYPE) == false &&
+                changedCustomMetaDataSet.contains(IngestRulesMetaData.TYPE) == false) {
+                return;
+            }
+            createMetaDataBasedIterables(event.state().getMetaData());
+        } else {
+            initialClusterStateReceived = true;
+            createMetaDataBasedIterables(event.state().getMetaData());
         }
-        createMetaDataBasedIterables(event.state().getMetaData());
     }
 
     private void createMetaDataBasedIterables(MetaData metaData) {

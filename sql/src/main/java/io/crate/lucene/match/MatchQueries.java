@@ -87,7 +87,10 @@ public final class MatchQueries {
         if (tieBreaker != null) {
             multiMatchQuery.setTieBreaker(tieBreaker);
         }
-        multiMatchQuery.setAnalyzer(parsedOptions.analyzer());
+        String analyzer = parsedOptions.analyzer();
+        if (analyzer != null) {
+            multiMatchQuery.setAnalyzer(analyzer);
+        }
         multiMatchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
         multiMatchQuery.setFuzziness(parsedOptions.fuzziness());
         multiMatchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
