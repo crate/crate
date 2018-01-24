@@ -149,9 +149,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
         Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnPrimary(
-            item.version(), request.type(), item.id(), item.versionType(), getMappingUpdateConsumer(request));
+            item.version(), request.type(), item.id(), VersionType.INTERNAL, getMappingUpdateConsumer(request));
 
-        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
+        // set version and sequence number for replica
+        item.version(deleteResult.getVersion());
+        item.seqNo(deleteResult.getSeqNo());
+
         return deleteResult;
     }
 }
