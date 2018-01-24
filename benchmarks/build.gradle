@@ -16,8 +16,8 @@ dependencies {
     compile project(path: ':enterprise:hll')
     compile project(':integration-testing')
 
-    compile 'org.openjdk.jmh:jmh-core:1.19'
-    compile 'org.openjdk.jmh:jmh-generator-annprocess:1.19'
+    compile 'org.openjdk.jmh:jmh-core:1.20'
+    compile 'org.openjdk.jmh:jmh-generator-annprocess:1.20'
     compile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
     compile "org.elasticsearch:securemock:${versions.securemock}"
 
