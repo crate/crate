@@ -115,7 +115,11 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),
             Version.CURRENT
         );
-        DiscoveryNodes nodes = DiscoveryNodes.builder().add(discoveryNode).localNodeId(NODE_ID).build();
+        DiscoveryNodes nodes = DiscoveryNodes.builder()
+            .add(discoveryNode)
+            .localNodeId(NODE_ID)
+            .masterNodeId(NODE_ID)
+            .build();
         ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).nodes(nodes).build();
 
         ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();
