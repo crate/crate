@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
+import io.crate.analyze.where.NullEliminator;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.expression.operator.AndOperator;
@@ -81,7 +82,8 @@ public class WhereClause extends QueryClause implements Streamable {
         if (noMatch || query == null) {
             return this;
         }
-        Symbol normalizedQuery = normalizer.normalize(query, transactionContext);
+        Symbol nullReplacedQuery = NullEliminator.eliminateNullsIfPossible(query);
+        Symbol normalizedQuery = normalizer.normalize(nullReplacedQuery, transactionContext);
         if (normalizedQuery == query) {
             return this;
         }

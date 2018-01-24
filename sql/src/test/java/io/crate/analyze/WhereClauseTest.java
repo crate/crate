@@ -24,10 +24,12 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -77,5 +79,13 @@ public class WhereClauseTest {
         assertThat(where1.mergeWhere(whereLiteralTrue), is(where1));
         assertThat(where1.mergeWhere(whereLiteralFalse), is(WhereClause.NO_MATCH));
         assertThat(where2.mergeWhere(where1), is(whereMerged));
+    }
+
+    @Test
+    public void testNormalizeEliminatesNulls() {
+        WhereClause where = new WhereClause(sqlExpressions.asSymbol("null or x = 10"));
+        WhereClause normalizedWhere = where.normalize(
+            EvaluatingNormalizer.functionOnlyNormalizer(getFunctions()), new TransactionContext());
+        assertThat(normalizedWhere.query(), is(sqlExpressions.asSymbol("x = 10")));
     }
 }
