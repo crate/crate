@@ -21,12 +21,10 @@
 
 package io.crate;
 
-import static org.elasticsearch.index.mapper.MapperService.DEFAULT_MAPPING;
-
 public class Constants {
 
     // Mapping Type that contains table definitions
-    public static final String DEFAULT_MAPPING_TYPE = DEFAULT_MAPPING;
+    public static final String DEFAULT_MAPPING_TYPE = "default";
 
     // port ranges for HTTP and Transport
     public static final String HTTP_PORT_RANGE = "4200-4300";
