@@ -22,6 +22,7 @@
 package io.crate.metadata.doc.array;
 
 import com.google.common.base.Joiner;
+import io.crate.Constants;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.CauseMatcher;
 import org.apache.lucene.index.IndexableField;
@@ -79,7 +80,7 @@ import static org.hamcrest.Matchers.nullValue;
 public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
     public static final String INDEX = "my_index";
-    public static final String TYPE = "type";
+    public static final String TYPE = Constants.DEFAULT_MAPPING_TYPE;
 
     /**
      * create index with type and mapping and validate DocumentMapper serialization
@@ -147,7 +148,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(values, Matchers.containsInAnyOrder("a", "b", "c"));
         assertThat(
             mapper.mappingSource().string(),
-            is("{\"type\":{" +
+            is("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -186,7 +187,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidArrayNonConvertableType() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
@@ -214,7 +215,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter: off
         String mapping = XContentFactory.jsonBuilder()
             .startObject()
-                .startObject("type")
+                .startObject(TYPE)
                     .startObject("properties")
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -261,7 +262,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         assertThat(mapper.mappers().smartNameFieldMapper("array_field.s"), instanceOf(KeywordFieldMapper.class));
         assertThat(
             mapper.mappingSource().string(),
-            is("{\"type\":{" +
+            is("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -282,7 +283,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter: off
         String mapping = XContentFactory.jsonBuilder()
             .startObject()
-                .startObject("type")
+                .startObject(TYPE)
                     .startObject("properties")
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -325,7 +326,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         assertThat(
             mappingSourceString,
-            is("{\"type\":{" +
+            is("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -347,7 +348,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter:off
         String mapping = XContentFactory.jsonBuilder()
             .startObject()
-                .startObject("type")
+                .startObject(TYPE)
                     .startObject("properties")
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -362,7 +363,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter:on
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
         IndexResponse response = client()
-            .prepareIndex(INDEX, "type")
+            .prepareIndex(INDEX, TYPE)
             .setId("123")
             .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
             .execute().actionGet();
@@ -371,14 +372,14 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
         // realtime
-        GetResponse rtGetResponse = client().prepareGet(INDEX, "type", "123")
+        GetResponse rtGetResponse = client().prepareGet(INDEX, TYPE, "123")
             .setFetchSource(true)
             .setStoredFields("array_field").setRealtime(true).execute().actionGet();
         assertThat(rtGetResponse.getId(), is("123"));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(rtGetResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
 
         // non-realtime
-        GetResponse getResponse = client().prepareGet(INDEX, "type", "123")
+        GetResponse getResponse = client().prepareGet(INDEX, TYPE, "123")
             .setFetchSource(true).setStoredFields("array_field").setRealtime(false).execute().actionGet();
         assertThat(getResponse.getId(), is("123"));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(getResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
@@ -387,7 +388,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertSearchArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
@@ -398,7 +399,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .string();
         mapper(INDEX, TYPE, mapping);
         IndexResponse response = client()
-            .prepareIndex(INDEX, "type")
+            .prepareIndex(INDEX, TYPE)
             .setId("123")
             .setSource("{\"array_field\":[0.0, 99.9, -100.5678]}", XContentType.JSON)
             .execute().actionGet();
@@ -406,7 +407,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
-        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
+        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes(TYPE)
             .setFetchSource(true)
             .setQuery(QueryBuilders.termQuery("array_field", 0.0d)).execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), is(1L));
@@ -421,7 +422,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testEmptyArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
@@ -446,14 +447,14 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         // insert
         IndexResponse response = client()
-            .prepareIndex(INDEX, "type", "123")
+            .prepareIndex(INDEX, TYPE, "123")
             .setSource("{\"array_field\":[]}", XContentType.JSON)
             .execute().actionGet();
         assertThat(response.getVersion(), is(1L));
 
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
-        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
+        SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes(TYPE)
             .setFetchSource(true).addStoredField("array_field")
             .setQuery(new TermsQueryBuilder("_id", new int[]{123}))
             .execute().actionGet();
@@ -470,7 +471,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("nested arrays are not supported");
 
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
@@ -488,7 +489,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testParseDynamicNestedArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
@@ -520,7 +521,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter: off
         String mapping = XContentFactory.jsonBuilder()
             .startObject()
-                .startObject("type")
+                .startObject(TYPE)
                     .startObject("properties")
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -550,7 +551,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         // @formatter: on
         String mapping = XContentFactory.jsonBuilder()
             .startObject()
-                .startObject("type")
+                .startObject(TYPE)
                     .startObject("properties")
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
@@ -582,7 +583,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testParseDynamicEmptyArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .endObject().endObject().endObject()
             .string();
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
@@ -602,7 +603,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     @Test
     public void testParseDynamicNullArray() throws Exception {
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
             .endObject().endObject().endObject()
             .string();
         DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
@@ -623,7 +624,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
     public void testCopyToFieldsOfInnerMapping() throws Exception {
         // @formatter:off
         String mapping = XContentFactory.jsonBuilder()
-            .startObject().startObject("type").startObject("properties")
+            .startObject().startObject(TYPE).startObject("properties")
                 .startObject("string_array")
                     .field("type", ArrayMapper.CONTENT_TYPE)
                     .startObject(ArrayMapper.INNER_TYPE)
