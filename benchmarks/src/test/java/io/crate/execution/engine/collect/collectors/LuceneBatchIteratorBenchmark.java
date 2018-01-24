@@ -35,7 +35,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -48,8 +47,6 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static org.mockito.Mockito.mock;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -77,7 +74,7 @@ public class LuceneBatchIteratorBenchmark {
         columnRefs = Collections.singletonList(columnReference);
 
         collectorContext = new CollectorContext(
-            mock(IndexFieldDataService.class),
+            mappedFieldType -> null,
             new CollectorFieldsVisitor(0)
         );
     }
