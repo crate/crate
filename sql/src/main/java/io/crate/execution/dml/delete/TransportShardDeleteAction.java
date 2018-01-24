@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -138,7 +139,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
 
             Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
-                item.seqNo(), item.version(), request.type(), item.id(), item.versionType(), getMappingUpdateConsumer(request));
+                item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL, getMappingUpdateConsumer(request));
 
             translogLocation = deleteResult.getTranslogLocation();
             logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
