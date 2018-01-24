@@ -25,7 +25,6 @@ package io.crate.execution.dml.upsert;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
@@ -76,7 +75,6 @@ import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParentFieldMapper;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -209,7 +207,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
                 item.version(),
-                VersionType.INTERNAL,
+                VersionType.EXTERNAL,
                 -1,
                 false,
                 sourceToParse,
