@@ -37,6 +37,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -47,10 +48,16 @@ import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
+import static org.elasticsearch.mock.orig.Mockito.verify;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
@@ -107,7 +114,8 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
         // replica operation must skip all not by primary processed items
         transportShardDeleteAction.processRequestItemsOnReplica(indexShard, request);
-        fail("TODO");
-        //verify(indexShard, times(0)).delete(any(Engine.Delete.class));
+        verify(indexShard, times(0))
+            .applyDeleteOperationOnReplica(
+                anyLong(), anyLong(), anyString(), anyString(), any(VersionType.class), any(Consumer.class));
     }
 }
