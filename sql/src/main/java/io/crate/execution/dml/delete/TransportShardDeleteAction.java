@@ -37,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -138,11 +139,16 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 break;
             }
 
-            Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
-                item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL, getMappingUpdateConsumer(request));
+            // Only execute delete operation on replica if the sequence number was applied from primary.
+            // If that's not the case, the delete on primary didn't succeed. We might handle this situation
+            // differently in the future by using the exception handling provided by WritePrimaryResult.
+            if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+                Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
+                    item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL, getMappingUpdateConsumer(request));
 
-            translogLocation = deleteResult.getTranslogLocation();
-            logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                translogLocation = deleteResult.getTranslogLocation();
+                logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+            }
         }
         return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
     }
