@@ -58,7 +58,9 @@ public final class MatchQueries {
 
         MatchQuery matchQuery = new MatchQuery(queryShardContext);
 
-        matchQuery.setAnalyzer(parsedOptions.analyzer());
+        if (parsedOptions.analyzer() != null) {
+            matchQuery.setAnalyzer(parsedOptions.analyzer());
+        }
         matchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
         matchQuery.setFuzziness(parsedOptions.fuzziness());
         matchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());

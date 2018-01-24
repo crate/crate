@@ -73,6 +73,7 @@ import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -157,7 +158,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class, HttpTransportPlugin.class);
+        return Arrays.asList(
+            SQLPlugin.class,
+            BlobPlugin.class,
+            CrateCorePlugin.class,
+            HttpTransportPlugin.class,
+            CommonAnalysisPlugin.class
+        );
     }
 
     protected SQLResponse response;
