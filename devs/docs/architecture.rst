@@ -95,7 +95,7 @@ cluster. If a table is partitioned, each partition is a separate index.
 
 The following table illustrates the relationship between table, partitions, and
 indices. Table1 has one index (=no partitions) with four shards. Table2 has two
-indices (=two partitions) with one shard each. Table3 has one index which is
+indices (=two partitions) with two shards each. Table3 has one index which is
 split across three shards.
 
 +------------+------------+------------+------------+------------+------+
