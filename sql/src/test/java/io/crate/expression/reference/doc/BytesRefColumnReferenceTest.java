@@ -24,12 +24,14 @@ package io.crate.expression.reference.doc;
 import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
@@ -47,7 +49,7 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new StringField(column, builder.toString(), Field.Store.NO));
+            doc.add(new SortedDocValuesField(column, new BytesRef(builder.toString())));
             writer.addDocument(doc);
         }
     }
@@ -55,6 +57,7 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testFieldCacheExpression() throws Exception {
         MappedFieldType fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setHasDocValues(true);
         fieldType.setName(column);
         BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column, fieldType);
         bytesRefColumn.startCollect(ctx);
