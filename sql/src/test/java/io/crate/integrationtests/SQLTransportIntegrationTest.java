@@ -89,6 +89,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -163,7 +164,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             BlobPlugin.class,
             CrateCorePlugin.class,
             HttpTransportPlugin.class,
-            CommonAnalysisPlugin.class
+            CommonAnalysisPlugin.class,
+            URLRepositoryPlugin.class
         );
     }
 

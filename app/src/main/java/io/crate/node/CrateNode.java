@@ -38,6 +38,7 @@ import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -54,6 +55,7 @@ public class CrateNode extends Node {
         BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
+        URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
         Netty4Plugin.class);
