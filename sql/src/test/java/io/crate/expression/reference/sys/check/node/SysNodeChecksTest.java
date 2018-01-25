@@ -166,8 +166,8 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
-            mock(NodeService.class)
-            );
+            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+        );
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
