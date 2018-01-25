@@ -489,18 +489,6 @@ auth:
 #indices.recovery.retry_internal_long_action_timeout: 30m
 
 
-########################### Store Level Throttling ###########################
-
-# Allows to throttle `merge` (or `all`) process of the store module. Options
-# are: `all | merge | none`
-#indices.store.throttle.type: merge
-
-# If throttling is enabled by indices.store.throttle.type, this setting
-# specifies the maximum bytes per second a store module process can operate
-# with.
-#indices.store.throttle.max_bytes_per_sec: 20mb
-
-
 ################################# Discovery ##################################
 
 # Discovery infrastructure ensures nodes can be found within a cluster

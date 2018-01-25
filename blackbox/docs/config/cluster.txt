@@ -851,30 +851,6 @@ Recovery
   fail. Defaults to :ref:`internal_action_long_timeout
   <indices.recovery.internal_action_long_timeout>`.
 
-.. _indices.store.throttle:
-
-Store Level Throttling
-----------------------
-
-.. _indices.store.throttle.type:
-
-**indices.store.throttle.type**
-  | *Default:*  ``none``
-  | *Runtime:*  ``yes``
-  | *Allowed Values:*  ``all | merge | none``
-
-  Allows to throttle ``merge`` (or ``all``) processes of the store module.
-
-.. _indices.store.throttle.max_bytes_per_sec:
-
-**indices.store.throttle.max_bytes_per_sec**
-  | *Default:*   ``0b``
-  | *Runtime:*  ``yes``
-
-  If throttling is enabled by `indices.store.throttle.type`_, this setting
-  specifies the maximum bytes per second a store module process can operate
-  with.
-
 Query Circuit Breaker
 ---------------------
 

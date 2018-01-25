@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope
@@ -181,16 +182,13 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testReadChangedElasticsearchSetting() throws Exception {
-        fail("TODO");
-        /*
-        execute("set global transient indices.store.throttle.type = ?",
-            new Object[]{StoreRateLimiting.Type.MERGE.toString()});
+    public void testReadChangedElasticsearchSetting() {
+        execute("set global transient indices.recovery.max_bytes_per_sec = ?",
+            new Object[]{"100kb"});
         execute("select settings from sys.cluster");
         assertSettingsValue(
-            IndexStoreConfig.INDICES_STORE_THROTTLE_TYPE_SETTING.getKey(),
-            StoreRateLimiting.Type.MERGE.toString());
-            */
+            INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(),
+            "100kb");
     }
 
     private void assertSettingsDefault(CrateSetting<?> crateSetting) {
