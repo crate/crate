@@ -18,12 +18,5 @@ Breaking Changes
 Changes
 =======
 
-- Implemented a performance optimization when ``IN()`` or ``= ANY()`` operators
-  are used with a subquery. For further details see:
-  https://github.com/crate/crate/issues/6755
-
 Fixes
 =====
-
-- Removed non-existant syscall that caused CrateDB to crash on startup with
-  certain Ubuntu kernel versions.
