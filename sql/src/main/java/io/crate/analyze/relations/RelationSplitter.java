@@ -240,25 +240,26 @@ public final class RelationSplitter {
      *
      * Move the orderBy expression to the sub-relation if possible.
      *
-     * This is possible becuase a nested loop preserves the ordering of the input-relation
+     * This is possible because a nested loop preserves the ordering of the input-relation
      * IF:
      *   - the order by expressions only operate using fields from a single relation
      *   - that relation happens to be on the left-side of the join
-     *   - the relation is *not* involved in a outer join (outer joins may create null rows - breaking the ordering)
+     *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
      */
     private void processOrderBy() {
         OrderBy orderBy = querySpec.orderBy();
         if (orderBy == null || querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
             return;
         }
-        Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        Consumer<Field> gatherRelations = f -> relations.add(f.relation());
+        Set<AnalyzedRelation> relationsInOrderBy =
+            Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+        Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
 
         for (Symbol orderExpr : orderBy.orderBySymbols()) {
             FieldsVisitor.visitFields(orderExpr, gatherRelations);
         }
-        if (relations.size() == 1 && joinPairs.stream().noneMatch(p -> p.joinType().isOuter())) {
-            AnalyzedRelation relationInOrderBy = relations.iterator().next();
+        if (relationsInOrderBy.size() == 1 && joinPairs.stream().noneMatch(p -> p.joinType().isOuter())) {
+            AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
             QuerySpec spec = getSpec(relationInOrderBy);
             // If it's a sub-select it might already have an ordering
             if (firstRel == relationInOrderBy &&
