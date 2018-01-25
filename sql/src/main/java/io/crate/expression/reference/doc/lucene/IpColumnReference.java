@@ -22,9 +22,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import org.apache.lucene.index.DocValues;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -35,7 +34,7 @@ import java.io.IOException;
 public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
     private BytesRef value;
-    private SortedDocValues values;
+    private SortedSetDocValues values;
 
     public IpColumnReference(String columnName) {
         super(columnName);
@@ -48,36 +47,20 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
     @Override
     public void setNextDocId(int docId) throws IOException {
-        if (values == null) {
-            value = null;
-        } else {
-            if (values.advanceExact(docId)) {
-                BytesRef bytesRef = values.binaryValue();
-                if (bytesRef.length == 0) {
-                    value = null;
-                } else {
-                    String format = DocValueFormat.IP.format(bytesRef);
-                    value = BytesRefs.toBytesRef(format);
-                }
-            } else {
-                value = null;
+        if (values.advanceExact(docId)) {
+            long ord = values.nextOrd();
+            if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                throw new GroupByOnArrayUnsupportedException(columnName);
             }
+            BytesRef encoded = values.lookupOrd(ord);
+            value = BytesRefs.toBytesRef(DocValueFormat.IP.format(encoded));
+        } else {
+            value = null;
         }
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
-        SortedSetDocValues setDocValues = context.reader().getSortedSetDocValues(columnName);
-        if (setDocValues == null) {
-            values = null;
-            return;
-        }
-
-        final SortedDocValues singleton = DocValues.unwrapSingleton(setDocValues);
-        if (singleton != null) {
-            values = singleton;
-        } else {
-            throw new UnsupportedOperationException("NYI");
-        }
+        values = context.reader().getSortedSetDocValues(columnName);
     }
 }
