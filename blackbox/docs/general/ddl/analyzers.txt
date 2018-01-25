@@ -26,7 +26,8 @@ When a field-content is analyzed to become a stream of tokens, the char-filter
 is applied at first. It is used to filter some special chars from the stream of
 characters that make up the content.
 
-Tokenizers split the possibly filtered stream of characters into tokens.
+Tokenizers take a possibly filtered stream of characters and split it into a
+stream of tokens.
 
 Token-filters can add tokens, delete tokens or transform them.
 
@@ -50,8 +51,8 @@ listed. They can be used as is or can be extended.
 
 .. _builtin-analyzer:
 
-Builtin Analyzer
-================
+Built-in Analyzers
+==================
 
 .. _standard-analyzer:
 
@@ -263,8 +264,8 @@ stopwords_path
 
 .. _builtin-tokenizer:
 
-Builtin Tokenizer
-=================
+Built-in Tokenizers
+===================
 
 .. _standard-tokenizer:
 
@@ -302,6 +303,82 @@ than English.
 max_token_length
     The maximum token length. If a token is seen that exceeds this length then
     it is split at max_token_length intervals. Defaults to ``255``.
+
+.. _thai-tokenizer:
+
+``thai``
+--------
+
+``type='thai'``
+
+Splits Thai text correctly, treats all other languages like the
+`standard-tokenizer`_ does.
+
+.. _letter-tokenizer:
+
+``letter``
+----------
+
+``type='letter'``
+
+Divides text at non-letters.
+
+.. _lowercase-tokenizer:
+
+``lowercase``
+-------------
+
+``type='lowercase'``
+
+Performs the function of :ref:`letter-tokenizer` and
+:ref:`lowercase-tokenfilter` together. It divides text at non-letters and
+converts them to lower case.
+
+.. _whitespace-tokenizer:
+
+``whitespace``
+--------------
+
+``type='whitespace'``
+
+Divides text at whitespace.
+
+.. _uaxemailurl-tokenizer:
+
+``uax_url_email``
+-----------------
+
+``type='uax_url_email'``
+
+Exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as
+single tokens.
+
+.. rubric:: Parameters
+
+max_token_length
+    The maximum token length. If a token is seen that exceeds this length then
+    it is discarded. Defaults to ``255``.
+
+.. _ngram-tokenizer:
+
+``ngram``
+---------
+
+``type='ngram'``
+
+.. rubric:: Parameters
+
+min_gram
+    Minimum size in codepoints of a single n-gram. default 1.
+
+max_gram
+    Maximum size in codepoints of a single n-gram. default 2.
+
+token_chars
+    Characters classes to keep in the tokens, will split on characters that
+    don't belong to any of these classes. default: [] (Keep all characters).
+
+    **Classes:** letter, digit, whitespace, punctuation, symbol
 
 .. _edgengram-tokenizer:
 
@@ -341,56 +418,6 @@ Emits the entire input as a single token.
 buffer_size
     The term buffer size. Defaults to ``256``.
 
-.. _letter-tokenizer:
-
-``letter``
-----------
-
-``type='letter'``
-
-Divides text at non-letters.
-
-.. _lowercase-tokenizer:
-
-``lowercase``
--------------
-
-``type='lowercase'``
-
-Performs the function of :ref:`letter-tokenizer` and
-:ref:`lowercase-tokenfilter` together. It divides text at non-letters and
-converts them to lower case.
-
-.. _ngram-tokenizer:
-
-``ngram``
----------
-
-``type='ngram'``
-
-.. rubric:: Parameters
-
-min_gram
-    Minimum size in codepoints of a single n-gram. default 1.
-
-max_gram
-    Maximum size in codepoints of a single n-gram. default 2.
-
-token_chars
-    Characters classes to keep in the tokens, will split on characters that
-    don't belong to any of these classes. default: [] (Keep all characters).
-
-    **Classes:** letter, digit, whitespace, punctuation, symbol
-
-.. _whitespace-tokenizer:
-
-``whitespace``
---------------
-
-``type='whitespace'``
-
-Divides text at whitespace.
-
 .. _pattern-tokenizer:
 
 ``pattern``
@@ -418,33 +445,6 @@ group
 
 Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java
 Pattern API`_ for more details about flags options.
-
-.. _thai-tokenizer:
-
-``thai``
---------
-
-``type='thai'``
-
-Splits Thai text correctly, treats all other languages like the
-`standard-tokenizer`_ does.
-
-.. _uaxemailurl-tokenizer:
-
-``uax_url_email``
------------------
-
-``type='uax_url_email'``
-
-Exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as
-single tokens.
-
-.. rubric:: Parameters
-
-max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is discarded. Defaults to ``255``.
-
 .. _pathhierarchy-tokenizer:
 
 ``path_hierarchy``
@@ -481,8 +481,8 @@ skip
 
 .. _builtin-token-filter:
 
-Builtin Token Filter
-====================
+Built-in Token Filters
+======================
 
 .. _standard-tokenfilter:
 
