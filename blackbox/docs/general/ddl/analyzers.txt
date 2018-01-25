@@ -269,15 +269,15 @@ Built-in Tokenizers
 
 .. _standard-tokenizer:
 
-``standard``
-------------
+Standard Tokenizer
+------------------
 
 ``type='standard'``
 
-A tokenizer of type standard providing a grammar based tokenizer, which is a
-good tokenizer for most European language documents. The tokenizer implements
-the Unicode Text Segmentation algorithm, as specified in Unicode Standard Annex
-#29.
+The tokenizer of type ``standard`` is providing a grammar based tokenizer,
+which is a good tokenizer for most European language documents. The tokenizer
+implements the Unicode Text Segmentation algorithm, as specified in Unicode
+Standard Annex #29.
 
 .. rubric:: Parameters
 
@@ -287,16 +287,16 @@ max_token_length
 
 .. _classic-tokenizer:
 
-``classic``
------------
+Classic Tokenizer
+-----------------
 
 ``type='classic'``
 
-This tokenizer is a grammar based tokenizer that is good for English language
-documents. This tokenizer has heuristics for special treatment of acronyms,
-company names, email addresses, and internet host names. However, these rules
-don't always work, and the tokenizer doesn't work well for most languages other
-than English.
+The ``classic`` tokenizer is a grammar based tokenizer that is good for English
+language documents. This tokenizer has heuristics for special treatment of
+acronyms, company names, email addresses, and internet host names. However,
+these rules don't always work, and the tokenizer doesn't work well for most
+languages other than English.
 
 .. rubric:: Parameters
 
@@ -306,52 +306,52 @@ max_token_length
 
 .. _thai-tokenizer:
 
-``thai``
---------
+Thai Tokenizer
+--------------
 
 ``type='thai'``
 
-Splits Thai text correctly, treats all other languages like the
-`standard-tokenizer`_ does.
+The ``thai`` tokenizer splits Thai text correctly, treats all other languages
+like the `standard-tokenizer`_ does.
 
 .. _letter-tokenizer:
 
-``letter``
-----------
+Letter Tokenizer
+----------------
 
 ``type='letter'``
 
-Divides text at non-letters.
+The ``letter`` tokenzier splits text at non-letters.
 
 .. _lowercase-tokenizer:
 
-``lowercase``
--------------
+Lowercase Tokenizer
+-------------------
 
 ``type='lowercase'``
 
-Performs the function of :ref:`letter-tokenizer` and
-:ref:`lowercase-tokenfilter` together. It divides text at non-letters and
+The ``lowercase`` tokenizer performs the function of :ref:`letter-tokenizer`
+and :ref:`lowercase-tokenfilter` together. It divides text at non-letters and
 converts them to lower case.
 
 .. _whitespace-tokenizer:
 
-``whitespace``
---------------
+Witespace Tokenizer
+-------------------
 
 ``type='whitespace'``
 
-Divides text at whitespace.
+The ``whitespace`` tokenizer splits text at whitespace.
 
 .. _uaxemailurl-tokenizer:
 
-``uax_url_email``
------------------
+UAX URL Email Tokenizer
+-----------------------
 
 ``type='uax_url_email'``
 
-Exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as
-single tokens.
+The ``uax_url_email`` tokenizer behaves like the :ref:`standard-tokenizer`, but
+tokenizes emails and urls as single tokens.
 
 .. rubric:: Parameters
 
@@ -361,8 +361,8 @@ max_token_length
 
 .. _ngram-tokenizer:
 
-``ngram``
----------
+N-Gram Tokenizer
+----------------
 
 ``type='ngram'``
 
@@ -382,13 +382,13 @@ token_chars
 
 .. _edgengram-tokenizer:
 
-``edge_ngram``
---------------
+Edge N-Gram Tokenizer
+---------------------
 
 ``type='edge_ngram'``
 
-This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams
-which start at the beginning of a token.
+The ``edge_ngram`` tokenizer is very similar to :ref:`ngram-tokenizer` but only
+keeps n-grams which start at the beginning of a token.
 
 .. rubric:: Parameters
 
@@ -406,12 +406,12 @@ token_chars
 
 .. _keyword-tokenizer:
 
-``keyword``
------------
+Keywork Tokenizer
+-----------------
 
 ``type='keyword'``
 
-Emits the entire input as a single token.
+The ``keyworkd`` tokenizer emits the entire input as a single token.
 
 .. rubric:: Parameters
 
@@ -420,12 +420,12 @@ buffer_size
 
 .. _pattern-tokenizer:
 
-``pattern``
------------
+Pattern Tokenizer
+-----------------
 
 ``type='pattern'``
 
-Separates text into terms via a regular expression.
+The ``pattern`` tokenizer separates text into terms via a regular expression.
 
 .. rubric:: Parameters
 
@@ -448,8 +448,8 @@ Pattern API`_ for more details about flags options.
 
 .. _simple_pattern-tokenizer:
 
-``simple_pattern``
-------------------
+Simple Pattern Tokenizer
+------------------------
 
 ``type='simple_pattern'``
 
@@ -465,8 +465,8 @@ pattern
 
 .. _simple_pattern_split-tokenizer:
 
-``simple_pattern_split``
-------------------------
+Simple Pattern Split Tokenizer
+------------------------------
 
 ``type='simple_patten_split'``
 
@@ -481,8 +481,8 @@ pattern
 
 .. _pathhierarchy-tokenizer:
 
-``path_hierarchy``
-------------------
+Path Hierarchy Tokenizer
+------------------------
 
 ``type='path_hierarchy'``
 
