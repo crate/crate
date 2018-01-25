@@ -39,8 +39,5 @@ public class SysNodeChecksModule extends AbstractModule {
         b.addBinding(RecoveryAfterTimeSysCheck.ID).to(RecoveryAfterTimeSysCheck.class);
         b.addBinding(HighDiskWatermarkNodesSysCheck.ID).to(HighDiskWatermarkNodesSysCheck.class);
         b.addBinding(LowDiskWatermarkNodesSysCheck.ID).to(LowDiskWatermarkNodesSysCheck.class);
-
-        // Checks that are intentionally declared as temporary should have an ID > 999.
-        b.addBinding(ClusterNameInPathDataNodesSysCheck.ID).to(ClusterNameInPathDataNodesSysCheck.class);
     }
 }
