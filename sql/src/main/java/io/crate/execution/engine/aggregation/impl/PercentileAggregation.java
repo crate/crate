@@ -25,9 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.exceptions.CircuitBreakingException;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -126,29 +127,29 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     @Override
+    @Nullable
     public Object terminatePartial(RamAccountingContext ramAccountingContext, TDigestState state) {
-        if (!state.isEmpty()) {
-            Double[] percentiles = new Double[state.fractions().length];
-            if (state.fractions().length > 1) {
-                for (int i = 0; i < state.fractions().length; i++) {
-                    Double percentile = state.quantile(state.fractions()[i]);
-                    if (percentile.isNaN()) {
-                        percentiles[i] = null;
-                    } else {
-                        percentiles[i] = percentile;
-                    }
-                }
-                return percentiles;
-            } else {
-                Double percentile = state.quantile(state.fractions()[0]);
+        if (state.isEmpty()) {
+            return null;
+        }
+        Double[] percentiles = new Double[state.fractions().length];
+        if (info.returnType() instanceof ArrayType) {
+            for (int i = 0; i < state.fractions().length; i++) {
+                Double percentile = state.quantile(state.fractions()[i]);
                 if (percentile.isNaN()) {
-                    return null;
+                    percentiles[i] = null;
                 } else {
-                    return percentile;
+                    percentiles[i] = percentile;
                 }
             }
+            return percentiles;
         } else {
-            return null;
+            Double percentile = state.quantile(state.fractions()[0]);
+            if (percentile.isNaN()) {
+                return null;
+            } else {
+                return percentile;
+            }
         }
     }
 

@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused the ``percentile`` aggregation to fail if an array
+  containing a single item was passed as ``fractions``.
+
 - Fixed an issue which resulted in an exception when a routing column was
   compared against a sub-query inside a ``WHERE`` clause.
 
