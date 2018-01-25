@@ -1235,12 +1235,12 @@ public class LuceneQueryBuilder {
                 Symbol right = function.arguments().get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
                     Reference ref = (Reference) left;
-                    if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
+                    if (ref.ident().columnIdent().equals(DocSysColumns.UID)) {
                         Literal uidLiteral = generateLuceneUIDs(right);
                         return new Function(
                             function.info(),
                             Arrays.asList(
-                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID),
+                                DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID),
                                 uidLiteral));
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());
