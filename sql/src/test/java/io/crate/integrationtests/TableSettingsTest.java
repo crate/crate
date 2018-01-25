@@ -117,7 +117,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         // The total amount of fields on table test is now 12 (system fields)
         // plus the column id, that we've just created.
         // Each additional column increases this number by 1.
-        int totalFields = 13;
+        int totalFields = 12;
         execute("alter table test set (\"mapping.total_fields.limit\"=?)", new Object[]{totalFields + 1});
         // Add a column is within the limit
         execute("alter table test add column new_column int");
