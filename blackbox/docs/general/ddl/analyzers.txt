@@ -445,6 +445,40 @@ group
 
 Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java
 Pattern API`_ for more details about flags options.
+
+.. _simple_pattern-tokenizer:
+
+``simple_pattern``
+------------------
+
+``type='simple_pattern'``
+
+Similar to the ``pattern`` tokenizer, this tokenizer uses a regular expression
+to split matching text into terms, however with a limited, more restrictive
+subset of expressions. This is in general faster than the normal ``pattern``
+tokenizer, but does not support splitting on pattern.
+
+.. rubric:: Parameters
+
+pattern
+    A `Lucene regular expression`_, defaults to empty string.
+
+.. _simple_pattern_split-tokenizer:
+
+``simple_pattern_split``
+------------------------
+
+``type='simple_patten_split'``
+
+The ``simple_pattern_split`` tokenizer operates with the same restricted subset
+of regular expressions as the ``simple_pattern`` tokenizer, but it splits the
+input on the pattern, rather than the matching pattern.
+
+.. rubric:: Parameters
+
+pattern
+    A `Lucene regular expression`_, defaults to empty string.
+
 .. _pathhierarchy-tokenizer:
 
 ``path_hierarchy``
@@ -1291,3 +1325,4 @@ max_output_size
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
 .. _`UAX#29`: http://www.unicode.org/reports/tr29/
+.. _Lucene regular expression: http://lucene.apache.org/core/7_0_1/core/org/apache/lucene/util/automaton/RegExp.html
