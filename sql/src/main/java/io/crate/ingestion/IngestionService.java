@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.component.Lifecycle;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -76,11 +77,30 @@ public class IngestionService extends AbstractLifecycleComponent implements Clus
         if (existingImplementation != null) {
             throw new IllegalArgumentException("There already exists a ruleListener registered for " + sourceIdent);
         }
+        if (clusterService.lifecycleState() == Lifecycle.State.STARTED) {
+            Map<String, Set<IngestRule>> ingestionRules = getIngestRulesOrNull(clusterService.state().metaData());
+            if (ingestionRules == null) {
+                ruleListener.applyRules(Collections.emptySet());
+            } else {
+                ruleListener.applyRules(ingestionRules.getOrDefault(sourceIdent, Collections.emptySet()));
+            }
+        }
     }
 
     @VisibleForTesting
     public void removeListenerFor(String sourceIdent) {
         listeners.remove(sourceIdent);
+    }
+
+    @Nullable
+    private static Map<String, Set<IngestRule>> getIngestRulesOrNull(MetaData metaData) {
+        IngestRulesMetaData ingestRulesMetaData =
+            (IngestRulesMetaData) metaData.customs().get(IngestRulesMetaData.TYPE);
+
+        if (ingestRulesMetaData != null) {
+            return ingestRulesMetaData.getIngestRules();
+        }
+        return null;
     }
 
     @Override
