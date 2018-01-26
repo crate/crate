@@ -49,6 +49,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
+
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     public static final String NODE_ID = "n1";
@@ -126,8 +128,8 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         clusterApplierService.setInitialState(clusterState);
 
         MasterService masterService = clusterService.getMasterService();
-        masterService.setClusterStatePublisher((clusterChangedEvent, ackListener) -> { });
-        masterService.setClusterStateSupplier(() -> clusterState);
+        masterService.setClusterStatePublisher(createClusterStatePublisher(clusterApplierService));
+        masterService.setClusterStateSupplier(clusterApplierService::state);
 
         clusterService.start();
         return clusterService;
