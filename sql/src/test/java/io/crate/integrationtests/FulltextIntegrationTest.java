@@ -77,7 +77,7 @@ public class FulltextIntegrationTest extends SQLTransportIntegrationTest  {
     @Test
     public void testSelectOrderByScore() throws Exception {
         execute("create table quotes (quote string index off," +
-                "index quote_ft using fulltext(quote))");
+                "index quote_ft using fulltext(quote)) clustered into 1 shards");
         ensureYellow();
         execute("insert into quotes values (?)",
             new Object[]{"Would it save you a lot of time if I just gave up and went mad now?"}
