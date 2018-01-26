@@ -55,9 +55,6 @@ dependencies {
     compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
 
     compile "net.java.dev.jna:jna:${versions.jna}"
-
-    // Ensures that repositories with url type are supported
-    runtime project(":es:es-repository-url")
 }
 
 // Build.java in ES sources will read those properties
