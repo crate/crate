@@ -75,6 +75,7 @@ public final class NullEliminator {
             // only operate inside logical operators
             if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
                 boolean currentNullReplacement = context.nullReplacement;
+                boolean currentInsideLogicalOperator = context.insideLogicalOperator;
                 context.insideLogicalOperator = true;
 
                 if (NotPredicate.NAME.equals(functionName)) {
@@ -84,7 +85,7 @@ public final class NullEliminator {
                 Symbol newFunc = super.visitFunction(func, context);
 
                 // reset context
-                context.insideLogicalOperator = false;
+                context.insideLogicalOperator = currentInsideLogicalOperator;
                 context.nullReplacement = currentNullReplacement;
                 return newFunc;
             }

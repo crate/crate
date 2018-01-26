@@ -44,11 +44,10 @@ public class NullEliminatorTest extends CrateUnitTest {
     @Test
     public void testNullsReplaced() throws Exception {
         assertReplaced("null and x = null", "false and x = null");
-        assertReplaced("null or x = 1", "false or x = 1");
+        assertReplaced("null or x = 1 or null", "false or x = 1 or false");
         assertReplaced("not(null and x = 1)", "not(true and x = 1)");
         assertReplaced("not(null or not(null and x = 1))", "not(true or not(false and x = 1))");
         assertReplaced("not(null and x = 1) and not(null or x = 2)", "not(true and x = 1) and not(true or x = 2)");
         assertReplaced("null or coalesce(null or x = 1, true)", "false or coalesce(null or x = 1, true)");
     }
-
 }
