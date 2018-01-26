@@ -115,6 +115,10 @@ public class SQLOperations {
         disabled = false;
     }
 
+    public boolean isEnabled() {
+        return disabled == false;
+    }
+
     /**
      * Create an {@link SQLDirectExecutor} instance.
      *

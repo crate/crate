@@ -1,0 +1,10 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'crate-watchdog'
+
+dependencies {
+    compile project(':es:es-core')
+    compile project(':sql')
+
+    testCompile project(':integration-testing')
+}
