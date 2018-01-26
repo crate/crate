@@ -90,7 +90,20 @@ public class CrateDB extends EnvironmentAwareCommand {
 
     @Override
     protected Environment createEnv(Terminal terminal, Map<String, String> settings) {
-        Path confPath = Paths.get(System.getProperty("crate.path.home"), "conf");
+        // 1) Check that path.home is set on the command-line (mandatory)
+        String crateHomePath = settings.get("path.home");
+        if (crateHomePath == null) {
+            throw new IllegalArgumentException("Please set the environment variable CRATE_HOME or " +
+                                               "use -Cpath.home on the command-line.");
+        }
+        // 2) Remove path.conf from command-line settings but use it as a conf path if exists
+        String confPathCLI = settings.remove("path.conf");
+        final Path confPath;
+        if (confPathCLI != null) {
+            confPath = Paths.get(confPathCLI);
+        } else {
+            confPath = Paths.get(crateHomePath, "conf");
+        }
         return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, confPath);
     }
 
