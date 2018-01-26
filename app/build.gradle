@@ -65,6 +65,7 @@ dependencies {
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es:es-discovery-ec2')
+    compileNotTransitive project(':es:es-repository-url')
     compileNotTransitive project(':es:es-repository-s3')
     compileNotTransitive project(':es:es-transport')
 }

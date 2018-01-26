@@ -15,8 +15,6 @@ dependencies {
     compile project(':blob')
     compile project(':sql-parser')
     compile project(':udc')
-    // Ensures that repositories with url type are supported
-    compile project(":es:es-repository-url")
     compile project(':ssl')
     compile project(':es:es-analysis-common')
     compile "io.netty:netty-transport:${versions.netty4}"
@@ -38,6 +36,9 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
+    // Ensures that repositories with url type are supported
+    // Also added as a compile time dependency to :app
+    testCompile project(":es:es-repository-url")
 }
 //noinspection GroovyAssignabilityCheck
 task testOutputJar (type: Jar) {
