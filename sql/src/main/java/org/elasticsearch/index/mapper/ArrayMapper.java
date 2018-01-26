@@ -182,7 +182,9 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         if (token == XContentParser.Token.VALUE_NULL) {
             return parseInner(context);
         }
-        token = parser.nextToken();
+        if (token == XContentParser.Token.START_ARRAY) {
+            token = parser.nextToken();
+        }
         Mapper newInnerMapper = innerMapper;
         while (token != XContentParser.Token.END_ARRAY) {
             // we only get here for non-empty arrays
