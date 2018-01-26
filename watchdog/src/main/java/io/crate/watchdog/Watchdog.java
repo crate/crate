@@ -20,31 +20,23 @@
  * agreement.
  */
 
-package io.crate;
+package io.crate.watchdog;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.test.integration.CrateUnitTest;
-import org.junit.Test;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+@Singleton
+public class Watchdog {
 
-public class WatchdogTest extends CrateUnitTest {
+    private final SQLOperations sqlOperations;
 
-    @Test
-    public void testCanServeSqlRequest() {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
-        when(sqlOperations.isEnabled()).thenReturn(true);
-        Watchdog watchdog = new Watchdog(sqlOperations);
-        assertThat(watchdog.canServeSQLRequests(), is(true));
+    @Inject
+    public Watchdog(SQLOperations sqlOperations) {
+        this.sqlOperations = sqlOperations;
     }
 
-    @Test
-    public void testCannotServeSqlRequestAsSQLIsDisabled() {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
-        when(sqlOperations.isEnabled()).thenReturn(false);
-        Watchdog watchdog = new Watchdog(sqlOperations);
-        assertThat(watchdog.canServeSQLRequests(), is(false));
+    public boolean canServeSQLRequests() {
+        return sqlOperations.isEnabled();
     }
 }
