@@ -22,10 +22,10 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnExpander;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
 import io.crate.collections.Lists2;

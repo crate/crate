@@ -24,7 +24,7 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 

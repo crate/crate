@@ -22,8 +22,8 @@
 
 package io.crate.metadata;
 
-import io.crate.analyze.symbol.RefReplacer;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
 
 import java.util.function.Predicate;

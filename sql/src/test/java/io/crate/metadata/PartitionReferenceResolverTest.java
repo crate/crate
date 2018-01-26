@@ -22,7 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.execution.expression.reference.partitioned.PartitionExpression;
+import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;

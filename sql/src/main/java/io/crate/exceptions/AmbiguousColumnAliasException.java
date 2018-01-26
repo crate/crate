@@ -22,7 +22,7 @@
 package io.crate.exceptions;
 
 import io.crate.analyze.TableIdentsExtractor;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TableIdent;
 
 import java.util.Locale;

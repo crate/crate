@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.CollectionBucket;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;

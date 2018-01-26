@@ -24,7 +24,7 @@ package io.crate.execution.engine.sort;
 
 import com.google.common.base.MoreObjects;
 import io.crate.data.Input;
-import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;

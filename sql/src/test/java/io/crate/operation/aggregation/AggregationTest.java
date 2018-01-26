@@ -23,9 +23,9 @@ package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;

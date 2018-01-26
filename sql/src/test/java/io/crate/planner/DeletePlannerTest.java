@@ -24,8 +24,8 @@ package io.crate.planner;
 
 import com.google.common.collect.Lists;
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.symbol.ParameterSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.node.ddl.DeletePartitions;

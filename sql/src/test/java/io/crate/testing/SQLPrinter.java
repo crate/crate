@@ -26,8 +26,8 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 
 import java.util.Collection;
 import java.util.HashSet;

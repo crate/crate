@@ -23,7 +23,7 @@
 package io.crate.metadata.functions.params;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.FuncArg;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;

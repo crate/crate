@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.stats;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.execution.expression.reference.sys.job.ContextLog;
+import io.crate.expression.reference.sys.job.ContextLog;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Queue;

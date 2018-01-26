@@ -21,7 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 

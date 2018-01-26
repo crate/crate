@@ -23,12 +23,12 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;

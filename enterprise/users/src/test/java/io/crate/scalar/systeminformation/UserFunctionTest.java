@@ -18,9 +18,9 @@
 
 package io.crate.scalar.systeminformation;
 
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.execution.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.auth.user.User;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.testing.SqlExpressions;

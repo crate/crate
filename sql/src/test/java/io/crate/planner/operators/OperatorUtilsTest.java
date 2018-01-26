@@ -22,7 +22,7 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;

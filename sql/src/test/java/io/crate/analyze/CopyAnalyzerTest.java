@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;

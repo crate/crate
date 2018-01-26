@@ -22,11 +22,11 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.symbol.FunctionCopyVisitor;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.ParameterSymbol;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.FunctionCopyVisitor;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

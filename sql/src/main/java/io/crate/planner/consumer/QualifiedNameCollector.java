@@ -22,9 +22,9 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.MatchPredicate;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Set;

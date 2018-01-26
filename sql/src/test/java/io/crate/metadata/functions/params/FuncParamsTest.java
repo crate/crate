@@ -23,9 +23,9 @@
 package io.crate.metadata.functions.params;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.FuncArg;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;

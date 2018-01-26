@@ -23,12 +23,12 @@ package io.crate.execution.dsl.projection.builder;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;

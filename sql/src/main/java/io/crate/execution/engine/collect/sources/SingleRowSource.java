@@ -21,14 +21,14 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.expression.InputRow;
+import io.crate.expression.InputFactory;
+import io.crate.expression.InputRow;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;

@@ -21,8 +21,8 @@
 
 package io.crate.metadata;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
 

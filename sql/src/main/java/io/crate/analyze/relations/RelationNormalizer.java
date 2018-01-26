@@ -22,13 +22,13 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.Rewriter;
-import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;

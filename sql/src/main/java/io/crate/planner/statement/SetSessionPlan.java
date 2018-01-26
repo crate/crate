@@ -23,7 +23,7 @@
 package io.crate.planner.statement;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

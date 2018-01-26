@@ -27,8 +27,8 @@ import io.crate.data.RowConsumer;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
-import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 

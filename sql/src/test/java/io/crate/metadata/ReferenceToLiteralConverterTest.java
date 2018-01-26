@@ -23,7 +23,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;

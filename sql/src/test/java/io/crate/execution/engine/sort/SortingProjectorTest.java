@@ -23,7 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;

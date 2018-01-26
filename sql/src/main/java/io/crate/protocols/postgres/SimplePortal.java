@@ -29,7 +29,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowN;

@@ -23,8 +23,8 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
-import io.crate.execution.expression.reference.doc.lucene.LongColumnReference;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;

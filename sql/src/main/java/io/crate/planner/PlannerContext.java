@@ -25,7 +25,7 @@ package io.crate.planner;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;

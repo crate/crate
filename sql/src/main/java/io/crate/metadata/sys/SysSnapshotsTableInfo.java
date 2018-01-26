@@ -34,7 +34,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.execution.expression.reference.sys.snapshot.SysSnapshot;
+import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;

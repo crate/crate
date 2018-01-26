@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Projector;

@@ -24,10 +24,10 @@ package io.crate.execution.dsl.projection.builder;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 
 import java.util.ArrayList;

@@ -26,8 +26,8 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -90,7 +90,7 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(querySpec.where().hasQuery(), is(false));
 
-        assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.analyze.symbol.MatchPredicate.class));
+        assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.expression.symbol.MatchPredicate.class));
 
         splitQuerySpec = splitter.getSpec(T3.TR_2);
         assertThat(splitQuerySpec.where().query(), isSQL("(doc.t2.b = '1')"));

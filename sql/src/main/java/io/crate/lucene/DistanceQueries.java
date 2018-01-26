@@ -22,12 +22,12 @@
 
 package io.crate.lucene;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.execution.expression.operator.EqOperator;
-import io.crate.execution.expression.operator.GtOperator;
-import io.crate.execution.expression.operator.GteOperator;
-import io.crate.execution.expression.operator.LtOperator;
-import io.crate.execution.expression.operator.LteOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;

@@ -22,12 +22,12 @@
 
 package io.crate.lucene;
 
-import io.crate.analyze.symbol.Function;
+import io.crate.expression.symbol.Function;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import io.crate.execution.expression.InputCondition;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
-import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.InputCondition;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;

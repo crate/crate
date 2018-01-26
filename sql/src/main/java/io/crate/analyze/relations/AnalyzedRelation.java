@@ -21,7 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;

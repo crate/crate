@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.SymbolType;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;

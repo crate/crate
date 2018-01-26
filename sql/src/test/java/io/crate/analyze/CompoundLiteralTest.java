@@ -22,9 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -131,7 +131,7 @@ public class CompoundLiteralTest extends CrateUnitTest {
     public void testArrayConstructionWithParameterExpression() throws Exception {
         Symbol array = expressions.asSymbol("[1, ?]");
         assertThat(array, isFunction("_array"));
-        assertThat(((io.crate.analyze.symbol.Function) array).arguments().size(), is(2));
+        assertThat(((io.crate.expression.symbol.Function) array).arguments().size(), is(2));
     }
 
     @Test

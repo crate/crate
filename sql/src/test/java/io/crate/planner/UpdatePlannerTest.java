@@ -23,8 +23,8 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.planner.consumer.UpdatePlanner;

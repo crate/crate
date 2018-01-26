@@ -22,7 +22,7 @@
 
 package io.crate.planner.node.fetch;
 
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.Reference;
 
 import java.util.Collection;

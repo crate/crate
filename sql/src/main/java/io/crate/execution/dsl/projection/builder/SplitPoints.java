@@ -23,8 +23,8 @@ package io.crate.execution.dsl.projection.builder;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 
 import java.util.ArrayList;

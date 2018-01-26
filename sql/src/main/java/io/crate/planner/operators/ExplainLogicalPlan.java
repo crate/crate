@@ -24,8 +24,8 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;

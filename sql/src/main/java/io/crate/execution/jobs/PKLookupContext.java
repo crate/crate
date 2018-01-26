@@ -22,15 +22,15 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.expression.reference.GetResponseRefResolver;
+import io.crate.expression.reference.GetResponseRefResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.expression.InputRow;
+import io.crate.expression.InputFactory;
+import io.crate.expression.InputRow;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.planner.operators.PKAndVersion;

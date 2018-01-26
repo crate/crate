@@ -22,7 +22,7 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;

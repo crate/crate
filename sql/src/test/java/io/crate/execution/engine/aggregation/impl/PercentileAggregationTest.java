@@ -22,7 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionInfo;

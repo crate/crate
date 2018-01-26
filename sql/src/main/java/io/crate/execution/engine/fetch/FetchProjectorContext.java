@@ -28,7 +28,7 @@ import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;

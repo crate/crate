@@ -32,14 +32,14 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.ValueSymbolVisitor;
+import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -53,37 +53,37 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import io.crate.execution.expression.operator.AndOperator;
-import io.crate.execution.expression.operator.EqOperator;
-import io.crate.execution.expression.operator.GtOperator;
-import io.crate.execution.expression.operator.GteOperator;
-import io.crate.execution.expression.operator.LikeOperator;
-import io.crate.execution.expression.operator.LtOperator;
-import io.crate.execution.expression.operator.LteOperator;
-import io.crate.execution.expression.operator.OrOperator;
-import io.crate.execution.expression.operator.RegexpMatchCaseInsensitiveOperator;
-import io.crate.execution.expression.operator.RegexpMatchOperator;
-import io.crate.execution.expression.operator.any.AnyEqOperator;
-import io.crate.execution.expression.operator.any.AnyGtOperator;
-import io.crate.execution.expression.operator.any.AnyGteOperator;
-import io.crate.execution.expression.operator.any.AnyLikeOperator;
-import io.crate.execution.expression.operator.any.AnyLtOperator;
-import io.crate.execution.expression.operator.any.AnyLteOperator;
-import io.crate.execution.expression.operator.any.AnyNeqOperator;
-import io.crate.execution.expression.operator.any.AnyNotLikeOperator;
-import io.crate.execution.expression.operator.any.AnyOperator;
-import io.crate.execution.expression.predicate.IsNullPredicate;
-import io.crate.execution.expression.predicate.MatchPredicate;
-import io.crate.execution.expression.predicate.NotPredicate;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
-import io.crate.execution.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.execution.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.execution.expression.scalar.conditional.CoalesceFunction;
-import io.crate.execution.expression.scalar.geo.DistanceFunction;
-import io.crate.execution.expression.scalar.geo.WithinFunction;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.LteOperator;
+import io.crate.expression.operator.OrOperator;
+import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
+import io.crate.expression.operator.RegexpMatchOperator;
+import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.operator.any.AnyGtOperator;
+import io.crate.expression.operator.any.AnyGteOperator;
+import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyLtOperator;
+import io.crate.expression.operator.any.AnyLteOperator;
+import io.crate.expression.operator.any.AnyNeqOperator;
+import io.crate.expression.operator.any.AnyNotLikeOperator;
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.predicate.IsNullPredicate;
+import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.scalar.conditional.CoalesceFunction;
+import io.crate.expression.scalar.geo.DistanceFunction;
+import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -155,7 +155,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.crate.lucene.DistanceQueries.esV5DistanceQuery;
-import static io.crate.execution.expression.scalar.regex.RegexMatcher.isPcrePattern;
+import static io.crate.expression.scalar.regex.RegexMatcher.isPcrePattern;
 import static org.elasticsearch.common.geo.GeoUtils.TOLERANCE;
 
 @Singleton
@@ -988,7 +988,7 @@ public class LuceneQueryBuilder {
 
         /**
          * interface for functions that can be used to generate a query from inner functions.
-         * Has only a single method {@link #apply(io.crate.analyze.symbol.Function, io.crate.analyze.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
+         * Has only a single method {@link #apply(io.crate.expression.symbol.Function, io.crate.expression.symbol.Function, io.crate.lucene.LuceneQueryBuilder.Context)}
          * <p>
          * e.g. in a query like
          * <pre>

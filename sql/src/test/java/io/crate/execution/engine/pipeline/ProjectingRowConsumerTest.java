@@ -23,11 +23,11 @@
 package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -37,8 +37,8 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.expression.operator.EqOperator;
+import io.crate.expression.InputFactory;
+import io.crate.expression.operator.EqOperator;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;

@@ -22,7 +22,7 @@
 
 package io.crate.execution;
 
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.execution.engine.FirstColumnConsumers;

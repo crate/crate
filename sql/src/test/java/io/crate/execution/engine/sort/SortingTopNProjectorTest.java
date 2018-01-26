@@ -24,7 +24,7 @@ package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;

@@ -22,11 +22,11 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.expression.operator.EqOperator;
+import io.crate.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;

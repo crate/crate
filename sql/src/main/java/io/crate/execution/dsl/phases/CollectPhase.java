@@ -22,7 +22,7 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.execution.dsl.projection.Projection;
 
 import java.util.List;

@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import org.elasticsearch.common.inject.internal.Nullable;
 

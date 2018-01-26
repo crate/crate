@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 
 import java.util.function.Consumer;
 

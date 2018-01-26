@@ -22,8 +22,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;

@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

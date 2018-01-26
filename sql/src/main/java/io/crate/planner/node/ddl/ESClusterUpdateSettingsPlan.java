@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.ESClusterUpdateSettingsTask;

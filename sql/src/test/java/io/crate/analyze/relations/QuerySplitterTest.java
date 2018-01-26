@@ -23,7 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.Sets;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;

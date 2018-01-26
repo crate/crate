@@ -21,9 +21,9 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.expression.operator.EqOperator;
+import io.crate.expression.operator.EqOperator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;

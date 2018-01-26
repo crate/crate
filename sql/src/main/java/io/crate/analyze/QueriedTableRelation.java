@@ -23,8 +23,9 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.RowGranularity;

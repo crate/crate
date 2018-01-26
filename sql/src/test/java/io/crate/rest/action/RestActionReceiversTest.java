@@ -23,8 +23,8 @@
 package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbols;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;

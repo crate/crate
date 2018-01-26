@@ -22,7 +22,7 @@
 
 package io.crate.planner.statement
 
-import io.crate.analyze.symbol.Literal
+import io.crate.expression.symbol.Literal
 import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.Collect
 import io.crate.execution.dsl.phases.FileUriCollectPhase

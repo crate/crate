@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.execution.expression.scalar.arithmetic.NegateFunction;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.expression.scalar.arithmetic.NegateFunction;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;

@@ -23,7 +23,7 @@
 package io.crate.execution.engine.aggregation;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.AggregateMode;
+import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;

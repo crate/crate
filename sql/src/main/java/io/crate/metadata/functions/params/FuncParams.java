@@ -23,7 +23,7 @@
 package io.crate.metadata.functions.params;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.FuncArg;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.types.DataType;
 
 import java.util.ArrayList;

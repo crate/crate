@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
@@ -92,7 +92,7 @@ public class ParameterContext implements Function<ParameterExpression, Symbol> {
         return parameters;
     }
 
-    public io.crate.analyze.symbol.Literal getAsSymbol(int index) {
+    public io.crate.expression.symbol.Literal getAsSymbol(int index) {
         try {
             Object value = parameters().get(index);
             DataType type = guessTypeSafe(value);

@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;

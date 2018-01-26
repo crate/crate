@@ -22,13 +22,13 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.FetchReference;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;

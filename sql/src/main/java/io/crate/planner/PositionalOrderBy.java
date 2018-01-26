@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

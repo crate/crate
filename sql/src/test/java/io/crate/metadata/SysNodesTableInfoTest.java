@@ -23,8 +23,8 @@
 package io.crate.metadata;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.execution.expression.reference.ReferenceResolver;
-import io.crate.execution.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

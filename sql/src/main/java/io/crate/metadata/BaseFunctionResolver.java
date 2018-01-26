@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.analyze.symbol.FuncArg;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 

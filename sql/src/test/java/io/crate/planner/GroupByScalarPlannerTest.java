@@ -2,7 +2,7 @@ package io.crate.planner;
 
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.Function;
+import io.crate.expression.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.phases.MergePhase;

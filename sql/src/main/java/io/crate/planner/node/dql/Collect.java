@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbols;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.metadata.RowGranularity;

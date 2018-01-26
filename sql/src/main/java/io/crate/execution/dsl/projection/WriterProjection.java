@@ -22,12 +22,12 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
-import io.crate.analyze.symbol.Value;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Value;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
@@ -36,7 +36,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.execution.expression.scalar.FormatFunction;
+import io.crate.expression.scalar.FormatFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;

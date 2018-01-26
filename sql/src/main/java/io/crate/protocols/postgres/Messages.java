@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.protocols.postgres.types.PGType;

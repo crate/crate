@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;

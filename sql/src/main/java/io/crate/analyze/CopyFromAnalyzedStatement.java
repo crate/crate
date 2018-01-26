@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.node.DiscoveryNode;

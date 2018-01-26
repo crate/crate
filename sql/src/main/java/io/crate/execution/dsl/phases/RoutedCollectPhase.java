@@ -22,13 +22,13 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitors;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;

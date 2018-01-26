@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.execution.expression.reference.sys.node.NodeStatsContext;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;

@@ -21,16 +21,16 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.analyze.symbol.FetchReference;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
-import io.crate.execution.expression.BaseImplementationSymbolVisitor;
+import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;

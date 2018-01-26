@@ -36,7 +36,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.execution.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.auth.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

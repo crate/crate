@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
-import io.crate.analyze.symbol.DynamicReference;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;

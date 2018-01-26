@@ -23,8 +23,8 @@
 package io.crate.metadata;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.execution.expression.reference.ReferenceResolver;
-import io.crate.execution.expression.reference.sys.node.NodeStatsContext;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 
 import java.util.Collection;
 import java.util.HashMap;

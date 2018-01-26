@@ -23,9 +23,9 @@
 package io.crate.planner;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.LogicalPlan;
 
 import java.util.HashMap;

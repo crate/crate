@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.ExecutionPlan;

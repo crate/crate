@@ -22,15 +22,16 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.ParameterSymbol;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.metadata.Functions;
-import io.crate.execution.expression.BaseImplementationSymbolVisitor;
+import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.types.DataType;
 
 import java.util.Map;

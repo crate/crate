@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.execution.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;

@@ -27,7 +27,7 @@ import io.crate.Version;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.collections.Lists2;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;

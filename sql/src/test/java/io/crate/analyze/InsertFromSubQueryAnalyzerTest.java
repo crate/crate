@@ -21,17 +21,17 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.execution.expression.scalar.SubstrFunction;
-import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.SubstrFunction;
+import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;

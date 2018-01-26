@@ -22,9 +22,9 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExplainLeaf;

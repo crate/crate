@@ -22,8 +22,9 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;

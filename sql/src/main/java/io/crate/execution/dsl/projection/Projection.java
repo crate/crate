@@ -22,7 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExplainNode;
 import org.elasticsearch.common.io.stream.StreamInput;

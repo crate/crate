@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.execution.jobs.SharedShardContext;
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -31,13 +31,13 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.execution.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.Projections;

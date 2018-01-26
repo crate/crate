@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.execution.expression.scalar.cast.CastFunctionResolver;
+import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

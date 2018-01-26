@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.Row;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.Merge;

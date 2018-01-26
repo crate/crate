@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import org.elasticsearch.common.Nullable;
 

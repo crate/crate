@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

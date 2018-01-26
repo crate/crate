@@ -24,10 +24,10 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.RefVisitor;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;

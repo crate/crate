@@ -33,7 +33,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.execution.expression.reference.sys.operation.OperationContextLog;
+import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 

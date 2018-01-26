@@ -21,12 +21,12 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.MatchPredicate;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.Symbols;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -94,7 +94,7 @@ public class GroupBySymbolValidator {
         @Override
         public Void visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s predicate cannot be used in a GROUP BY clause", io.crate.execution.expression.predicate.MatchPredicate.NAME));
+                "%s predicate cannot be used in a GROUP BY clause", io.crate.expression.predicate.MatchPredicate.NAME));
         }
 
         @Override

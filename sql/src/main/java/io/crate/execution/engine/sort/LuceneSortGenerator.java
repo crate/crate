@@ -25,7 +25,7 @@ package io.crate.execution.engine.sort;
 import io.crate.analyze.OrderBy;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.execution.engine.collect.DocInputFactory;
-import io.crate.execution.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 

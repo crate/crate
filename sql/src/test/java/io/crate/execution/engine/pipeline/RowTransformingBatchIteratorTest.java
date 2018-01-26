@@ -22,15 +22,15 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.pipeline.RowTransformingBatchIterator;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingBatchIterators;

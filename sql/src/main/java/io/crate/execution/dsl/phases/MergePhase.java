@@ -25,7 +25,7 @@ package io.crate.execution.dsl.phases;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.projection.Projection;

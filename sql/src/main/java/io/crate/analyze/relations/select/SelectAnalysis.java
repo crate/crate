@@ -27,7 +27,7 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;

@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
-import io.crate.execution.expression.operator.AndOperator;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.operator.AndOperator;
 
 import javax.annotation.Nullable;
 

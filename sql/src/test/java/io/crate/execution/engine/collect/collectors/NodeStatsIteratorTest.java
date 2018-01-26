@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
@@ -32,7 +32,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;

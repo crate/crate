@@ -22,19 +22,19 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.analyze.CopyFromAnalyzedStatement;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.data.RowConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.metadata.Functions;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;
 import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
-import io.crate.execution.expression.reference.file.FileLineReferenceResolver;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.types.CollectionType;

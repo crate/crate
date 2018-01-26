@@ -23,7 +23,7 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.auth.user.ExceptionAuthorizedValidator;

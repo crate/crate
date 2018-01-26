@@ -23,7 +23,7 @@
 package io.crate.planner.node.dcl;
 
 import io.crate.analyze.DCLStatement;
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;

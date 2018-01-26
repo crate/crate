@@ -21,9 +21,9 @@
 
 package io.crate.exceptions;
 
-import io.crate.analyze.symbol.FuncArg;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 

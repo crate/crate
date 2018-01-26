@@ -23,9 +23,9 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;

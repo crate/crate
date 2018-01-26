@@ -28,7 +28,7 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.execution.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

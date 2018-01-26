@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.execution.expression.reference.doc.lucene.LuceneMissingValue;
+import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;

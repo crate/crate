@@ -33,11 +33,11 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.analyze.symbol.FieldsVisitor;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.RefVisitor;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
@@ -64,7 +64,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.analyze.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 
 /**
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.

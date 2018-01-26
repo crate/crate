@@ -22,7 +22,7 @@
 
 package io.crate.rest.action;
 
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;

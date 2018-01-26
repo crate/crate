@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.MatchPredicate;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
-import io.crate.execution.expression.operator.Operators;
-import io.crate.execution.expression.predicate.NotPredicate;
+import io.crate.expression.operator.Operators;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.types.DataTypes;
 
 import java.util.ArrayList;

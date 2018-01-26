@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.execution.expression.udf.UserDefinedFunctionMetaData;
+import io.crate.expression.udf.UserDefinedFunctionMetaData;
 
 import java.util.Locale;
 

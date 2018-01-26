@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;

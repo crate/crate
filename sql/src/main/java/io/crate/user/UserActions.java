@@ -24,7 +24,7 @@ package io.crate.user;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import org.elasticsearch.common.lucene.BytesRefs;

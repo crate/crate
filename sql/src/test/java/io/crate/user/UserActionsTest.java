@@ -23,7 +23,7 @@
 package io.crate.user;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;

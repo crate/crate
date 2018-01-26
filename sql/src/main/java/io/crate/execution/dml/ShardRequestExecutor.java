@@ -23,7 +23,7 @@
 package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.Row1;

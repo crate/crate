@@ -23,10 +23,10 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.metadata.RowGranularity;

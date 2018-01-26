@@ -23,8 +23,8 @@
 package io.crate.execution.dsl.phases;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;

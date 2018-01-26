@@ -22,9 +22,9 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;

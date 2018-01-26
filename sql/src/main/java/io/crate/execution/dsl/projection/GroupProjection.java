@@ -22,10 +22,10 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExplainLeaf;

@@ -28,7 +28,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.DynamicReference;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;

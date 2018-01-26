@@ -26,7 +26,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;

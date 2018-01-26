@@ -23,8 +23,8 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.List;

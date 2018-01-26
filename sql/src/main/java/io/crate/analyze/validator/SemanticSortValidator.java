@@ -21,12 +21,12 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.MatchPredicate;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -77,7 +77,7 @@ public class SemanticSortValidator {
 
         public Void visitMatchPredicate(MatchPredicate matchPredicate, SortContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s predicate cannot be used in an ORDER BY clause", io.crate.execution.expression.predicate.MatchPredicate.NAME));
+                "%s predicate cannot be used in an ORDER BY clause", io.crate.expression.predicate.MatchPredicate.NAME));
         }
 
         @Override

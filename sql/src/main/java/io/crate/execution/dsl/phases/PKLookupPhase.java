@@ -22,8 +22,8 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.distribution.DistributionInfo;

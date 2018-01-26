@@ -30,7 +30,7 @@ import io.crate.data.Input;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.execution.expression.Inputs;
+import io.crate.expression.Inputs;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nonnull;

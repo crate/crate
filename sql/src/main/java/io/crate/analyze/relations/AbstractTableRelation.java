@@ -22,7 +22,7 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Field;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;

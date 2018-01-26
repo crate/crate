@@ -23,8 +23,8 @@ package io.crate.planner.node.ddl;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.Row1;

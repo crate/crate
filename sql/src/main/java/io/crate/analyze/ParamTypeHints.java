@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.ParameterSymbol;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

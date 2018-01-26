@@ -20,8 +20,8 @@ package io.crate.beans;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.expression.reference.sys.job.JobContext;
-import io.crate.execution.expression.reference.sys.job.JobContextLog;
+import io.crate.expression.reference.sys.job.JobContext;
+import io.crate.expression.reference.sys.job.JobContextLog;
 import org.junit.Test;
 
 import java.util.List;

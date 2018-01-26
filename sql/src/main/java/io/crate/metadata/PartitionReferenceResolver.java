@@ -21,8 +21,8 @@
 
 package io.crate.metadata;
 
-import io.crate.execution.expression.reference.ReferenceResolver;
-import io.crate.execution.expression.reference.partitioned.PartitionExpression;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.partitioned.PartitionExpression;
 
 import java.util.HashMap;
 import java.util.List;

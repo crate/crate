@@ -24,7 +24,7 @@ package io.crate.execution.engine.distribution.merge;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Literal;
+import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingTest;

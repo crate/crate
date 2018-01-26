@@ -22,7 +22,7 @@
 package io.crate.analyze.relations;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;

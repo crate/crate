@@ -23,12 +23,12 @@
 package io.crate.analyze.relations;
 
 
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.MatchPredicate;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.execution.expression.operator.AndOperator;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.operator.AndOperator;
 import io.crate.planner.consumer.QualifiedNameCollector;
 import io.crate.sql.tree.QualifiedName;
 
@@ -45,7 +45,7 @@ public class QuerySplitter {
 
     /**
      * <p>
-     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.analyze.symbol.Field}
+     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.expression.symbol.Field}
      * into multiple symbols.
      * </p>
      * <p>

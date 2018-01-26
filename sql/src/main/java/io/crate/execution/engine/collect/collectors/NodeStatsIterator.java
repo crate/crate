@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.expression.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
@@ -35,10 +35,10 @@ import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.engine.collect.RowsTransformer;
-import io.crate.execution.expression.reference.StaticTableReferenceResolver;
-import io.crate.execution.expression.reference.sys.node.NodeStatsContext;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;

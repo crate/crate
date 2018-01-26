@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.settings.Settings;
 
 public abstract class AbstractCopyAnalyzedStatement implements AnalyzedStatement {

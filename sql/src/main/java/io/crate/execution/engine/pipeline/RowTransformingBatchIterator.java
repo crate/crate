@@ -27,7 +27,7 @@ import io.crate.data.ForwardingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.expression.InputRow;
+import io.crate.expression.InputRow;
 
 import java.util.List;
 import java.util.RandomAccess;

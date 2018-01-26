@@ -24,7 +24,7 @@ package io.crate.execution.dsl.projection;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
 import io.crate.execution.support.Paging;

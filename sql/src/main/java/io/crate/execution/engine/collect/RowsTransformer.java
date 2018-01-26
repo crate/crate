@@ -27,13 +27,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
-import io.crate.execution.expression.InputFactory;
-import io.crate.execution.expression.InputCondition;
+import io.crate.expression.InputFactory;
+import io.crate.expression.InputCondition;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.execution.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 

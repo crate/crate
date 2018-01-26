@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.analyze.symbol.Assignments;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -34,7 +34,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.execution.expression.InputRow;
+import io.crate.expression.InputRow;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;

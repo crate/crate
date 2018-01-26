@@ -22,9 +22,9 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.collect.MapBuilder;

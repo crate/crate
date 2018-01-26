@@ -22,12 +22,12 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.symbol.FieldReplacer;
-import io.crate.analyze.symbol.FieldsVisitor;
-import io.crate.analyze.symbol.RefReplacer;
-import io.crate.analyze.symbol.RefVisitor;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.expression.symbol.FieldReplacer;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.collections.Lists2;
 
 import java.util.ArrayList;

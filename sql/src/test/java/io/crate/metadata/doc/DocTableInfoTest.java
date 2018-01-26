@@ -3,7 +3,7 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
-import io.crate.analyze.symbol.DynamicReference;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Reference;

@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
@@ -35,7 +35,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.expression.InputFactory;
+import io.crate.expression.InputFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CrateCollector;
 import io.crate.execution.engine.collect.JobCollectContext;

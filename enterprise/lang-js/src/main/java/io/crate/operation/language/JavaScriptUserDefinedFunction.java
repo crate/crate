@@ -18,7 +18,7 @@
 
 package io.crate.operation.language;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
