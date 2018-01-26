@@ -57,13 +57,26 @@ public final class NullEliminator {
 
     private static final Visitor VISITOR = new Visitor();
 
-    public static Symbol eliminateNullsIfPossible(Symbol symbol) {
-        return VISITOR.process(symbol, new Context());
+    /**
+     * Eliminates NULLs inside the given query symbol if possible.
+     * Also see {@link NullEliminator} class documentation for details.
+     *
+     * @param symbol The query symbol to operate on.
+     * @param postProcessor A function applied only on function symbols which changed due to NULL replacement.
+     */
+    public static Symbol eliminateNullsIfPossible(Symbol symbol,
+                                                  java.util.function.Function<Symbol, Symbol> postProcessor) {
+        return VISITOR.process(symbol, new Context(postProcessor));
     }
 
     private static class Context {
+        private final java.util.function.Function<Symbol, Symbol> postProcessor;
         boolean insideLogicalOperator = false;
         boolean nullReplacement = false;
+
+        public Context(java.util.function.Function<Symbol, Symbol> postProcessor) {
+            this.postProcessor = postProcessor;
+        }
     }
 
     private static class Visitor extends FunctionCopyVisitor<Context> {
@@ -74,8 +87,8 @@ public final class NullEliminator {
 
             // only operate inside logical operators
             if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-                boolean currentNullReplacement = context.nullReplacement;
-                boolean currentInsideLogicalOperator = context.insideLogicalOperator;
+                final boolean currentNullReplacement = context.nullReplacement;
+                final boolean currentInsideLogicalOperator = context.insideLogicalOperator;
                 context.insideLogicalOperator = true;
 
                 if (NotPredicate.NAME.equals(functionName)) {
@@ -84,9 +97,14 @@ public final class NullEliminator {
                 }
                 Symbol newFunc = super.visitFunction(func, context);
 
+                if (newFunc != func) {
+                    newFunc = context.postProcessor.apply(newFunc);
+                }
+
                 // reset context
                 context.insideLogicalOperator = currentInsideLogicalOperator;
                 context.nullReplacement = currentNullReplacement;
+
                 return newFunc;
             }
 

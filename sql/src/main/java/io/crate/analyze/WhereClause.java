@@ -82,12 +82,13 @@ public class WhereClause extends QueryClause implements Streamable {
         if (noMatch || query == null) {
             return this;
         }
-        Symbol nullReplacedQuery = NullEliminator.eliminateNullsIfPossible(query);
-        Symbol normalizedQuery = normalizer.normalize(nullReplacedQuery, transactionContext);
-        if (normalizedQuery == query) {
+        Symbol normalizedQuery = normalizer.normalize(query, transactionContext);
+        Symbol nullReplacedQuery = NullEliminator.eliminateNullsIfPossible(
+            normalizedQuery, s -> normalizer.normalize(s, transactionContext));
+        if (nullReplacedQuery == query) {
             return this;
         }
-        return new WhereClause(normalizedQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
+        return new WhereClause(nullReplacedQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
     }
 
     public Optional<Set<Symbol>> clusteredBy() {

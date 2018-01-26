@@ -22,12 +22,17 @@
 
 package io.crate.analyze.where;
 
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.junit.Test;
 
+import java.util.function.Function;
+
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 
 public class NullEliminatorTest extends CrateUnitTest {
@@ -35,8 +40,17 @@ public class NullEliminatorTest extends CrateUnitTest {
     private SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES);
 
     private void assertReplaced(String expression, String expectedString) {
+        assertReplaced(expression, expectedString,  s -> s);
+    }
+
+    private void assertReplacedAndNormalized(String expression, String expectedString) {
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
+        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, new TransactionContext()));
+    }
+
+    private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {
         Symbol query = sqlExpressions.asSymbol(expression);
-        Symbol replacedQuery = NullEliminator.eliminateNullsIfPossible(query);
+        Symbol replacedQuery = NullEliminator.eliminateNullsIfPossible(query, postProcessor);
         Symbol expectedSymbol = sqlExpressions.asSymbol(expectedString);
         assertThat(replacedQuery, is(expectedSymbol));
     }
@@ -49,5 +63,11 @@ public class NullEliminatorTest extends CrateUnitTest {
         assertReplaced("not(null or not(null and x = 1))", "not(true or not(false and x = 1))");
         assertReplaced("not(null and x = 1) and not(null or x = 2)", "not(true and x = 1) and not(true or x = 2)");
         assertReplaced("null or coalesce(null or x = 1, true)", "false or coalesce(null or x = 1, true)");
+    }
+
+    @Test
+    public void testNullsReplacedAndNormalized() {
+        assertReplacedAndNormalized("null and x = 1", "false");
+        assertReplacedAndNormalized("null or x > 1", "x > 1");
     }
 }
