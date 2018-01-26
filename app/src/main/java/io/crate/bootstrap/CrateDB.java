@@ -89,12 +89,9 @@ public class CrateDB extends EnvironmentAwareCommand {
     }
 
     @Override
-    protected Environment createEnv(Terminal terminal, Map<String, String> settings) throws UserException {
-        final String esPathConf = System.getProperty("es.path.conf");
-        if (esPathConf == null) {
-            throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set");
-        }
-        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, Paths.get(esPathConf));
+    protected Environment createEnv(Terminal terminal, Map<String, String> settings) {
+        Path confPath = Paths.get(System.getProperty("crate.path.home"), "conf");
+        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, confPath);
     }
 
     @Override

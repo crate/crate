@@ -263,7 +263,7 @@ subprojects {
 
 
 
-def jvmTestFlags = ['-ea', "-Dproject_build_dir=$project.buildDir", '-Dproject_root=$PROJECT_DIR$']
+def jvmTestFlags = ['-ea', "-Dproject_build_dir=$project.buildDir", '-Dcrate.path.home=$PROJECT_DIR$']
 
 idea {
     workspace {
