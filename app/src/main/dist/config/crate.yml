@@ -711,6 +711,11 @@ auth:
 # absolute bytes value (like e.g. `500mb`)
 #cluster.routing.allocation.disk.watermark.high: 90%
 
+# Defines the threshold on which CrateDB enforces a read-only block on every
+# index that has at least one shard allocated on a node with at least one disk
+# exceeding the flood stage.
+#cluster.routing.allocation.disk.watermark.flood_stage: 95%
+
 
 ########################## Field Data Circuit Breaker #########################
 

@@ -786,6 +786,20 @@ Disk-based Shard Allocation
   (like e.g. ``500mb``) to relocate shards from nodes with less free disk space
   than this value.
 
+.. _cluster.routing.allocation.disk.watermark.flood_stage:
+
+**cluster.routing.allocation.disk.watermark.flood_stage**
+  | *Default:*  ``95%``
+  | *Runtime:*  ``yes``
+
+  Defines the threshold on which CrateDB enforces a read-only block on every
+  index that has at least one shard allocated on a node with at least one disk
+  exceeding the flood stage.
+
+``cluster.routing.allocation.disk.watermark`` settings may be defined as
+percentages or bytes values. However, it is not possible to mix the value
+types.
+
 By default, the cluster will retrieve information about the disk usage of the
 nodes every 30 seconds. This can also be changed by setting the
 `cluster.info.update.interval`_ setting.

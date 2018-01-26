@@ -166,6 +166,7 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING, DataTypes.BOOLEAN),
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING, DataTypes.STRING),
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
+            CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
             // DISCOVERY
             CrateSetting.of(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING, DataTypes.INTEGER),
             CrateSetting.of(ZenDiscovery.PING_TIMEOUT_SETTING, DataTypes.STRING),

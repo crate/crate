@@ -152,6 +152,9 @@ crate_layer = ConnectingCrateLayer(
     transport_port=CRATE_TRANSPORT_PORT,
     env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
     settings={
+        'cluster.routing.allocation.disk.watermark.low': '1b',
+        'cluster.routing.allocation.disk.watermark.high': '1b',
+        'cluster.routing.allocation.disk.watermark.flood_stage': '1b',
         'license.enterprise': 'true',
         'lang.js.enabled': 'true'
     }

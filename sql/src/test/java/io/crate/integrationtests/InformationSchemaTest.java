@@ -47,8 +47,6 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
-    private final Joiner commaJoiner = Joiner.on(", ");
-
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by table_schema, table_name");
@@ -495,7 +493,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(472, response.rowCount());
+        assertEquals(473, response.rowCount());
     }
 
     @Test
