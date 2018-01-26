@@ -24,8 +24,8 @@ package io.crate.execution.jobs;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.kill.KillAllListener;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -208,9 +208,8 @@ public class JobContextService extends AbstractLifecycleComponent {
         public void accept(Void aVoid, Throwable throwable) {
             activeContexts.remove(jobId);
             if (logger.isTraceEnabled()) {
-                logger.trace("JobExecutionContext closed for job {} removed it -" +
-                             " {} executionContexts remaining",
-                    throwable, jobId, activeContexts.size());
+                logger.trace("JobExecutionContext closed and removed. jobId={} remainingContexts={} failure={}",
+                    jobId, activeContexts.size(), throwable);
             }
         }
     }

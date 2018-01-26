@@ -24,14 +24,14 @@ package io.crate.execution.engine.collect;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ListenableRowConsumer;
 import io.crate.data.RowConsumer;
-import io.crate.execution.jobs.AbstractExecutionSubContext;
-import io.crate.metadata.RowGranularity;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.jobs.AbstractExecutionSubContext;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.metadata.RowGranularity;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.logging.Loggers;
@@ -40,7 +40,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Locale;
 
 public class JobCollectContext extends AbstractExecutionSubContext {
@@ -132,7 +131,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                "id=" + id +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
-               ", searchContexts=" + Arrays.toString(searchers.keys) +
+               ", searchContexts=" + searchers.keys() +
                ", closed=" + isClosed() +
                '}';
     }

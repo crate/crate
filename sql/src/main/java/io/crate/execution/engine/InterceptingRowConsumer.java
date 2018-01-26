@@ -84,13 +84,17 @@ class InterceptingRowConsumer implements RowConsumer {
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<Long>() {
                     @Override
                     public void onResponse(Long numKilled) {
-                        LOGGER.trace("Killed {} jobs before forwarding the failure={}", numKilled, failure);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Killed {} contexts for jobId={} before forwarding the failure={}", numKilled, jobId, failure);
+                        }
                         consumer.accept(null, failure);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        LOGGER.trace("Failed to kill job, forwarding failure anyway...", e);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Failed to kill jobId={}, forwarding failure={} anyway", jobId, failure);
+                        }
                         consumer.accept(null, failure);
                     }
                 });

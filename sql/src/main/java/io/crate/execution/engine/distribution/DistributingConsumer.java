@@ -147,8 +147,8 @@ public class DistributingConsumer implements RowConsumer {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
             } else {
                 if (traceEnabled) {
-                    logger.trace("forwardFailure targetNode={} targetPhase={}/{} bucket={} failure={}",
-                        downstream.nodeId, targetPhaseId, inputId, bucketIdx, failure);
+                    logger.trace("forwardFailure targetNode={} jobId={} targetPhase={}/{} bucket={} failure={}",
+                        downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, failure);
                 }
                 distributedResultAction.pushResult(downstream.nodeId, request, new ActionListener<DistributedResultResponse>() {
                     @Override
@@ -160,8 +160,8 @@ public class DistributingConsumer implements RowConsumer {
                     @Override
                     public void onFailure(Exception e) {
                         if (traceEnabled) {
-                            logger.trace("Error sending failure to downstream={} targetPhase={}/{} bucket={}", e,
-                                downstream.nodeId, targetPhaseId, inputId, bucketIdx);
+                            logger.trace("Error sending failure to downstream={} jobId={} targetPhase={}/{} bucket={}", e,
+                                downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx);
                         }
                         countdownAndMaybeCloseIt(numActiveRequests, it);
                     }
@@ -189,8 +189,8 @@ public class DistributingConsumer implements RowConsumer {
                 continue;
             }
             if (traceEnabled) {
-                logger.trace("forwardResults targetNode={} targetPhase={}/{} bucket={} isLast={}",
-                    downstream.nodeId, targetPhaseId, inputId, bucketIdx, isLast);
+                logger.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
+                    downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
             }
             distributedResultAction.pushResult(
                 downstream.nodeId,

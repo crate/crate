@@ -23,14 +23,14 @@ package io.crate.execution.engine.fetch;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.jobs.AbstractExecutionSubContext;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.execution.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
-import io.crate.execution.dsl.phases.FetchPhase;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -43,7 +43,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -207,7 +206,7 @@ public class FetchContext extends AbstractExecutionSubContext {
     public String toString() {
         return "FetchContext{" +
                "phase=" + phase.phaseId() +
-               ", searchers=" + Arrays.toString(searchers.keys) +
+               ", searchers=" + searchers.keys() +
                '}';
     }
 }
