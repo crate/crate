@@ -35,11 +35,10 @@ import java.util.Set;
 
 public class JoinOrdering {
 
-    public static Collection<QualifiedName> getOrderedRelationNames(boolean reOrderIsAllowed,
-                                                                    Collection<QualifiedName> sourceRelations,
-                                                                    Set<? extends Set<QualifiedName>> explicitJoinConditions,
-                                                                    Set<? extends Set<QualifiedName>> implicitJoinConditions) {
-        if (!reOrderIsAllowed || (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty())) {
+    static Collection<QualifiedName> getOrderedRelationNames(Collection<QualifiedName> sourceRelations,
+                                                             Set<? extends Set<QualifiedName>> explicitJoinConditions,
+                                                             Set<? extends Set<QualifiedName>> implicitJoinConditions) {
+        if (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty()) {
             return sourceRelations;
         }
         return orderByJoinConditions(

@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import org.junit.Before;
 import org.junit.Test;
 
