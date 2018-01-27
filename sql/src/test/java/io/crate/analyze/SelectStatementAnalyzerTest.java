@@ -26,24 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperator;
@@ -59,7 +45,21 @@ import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.scalar.geo.DistanceFunction;
 import io.crate.expression.scalar.regex.MatchesFunction;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -789,10 +789,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         MultiSourceSelect mss = (MultiSourceSelect) relation;
 
-        assertThat(mss.querySpec().orderBy(), nullValue());
+        assertThat(mss.querySpec().orderBy(), isSQL("doc.users.id"));
         Iterator<Map.Entry<QualifiedName, AnalyzedRelation>> it = mss.sources().entrySet().iterator();
         QueriedRelation usersRel = (QueriedRelation) it.next().getValue();
-        assertThat(usersRel.querySpec().orderBy().orderBySymbols(), isSQL("doc.users.id"));
+        assertThat(usersRel.querySpec().orderBy(), nullValue());
     }
 
     @Test

@@ -43,7 +43,6 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class RelationSplitterTest extends CrateUnitTest {
@@ -271,20 +270,6 @@ public class RelationSplitterTest extends CrateUnitTest {
             .having(new HavingClause(asSymbol("t1.x = 10")));
         RelationSplitter splitter = split(qs);
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
-    }
-
-    @Test
-    public void testOrderByIsFullyPushedDownIfPossible() throws Exception {
-        // select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a
-        QuerySpec qs = new QuerySpec()
-            .outputs(Arrays.asList(asSymbol("t1.a"), asSymbol("t2.b")))
-            .orderBy(new OrderBy(
-                Collections.singletonList(asSymbol("t1.a")), new boolean[]{false}, new Boolean[]{null}));
-        JoinPair t1AndT2InnerJoin = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b"));
-
-        RelationSplitter splitter = split(qs, Collections.singletonList(t1AndT2InnerJoin));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a ORDER BY doc.t1.a"));
-        assertThat("remainingOrderBy must be false if it's safe to remove after pushDown", qs.orderBy(), nullValue());
     }
 
     @Test

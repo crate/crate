@@ -26,19 +26,27 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
+import io.crate.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.expression.operator.AndOperator;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
@@ -46,14 +54,8 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.execution.dsl.phases.NestedLoopPhase;
-import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.util.set.Sets;
 
@@ -63,6 +65,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -82,6 +85,8 @@ public class Join extends TwoInputPlan {
     @Nullable
     final Symbol joinCondition;
     private final boolean isFiltered;
+    private final boolean hasOuterJoins;
+    private final AnalyzedRelation leftRelation;
 
     static Builder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedColsByParent) -> {
@@ -96,12 +101,12 @@ public class Join extends TwoInputPlan {
                     throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
                 }
             }
+            final boolean hasOuterJoins = joinPairs.values().stream().anyMatch(p -> p.joinType().isOuter());
             Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
 
             Collection<QualifiedName> orderedRelationNames;
             if (mss.sources().size() > 2) {
                 orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-                    mss.isRelationReOrderAllowed(),
                     mss.sources().keySet(),
                     joinPairs.keySet(),
                     queryParts.keySet()
@@ -149,12 +154,29 @@ public class Join extends TwoInputPlan {
             LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromLeft);
             LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromRight);
             Symbol query = removeParts(queryParts, lhsName, rhsName);
-            LogicalPlan join = new Join(lhsPlan, rhsPlan, joinType, joinCondition, query != null && !(query instanceof Literal));
+            LogicalPlan join = new Join(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                query != null && !(query instanceof Literal),
+                hasOuterJoins,
+                lhs);
 
             join = Filter.create(join, query);
             while (it.hasNext()) {
                 QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
-                join = joinWithNext(tableStats, join, nextRel, usedColsByParent, joinNames, joinPairs, queryParts, subqueryPlanner);
+                join = joinWithNext(
+                    tableStats,
+                    join,
+                    nextRel,
+                    usedColsByParent,
+                    joinNames,
+                    joinPairs,
+                    queryParts,
+                    subqueryPlanner,
+                    hasOuterJoins,
+                    lhs);
                 joinNames.add(nextRel.getQualifiedName());
             }
             assert queryParts.isEmpty() : "Must've applied all queryParts";
@@ -182,7 +204,9 @@ public class Join extends TwoInputPlan {
                                             Set<QualifiedName> joinNames,
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
-                                            SubqueryPlanner subqueryPlanner) {
+                                            SubqueryPlanner subqueryPlanner,
+                                            boolean hasOuterJoins,
+                                            AnalyzedRelation leftRelation) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new HashSet<>();
@@ -215,7 +239,14 @@ public class Join extends TwoInputPlan {
                 .filter(Objects::nonNull).iterator()
         );
         return Filter.create(
-            new Join(source, nextPlan, type, condition, query != null && !(query instanceof Literal)),
+            new Join(
+                source,
+                nextPlan,
+                type,
+                condition,
+                query != null && !(query instanceof Literal),
+                hasOuterJoins,
+                leftRelation),
             query
         );
     }
@@ -273,7 +304,9 @@ public class Join extends TwoInputPlan {
                  LogicalPlan rhs,
                  JoinType joinType,
                  @Nullable Symbol joinCondition,
-                 boolean isFiltered) {
+                 boolean isFiltered,
+                 boolean hasOuterJoins,
+                 AnalyzedRelation leftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
         this.joinCondition = joinCondition;
@@ -284,6 +317,8 @@ public class Join extends TwoInputPlan {
             this.outputs.addAll(lhs.outputs());
             this.outputs.addAll(rhs.outputs());
         }
+        this.hasOuterJoins = hasOuterJoins;
+        this.leftRelation = leftRelation;
     }
 
     @Override
@@ -438,7 +473,7 @@ public class Join extends TwoInputPlan {
 
     @Override
     protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new Join(newLeftSource, newRightSource, joinType, joinCondition, isFiltered);
+        return new Join(newLeftSource, newRightSource, joinType, joinCondition, isFiltered, hasOuterJoins, leftRelation);
     }
 
     @Override
@@ -462,5 +497,39 @@ public class Join extends TwoInputPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitJoin(this, context);
+    }
+
+    @Override
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+        if (pushDown instanceof Order) {
+            /* Move the orderBy expression to the sub-relation if possible.
+             *
+             * This is possible because a nested loop preserves the ordering of the input-relation
+             * IF:
+             *   - the order by expressions only operate using fields from a single relation
+             *   - that relation happens to be on the left-side of the join
+             *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
+             */
+            if (hasOuterJoins == false) {
+                Set<AnalyzedRelation> relationsInOrderBy =
+                    Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+                Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
+
+                OrderBy orderBy = ((Order) pushDown).orderBy;
+                for (Symbol orderExpr : orderBy.orderBySymbols()) {
+                    FieldsVisitor.visitFields(orderExpr, gatherRelations);
+                }
+                if (relationsInOrderBy.size() == 1) {
+                    AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
+                    if (relationInOrderBy == leftRelation) {
+                        LogicalPlan newLhs = lhs.tryOptimize(pushDown);
+                        if (newLhs != null) {
+                            return updateSources(newLhs, rhs);
+                        }
+                    }
+                }
+            }
+        }
+        return super.tryOptimize(pushDown);
     }
 }

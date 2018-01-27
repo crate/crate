@@ -175,18 +175,18 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testJoinOnSubSelectsWithOrderByPushedDown() throws Exception {
+    public void testJoinOnSubSelectsWithOrder() throws Exception {
         MultiSourceSelect relation = analyze("select * from " +
                                              " (select a, i from t1 order by a) t1, " +
                                              " (select b, i from t2 where b > 10) t2 " +
                                              "where t1.a > 50 and t2.b > 100 " +
                                              "order by 2 limit 10");
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i LIMIT 10"));
+            isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i ORDER BY doc.t1.i LIMIT 10"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
-            isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50') ORDER BY doc.t1.i LIMIT 10"));
+            isSQL("SELECT doc.t1.a, doc.t1.i WHERE (doc.t1.a > '50') ORDER BY doc.t1.a"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
-            isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '100') AND (doc.t2.b > '10')) LIMIT 10"));
+            isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '100') AND (doc.t2.b > '10'))"));
     }
 
     @Test

@@ -29,6 +29,7 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
@@ -36,8 +37,6 @@ import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.expression.operator.AndOperator;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
@@ -64,7 +63,6 @@ public final class RelationSplitter {
     private final Set<QualifiedName> relationPartOfJoinConditions;
 
     private AnalyzedRelation firstRel;
-    private boolean orderByMoved = false;
 
     public RelationSplitter(QuerySpec querySpec,
                             Collection<? extends AnalyzedRelation> relations,
@@ -90,10 +88,6 @@ public final class RelationSplitter {
                 relationPartOfJoinConditions.add(joinPair.right());
             }
         }
-    }
-
-    public boolean relationReOrderAllowed() {
-        return orderByMoved == false;
     }
 
     public QuerySpec getSpec(AnalyzedRelation relation) {
@@ -236,42 +230,11 @@ public final class RelationSplitter {
         }
     }
 
-    /**
-     *
-     * Move the orderBy expression to the sub-relation if possible.
-     *
-     * This is possible because a nested loop preserves the ordering of the input-relation
-     * IF:
-     *   - the order by expressions only operate using fields from a single relation
-     *   - that relation happens to be on the left-side of the join
-     *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
-     */
     private void processOrderBy() {
         OrderBy orderBy = querySpec.orderBy();
-        if (orderBy == null || querySpec.hasAggregates() || !querySpec.groupBy().isEmpty()) {
-            return;
+        if (orderBy != null) {
+            requiredForMerge.addAll(orderBy.orderBySymbols());
         }
-        Set<AnalyzedRelation> relationsInOrderBy =
-            Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
-
-        for (Symbol orderExpr : orderBy.orderBySymbols()) {
-            FieldsVisitor.visitFields(orderExpr, gatherRelations);
-        }
-        if (relationsInOrderBy.size() == 1 && joinPairs.stream().noneMatch(p -> p.joinType().isOuter())) {
-            AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
-            QuerySpec spec = getSpec(relationInOrderBy);
-            // If it's a sub-select it might already have an ordering
-            if (firstRel == relationInOrderBy &&
-                !(spec.orderBy() != null && (spec.limit() != null || spec.offset() != null))) {
-                orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
-                spec.orderBy(orderBy);
-                querySpec.orderBy(null);
-                orderByMoved = true;
-                return;
-            }
-        }
-        requiredForMerge.addAll(orderBy.orderBySymbols());
     }
 
     private static final class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {

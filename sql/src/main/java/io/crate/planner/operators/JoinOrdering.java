@@ -42,11 +42,10 @@ final class JoinOrdering {
     private JoinOrdering() {
     }
 
-    static Collection<QualifiedName> getOrderedRelationNames(boolean reOrderIsAllowed,
-                                                             Collection<QualifiedName> sourceRelations,
+    static Collection<QualifiedName> getOrderedRelationNames(Collection<QualifiedName> sourceRelations,
                                                              Set<? extends Set<QualifiedName>> explicitJoinConditions,
                                                              Set<? extends Set<QualifiedName>> implicitJoinConditions) {
-        if (!reOrderIsAllowed || (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty())) {
+        if (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty()) {
             return sourceRelations;
         }
         return orderByJoinConditions(

@@ -49,7 +49,6 @@ public class MultiSourceSelect implements QueriedRelation {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final Fields fields;
-    private final boolean relationReOrderAllowed;
     private final List<JoinPair> joinPairs;
     private QualifiedName qualifiedName;
     private QuerySpec querySpec;
@@ -102,8 +101,7 @@ public class MultiSourceSelect implements QueriedRelation {
             mss.sources(),
             mss.fields(),
             querySpec,
-            mss.joinPairs,
-            splitter.relationReOrderAllowed()
+            mss.joinPairs
         );
     }
 
@@ -135,7 +133,6 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Path path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
-        this.relationReOrderAllowed = true;
     }
 
     private static QualifiedName generateName(Set<QualifiedName> sourceNames) {
@@ -151,28 +148,15 @@ public class MultiSourceSelect implements QueriedRelation {
                               Map<QualifiedName, AnalyzedRelation> sources,
                               Collection<Field> fields,
                               QuerySpec querySpec,
-                              List<JoinPair> joinPairs,
-                              boolean relationReOrderAllowed) {
+                              List<JoinPair> joinPairs) {
         this.qualifiedName = relName;
         this.sources = sources;
         this.joinPairs = joinPairs;
         this.querySpec = querySpec;
         this.fields = new Fields(fields.size());
-        this.relationReOrderAllowed = relationReOrderAllowed;
         for (Field field : fields) {
             this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
-    }
-
-    /**
-     * @return true if the planner is allowed to re-arrange the order of the relations.
-     *         (Ex.: t1 ⋈ t2 ⋈ t3 may be re-ordered to ((t2 ⋈ t3) ⋈ t1)
-     *
-     *
-     * See also: {@link RelationSplitter#processOrderBy()} and {@link io.crate.planner.operators.JoinOrdering
-     */
-    public boolean isRelationReOrderAllowed() {
-        return relationReOrderAllowed;
     }
 
     public Map<QualifiedName, AnalyzedRelation> sources() {
