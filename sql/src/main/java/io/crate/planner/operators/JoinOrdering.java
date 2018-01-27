@@ -33,12 +33,19 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class JoinOrdering {
+/**
+ * Utility class which is used by the {@link Join} for the building of
+ * the join tree, which helps to find the optimal ordering of the tables.
+ */
+final class JoinOrdering {
 
-    public static Collection<QualifiedName> getOrderedRelationNames(boolean reOrderIsAllowed,
-                                                                    Collection<QualifiedName> sourceRelations,
-                                                                    Set<? extends Set<QualifiedName>> explicitJoinConditions,
-                                                                    Set<? extends Set<QualifiedName>> implicitJoinConditions) {
+    private JoinOrdering() {
+    }
+
+    static Collection<QualifiedName> getOrderedRelationNames(boolean reOrderIsAllowed,
+                                                             Collection<QualifiedName> sourceRelations,
+                                                             Set<? extends Set<QualifiedName>> explicitJoinConditions,
+                                                             Set<? extends Set<QualifiedName>> implicitJoinConditions) {
         if (!reOrderIsAllowed || (explicitJoinConditions.isEmpty() && implicitJoinConditions.isEmpty())) {
             return sourceRelations;
         }
@@ -50,7 +57,7 @@ public class JoinOrdering {
 
     /**
      * Returns a the relation re-ordered to apply join conditions further down in the tree.
-     *
+     * <p>
      * (Assuming the relations are consumed from left to right to build a tree of two-relations join nodes)
      *
      * @param relations               all relations, e.g. [t1, t2, t3, t3]
@@ -62,8 +69,6 @@ public class JoinOrdering {
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
                                                            Set<? extends Set<QualifiedName>> explicitJoinedRelations,
                                                            Set<? extends Set<QualifiedName>> implicitJoinedRelations) {
-
-        LinkedHashSet<QualifiedName> bestOrder = new LinkedHashSet<>();
         List<Set<QualifiedName>> pairsWithJoinConditions = new ArrayList<>(explicitJoinedRelations);
         pairsWithJoinConditions.addAll(implicitJoinedRelations);
 
@@ -72,7 +77,7 @@ public class JoinOrdering {
 
         Set<QualifiedName> firstJoinPair = findAndRemoveFirstJoinPair(occurrences, pairsWithJoinConditions);
         assert firstJoinPair != null : "firstJoinPair should not be null";
-        bestOrder.addAll(firstJoinPair);
+        LinkedHashSet<QualifiedName> bestOrder = new LinkedHashSet<>(firstJoinPair);
 
         buildBestOrderByJoinConditions(pairsWithJoinConditions, bestOrder);
         bestOrder.addAll(relations);
@@ -111,7 +116,7 @@ public class JoinOrdering {
         Iterator<Set<QualifiedName>> setsIterator = sets.iterator();
         while (setsIterator.hasNext()) {
             Set<QualifiedName> set = setsIterator.next();
-            for (QualifiedName name: set) {
+            for (QualifiedName name : set) {
                 if (bestOrder.contains(name)) {
                     bestOrder.addAll(set);
                     setsIterator.remove();
