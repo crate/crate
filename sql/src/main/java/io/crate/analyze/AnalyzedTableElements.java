@@ -114,7 +114,6 @@ public class AnalyzedTableElements {
 
         mapping.put("_meta", meta);
         mapping.put("properties", properties);
-        mapping.put("_all", ImmutableMap.of("enabled", false));
 
         return mapping;
     }
