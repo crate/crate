@@ -33,6 +33,7 @@ import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
@@ -58,6 +59,7 @@ public class CrateNode extends Node {
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
+        CommonAnalysisPlugin.class,
         Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {

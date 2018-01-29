@@ -9,16 +9,19 @@ dependencies {
     compile "io.netty:netty-transport:${versions.netty4}"
 }
 
+def moduleDir = file('../upstream/modules/transport-netty4')
+
 sourceSets {
     main {
-        java.srcDirs = ['../upstream/modules/transport-netty4/src/main/java']
+        java {
+            srcDir "$moduleDir/src/main/java"
+        }
     }
 }
 
 idea {
     module {
-        contentRoot = file('../upstream/modules/transport-netty4/src/main')
-        excludeDirs += file('build')
+        contentRoot = moduleDir
+        excludeDirs += files('build')
     }
 }
-

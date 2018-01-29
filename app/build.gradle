@@ -42,6 +42,7 @@ dependencies {
     compile project(':es:es-repository-url')
     compile project(':es:es-repository-s3')
     compile project(':es:es-transport')
+    compile project(':es:es-analysis-common')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -68,6 +69,7 @@ dependencies {
     compileNotTransitive project(':es:es-repository-url')
     compileNotTransitive project(':es:es-repository-s3')
     compileNotTransitive project(':es:es-transport')
+    compileNotTransitive project(':es:es-analysis-common')
 }
 
 task release(dependsOn: 'distTar') {

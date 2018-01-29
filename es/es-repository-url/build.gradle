@@ -24,19 +24,19 @@ dependencies {
     compile project(':es:es-core')
 }
 
-def root = '../upstream/modules/repository-url/'
+def moduleDir = file('../upstream/modules/repository-url')
 
 sourceSets {
     main {
         java {
-            srcDir "$root/src/main/java"
+            srcDir "$moduleDir/src/main/java"
         }
     }
 }
 
 idea {
     module {
-        contentRoot = file("$root")
+        contentRoot = moduleDir
         excludeDirs += file('build')
     }
 }

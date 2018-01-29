@@ -16,7 +16,6 @@ dependencies {
     compile project(':sql-parser')
     compile project(':udc')
     compile project(':ssl')
-    compile project(':es:es-analysis-common')
     compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-buffer:${versions.netty4}"
@@ -39,6 +38,7 @@ dependencies {
     // Ensures that repositories with url type are supported
     // Also added as a compile time dependency to :app
     testCompile project(":es:es-repository-url")
+    testCompile project(":es:es-analysis-common")
 }
 //noinspection GroovyAssignabilityCheck
 task testOutputJar (type: Jar) {
