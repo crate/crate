@@ -100,7 +100,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         IndexShard indexShard = sharedShardContext.indexShard();
         try {
             QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext(
-                shardId.getId(), searcher.reader(), System::currentTimeMillis, "ES6_TODO_CLUSTER_ALIAS");
+                shardId.getId(), searcher.reader(), System::currentTimeMillis, null);
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexShard.mapperService(),
@@ -142,7 +142,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher = sharedShardContext.acquireSearcher();
             IndexService indexService = sharedShardContext.indexService();
             QueryShardContext queryShardContext = indexService.newQueryShardContext(
-                indexShard.shardId().getId(), searcher.reader(), System::currentTimeMillis, "ES6_TODO_CLUSTER_ALIS");
+                indexShard.shardId().getId(), searcher.reader(), System::currentTimeMillis, null);
             queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexService.mapperService(),
