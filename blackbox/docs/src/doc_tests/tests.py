@@ -152,9 +152,10 @@ crate_layer = ConnectingCrateLayer(
     transport_port=CRATE_TRANSPORT_PORT,
     env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
     settings={
-        'cluster.routing.allocation.disk.watermark.low': '1b',
-        'cluster.routing.allocation.disk.watermark.high': '1b',
-        'cluster.routing.allocation.disk.watermark.flood_stage': '1b',
+         # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+         "cluster.routing.allocation.disk.watermark.low" : "85%",
+         "cluster.routing.allocation.disk.watermark.high" : "90%",
+         "cluster.routing.allocation.disk.watermark.flood_stage" : "95%",
         'license.enterprise': 'true',
         'lang.js.enabled': 'true'
     }
