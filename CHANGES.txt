@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Implemented a `Ready` node status JMX metric expressing if the node is ready
+  for processing SQL statements.
+
 Fixes
 =====
 

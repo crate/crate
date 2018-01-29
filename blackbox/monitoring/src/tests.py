@@ -132,10 +132,27 @@ class MonitoringSettingIntegrationTest(unittest.TestCase):
             pass
 
 
+class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
+
+    JMX_PORT = GLOBAL_PORT_POOL.get()
+    CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+
+    def test_mbean_select_ready(self):
+        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
+        value, _ = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeStatus',
+            'Ready'
+        )
+        value = bool(value)
+        if value is not True:
+            raise AssertionError("The mbean attribute has not produced the expected result. " +
+                                 "Expected: True, Got: {}".format(value))
+
+
 def test_suite():
     suite = unittest.TestSuite()
-    s1 = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
-    s1.layer = CrateLayer(
+    s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
+    s.layer = CrateLayer(
         'crate-enterprise',
         crate_home=crate_path(),
         port=MonitoringIntegrationTest.CRATE_HTTP_PORT,
@@ -149,10 +166,13 @@ def test_suite():
             'license.enterprise': True
         }
     )
-    suite.addTest(s1)
+    suite.addTest(s)
 
-    s2 = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))
-    s2.layer = CrateLayer(
+    s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeStatusIntegrationTest))
+    suite.addTest(s)
+
+    s = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))
+    s.layer = CrateLayer(
         'crate',
         crate_home=crate_path(),
         port=GLOBAL_PORT_POOL.get(),
@@ -166,5 +186,5 @@ def test_suite():
             'license.enterprise': False
         }
     )
-    suite.addTest(s2)
+    suite.addTest(s)
     return suite
