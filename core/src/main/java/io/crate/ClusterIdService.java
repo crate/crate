@@ -22,11 +22,7 @@
 package io.crate;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -35,16 +31,13 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 
-import static org.elasticsearch.cluster.ClusterState.builder;
+import static org.elasticsearch.cluster.ClusterState.UNKNOWN_UUID;
 
 @Singleton
 public class ClusterIdService extends AbstractLifecycleComponent implements ClusterStateListener {
 
-    private static final String CLUSTER_ID_SETTINGS_KEY = "cluster_id";
-
     private final ClusterService clusterService;
-    private final CompletableFuture<ClusterId> clusterIdFuture = new CompletableFuture<>();
-    private ClusterId clusterId = null;
+    private volatile CompletableFuture<String> clusterIdFuture = new CompletableFuture<>();
 
 
     @Inject
@@ -59,97 +52,23 @@ public class ClusterIdService extends AbstractLifecycleComponent implements Clus
             logger.trace("[{}] Receiving new cluster state, reason {}",
                 clusterService.state().nodes().getLocalNodeId(), event.source());
         }
-        if (event.source().equals("local-gateway-elected-state")) {
-            // State recovered, read cluster_id
-            boolean success = applyClusterIdFromSettings();
-
-            if (event.localNodeMaster() && !success) {
-                // None found, generate cluster_id and broadcast it to all nodes
-                generateClusterId();
-                saveClusterIdToSettings();
-            }
+        String clusterUUID = event.state().getMetaData().clusterUUID();
+        if (UNKNOWN_UUID.equals(clusterUUID)) {
+            return;
         }
-
-        applyClusterIdFromSettings();
+        if (clusterIdFuture.isDone()) {
+            // Replacing an existing cluster UUID
+            clusterIdFuture = CompletableFuture.completedFuture(clusterUUID);
+        } else {
+            clusterIdFuture.complete(clusterUUID);
+        }
     }
 
     /**
      * return a CompletableFuture that is available once the clusterId is set
      */
-    public CompletableFuture<ClusterId> clusterId() {
+    public CompletableFuture<String> clusterId() {
         return clusterIdFuture;
-    }
-
-    private void generateClusterId() {
-        if (clusterId == null) {
-            clusterId = new ClusterId();
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("[{}] Generated ClusterId {}",
-                    clusterService.state().nodes().getLocalNodeId(), clusterId.value());
-            }
-            clusterIdFuture.complete(clusterId);
-        }
-    }
-
-    private String readClusterIdFromSettings() {
-        return clusterService.state().metaData().transientSettings().get(CLUSTER_ID_SETTINGS_KEY);
-    }
-
-    private boolean applyClusterIdFromSettings() {
-        if (clusterId == null) {
-            String id = readClusterIdFromSettings();
-            if (id == null) {
-                return false;
-            }
-
-            clusterId = new ClusterId(id);
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("[{}] Read ClusterId from settings {}",
-                    clusterService.state().nodes().getLocalNodeId(), clusterId.value());
-            }
-            clusterIdFuture.complete(clusterId);
-        }
-
-        return true;
-    }
-
-    private void saveClusterIdToSettings() {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Announcing new cluster_id to all nodes");
-        }
-        clusterService.submitStateUpdateTask("new_cluster_id", new ClusterStateUpdateTask() {
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                Settings.Builder transientSettings = Settings.builder();
-                transientSettings.put(currentState.metaData().transientSettings());
-                transientSettings.put(CLUSTER_ID_SETTINGS_KEY, clusterId.value().toString());
-
-                MetaData.Builder metaData = MetaData.builder(currentState.metaData())
-                    .persistentSettings(currentState.metaData().persistentSettings())
-                    .transientSettings(transientSettings.build());
-
-                ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
-                boolean updatedReadOnly =
-                    metaData.persistentSettings().getAsBoolean(
-                        MetaData.SETTING_READ_ONLY_SETTING.getKey(), false)
-                    || metaData.transientSettings().getAsBoolean(
-                        MetaData.SETTING_READ_ONLY_SETTING.getKey(), false);
-                if (updatedReadOnly) {
-                    blocks.addGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
-                } else {
-                    blocks.removeGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
-                }
-
-                return builder(currentState).metaData(metaData).blocks(blocks).build();
-            }
-
-            @Override
-            public void onFailure(String source, Exception e) {
-                logger.error("failed to perform [{}]", e, source);
-            }
-        });
     }
 
     @Override
