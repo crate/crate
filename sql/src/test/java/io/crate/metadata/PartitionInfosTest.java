@@ -53,6 +53,11 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
             .metaData(MetaData.builder(currentState.metaData())
                 .put(imdBuilder))
             .build();
+        clusterService.addListener(event -> {
+            if (event.state() == newState) {
+                processed.complete(true);
+            }
+        });
         clusterService.getClusterApplierService()
             .onNewClusterState("test", () -> newState, new ClusterStateTaskListener() {
             @Override
@@ -60,12 +65,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
                 processed.completeExceptionally(e);
             }
         });
-        clusterService.addListener(event -> {
-            if (event.state() == newState) {
-                processed.complete(true);
-            }
-        });
-        processed.get(10, TimeUnit.SECONDS);
+        processed.get(5, TimeUnit.SECONDS);
     }
 
     @Test
