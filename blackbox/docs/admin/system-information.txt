@@ -101,6 +101,7 @@ applied cluster settings.
     | settings['cluster']['routing']['allocation']['disk']                              | object       |
     | settings['cluster']['routing']['allocation']['disk']['threshold_enabled']         | boolean      |
     | settings['cluster']['routing']['allocation']['disk']['watermark']                 | object       |
+    | settings['cluster']['routing']['allocation']['disk']['watermark']['flood_stage']  | string       |
     | settings['cluster']['routing']['allocation']['disk']['watermark']['high']         | string       |
     | settings['cluster']['routing']['allocation']['disk']['watermark']['low']          | string       |
     | settings['cluster']['routing']['allocation']['enable']                            | string       |
@@ -150,10 +151,6 @@ applied cluster settings.
     | settings['indices']['recovery']['recovery_activity_timeout']                      | string       |
     | settings['indices']['recovery']['retry_delay_network']                            | string       |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | string       |
-    | settings['indices']['store']                                                      | object       |
-    | settings['indices']['store']['throttle']                                          | object       |
-    | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string       |
-    | settings['indices']['store']['throttle']['type']                                  | string       |
     | settings['license']                                                               | object       |
     | settings['license']['enterprise']                                                 | boolean      |
     | settings['license']['ident']                                                      | string       |
@@ -685,17 +682,16 @@ The table schema is the following:
 Example query::
 
   cr> select id, node_id, description from sys.node_checks order by id, node_id;
-  +-...-+---------...-+--------------------------------------------------------------...-+
-  |  id | node_id     | description                                                      |
-  +-...-+---------...-+--------------------------------------------------------------...-+
-  |   1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
-  |   2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |   3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
-  |   5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
-  |   6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
-  ...
-  +-...-+---------...-+--------------------------------------------------------------...-+
-  SELECT ... rows in set (... sec)
+  +----+---------...-+--------------------------------------------------------------...-+
+  | id | node_id     | description                                                      |
+  +----+---------...-+--------------------------------------------------------------...-+
+  |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
+  |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
+  |  3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
+  |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
+  |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
+  +----+---------...-+--------------------------------------------------------------...-+
+  SELECT 5 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 

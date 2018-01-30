@@ -23,19 +23,18 @@
 package io.crate.execution.jobs.transport;
 
 import io.crate.exceptions.ContextMissingException;
-import io.crate.execution.jobs.kill.KillJobsRequest;
-import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummySubContext;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
-import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -81,7 +80,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         monitorService.onNodeDisconnected(new DiscoveryNode(
             NODE_ID,
-            LocalTransportAddress.buildUnique(),
+            buildNewFakeTransportAddress(),
             Version.CURRENT));
 
         expectedException.expect(ContextMissingException.class);
@@ -94,11 +93,11 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         DiscoveryNode coordinator_node = new DiscoveryNode(
             "coordinator_node_id",
-            LocalTransportAddress.buildUnique(),
+            buildNewFakeTransportAddress(),
             Version.CURRENT);
         DiscoveryNode data_node = new DiscoveryNode(
             "data_node_id",
-            LocalTransportAddress.buildUnique(),
+            buildNewFakeTransportAddress(),
             Version.CURRENT);
 
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder()

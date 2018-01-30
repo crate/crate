@@ -24,37 +24,34 @@ import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.data.Input;
+import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.sys.node.local.NodeSysExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.discovery.local.LocalDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsService;
+import org.elasticsearch.node.NodeService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.Inet4Address;
-import java.util.Collections;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -82,24 +79,23 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         Settings settings = Settings.builder()
             .put("path.home", createTempDir()).build();
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
-        LocalDiscovery localDiscovery = new LocalDiscovery(
-            settings, clusterService, clusterService.getClusterSettings(), namedWriteableRegistry);
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
-        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
+        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL, () -> null);
         fsService = monitorService.fsService();
 
         HttpServerTransport httpServer = mock(HttpServerTransport.class);
-        TransportAddress httpAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 44200);
+        TransportAddress httpAddress = new TransportAddress(Inet4Address.getLocalHost(), 44200);
         BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{httpAddress}, httpAddress);
         when(httpServer.info()).thenReturn(new HttpInfo(boundAddress, 10));
 
+        NodeService nodeService = mock(NodeService.class);
+        when(nodeService.getMonitorService()).thenReturn(monitorService);
+
         nodeSysExpression = new NodeSysExpression(
             clusterService,
-            monitorService,
+            nodeService,
             httpServer,
-            localDiscovery,
             THREAD_POOL,
             new ExtendedNodeInfo()
         );
@@ -174,7 +170,7 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> v = port.value();
         assertEquals(44200, v.get("http"));
-        assertEquals(-1, v.get("transport"));
+        assertEquals(clusterService.localNode().getAddress().getPort(), v.get("transport"));
     }
 
     @Test
@@ -380,7 +376,7 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> v = ref.value();
         int cores = (int) v.get("available_processors");
-        assertThat(cores, is(EsExecutors.boundedNumberOfProcessors(Settings.EMPTY)));
+        assertThat(cores, is(EsExecutors.numberOfProcessors(Settings.EMPTY)));
     }
 
     @Test

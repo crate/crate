@@ -175,14 +175,16 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
             0,
             idxSettings,
             new BitsetFilterCache(idxSettings, mock(BitsetFilterCache.Listener.class)),
-            indexFieldDataService,
+            indexFieldDataService::getForField,
             mapperService,
             new SimilarityService(idxSettings, Collections.emptyMap()),
             mock(ScriptService.class),
             xContentRegistry(),
+            writableRegistry(),
             mock(Client.class),
             mock(IndexReader.class),
-            System::currentTimeMillis
+            System::currentTimeMillis,
+            "dummyClusterAlias"
         );
     }
 
@@ -215,7 +217,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     protected Query convert(WhereClause clause) {
-        return builder.convert(clause, mapperService, queryShardContext, indexFieldDataService, indexCache).query;
+        return builder.convert(clause, mapperService, queryShardContext, indexCache).query;
     }
 
     protected Query convert(String expression) {

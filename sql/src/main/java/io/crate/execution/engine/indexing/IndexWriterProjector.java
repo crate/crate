@@ -29,17 +29,16 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -47,6 +46,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
@@ -160,7 +160,7 @@ public class IndexWriterProjector implements Projector {
             }
             Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
             try {
-                BytesReference bytes = new XContentBuilder(Requests.INDEX_CONTENT_TYPE.xContent(),
+                BytesReference bytes = new XContentBuilder(XContentType.JSON.xContent(),
                     new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
                 lastSourceSize = bytes.length();
                 return bytes.toBytesRef();

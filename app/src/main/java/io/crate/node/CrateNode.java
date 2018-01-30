@@ -33,11 +33,13 @@ import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
+import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -54,8 +56,10 @@ public class CrateNode extends Node {
         BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
+        URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
+        CommonAnalysisPlugin.class,
         Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {
@@ -63,7 +67,11 @@ public class CrateNode extends Node {
     }
 
     @Override
-    protected void startUpLogging(Logger logger, Settings tmpSettings, boolean hadPredefinedNodeName) {
+    protected void startUpLogging(Logger logger,
+                                  Settings tmpSettings,
+                                  String nodeName,
+                                  String nodeId,
+                                  boolean hadPredefinedNodeName) {
         final JvmInfo jvmInfo = JvmInfo.jvmInfo();
         logger.info(
             "CrateDB version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",

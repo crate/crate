@@ -46,6 +46,7 @@ import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
+import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -77,14 +78,14 @@ public class NodeStatsContextFieldResolver {
     @Inject
     @SuppressWarnings("unused")
     public NodeStatsContextFieldResolver(ClusterService clusterService,
-                                         MonitorService monitorService,
+                                         NodeService nodeService,
                                          @Nullable HttpServerTransport httpServerTransport,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
         this(
             clusterService::localNode,
-            monitorService,
+            nodeService.getMonitorService(),
             () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
             threadPool,
             extendedNodeInfo,

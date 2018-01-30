@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.fetch.FetchId;
+import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 
 import java.io.IOException;
@@ -46,7 +46,7 @@ public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> 
     }
 
     @Override
-    public void setNextDocId(int doc) {
+    public void setNextDocId(int doc) throws IOException {
         super.setNextDocId(doc);
         fetchId = FetchId.encode(jobSearchContextId, docBase + doc);
     }

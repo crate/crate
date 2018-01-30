@@ -38,6 +38,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
@@ -87,7 +88,10 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                                                ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
-                                               NamedXContentRegistry xContentRegistry) {
+                                               NamedXContentRegistry xContentRegistry,
+                                               Environment environment,
+                                               NodeEnvironment nodeEnvironment,
+                                               NamedWriteableRegistry namedWriteableRegistry) {
         // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
         return Collections.singletonList(pipelineRegistry);
     }

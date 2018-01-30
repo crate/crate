@@ -32,8 +32,8 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CancellableThreads;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -63,8 +63,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
@@ -80,14 +78,12 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     public BlobRecoveryHandler(IndexShard shard,
                                RecoveryTargetHandler recoveryTarget,
                                StartRecoveryRequest request,
-                               Supplier<Long> currentClusterStateVersionSupplier,
-                               Function<String, Releasable> delayNewRecoveries,
                                int fileChunkSizeInBytes,
-                               Logger logger,
+                               Settings nodeSettings,
                                final TransportService transportService,
                                BlobTransferTarget blobTransferTarget,
                                BlobIndicesService blobIndicesService) {
-        super(shard, recoveryTarget, request, currentClusterStateVersionSupplier, delayNewRecoveries, fileChunkSizeInBytes, logger);
+        super(shard, recoveryTarget, request, fileChunkSizeInBytes, nodeSettings);
         assert BlobIndex.isBlobIndex(shard.shardId().getIndexName()) : "Shard must belong to a blob index";
         this.blobShard = blobIndicesService.blobShardSafe(request.shardId());
         this.request = request;
@@ -125,7 +121,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
     }
 
     @Override
-    protected void phase1Hook() throws Exception {
+    protected void blobRecoveryHook() throws Exception {
         logger.debug("[{}][{}] recovery [phase1] to {}: start",
             request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
         final StopWatch stopWatch = new StopWatch().start();

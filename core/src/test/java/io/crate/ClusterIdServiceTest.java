@@ -22,12 +22,18 @@
 package io.crate;
 
 import io.crate.plugin.CrateCorePlugin;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
+
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ESIntegTestCase {
@@ -42,7 +48,8 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
         String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
-        assertNotNull(clusterIdService.clusterId().get());
+        String clusterId = clusterIdService.clusterId().get();
+        assertThat(clusterId, allOf(notNullValue(), not(ClusterState.UNKNOWN_UUID)));
     }
 
     @Test
@@ -50,14 +57,15 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
         String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
-        String clusterId = clusterIdService.clusterId().get().value().toString();
+        String clusterId = clusterIdService.clusterId().get();
+        assertThat(clusterId, allOf(notNullValue(), not(ClusterState.UNKNOWN_UUID)));
 
         internalCluster().stopRandomDataNode();
         node_0 = internalCluster().startNode();
 
         clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
-        String clusterId2 = clusterIdService.clusterId().get().value().toString();
-        assertNotNull(clusterId2);
+        String clusterId2 = clusterIdService.clusterId().get();
+        assertThat(clusterId2, allOf(notNullValue(), not(ClusterState.UNKNOWN_UUID)));
 
         assertNotSame(clusterId, clusterId2);
     }
@@ -66,14 +74,15 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
     public void testClusterIdDistribution() throws Exception {
         String node_0 = internalCluster().startNode();
 
+        System.out.println(clusterService().state().metaData().clusterUUID());
         ClusterIdService clusterIdServiceNode0 = internalCluster().getInstance(ClusterIdService.class, node_0);
-        ClusterId clusterId = clusterIdServiceNode0.clusterId().get();
-        assertNotNull(clusterId);
+        String clusterId = clusterIdServiceNode0.clusterId().get();
+        assertThat(clusterId, allOf(notNullValue(), not(ClusterState.UNKNOWN_UUID)));
 
         String node_1 = internalCluster().startNode();
 
         ClusterIdService clusterIdServiceNode1 = internalCluster().getInstance(ClusterIdService.class, node_1);
-        assertNotNull(clusterIdServiceNode1.clusterId().get());
+        assertThat(clusterIdServiceNode1.clusterId().get(), allOf(notNullValue(), not(ClusterState.UNKNOWN_UUID)));
 
         assertEquals(clusterId, clusterIdServiceNode1.clusterId().get());
 
@@ -84,5 +93,10 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
         String node_2 = internalCluster().startNode();
         ClusterIdService clusterIdServiceNode2 = internalCluster().getInstance(ClusterIdService.class, node_2);
         assertEquals(clusterId, clusterIdServiceNode2.clusterId().get());
+    }
+
+    @Test
+    public void testUnknownClusterUUIDChanged() {
+        assertThat(ClusterState.UNKNOWN_UUID, is("_na_"));
     }
 }

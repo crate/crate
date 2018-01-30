@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -79,13 +78,13 @@ public class RoutingTest extends CrateUnitTest {
     public void testRoutingForRandomMasterOrDataNode() throws IOException {
         Map<String, String> attr = ImmutableMap.of();
         Set<DiscoveryNode.Role> master_and_data = ImmutableSet.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
-        DiscoveryNode local = new DiscoveryNode("client_node_1", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null);
+        DiscoveryNode local = new DiscoveryNode("client_node_1", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
-            .add(new DiscoveryNode("data_master_node_1", LocalTransportAddress.buildUnique(), attr, master_and_data, null))
-            .add(new DiscoveryNode("data_master_node_2", LocalTransportAddress.buildUnique(), attr, master_and_data, null))
+            .add(new DiscoveryNode("data_master_node_1", buildNewFakeTransportAddress(), attr, master_and_data, null))
+            .add(new DiscoveryNode("data_master_node_2", buildNewFakeTransportAddress(), attr, master_and_data, null))
             .add(local)
-            .add(new DiscoveryNode("client_node_2", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
-            .add(new DiscoveryNode("client_node_3", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
+            .add(new DiscoveryNode("client_node_2", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null))
+            .add(new DiscoveryNode("client_node_3", buildNewFakeTransportAddress(), attr, ImmutableSet.of(), null))
             .localNodeId(local.getId())
             .build();
 
@@ -102,14 +101,14 @@ public class RoutingTest extends CrateUnitTest {
     public void testRoutingForRandomMasterOrDataNodePrefersLocal() throws Exception {
         Set<DiscoveryNode.Role> data = ImmutableSet.of(DiscoveryNode.Role.DATA);
         Map<String, String> attr = ImmutableMap.of();
-        DiscoveryNode local = new DiscoveryNode("local_data", LocalTransportAddress.buildUnique(), attr, data, null);
+        DiscoveryNode local = new DiscoveryNode("local_data", buildNewFakeTransportAddress(), attr, data, null);
         DiscoveryNodes nodes = new DiscoveryNodes.Builder()
             .add(local)
             .localNodeId(local.getId())
-            .add(new DiscoveryNode("data_1", LocalTransportAddress.buildUnique(), attr, data, null))
-            .add(new DiscoveryNode("data_2", LocalTransportAddress.buildUnique(), attr, data, null))
-            .add(new DiscoveryNode("data_3", LocalTransportAddress.buildUnique(), attr, data, null))
-            .add(new DiscoveryNode("data_4", LocalTransportAddress.buildUnique(), attr, data, null))
+            .add(new DiscoveryNode("data_1", buildNewFakeTransportAddress(), attr, data, null))
+            .add(new DiscoveryNode("data_2", buildNewFakeTransportAddress(), attr, data, null))
+            .add(new DiscoveryNode("data_3", buildNewFakeTransportAddress(), attr, data, null))
+            .add(new DiscoveryNode("data_4", buildNewFakeTransportAddress(), attr, data, null))
             .build();
 
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), new String[0]);

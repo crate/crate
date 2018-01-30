@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, randomDynamicTemplates = false, supportsDedicatedMasters = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
 public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override

@@ -26,15 +26,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -49,7 +49,6 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -63,8 +62,6 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static org.mockito.Mockito.mock;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -96,7 +93,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         iw.forceMerge(1, true);
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
         collectorContext = new CollectorContext(
-            mock(IndexFieldDataService.class),
+            mappedFieldType -> null,
             new CollectorFieldsVisitor(0)
         );
         reference = new Reference(

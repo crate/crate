@@ -26,7 +26,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -82,11 +81,11 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected void resolveRequest(MetaData metaData, IndexMetaData indexMetaData, StartBlobRequest request) {
+    protected void resolveRequest(IndexMetaData indexMetaData, StartBlobRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting().indexShards(
             clusterService.state(), request.index(), request.id(), null);
         request.setShardId(shardIterator.shardId());
-        super.resolveRequest(metaData, indexMetaData, request);
+        super.resolveRequest(indexMetaData, request);
     }
 
     @Override

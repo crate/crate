@@ -29,7 +29,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
@@ -77,9 +76,9 @@ public class PluginLoader {
 
         String pluginFolder = SETTING_CRATE_PLUGINS_PATH.get(settings);
         if (pluginFolder.isEmpty()) {
-            pluginsPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
+            pluginsPath = PathUtils.get(settings.get("path.home")).normalize().resolve("plugins");
         } else {
-            pluginsPath = PathUtils.get(Strings.cleanPath(pluginFolder));
+            pluginsPath = PathUtils.get(pluginFolder).normalize();
         }
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
 

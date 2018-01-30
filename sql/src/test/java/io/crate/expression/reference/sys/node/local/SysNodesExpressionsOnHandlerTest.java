@@ -24,14 +24,14 @@ package io.crate.expression.reference.sys.node.local;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.node.DummyStatsProvider;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -322,7 +322,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression.setNextRow(context);
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        assertThat(v.get("available_processors"), is(EsExecutors.boundedNumberOfProcessors(Settings.EMPTY)));
+        assertThat(v.get("available_processors"), is(EsExecutors.numberOfProcessors(Settings.EMPTY)));
     }
 
     @Test

@@ -183,9 +183,6 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void createAnalyzerWithoutTokenizer() throws Exception {
         CreateAnalyzerAnalyzedStatement analysis = e.analyze(
             "CREATE ANALYZER a6 (" +
-            "  char_filters (" +
-            "    \"html_strip\"" +
-            "  )," +
             "  token_filters (" +
             "    lowercase" +
             "  )" +

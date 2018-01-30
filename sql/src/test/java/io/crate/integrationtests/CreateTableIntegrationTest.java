@@ -62,7 +62,7 @@ public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
         }
 
         executorService.shutdown();
-        assertThat("executorservice did not shutdown within timeout", executorService.awaitTermination(3, TimeUnit.SECONDS), is(true));
+        assertThat("executorservice did not shutdown within timeout", executorService.awaitTermination(10, TimeUnit.SECONDS), is(true));
 
         Throwable throwable = lastThrowable.get();
         if (throwable != null) {

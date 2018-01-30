@@ -23,8 +23,9 @@
 package io.crate.execution.dml.delete;
 
 import io.crate.exceptions.JobKilledException;
-import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.TransportShardAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -33,8 +34,10 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -59,9 +62,11 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       IndicesService indicesService,
                                       ThreadPool threadPool,
                                       ShardStateAction shardStateAction,
-                                      ActionFilters actionFilters) {
+                                      ActionFilters actionFilters,
+                                      SchemaUpdateClient schemaUpdateClient) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver,
-            clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new);
+            clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new,
+            schemaUpdateClient);
     }
 
     @Override
@@ -134,22 +139,28 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 break;
             }
 
-            Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
-            Engine.DeleteResult deleteResult = indexShard.delete(delete);
-            translogLocation = deleteResult.getTranslogLocation();
-            logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+            // Only execute delete operation on replica if the sequence number was applied from primary.
+            // If that's not the case, the delete on primary didn't succeed. We might handle this situation
+            // differently in the future by using the exception handling provided by WritePrimaryResult.
+            if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
+                Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
+                    item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL, getMappingUpdateConsumer(request));
+
+                translogLocation = deleteResult.getTranslogLocation();
+                logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+            }
         }
         return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
     }
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {
-        Engine.Delete delete = indexShard.prepareDeleteOnPrimary(request.type(), item.id(), item.version(), item.versionType());
-        Engine.DeleteResult deleteResult = indexShard.delete(delete);
-        // update the request with the version so it will go to the replicas
-        item.versionType(delete.versionType().versionTypeForReplicationAndRecovery());
-        item.version(deleteResult.getVersion());
+        Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnPrimary(
+            item.version(), request.type(), item.id(), VersionType.INTERNAL, getMappingUpdateConsumer(request));
 
-        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
+        // set version and sequence number for replica
+        item.version(deleteResult.getVersion());
+        item.seqNo(deleteResult.getSeqNo());
+
         return deleteResult;
     }
 }

@@ -36,7 +36,6 @@ import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -73,7 +72,7 @@ public class PreExecutionBenchmark {
     public void setup() throws Exception {
         threadPool = new TestThreadPool("testing");
         DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
-        ClusterService clusterService = createClusterService(Settings.EMPTY, threadPool, localNode);
+        ClusterService clusterService = createClusterService(threadPool, localNode);
         long dummySeed = 10;
         e = SQLExecutor.builder(clusterService, 1, new Random(dummySeed))
             .addTable("create table users (id int primary key, name string, date timestamp, text string index using fulltext)")

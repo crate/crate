@@ -37,6 +37,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 
 /**
  * Service that ensures a "crate_defaults" template exists.
@@ -97,7 +98,7 @@ public class DefaultTemplateService extends AbstractComponent {
         IndexTemplateMetaData defaultTemplate = IndexTemplateMetaData.builder(TEMPLATE_NAME)
             .order(0)
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, DEFAULT_MAPPING_SOURCE)
-            .template("*")
+            .patterns(Collections.singletonList("*"))
             .build();
         ImmutableOpenMap.Builder<String, IndexTemplateMetaData> builder = ImmutableOpenMap.builder(currentTemplates);
         builder.put(TEMPLATE_NAME, defaultTemplate);

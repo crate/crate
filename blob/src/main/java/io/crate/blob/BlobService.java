@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
@@ -47,9 +46,6 @@ import org.elasticsearch.indices.recovery.RecoverySourceHandlerProvider;
 import org.elasticsearch.indices.recovery.RemoteRecoveryTargetHandler;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
 import org.elasticsearch.transport.TransportService;
-
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class BlobService extends AbstractLifecycleComponent {
 
@@ -97,13 +93,13 @@ public class BlobService extends AbstractLifecycleComponent {
 
         blobHeadRequestHandler.registerHandler();
         peerRecoverySourceService.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
+
             @Override
             public RecoverySourceHandler get(IndexShard shard,
                                              StartRecoveryRequest request,
                                              RemoteRecoveryTargetHandler recoveryTarget,
-                                             Function<String, Releasable> delayNewRecoveries,
                                              int fileChunkSizeInBytes,
-                                             Supplier<Long> currentClusterStateVersionSupplier,
+                                             Settings settings,
                                              Logger logger) {
                 if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
                     return null;
@@ -112,10 +108,8 @@ public class BlobService extends AbstractLifecycleComponent {
                     shard,
                     recoveryTarget,
                     request,
-                    currentClusterStateVersionSupplier,
-                    delayNewRecoveries,
                     fileChunkSizeInBytes,
-                    logger,
+                    settings,
                     transportService,
                     blobTransferTarget,
                     blobIndicesService

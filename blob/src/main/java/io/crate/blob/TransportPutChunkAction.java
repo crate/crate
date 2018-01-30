@@ -26,7 +26,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -63,15 +62,15 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected void resolveRequest(MetaData metaData, IndexMetaData indexMetaData, PutChunkRequest request) {
+    protected void resolveRequest(IndexMetaData indexMetaData, PutChunkRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting().indexShards(
             clusterService.state(), request.index(), null, request.digest());
         request.setShardId(shardIterator.shardId());
-        super.resolveRequest(metaData, indexMetaData, request);
+        super.resolveRequest(indexMetaData, request);
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) throws Exception {
+    protected PrimaryResult<PutChunkReplicaRequest, PutChunkResponse> shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) {
         PutChunkResponse response = newResponseInstance();
         transferTarget.continueTransfer(request, response);
 
@@ -83,7 +82,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();
         replicaRequest.index(request.index());
-        return new PrimaryResult(replicaRequest, response);
+        return new PrimaryResult<>(replicaRequest, response);
     }
 
     @Override

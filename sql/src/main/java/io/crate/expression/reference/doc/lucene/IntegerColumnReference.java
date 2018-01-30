@@ -43,18 +43,19 @@ public class IntegerColumnReference extends LuceneCollectorExpression<Integer> {
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public void setNextDocId(int docId) throws IOException {
         super.setNextDocId(docId);
-        values.setDocument(docId);
-        switch (values.count()) {
-            case 0:
-                value = null;
-                break;
-            case 1:
-                value = (int) values.valueAt(0);
-                break;
-            default:
-                throw new GroupByOnArrayUnsupportedException(columnName);
+        if (values.advanceExact(docId)) {
+            switch (values.docValueCount()) {
+                case 1:
+                    value = (int) values.nextValue();
+                    break;
+
+                default:
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+            }
+        } else {
+            value = null;
         }
     }
 
