@@ -25,17 +25,17 @@ import java.util.UUID;
 
 public class ClusterId {
 
-    private String uuid;
+    private UUID uuid;
 
     public ClusterId() {
-        this.uuid = UUID.randomUUID().toString();
+        this.uuid = UUID.randomUUID();
     }
 
     public ClusterId(String uuid) {
-        this.uuid = uuid;
+        this.uuid = UUID.fromString(uuid);
     }
 
-    public String value() {
+    public UUID value() {
         return uuid;
     }
 
@@ -56,6 +56,6 @@ public class ClusterId {
 
     @Override
     public String toString() {
-        return "Cluster [" + uuid + "]";
+        return "Cluster [" + uuid.toString() + "]";
     }
 }

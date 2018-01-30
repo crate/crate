@@ -94,7 +94,7 @@ public class PingTask extends TimerTask {
     private String getClusterId() {
         // wait until clusterId is available (master has been elected)
         try {
-            return clusterIdService.clusterId().get().value();
+            return clusterIdService.clusterId().get().value().toString();
         } catch (InterruptedException | ExecutionException e) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Error getting cluster id", e);
