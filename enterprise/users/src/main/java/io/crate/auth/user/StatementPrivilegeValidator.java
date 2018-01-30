@@ -352,11 +352,6 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 throwUnauthorized(user);
                 return null;
             }
-            Privileges.ensureUserHasPrivilege(
-                Privilege.Type.DQL,
-                Privilege.Clazz.CLUSTER,
-                null,
-                user);
             return null;
         }
 
@@ -449,11 +444,6 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitBegin(AnalyzedBegin analyzedBegin, User user) {
-            Privileges.ensureUserHasPrivilege(
-                Privilege.Type.DQL,
-                Privilege.Clazz.CLUSTER,
-                null,
-                user);
             return null;
         }
     }

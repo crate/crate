@@ -26,11 +26,11 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -359,9 +359,10 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void testSetSession() throws Exception {
+    public void testSetSessionRequiresNoPermissions() throws Exception {
+        // allowed without any permissions as it affects only the user session;
         analyze("set session foo = 'bar'");
-        assertAskedForCluster(Privilege.Type.DQL);
+        assertThat(validationCallArguments.size(), is(0));
     }
 
     @Test
@@ -383,9 +384,11 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void testBegin() throws Exception {
+    public void testBeginRequiresNoPermission() throws Exception {
+        // Begin is currently ignored; In other RDMS it's used to start transactions with contain
+        // other statements; these other statements need to be validated
         analyze("begin");
-        assertAskedForCluster(Privilege.Type.DQL);
+        assertThat(validationCallArguments.size(), is(0));
     }
 
     @Test

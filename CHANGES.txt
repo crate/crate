@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Changed ``BEGIN`` and ``SET SESSION`` to no longer require ``DQL``
+  permissions on the ``CLUSTER`` level.
+
 - Implemented a `Ready` node status JMX metric expressing if the node is ready
   for processing SQL statements.
 
