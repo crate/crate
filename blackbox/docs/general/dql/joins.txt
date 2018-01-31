@@ -201,11 +201,19 @@ Example with ``within`` scalar function::
     +--------------+---------+
     SELECT 2 rows in set (... sec)
 
-However, there are no specific optimisations for certain join conditions such
-as ``=`` (equals) yet. The JOIN operation is implemented as a generic nested
-loop that invokes the operation on every record of the left table with every
-record of the right table. However, these filters are applied in a distributed
-way for each shard of the used tables.
+.. NOTE::
+
+    The JOIN operation is implemented as a generic nested loop that evaluates
+    the join conditions on every record of the left table with every record of
+    the right table in a distributed manner (for each shard of the used
+    tables).
+
+    However, performance for `Equi-Joins`_  can be substantially improved by
+    using the `Hash Join`_ algorithm. Hash Join is currently an experimental
+    feature which can be enabled on demand with the session setting
+    `enable_hashjoin`::
+
+      SET enable_hashjoin=true
 
 Limitations
 ...........
@@ -213,5 +221,11 @@ Limitations
  - Joining more than 2 tables can result in execution plans which perform
    poorly as there is no query optimizer in place yet.
 
+The `Join Architecture`_ documentation has more information about join
+implementations.
+
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
+.. _`Equi-Joins`: https://en.wikipedia.org/wiki/Join_(SQL)#Equi-join
+.. _`Hash Join`: https://en.wikipedia.org/wiki/Hash_join
+.. _`Join Architecture`: https://crate.io/docs/crate/guide/en/latest/architecture/joins.html
