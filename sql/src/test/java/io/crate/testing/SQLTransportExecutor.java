@@ -25,14 +25,14 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.expression.symbol.Field;
+import io.crate.action.sql.Session;
+import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.expression.symbol.Field;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
@@ -304,17 +304,22 @@ public class SQLTransportExecutor {
                 return executeAndConvertResult(preparedStatement);
             }
         } catch (PSQLException e) {
+            LOGGER.error("Error executing stmt={} args={}", stmt, Arrays.toString(args));
             ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
-            StackTraceElement[] stacktrace;
-            if (serverErrorMessage != null) {
-                StackTraceElement stackTraceElement = new StackTraceElement(
+            final StackTraceElement[] stacktrace;
+            //noinspection ThrowableNotThrown add the test-call-chain to the stack to be able
+            // to quickly figure out which statement in a test case led to the error
+            StackTraceElement[] traceToExecWithPg = new Exception().getStackTrace();
+            if (serverErrorMessage == null) {
+                stacktrace = traceToExecWithPg;
+            } else {
+                stacktrace = new StackTraceElement[traceToExecWithPg.length + 1];
+                stacktrace[0] = new StackTraceElement(
                     serverErrorMessage.getFile(),
                     serverErrorMessage.getRoutine(),
                     serverErrorMessage.getFile(),
                     serverErrorMessage.getLine());
-                stacktrace = new StackTraceElement[]{stackTraceElement};
-            } else {
-                stacktrace = new StackTraceElement[]{};
+                System.arraycopy(traceToExecWithPg, 0, stacktrace, 1, traceToExecWithPg.length);
             }
             throw new SQLActionException(
                 e.getMessage(),
