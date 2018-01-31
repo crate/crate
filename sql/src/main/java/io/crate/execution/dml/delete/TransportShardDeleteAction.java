@@ -140,14 +140,16 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
 
             // Only execute delete operation on replica if the sequence number was applied from primary.
-            // If that's not the case, the delete on primary didn't succeed. We might handle this situation
-            // differently in the future by using the exception handling provided by WritePrimaryResult.
+            // If that's not the case, the delete on primary didn't succeed. Note that we still need to
+            // process the other items in case of a bulk request.
             if (item.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO) {
                 Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnReplica(
                     item.seqNo(), item.version(), request.type(), item.id(), VersionType.EXTERNAL, getMappingUpdateConsumer(request));
 
                 translogLocation = deleteResult.getTranslogLocation();
-                logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+                }
             }
         }
         return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
