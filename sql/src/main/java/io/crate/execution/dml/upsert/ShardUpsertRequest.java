@@ -24,12 +24,11 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
+import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.execution.dml.ShardRequest;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -234,7 +233,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
      */
     public static class Item extends ShardRequest.Item {
 
-        private IndexRequest.OpType opType = IndexRequest.OpType.INDEX;
         @Nullable
         private BytesReference source;
 
@@ -260,14 +258,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.version = version;
             }
             this.insertValues = insertValues;
-        }
-
-        public IndexRequest.OpType opType() {
-            return opType;
-        }
-
-        public void opType(IndexRequest.OpType opType) {
-            this.opType = opType;
         }
 
         @Nullable
@@ -310,7 +300,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
-            opType = IndexRequest.OpType.fromId(in.readByte());
             if (in.readBoolean()) {
                 source = in.readBytesReference();
             }
@@ -337,7 +326,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 out.writeVInt(0);
             }
 
-            out.writeByte(opType.getId());
             boolean sourceAvailable = source != null;
             out.writeBoolean(sourceAvailable);
             if (sourceAvailable) {

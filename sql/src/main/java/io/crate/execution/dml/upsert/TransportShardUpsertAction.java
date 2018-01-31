@@ -52,7 +52,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -235,14 +234,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }
-            if (!request.overwriteDuplicates()) {
-                item.opType(IndexRequest.OpType.CREATE);
-            } else {
+            if (request.overwriteDuplicates()) {
                 version = Versions.MATCH_ANY;
-                item.opType(IndexRequest.OpType.INDEX);
             }
         } else {
-            item.opType(IndexRequest.OpType.INDEX);
             SourceAndVersion sourceAndVersion = prepareUpdate(tableInfo, request, item, indexShard);
             item.source(sourceAndVersion.source);
             version = sourceAndVersion.version;
