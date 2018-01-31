@@ -72,6 +72,12 @@ public class CrateNode extends Node {
                                   String nodeName,
                                   String nodeId,
                                   boolean hadPredefinedNodeName) {
+        if (hadPredefinedNodeName == false) {
+            logger.info("node name [{}] derived from node ID [{}]; set [{}] to override", nodeName, nodeId, NODE_NAME_SETTING.getKey());
+        } else {
+            logger.info("node name [{}], node ID [{}]", nodeName, nodeId);
+        }
+
         final JvmInfo jvmInfo = JvmInfo.jvmInfo();
         logger.info(
             "CrateDB version[{}], pid[{}], build[{}/{}], OS[{}/{}/{}], JVM[{}/{}/{}/{}]",
@@ -86,6 +92,7 @@ public class CrateNode extends Node {
             Constants.JVM_NAME,
             Constants.JAVA_VERSION,
             Constants.JVM_VERSION);
+        logger.info("JVM arguments {}", Arrays.toString(jvmInfo.getInputArguments()));
 
         if (logger.isDebugEnabled()) {
             Environment environment = getEnvironment();
