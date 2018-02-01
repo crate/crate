@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
@@ -36,10 +37,11 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseRandomizedSession(schema = false) // Avoid set session stmt to interfere with tests
 @UseSemiJoins(0) // Avoid set session stmt to interfere with tests
+@UseHashJoins(0) // Avoid set session stmt to interfere with tests
 public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
     @After
-    public void resetSettings() throws Exception {
+    public void resetSettings() {
         // reset stats settings in case of some tests changed it and failed without resetting.
         execute("reset global stats.enabled, stats.jobs_log_size, stats.operations_log_size");
     }
