@@ -44,6 +44,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     private String defaultSchema;
     private boolean semiJoinsRewriteEnabled;
+    private boolean hashJoinEnabled;
 
     public SessionContext(@Nullable String defaultSchema,
                           @Nullable User user,
@@ -95,6 +96,14 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public boolean getSemiJoinsRewriteEnabled() {
         return semiJoinsRewriteEnabled;
+    }
+
+    public boolean isHashJoinEnabled() {
+        return hashJoinEnabled;
+    }
+
+    public void setHashJoinEnabled(boolean hashJoinEnabled) {
+        this.hashJoinEnabled = hashJoinEnabled;
     }
 
     @Nullable
