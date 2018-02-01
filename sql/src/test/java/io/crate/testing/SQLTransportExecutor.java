@@ -96,6 +96,9 @@ public class SQLTransportExecutor {
         MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
     private static final Logger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
+
+    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false);
+
     private final ClientProvider clientProvider;
 
     private String defaultSchema;
@@ -113,19 +116,19 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return executeTransportOrJdbc(false, false, statement, null, REQUEST_TIMEOUT);
+        return executeTransportOrJdbc(EXECUTION_FEATURES_DISABLED, statement, null, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object[] params) {
-        return executeTransportOrJdbc(isJdbcEnabled, isSemiJoinsEnabled, statement, params, REQUEST_TIMEOUT);
+    public SQLResponse exec(TestExecutionConfig config, String statement, Object[] params) {
+        return executeTransportOrJdbc(config, statement, params, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, String statement, Object[] params, TimeValue timeout) {
-        return executeTransportOrJdbc(isJdbcEnabled, isSemiJoinsEnabled, statement, params, timeout);
+    public SQLResponse exec(TestExecutionConfig config, String statement, Object[] params, TimeValue timeout) {
+        return executeTransportOrJdbc(config, statement, params, timeout);
     }
 
     public SQLResponse exec(String statement, Object[] params) {
-        return executeTransportOrJdbc(false, false, statement, params, REQUEST_TIMEOUT);
+        return executeTransportOrJdbc(EXECUTION_FEATURES_DISABLED, statement, params, REQUEST_TIMEOUT);
     }
 
     public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
@@ -136,8 +139,7 @@ public class SQLTransportExecutor {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
-    private SQLResponse executeTransportOrJdbc(boolean isJdbcEnabled,
-                                               boolean isSemiJoinsEnabled,
+    private SQLResponse executeTransportOrJdbc(TestExecutionConfig config,
                                                String stmt,
                                                @Nullable Object[] args,
                                                TimeValue timeout) {
@@ -147,12 +149,17 @@ public class SQLTransportExecutor {
         List<String> sessionList = new ArrayList<>();
         sessionList.add("set search_path='" + defaultSchema + "'");
 
-        if (isSemiJoinsEnabled) {
+        if (config.isSemiJoinsEnabled()) {
             sessionList.add("set enable_semijoin=true");
             LOGGER.trace("Executing with enable_semijoin=true: {}", stmt);
         }
 
-        if (pgUrl != null && isJdbcEnabled) {
+        if (config.isHashJoinEnabled()) {
+            sessionList.add("set enable_hashjoin=true");
+            LOGGER.trace("Executing with enable_hashjoin=true: {}", stmt);
+        }
+
+        if (pgUrl != null && config.isJdbcEnabled()) {
             LOGGER.trace("Executing with pgJDBC: {}", stmt);
             return executeWithPg(
                 stmt,
@@ -162,7 +169,7 @@ public class SQLTransportExecutor {
                 sessionList);
         }
         try {
-            if (isSemiJoinsEnabled) {
+            if (config.isSemiJoinsEnabled()) {
                 Session session = newSession();
                 sessionList.forEach((setting) -> exec(setting, session));
                 return execute(stmt, args, session).actionGet(timeout);
