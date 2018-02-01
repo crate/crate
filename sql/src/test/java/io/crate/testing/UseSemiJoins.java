@@ -29,7 +29,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Execute "set semi_joins = true" before the actual statement to allow IN/ANY (Subquery)
+ * Execute "set enable_semijoin = true" before the actual statement to allow IN/ANY (Subquery)
  * to be rewritten to a SEMI/ANTI join.
  */
 @Retention(RetentionPolicy.RUNTIME)

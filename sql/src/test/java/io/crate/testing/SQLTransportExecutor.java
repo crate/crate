@@ -148,8 +148,8 @@ public class SQLTransportExecutor {
         sessionList.add("set search_path='" + defaultSchema + "'");
 
         if (isSemiJoinsEnabled) {
-            sessionList.add("set semi_joins=true");
-            LOGGER.trace("Executing with semi_joins=true: {}", stmt);
+            sessionList.add("set enable_semijoin=true");
+            LOGGER.trace("Executing with enable_semijoin=true: {}", stmt);
         }
 
         if (pgUrl != null && isJdbcEnabled) {

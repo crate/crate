@@ -43,7 +43,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     private Setup setup = new Setup(sqlExecutor);
     static final List<List<String>> NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED = Arrays.asList(
         Collections.emptyList(),
-        Collections.singletonList("set semi_joins = true"));
+        Collections.singletonList("set enable_semijoin = true"));
 
     @Test
     public void testSubSelectOrderBy() throws Exception {
@@ -213,7 +213,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
+    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testNestedSubSelectWithOuterJoins() throws Exception {
         execute("create table t1 (a string, i integer, x integer)");
         execute("create table t2 (a string, i integer, y integer)");
@@ -604,7 +604,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
+    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testNestedSubqueryWithAggregatesInMultipleStages() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
@@ -627,7 +627,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
+    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testJoiningSubqueries() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
@@ -649,7 +649,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
+    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testSubqueryWithNestedEquiJoin() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
@@ -669,7 +669,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with semi_joins enabled and disabled
+    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testSelectWithTwoInOnSubQueryThatCanBeRewrittenToSemiJoins() throws Exception {
         executeWith(
             NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,

@@ -32,7 +32,7 @@ import java.util.Map;
 public class SessionSettingRegistry {
 
     public static final String SEARCH_PATH_KEY = "search_path";
-    public static final String SEMI_JOIN_KEY = "semi_joins";
+    public static final String SEMI_JOIN_KEY = "enable_semijoin";
 
     private static final Map<String, SessionSettingApplier> SESSION_SETTINGS =
         ImmutableMap.<String, SessionSettingApplier>builder()
