@@ -23,11 +23,11 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.analyze.OrderBy;
+import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldDoc;
@@ -88,16 +88,16 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, queryShardContext), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, null, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, queryShardContext), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, null, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
-                        orderQuery = fieldType.rangeQuery(value, null, false, false, queryShardContext);
+                        orderQuery = fieldType.rangeQuery(value, null, false, false, null, null, null, queryShardContext);
                     } else {
-                        orderQuery = fieldType.rangeQuery(null, value, false, false, queryShardContext);
+                        orderQuery = fieldType.rangeQuery(null, value, false, false, null, null, null, queryShardContext);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

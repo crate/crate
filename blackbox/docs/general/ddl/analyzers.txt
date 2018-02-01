@@ -186,10 +186,10 @@ Pattern API`_ for more details about flags options.
 
 The following types are supported:
 
-``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bulgarian``,
-``catalan``, ``chinese``, ``cjk``, ``czech``, ``danish``, ``dutch``,
-``english``, ``finnish``, ``french``, ``galician``, ``german``, ``greek``,
-``hindi``, ``hungarian``, ``indonesian``, ``italian``,  ``latvian``,
+``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bengali``,
+``bulgarian``, ``catalan``, ``chinese``, ``cjk``, ``czech``, ``danish``,
+``dutch``, ``english``, ``finnish``, ``french``, ``galician``, ``german``,
+``greek``, ``hindi``, ``hungarian``, ``indonesian``, ``italian``,  ``latvian``,
 ``lithuanian``, ``norwegian``, ``persian``, ``portuguese``, ``romanian``,
 ``russian``, ``sorani``, ``spanish``, ``swedish``, ``turkish``, ``thai``.
 
@@ -205,11 +205,12 @@ stopwords_path
 
 The following analyzers support setting custom ``stem_exclusion`` list:
 
-``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bulgarian``,
-``catalan``, ``czech``, ``danish``, ``dutch``, ``english``, ``finnish``,
-``french``, ``galician``, ``german``, ``hindi``, ``hungarian``, ``indonesian``,
-``italian``, ``latvian``, ``lithuanian``, ``norwegian``, ``portuguese``,
-``romanian``, ``russian``, ``spanish``, ``swedish``, ``turkish``.
+``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bengali``,
+``bulgarian``, ``catalan``, ``czech``, ``danish``, ``dutch``, ``english``,
+``finnish``, ``french``, ``galician``, ``german``, ``hindi``, ``hungarian``,
+``indonesian``, ``italian``, ``latvian``, ``lithuanian``, ``norwegian``,
+``portuguese``, ``romanian``, ``russian``, ``spanish``, ``swedish``,
+``turkish``.
 
 .. _snowball-analyzer:
 
@@ -1074,6 +1075,7 @@ Normalizes special characters of several languages.
 Available languages:
 
 * arabic
+* bengali
 * german
 * hindi
 * indic

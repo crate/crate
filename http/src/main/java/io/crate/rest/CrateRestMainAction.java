@@ -34,13 +34,11 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
@@ -96,12 +94,11 @@ public class CrateRestMainAction implements RestHandler {
     private final Settings settings;
     private final Path siteDirectory;
 
-    @Inject
-    public CrateRestMainAction(Settings settings, Environment environment, RestController controller) {
+    public CrateRestMainAction(Settings settings, Path siteDirectory, RestController controller) {
         this.settings = settings;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
-        siteDirectory = environment.libFile().resolve("site");
+        this.siteDirectory = siteDirectory;
         Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         if (esApiEnabled) {

@@ -100,7 +100,9 @@ public class NodeSettingsTest extends CrateUnitTest {
         node.start();
         client = node.client();
         client.admin().indices().prepareCreate("test")
-            .setSettings(SETTING_NUMBER_OF_REPLICAS, 0, SETTING_NUMBER_OF_SHARDS, 1)
+            .setSettings(Settings.builder()
+                .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                .put(SETTING_NUMBER_OF_SHARDS, 1))
             .execute().actionGet();
     }
 

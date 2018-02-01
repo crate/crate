@@ -22,10 +22,15 @@
 package io.crate.expression.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.NestedObjectExpression;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardPathExpression;
+import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
-import io.crate.expression.NestableInput;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
@@ -33,11 +38,6 @@ import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardPathExpression;
-import io.crate.expression.reference.sys.shard.ShardRecoveryStateExpression;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -123,7 +123,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Path dataPath = Paths.get("/dummy/" + indexUUID + "/" + shardId.id());
         when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, shardId));
 
-        DocsStats docsStats = new DocsStats(654321L, 0L);
+        DocsStats docsStats = new DocsStats(654321L, 0L, 200L);
         when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
 
         ShardRouting shardRouting = ShardRouting.newUnassigned(

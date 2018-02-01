@@ -25,10 +25,13 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.geo.ShapeRelation;
+import org.elasticsearch.common.joda.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.similarity.SimilarityProvider;
+import org.joda.time.DateTimeZone;
 
 import java.util.List;
 
@@ -144,8 +147,8 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext queryShardContext) {
-        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, queryShardContext);
+    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation, DateTimeZone timeZone, DateMathParser parser, QueryShardContext context) {
+        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, relation, timeZone, parser, context);
     }
 
     @Override
@@ -162,5 +165,10 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Nullable
     public Query queryStringTermQuery(Term term) {
         return innerFieldType.queryStringTermQuery(term);
+    }
+
+    @Override
+    public Query existsQuery(QueryShardContext context) {
+        return innerFieldType.existsQuery(context);
     }
 }

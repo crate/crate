@@ -24,7 +24,7 @@ dependencies {
     compile "org.elasticsearch:securesm:1.1"
 
     // utilities
-    compile 'net.sf.jopt-simple:jopt-simple:5.0.2'
+    compile "org.elasticsearch:elasticsearch-cli:${versions.elasticsearch}"
     compile "com.carrotsearch:hppc:0.7.1"
 
     // time handling
@@ -42,7 +42,7 @@ dependencies {
     // percentiles aggregation
     compile "com.tdunning:t-digest:3.0"
     // percentil ranks aggregation
-    compile "org.hdrhistogram:HdrHistogram:2.1.6"
+    compile "org.hdrhistogram:HdrHistogram:2.1.9"
 
     // lucene spatial
     compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"

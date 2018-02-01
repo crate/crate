@@ -56,7 +56,7 @@ public class CrateDB extends EnvironmentAwareCommand {
     private final OptionSpecBuilder quietOption;
 
     private CrateDB() {
-        super("starts CrateDB", "C");
+        super("starts CrateDB", "C", () -> { });
         versionOption = parser.acceptsAll(Arrays.asList("V", "version"),
             "Prints CrateDB version information and exits");
         daemonizeOption = parser.acceptsAll(Arrays.asList("d", "daemonize"),
@@ -146,7 +146,7 @@ public class CrateDB extends EnvironmentAwareCommand {
             .put(existingEnv.settings())
             .put(Environment.PIDFILE_SETTING.getKey(), pidFile)
             .build();
-        return new Environment(settingsWithPid);
+        return new Environment(settingsWithPid, existingEnv.configFile());
     }
 
     private void init(final boolean daemonize, final boolean quiet, Environment env)

@@ -48,6 +48,7 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -942,6 +943,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY)
         );
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
+        Path homeDir = createTempDir();
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
@@ -951,8 +953,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             new FulltextAnalyzerResolver(clusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()
-                        .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
-                        .build()),
+                        .put(Environment.PATH_HOME_SETTING.getKey(), homeDir.toString())
+                        .build(),
+                        homeDir.resolve("config")
+                    ),
                     emptyMap(),
                     emptyMap(),
                     emptyMap(),

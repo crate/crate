@@ -130,6 +130,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 import static org.mockito.Mockito.mock;
 
@@ -210,10 +211,11 @@ public class SQLExecutor {
                 clusterService,
                 new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
             );
-            File tempDir = createTempDir();
-            Environment environment = new Environment(Settings.builder()
-                .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
-                .build());
+            File homeDir = createTempDir();
+            Environment environment = new Environment(
+                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
+                homeDir.toPath().resolve("config")
+            );
             try {
                 analysisRegistry = new AnalysisModule(environment, singletonList(new CommonAnalysisPlugin()))
                     .getAnalysisRegistry();

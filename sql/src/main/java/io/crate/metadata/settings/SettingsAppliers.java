@@ -60,7 +60,7 @@ public class SettingsAppliers {
 
         public void applyValue(Settings.Builder settingsBuilder, Object value) {
             try {
-                settingsBuilder.put(name, validate(value));
+                settingsBuilder.put(name, validate(value).toString());
             } catch (InvalidSettingValueContentException e) {
                 throw new IllegalArgumentException(e.getMessage());
             } catch (IllegalArgumentException e) {
@@ -95,7 +95,7 @@ public class SettingsAppliers {
 
         NumberSettingsApplier(Setting setting) {
             super(setting.name(), setting.defaultValue() == null ? Settings.EMPTY :
-                Settings.builder().put(setting.name(), setting.defaultValue()).build());
+                Settings.builder().put(setting.name(), setting.defaultValue().toString()).build());
             this.setting = setting;
         }
 

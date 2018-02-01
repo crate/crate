@@ -40,7 +40,7 @@ public class TableParameter {
     public TableParameter(Settings settings, List<String> settingsFilter) {
         this();
         for (String settingName : settingsFilter) {
-            Object setting = settings.get(settingName);
+            String setting = settings.get(settingName);
             if (setting != null) {
                 settingsBuilder().put(settingName, setting);
             }

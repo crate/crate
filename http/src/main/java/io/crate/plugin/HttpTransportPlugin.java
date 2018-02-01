@@ -27,6 +27,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -50,6 +51,7 @@ import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +61,7 @@ import java.util.function.UnaryOperator;
 
 import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 
@@ -143,6 +146,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                                              SettingsFilter settingsFilter,
                                              IndexNameExpressionResolver indexNameExpressionResolver,
                                              Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(new CrateRestMainAction(settings, new Environment(settings), restController));
+        Path siteDir = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize().resolve("lib").resolve("site");
+        return Collections.singletonList(new CrateRestMainAction(settings, siteDir, restController));
     }
 }

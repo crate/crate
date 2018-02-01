@@ -98,6 +98,7 @@ import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
@@ -113,6 +114,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
+import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.elasticsearch.index.mapper.GeoPointFieldMapper;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -413,11 +415,11 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
-                    fieldType.rangeQuery(value, null, false, false, context.queryShardContext),
+                    fieldType.rangeQuery(value, null, false, false, null, null, null, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 query.add(
-                    fieldType.rangeQuery(null, value, false, false, context.queryShardContext),
+                    fieldType.rangeQuery(null, value, false, false, null, null, null, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 return query.build();
@@ -628,6 +630,20 @@ public class LuceneQueryBuilder {
                 }
                 Reference reference = (Reference) arg;
                 String columnName = reference.ident().columnIdent().fqn();
+
+                // ExistsQueryBuilder.newFilter doesn't build the correct exists query for arrays
+                // because ES isn't really aware of explicit array types
+                if (reference.valueType() instanceof CollectionType) {
+                    MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                    if (fieldType != null) {
+                        return Queries.not(fieldType.existsQuery(context.queryShardContext));
+                    }
+                    MappedFieldType fieldNames = context.getFieldTypeOrNull(FieldNamesFieldMapper.NAME);
+                    if (fieldNames != null) {
+                        return Queries.not(new ConstantScoreQuery(
+                            new TermQuery(new Term(FieldNamesFieldMapper.NAME, columnName))));
+                    }
+                }
                 return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName));
             }
         }
@@ -785,7 +801,7 @@ public class LuceneQueryBuilder {
                 }
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null : "bounds must not be null";
-                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, queryShardContext);
+                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, null, null, null, queryShardContext);
             }
         }
 

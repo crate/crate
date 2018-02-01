@@ -125,7 +125,7 @@ public class CrateSettingsPreparer {
         }
     }
 
-    private static <T> void putIfAbsent(Settings.Builder settingsBuilder, String setting, T value) {
+    private static void putIfAbsent(Settings.Builder settingsBuilder, String setting, String value) {
         if (settingsBuilder.get(setting) == null) {
             settingsBuilder.put(setting, value);
         }

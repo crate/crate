@@ -26,6 +26,7 @@ import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
@@ -33,7 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.rest.RestChannel;
@@ -44,6 +44,8 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 
 
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
@@ -102,7 +104,7 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
         private final Dispatcher fallbackDispatcher;
 
         CrateDispatcher(Settings settings, Dispatcher fallbackDispatcher) {
-            this.sitePath = new Environment(settings).libFile().resolve("site");
+            this.sitePath = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize().resolve("lib").resolve("site");
             this.fallbackDispatcher = fallbackDispatcher;
         }
 

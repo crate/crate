@@ -110,7 +110,6 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                                                              "canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
         assertThat(analysis.repositoryName(), is("foo"));
-
         assertThat(
             analysis.settings(),
             allOf(

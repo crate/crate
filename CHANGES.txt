@@ -45,7 +45,10 @@ Breaking Changes
 Changes
 =======
 
-- CrateDB is now based on Elasticsearch 6.0.1 and Lucene 7.0.1.
+- CrateDB is now based on Elasticsearch 6.1.3 and Lucene 7.1.0.
+
+- Added a new ``bengali`` language analyzer and a ``bengali_normalization``
+  token filter.
 
 - Added new ``cluster.routing.allocation.disk.watermark.flood_stage`` setting,
   that controls at which disk usage indices should become read-only to prevent
