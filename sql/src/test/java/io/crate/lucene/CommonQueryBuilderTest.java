@@ -397,7 +397,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnGeoPoint() throws Exception {
         Query query = convert("point is null");
-        assertThat(query.toString(), is("+*:* -ConstantScore(_field_names:point)"));
+        assertThat(query.toString(), is("+*:* -ConstantScore(DocValuesFieldExistsQuery [field=point])"));
     }
 
     @Test

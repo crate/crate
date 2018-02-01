@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 
 import static org.elasticsearch.transport.TcpTransport.PORT;
 import static org.hamcrest.Matchers.containsString;
@@ -96,14 +97,14 @@ public class CrateSettingsPreparerTest {
 
     @Test
     public void testThatCommandLineArgumentsOverrideSettingsFromConfigFile() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        builder.put("path.conf", config);
-        builder.put("stats.enabled", true);
-        builder.put("cluster.name", "clusterNameOverridden");
-        builder.put("path.logs", "/some/other/path");
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
+        settings.put("path.conf", config.toString());
+        settings.put("stats.enabled", "true");
+        settings.put("cluster.name", "clusterNameOverridden");
+        settings.put("path.logs", "/some/other/path");
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
         // Overriding value from crate.yml
         assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
         // Value kept from crate.yml
@@ -116,45 +117,45 @@ public class CrateSettingsPreparerTest {
 
     @Test
     public void testConfigSettingsLoaded() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        builder.put("path.conf", config);
-        Settings settings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
+        settings.put("path.conf", config.toString());
+        Settings preparedSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
         // Values from crate.yml
-        assertThat(settings.get("cluster.name", null), is("testCluster"));
-        assertThat(settings.get("path.logs"), is("/some/path"));
+        assertThat(preparedSettings.get("cluster.name", null), is("testCluster"));
+        assertThat(preparedSettings.get("path.logs"), is("/some/path"));
     }
 
     @Test
     public void testClusterNameMissingFromConfigFile() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
-        builder.put("cluster.name", "clusterName");
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
+        settings.put("cluster.name", "clusterName");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
         assertThat(finalSettings.get("cluster.name", null), is("clusterName"));
     }
 
     @Test
     public void testClusterNameMissingFromBothConfigFileAndCommandLineArgs() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
-        builder.put("cluster.name", "elasticsearch");
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
+        settings.put("cluster.name", "elasticsearch");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
         assertThat(finalSettings.get("cluster.name", null), is("crate"));
     }
 
     @Test
     public void testErrorWithDuplicateSettingInConfigFile() throws Exception {
-        Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
+        HashMap<String, String> settings = new HashMap<>();
+        settings.put("path.home", ".");
         Path config = PathUtils.get(getClass().getResource("config_invalid").toURI());
-        builder.put("path.conf", config);
+        settings.put("path.conf", config.toString());
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage("Failed to load settings from");
         expectedException.expectCause(Matchers.hasProperty("message", containsString("Duplicate field 'stats.enabled'")));
-        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
+        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
     }
 }

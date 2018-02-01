@@ -29,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -81,7 +82,12 @@ public class HostBasedAuthentication implements Authentication {
         Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings);
         ImmutableSortedMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableSortedMap.naturalOrder();
         for (Map.Entry<String, Settings> entry : hbaSettings.getAsGroups().entrySet()) {
-            hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
+            Settings hbaEntry = entry.getValue();
+            HashMap<String, String> map = new HashMap<>(hbaEntry.size());
+            for (String name : hbaEntry.keySet()) {
+                map.put(name, hbaEntry.get(name));
+            }
+            hostBasedConf.put(entry.getKey(), map);
         }
         return hostBasedConf.build();
     }

@@ -181,7 +181,7 @@ public class SrvUnicastHostsProviderTest {
     public void testBuildDynamicNodes() throws Exception {
         // records
         Settings.Builder builder = Settings.builder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY.getKey(), "_crate._srv.crate.internal");
         SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(), transportService) {
             @Override
             protected Record[] lookupRecords() throws TextParseException {

@@ -75,7 +75,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
                           Settings indexSettings, MultiFields multiFields, Mapper innerMapper) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, null);
+        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 

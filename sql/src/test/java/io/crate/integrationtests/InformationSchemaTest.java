@@ -110,7 +110,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(123L, response.rowCount());
+        assertEquals(125L, response.rowCount());
     }
 
     @Test
@@ -452,7 +452,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             tokenFilterNames[i] = (String) response.rows()[i][0];
         }
         assertEquals(
-            "apostrophe, arabic_normalization, arabic_stem, asciifolding, brazilian_stem",
+            "apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization",
             Joiner.on(", ").join(tokenFilterNames)
         );
     }

@@ -21,6 +21,9 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.base.Joiner;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -37,6 +40,11 @@ import org.junit.Test;
 
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
+import java.util.Map;
+
+import java.util.Collections;
+import java.util.Map;
+
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
@@ -110,7 +118,6 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                                                              "canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
         assertThat(analysis.repositoryName(), is("foo"));
-
         assertThat(
             analysis.settings(),
             allOf(

@@ -413,11 +413,11 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
-                    fieldType.rangeQuery(value, null, false, false, context.queryShardContext),
+                    fieldType.rangeQuery(value, null, false, false, null, null, null, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 query.add(
-                    fieldType.rangeQuery(null, value, false, false, context.queryShardContext),
+                    fieldType.rangeQuery(null, value, false, false, null, null, null, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 return query.build();
@@ -628,6 +628,7 @@ public class LuceneQueryBuilder {
                 }
                 Reference reference = (Reference) arg;
                 String columnName = reference.ident().columnIdent().fqn();
+
                 return Queries.not(ExistsQueryBuilder.newFilter(context.queryShardContext, columnName));
             }
         }
@@ -785,7 +786,7 @@ public class LuceneQueryBuilder {
                 }
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null : "bounds must not be null";
-                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, queryShardContext);
+                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, null, null, null, queryShardContext);
             }
         }
 

@@ -88,10 +88,10 @@ public class CrateMqttSslTransportIntegrationTest extends SQLTransportIntegratio
             .put(Netty4MqttServerTransport.SSL_MQTT_ENABLED.getKey(), true)
             .put(Netty4MqttServerTransport.MQTT_ENABLED_SETTING.getKey(), true)
             .put(Netty4MqttServerTransport.MQTT_PORT_SETTING.getKey(), 8883)
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
+            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
+            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
             .build();
     }

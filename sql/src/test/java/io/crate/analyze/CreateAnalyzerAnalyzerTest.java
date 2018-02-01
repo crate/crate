@@ -29,7 +29,6 @@ import org.junit.Test;
 
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -75,8 +74,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             allOf(
                 hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
                 hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.0", "letter"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.1", "digits")
+                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars", "[letter, digits]")
             )
         );
 
@@ -113,8 +111,8 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         );
         assertThat(
             createAnalyzerAnalysis.charFilters().get("a3_my_mapping")
-                .getAsArray("index.analysis.char_filter.a3_my_mapping.mappings"),
-            arrayContainingInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
+                .getAsList("index.analysis.char_filter.a3_my_mapping.mappings"),
+            containsInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
         );
 
         // be sure build succeeds
@@ -150,8 +148,8 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         );
         assertThat(
             createAnalyzerAnalysis.tokenFilters().get("a11_mystop")
-                .getAsArray("index.analysis.filter.a11_mystop.stopword"),
-            arrayContainingInAnyOrder("the", "over")
+                .getAsList("index.analysis.filter.a11_mystop.stopword"),
+            containsInAnyOrder("the", "over")
         );
 
         // be sure build succeeds
@@ -171,8 +169,8 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertEquals("german", createAnalyzerAnalysis.extendedAnalyzerName());
 
         assertThat(
-            createAnalyzerAnalysis.genericAnalyzerSettings().getAsArray("index.analysis.analyzer.a4.stop_words"),
-            arrayContainingInAnyOrder("der", "die", "das")
+            createAnalyzerAnalysis.genericAnalyzerSettings().getAsList("index.analysis.analyzer.a4.stop_words"),
+            containsInAnyOrder("der", "die", "das")
         );
 
         // be sure build succeeds

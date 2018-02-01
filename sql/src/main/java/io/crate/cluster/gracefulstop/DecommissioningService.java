@@ -158,9 +158,9 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private static Map<String, Object> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
         Map<String, Object> toRemove = null;
         for (DiscoveryNode discoveryNode : nodesDelta.removedNodes()) {
-            Map<String, String> asMap = DECOMMISSION_INTERNAL_SETTING_GROUP.setting().get(transientSettings).getAsMap();
+            Settings decommissionSettings = DECOMMISSION_INTERNAL_SETTING_GROUP.setting().get(transientSettings);
             String nodeId = discoveryNode.getId();
-            if (asMap.containsKey(nodeId)) {
+            if (decommissionSettings.hasValue(nodeId)) {
                 if (toRemove == null) {
                     toRemove = new HashMap<>();
                 }

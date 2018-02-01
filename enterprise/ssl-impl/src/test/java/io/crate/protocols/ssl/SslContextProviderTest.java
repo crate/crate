@@ -32,8 +32,6 @@ import java.io.IOException;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.any;
 
 public class SslContextProviderTest extends CrateUnitTest {
@@ -67,9 +65,9 @@ public class SslContextProviderTest extends CrateUnitTest {
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
+            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
+            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();

@@ -52,6 +52,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.Inet4Address;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -77,9 +78,10 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
+        Path tempDir = createTempDir();
         Settings settings = Settings.builder()
-            .put("path.home", createTempDir()).build();
-        Environment environment = new Environment(settings);
+            .put("path.home", tempDir).build();
+        Environment environment = new Environment(settings, tempDir.resolve("config"));
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL, () -> null);
         fsService = monitorService.fsService();

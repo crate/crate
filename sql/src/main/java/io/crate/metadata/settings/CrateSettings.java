@@ -238,7 +238,7 @@ public final class CrateSettings implements ClusterStateListener {
             if (value instanceof BytesRef) {
                 value = BytesRefs.toString(value);
             }
-            settingsBuilder.put(key, value);
+            settingsBuilder.put(key, value.toString());
         }
     }
 
@@ -256,12 +256,11 @@ public final class CrateSettings implements ClusterStateListener {
     @Inject
     public CrateSettings(ClusterService clusterService, Settings settings) {
         logger = Loggers.getLogger(this.getClass(), settings);
-        initialSettings = Settings.builder()
-            .put(BUILT_IN_SETTINGS
-                .stream()
-                .collect(Collectors.toMap(CrateSetting::getKey, s -> s.setting().getDefaultRaw(settings))))
-            .put(settings)
-            .build();
+        Settings.Builder defaultsBuilder = Settings.builder();
+        for (CrateSetting builtInSetting : BUILT_IN_SETTINGS) {
+            defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.setting().getDefaultRaw(settings));
+        }
+        initialSettings = defaultsBuilder.put(settings).build();
         this.settings = initialSettings;
         referenceImplementationTree = buildReferenceTree();
         clusterService.addListener(this);

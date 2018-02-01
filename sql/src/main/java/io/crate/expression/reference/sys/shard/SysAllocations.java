@@ -65,8 +65,8 @@ public class SysAllocations implements Iterable<SysAllocation> {
         final RoutingNodes routingNodes = state.getRoutingNodes();
         final ClusterInfo clusterInfo = clusterInfoService.getClusterInfo();
 
-        final RoutingAllocation allocation = new RoutingAllocation(allocationDeciders, routingNodes, state, clusterInfo,
-            System.nanoTime(), false);
+        final RoutingAllocation allocation = new RoutingAllocation(
+            allocationDeciders, routingNodes, state, clusterInfo, System.nanoTime());
         return allocation.routingTable().allShards().stream()
             .map(shardRouting -> {
                 return new SysAllocation(

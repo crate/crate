@@ -87,7 +87,7 @@ public class CrateSettingsPreparer {
             Environment.PATH_LOGS_SETTING.getKey(),
             env.logsFile().toAbsolutePath().normalize().toString());
 
-        return new Environment(newSettings.build());
+        return new Environment(newSettings.build(), env.configFile());
     }
 
     static void validateKnownSettings(Settings.Builder builder) {
@@ -125,7 +125,7 @@ public class CrateSettingsPreparer {
         }
     }
 
-    private static <T> void putIfAbsent(Settings.Builder settingsBuilder, String setting, T value) {
+    private static void putIfAbsent(Settings.Builder settingsBuilder, String setting, String value) {
         if (settingsBuilder.get(setting) == null) {
             settingsBuilder.put(setting, value);
         }

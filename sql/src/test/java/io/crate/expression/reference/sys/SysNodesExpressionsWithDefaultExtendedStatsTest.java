@@ -41,6 +41,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
@@ -60,8 +61,9 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
 
     @Before
     public void prepare() throws Exception {
+        Path homeDir = createTempDir();
         Settings settings = Settings.builder()
-            .put("path.home", createTempDir())
+            .put("path.home", homeDir)
             /*
               storage cannot be enabled on master and data nodes
               see {@link (org.elasticsearch.cluster.node.DiscoveryNode).nodeRequiresLocalStorage()}
@@ -71,7 +73,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
             .put("node.data", false)
             .put("node.master", false)
             .build();
-        Environment environment = new Environment(settings);
+        Environment environment = new Environment(settings, homeDir.resolve("config"));
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL, () -> null);
         fsService = monitorService.fsService();

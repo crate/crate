@@ -75,8 +75,10 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.mockito.Answers;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 
@@ -120,13 +122,14 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
         Index index = new Index(users.ident().indexName(), UUIDs.randomBase64UUID());
+        File homeFolder = temporaryFolder.newFolder();
         Settings nodeSettings = Settings.builder()
             .put(IndexMetaData.SETTING_VERSION_CREATED, indexVersion())
-            .put("path.home", temporaryFolder.newFolder())
+            .put("path.home", homeFolder.getAbsolutePath())
             .build();
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         when(indexCache.getIndexSettings()).thenReturn(idxSettings);
-        IndexAnalyzers indexAnalyzers = createIndexAnalyzers(idxSettings, nodeSettings);
+        IndexAnalyzers indexAnalyzers = createIndexAnalyzers(idxSettings, nodeSettings, homeFolder.toPath().resolve("config"));
         mapperService = createMapperService(idxSettings, indexAnalyzers);
 
         // @formatter:off
@@ -171,14 +174,15 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
         when(geoFieldData.getFieldName()).thenReturn("point");
         when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
 
+        ScriptService scriptService = mock(ScriptService.class);
         queryShardContext = new QueryShardContext(
             0,
             idxSettings,
             new BitsetFilterCache(idxSettings, mock(BitsetFilterCache.Listener.class)),
             indexFieldDataService::getForField,
             mapperService,
-            new SimilarityService(idxSettings, Collections.emptyMap()),
-            mock(ScriptService.class),
+            new SimilarityService(idxSettings, scriptService, Collections.emptyMap()),
+            scriptService,
             xContentRegistry(),
             writableRegistry(),
             mock(Client.class),
@@ -200,14 +204,14 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
             indexSettings,
             indexAnalyzers,
             xContentRegistry(),
-            new SimilarityService(indexSettings, Collections.emptyMap()),
+            new SimilarityService(indexSettings, mock(ScriptService.class), Collections.emptyMap()),
             indicesModule.getMapperRegistry(),
             () -> null
         );
     }
 
-    private IndexAnalyzers createIndexAnalyzers(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
-        Environment env = new Environment(nodeSettings);
+    private IndexAnalyzers createIndexAnalyzers(IndexSettings indexSettings, Settings nodeSettings, Path configPath) throws IOException {
+        Environment env = new Environment(nodeSettings, configPath);
         AnalysisModule analysisModule = new AnalysisModule(env, Collections.emptyList());
         return analysisModule.getAnalysisRegistry().build(indexSettings);
     }

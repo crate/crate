@@ -74,6 +74,7 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .put(unsupportedSetting, false)
             .build();
         IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder("t1")
+            .patterns(Collections.singletonList("*"))
             .settings(unsupportedSettings)
             .build();
 
