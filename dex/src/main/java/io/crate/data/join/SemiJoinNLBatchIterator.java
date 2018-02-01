@@ -39,7 +39,7 @@ import java.util.function.Predicate;
  *     }
  * </pre>
  */
-class SemiJoinBatchIterator<L, R, C> implements BatchIterator<L> {
+class SemiJoinNLBatchIterator<L, R, C> implements BatchIterator<L> {
 
     final BatchIterator<L> left;
     final BatchIterator<R> right;
@@ -48,10 +48,10 @@ class SemiJoinBatchIterator<L, R, C> implements BatchIterator<L> {
 
     BatchIterator<?> activeIt;
 
-    SemiJoinBatchIterator(BatchIterator<L> left,
-                          BatchIterator<R> right,
-                          ElementCombiner<L, R, C> combiner,
-                          Predicate<C> joinCondition) {
+    SemiJoinNLBatchIterator(BatchIterator<L> left,
+                            BatchIterator<R> right,
+                            ElementCombiner<L, R, C> combiner,
+                            Predicate<C> joinCondition) {
         this.left = left;
         this.right = right;
         this.combiner = combiner;

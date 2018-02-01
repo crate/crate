@@ -58,7 +58,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     }
 
     @VisibleForTesting
-    InMemoryBatchIterator(Iterable<? extends T> items, T sentinel) {
+    public InMemoryBatchIterator(Iterable<? extends T> items, T sentinel) {
         this.items = items;
         this.it = items.iterator();
         this.current = sentinel;

@@ -24,7 +24,6 @@ package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
 
-import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
 /**
@@ -40,15 +39,15 @@ import java.util.function.Predicate;
  *     }
  * </pre>
  */
-class LeftJoinBatchIterator<L, R, C> extends NestedLoopBatchIterator<L, R, C> {
+class LeftJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
     private final Predicate<C> joinCondition;
     private boolean hadMatch = false;
 
-    LeftJoinBatchIterator(BatchIterator<L> left,
-                          BatchIterator<R> right,
-                          ElementCombiner<L, R, C> combiner,
-                          Predicate<C> joinCondition) {
+    LeftJoinNLBatchIterator(BatchIterator<L> left,
+                            BatchIterator<R> right,
+                            ElementCombiner<L, R, C> combiner,
+                            Predicate<C> joinCondition) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
     }
@@ -78,11 +77,6 @@ class LeftJoinBatchIterator<L, R, C> extends NestedLoopBatchIterator<L, R, C> {
         }
         activeIt = left;
         return false;
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        return super.loadNextBatch();
     }
 
     /**

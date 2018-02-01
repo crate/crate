@@ -20,10 +20,15 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.data.join;
 
-import io.crate.data.join.CombinedRow;
-import io.crate.data.join.NestedLoopBatchIterator;
+import io.crate.data.BatchIterator;
+import io.crate.data.CloseAssertingBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
+import io.crate.data.SkippingBatchIterator;
 import io.crate.testing.RowGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -86,7 +91,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
-        BatchIterator<Row> crossJoin = NestedLoopBatchIterator.crossJoin(
+        BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1)
@@ -98,7 +103,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
-        BatchIterator<Row> leftJoin = NestedLoopBatchIterator.leftJoin(
+        BatchIterator<Row> leftJoin = JoinBatchIterators.leftJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1),

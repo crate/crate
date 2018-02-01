@@ -37,12 +37,12 @@ import java.util.function.Predicate;
  *     }
  * </pre>
  */
-class AntiJoinBatchIterator<L, R, C> extends SemiJoinBatchIterator<L, R, C> {
+class AntiJoinNLBatchIterator<L, R, C> extends SemiJoinNLBatchIterator<L, R, C> {
 
-    AntiJoinBatchIterator(BatchIterator<L> left,
-                          BatchIterator<R> right,
-                          ElementCombiner<L, R, C> combiner,
-                          Predicate<C> joinCondition) {
+    AntiJoinNLBatchIterator(BatchIterator<L> left,
+                            BatchIterator<R> right,
+                            ElementCombiner<L, R, C> combiner,
+                            Predicate<C> joinCondition) {
         super(left, right, combiner, joinCondition);
     }
 

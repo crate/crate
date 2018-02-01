@@ -28,7 +28,7 @@ import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.join.CombinedRow;
-import io.crate.data.join.NestedLoopBatchIterator;
+import io.crate.data.join.JoinBatchIterators;
 import io.crate.planner.node.dql.join.JoinType;
 
 import javax.annotation.Nullable;
@@ -75,26 +75,26 @@ public class NestedLoopOperation implements CompletionListenable {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         switch (joinType) {
             case CROSS:
-                return NestedLoopBatchIterator.crossJoin(left, right, combiner);
+                return JoinBatchIterators.crossJoin(left, right, combiner);
 
             case INNER:
                 return new FilteringBatchIterator<>(
-                    NestedLoopBatchIterator.crossJoin(left, right, combiner), joinCondition);
+                    JoinBatchIterators.crossJoin(left, right, combiner), joinCondition);
 
             case LEFT:
-                return NestedLoopBatchIterator.leftJoin(left, right, combiner, joinCondition);
+                return JoinBatchIterators.leftJoin(left, right, combiner, joinCondition);
 
             case RIGHT:
-                return NestedLoopBatchIterator.rightJoin(left, right, combiner, joinCondition);
+                return JoinBatchIterators.rightJoin(left, right, combiner, joinCondition);
 
             case FULL:
-                return NestedLoopBatchIterator.fullOuterJoin(left, right, combiner, joinCondition);
+                return JoinBatchIterators.fullOuterJoin(left, right, combiner, joinCondition);
 
             case SEMI:
-                return NestedLoopBatchIterator.semiJoin(left, right, combiner, joinCondition);
+                return JoinBatchIterators.semiJoin(left, right, combiner, joinCondition);
 
             case ANTI:
-                return NestedLoopBatchIterator.antiJoin(left, right, combiner, joinCondition);
+                return JoinBatchIterators.antiJoin(left, right, combiner, joinCondition);
 
             default:
                 throw new AssertionError("Invalid joinType: " + joinType);

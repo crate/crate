@@ -27,47 +27,50 @@ import io.crate.data.BatchIterator;
 import java.util.function.Predicate;
 
 /**
- * Nested Loop + additional loop afterwards to emit any rows that had no matches
+ * Combination of left + right join:
  *
  * <pre>
  *     for (leftRow in left) {
  *         for (rightRow in right) {
- *             if matched {
- *                 markPosition(pos)
- *                 onRow
- *             }
+ *             match?
+ *               onRow
+ *         }
+ *         if (noMatches) {
+ *             onRow (right-side-null)
  *         }
  *     }
  *
  *     for (rightRow in right) {
- *         if (noMatch(position)) {
- *             onRow (left-side-null)
+ *         if (noMatches) {
+ *              onRow (left-side-null)
  *         }
  *     }
  * </pre>
  */
-class RightJoinBatchIterator<L, R, C> extends NestedLoopBatchIterator<L, R, C> {
+class FullOuterJoinNLBatchIterator<L, R, C> extends JoinBatchIterator<L, R, C> {
 
     private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
     private final Predicate<C> joinCondition;
 
     private boolean postNL = false;
+    private boolean hadMatch = false;
     private int position = -1;
 
-    RightJoinBatchIterator(BatchIterator<L> left,
-                           BatchIterator<R> right,
-                           ElementCombiner<L, R, C> combiner,
-                           Predicate<C> joinCondition) {
+    FullOuterJoinNLBatchIterator(BatchIterator<L> left,
+                                 BatchIterator<R> right,
+                                 ElementCombiner<L, R, C> combiner,
+                                 Predicate<C> joinCondition) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
     }
 
     @Override
     public void moveToStart() {
-        super.moveToStart();
-        activeIt = left;
         postNL = false;
+        hadMatch = false;
         position = -1;
+        activeIt = left;
+        super.moveToStart();
     }
 
     @Override
@@ -115,6 +118,7 @@ class RightJoinBatchIterator<L, R, C> extends NestedLoopBatchIterator<L, R, C> {
         while (tryMoveRight()) {
             position++;
             if (joinCondition.test(combiner.currentElement())) {
+                hadMatch = true;
                 matchedRows.set(position);
                 return true;
             }
@@ -124,6 +128,12 @@ class RightJoinBatchIterator<L, R, C> extends NestedLoopBatchIterator<L, R, C> {
         }
         position = -1;
         right.moveToStart();
+        if (hadMatch == false) {
+            combiner.nullRight();
+            activeIt = left;
+            return true;
+        }
+        hadMatch = false;
         return null;
     }
 
