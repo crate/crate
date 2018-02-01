@@ -84,7 +84,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
 
-        builder.put(PSQL_PORT_SETTING.getKey(), "5432-5532");
         if (useIPv6) {
             builder.put("network.host", "::1");
         } else {
@@ -92,7 +91,10 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
 
         if ((nodeOrdinal + 1) % 2 != 0) {
+            builder.put(PSQL_PORT_SETTING.getKey(), "5432-5532");
             builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
+        } else {
+            builder.put(PSQL_PORT_SETTING.getKey(), "5533-5633");
         }
         return builder.build();
     }
