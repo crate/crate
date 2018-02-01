@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -41,25 +42,37 @@ public class SessionSettingRegistryTest {
     public void testSemiJoinSessionSetting() {
         SessionContext sessionContext = new SessionContext(null, null, x -> {}, x -> {});
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.SEMI_JOIN_KEY);
+        assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier);
+    }
 
-        assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(false));
+    @Test
+    public void testHashJoinSessionSetting() {
+        SessionContext sessionContext = new SessionContext(null, null, x -> {}, x -> {});
+        SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.HASH_JOIN_KEY);
+        assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier);
+    }
+
+    private void assertBooleanNonEmptySetting(SessionContext sessionContext,
+                                              Supplier<Boolean> contextBooleanSupplier,
+                                              SessionSettingApplier applier) {
+        assertThat(contextBooleanSupplier.get(), is(false));
         applier.apply(Row.EMPTY, generateInput("true"), sessionContext);
-        assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(true));
+        assertThat(contextBooleanSupplier.get(), is(true));
         applier.apply(Row.EMPTY, generateInput("false"), sessionContext);
-        assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(false));
+        assertThat(contextBooleanSupplier.get(), is(false));
         applier.apply(Row.EMPTY, generateInput("TrUe"), sessionContext);
-        assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(true));
+        assertThat(contextBooleanSupplier.get(), is(true));
         try {
             applier.apply(Row.EMPTY, generateInput(""), sessionContext);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
-            assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(true));
+            assertThat(contextBooleanSupplier.get(), is(true));
         }
         try {
             applier.apply(Row.EMPTY, generateInput("invalid", "input"), sessionContext);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
-            assertThat(sessionContext.getSemiJoinsRewriteEnabled(), is(true));
+            assertThat(contextBooleanSupplier.get(), is(true));
         }
     }
 

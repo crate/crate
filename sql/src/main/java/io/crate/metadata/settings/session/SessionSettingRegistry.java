@@ -33,6 +33,7 @@ public class SessionSettingRegistry {
 
     public static final String SEARCH_PATH_KEY = "search_path";
     public static final String SEMI_JOIN_KEY = "enable_semijoin";
+    public static final String HASH_JOIN_KEY = "enable_hashjoin";
 
     private static final Map<String, SessionSettingApplier> SESSION_SETTINGS =
         ImmutableMap.<String, SessionSettingApplier>builder()
@@ -55,6 +56,15 @@ public class SessionSettingRegistry {
                     context.setSemiJoinsRewriteEnabled(booleanValue);
                 } else {
                     throw new IllegalArgumentException(SEMI_JOIN_KEY + " should have only one argument.");
+                }
+            })
+            .put(HASH_JOIN_KEY, (parameters, expressions, context) -> {
+                if (expressions.size() == 1) {
+                    Object value = ExpressionToObjectVisitor.convert(expressions.get(0), parameters);
+                    boolean booleanValue = BooleanType.INSTANCE.value(value);
+                    context.setHashJoinEnabled(booleanValue);
+                } else {
+                    throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
                 }
             })
             .build();
