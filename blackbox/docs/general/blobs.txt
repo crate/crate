@@ -96,7 +96,6 @@ To list all blobs inside a blob table a ``SELECT`` statement can be used::
 
     sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 204 No Content
-    content-length: 0
 
 
 Altering a Blob Table
@@ -192,7 +191,6 @@ To delete a blob simply use a DELETE request::
 
     sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 204 No Content
-    content-length: 0
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
