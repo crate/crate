@@ -64,6 +64,8 @@ import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
+import io.crate.testing.TestExecutionConfig;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -105,6 +107,7 @@ import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -352,7 +355,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = sqlExecutor.exec(isJdbcEnabled(), isSemiJoinsEnabled(), stmt, args);
+        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isSemiJoinsEnabled(), isHashJoinEnabled()), stmt, args);
         return response;
     }
 
@@ -365,7 +368,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
-        response = sqlExecutor.exec(isJdbcEnabled(), isSemiJoinsEnabled(), stmt, args, timeout);
+        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isSemiJoinsEnabled(), isHashJoinEnabled()), stmt, args, timeout);
         return response;
     }
 
@@ -671,36 +674,73 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
-     * If the Test class or method contains a @UseSemiJoins annotation then,
-     * based on the ratio provided, a random value of true or false is returned.
+     * If the Test class or method is annotated with {@link UseSemiJoins} then,
+     * based on the provided ratio, a random value of true or false is returned.
      * For more details on the ratio see {@link UseSemiJoins}
      * <p>
      * Method annotations have higher priority than class annotations.
      */
     private boolean isSemiJoinsEnabled() {
+        UseSemiJoins useSemiJoins= getTestAnnotation(UseSemiJoins.class);
+        if (useSemiJoins == null) {
+            return false;
+        }
+        return isFeatureEnabled(useSemiJoins.value());
+    }
+
+    /**
+     * If the Test class or method is annotated with {@link UseHashJoins} then,
+     * based on the provided ratio, a random value of true or false is returned.
+     * For more details on the ratio see {@link UseHashJoins}
+     * <p>
+     * Method annotations have higher priority than class annotations.
+     */
+    private boolean isHashJoinEnabled() {
+        UseHashJoins useHashJoins = getTestAnnotation(UseHashJoins.class);
+        if (useHashJoins == null) {
+            return false;
+        }
+        return isFeatureEnabled(useHashJoins.value());
+    }
+
+    /**
+     * Checks if the current test method or test class is annotated with the provided {@param annotationClass}
+     * @return the annotation if one is present or null otherwise
+     */
+    @Nullable
+    private <T extends Annotation> T getTestAnnotation(Class<T> annotationClass) {
         try {
             Class<?> clazz = this.getClass();
             Method method = clazz.getMethod(testName.getMethodName());
-            UseSemiJoins annotation = method.getAnnotation(UseSemiJoins.class);
+            T annotation = method.getAnnotation(annotationClass);
             if (annotation == null) {
-                annotation = clazz.getAnnotation(UseSemiJoins.class);
-                if (annotation == null) {
-                    return false;
-                }
+                annotation = clazz.getAnnotation(annotationClass);
             }
-            double ratio = annotation.value();
-            assert ratio >= 0.0 && ratio <= 1.0;
-            if (ratio == 0) {
-                return false;
-            }
-            if (ratio == 1) {
-                return true;
-            }
-            return RandomizedContext.current().getRandom().nextDouble() < ratio;
-        } catch (NoSuchMethodException ignored) {
-            return false;
+            return annotation;
+        } catch (NoSuchMethodException e) {
+            return null;
         }
     }
+
+    /**
+     * We sometimes randomize the use of features in tests.
+     * This method verifies the provided ratio and based on it and a random number
+     * indicates if a feature should be enabled or not.
+     *
+     * @param ratio a number between [0, 1] that indicates a "randomness factor"
+     *              (1 = always enabled, 0 = always disabled)
+     *
+     * @return true if a feature should be active/used and false otherwise
+     */
+    private boolean isFeatureEnabled(double ratio) {
+        if (ratio == 0) {
+            return false;
+        }
+
+        assert ratio >= 0.0 && ratio <= 1.0;
+        return ratio == 1 || RandomizedContext.current().getRandom().nextDouble() < ratio;
+    }
+
 
     /**
      * If the Test class or method contains a @UseRandomizedSession annotation then,

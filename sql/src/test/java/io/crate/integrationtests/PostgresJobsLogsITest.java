@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
@@ -45,6 +46,7 @@ import static org.hamcrest.core.Is.is;
 @UseJdbc(1)
 @UseRandomizedSession(schema = false) // Avoid set session stmt to interfere with tests
 @UseSemiJoins(0) // Avoid set session stmt to interfere with tests
+@UseHashJoins(0) // Avoid set session stmt to interfere with tests
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Override
