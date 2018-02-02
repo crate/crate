@@ -322,4 +322,15 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select count(*) from t1 where c is not null");
         assertThat(printedTable(response.rows()), is("2\n"));
     }
+
+    @Test
+    public void testIsNotNullFilterMatchesNotNullRecordOnArrayObjectColumn() {
+        execute("create table bag (id short primary key, ob array (object))");
+        execute("insert into bag (id) values (1)");
+        execute("insert into bag (id, ob) values (2, [{bbb = 2}])");
+        execute("refresh table bag");
+
+        execute("SELECT * FROM bag WHERE ob IS NOT NULL");
+        assertThat(printedTable(response.rows()), is("2| [{bbb=2}]\n"));
+    }
 }

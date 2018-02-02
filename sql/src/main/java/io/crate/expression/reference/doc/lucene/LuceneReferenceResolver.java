@@ -23,16 +23,17 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.expression.reference.ReferenceResolver;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -68,10 +69,11 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         assert refInfo.granularity() == RowGranularity.DOC : "lucene collector expressions are required to be on DOC granularity";
 
         final DataType dataType = refInfo.valueType();
-        if (dataType.id() == ObjectType.ID || dataType.id() == GeoShapeType.ID) {
+        DataType innerType = CollectionType.unnest(dataType);
+        if (innerType.id() == ObjectType.ID || innerType.id() == GeoShapeType.ID) {
             // FetchOrEval takes care of rewriting the reference to do a source lookup.
             // However, when fetching is disabled, this does not happen and we need to ensure
-            // (at least) for objects that we do a source lookup.
+            // (at least) for objects (also if inside arrays) that we do a source lookup.
             refInfo = DocReferences.toSourceLookup(refInfo);
         }
 

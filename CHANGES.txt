@@ -63,6 +63,9 @@ Changes
 Fixes
 =====
 
+- Fixed a regression which caused ``IS NOT NULL`` predicates on columns of type
+  ``array(object)`` to not match correctly.
+
 - Fixed an issue that caused the ``percentile`` aggregation to fail if an array
   containing a single item was passed as ``fractions``.
 
