@@ -690,8 +690,9 @@ Example query::
   |  3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
+  |  7 | ...         | The flood stage disk watermark is exceeded on the node. Table... |
   +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 5 rows in set (... sec)
+  SELECT 6 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 

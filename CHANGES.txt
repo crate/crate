@@ -49,7 +49,8 @@ Changes
 
 - Added new ``cluster.routing.allocation.disk.watermark.flood_stage`` setting,
   that controls at which disk usage indices should become read-only to prevent
-  running out of disk space.
+  running out of disk space. There is also a new node check that indicates
+  whether the threshold is exceeded.
 
 - Added new tokenizers ``simple_pattern`` and ``simple_pattern_split`` which
   allow to tokenize text for the fulltext index by a regular expression pattern.

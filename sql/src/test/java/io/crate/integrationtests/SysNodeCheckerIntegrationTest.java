@@ -37,7 +37,7 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         SQLResponse response = execute("select id, severity, passed from sys.node_checks order by id, node_id asc");
-        assertThat(response.rowCount(), equalTo(10L));
+        assertThat(response.rowCount(), equalTo(12L));
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| 3| false\n" +  // 1 = recoveryExpectedNodesCheck
                "1| 3| false\n" +
@@ -48,7 +48,9 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
                "5| 3| true\n" +   // 5 = HighDiskWatermark
                "5| 3| true\n" +
                "6| 3| true\n" +   // 6 = LowDiskWatermark
-               "6| 3| true\n"));
+               "6| 3| true\n" +
+               "7| 3| true\n" +   // 7 = FloodStageDiskWatermark
+               "7| 3| true\n"));
     }
 
     @Test

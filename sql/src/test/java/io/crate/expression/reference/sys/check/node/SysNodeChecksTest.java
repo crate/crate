@@ -162,18 +162,50 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testValidationDiskWatermarkCheckInBytes() {
-        DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
+    public void testValidationLowDiskWatermarkCheck() {
+        DiskWatermarkNodesSysCheck low = new LowDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
             mock(NodeService.class, Answers.RETURNS_MOCKS.get())
         );
 
-        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
-        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(low.id(), is(6));
+        assertThat(low.severity(), is(SysCheck.Severity.HIGH));
+
+        // default threshold is: 85% used
+        assertThat(low.validate(15, 100), is(true));
+        assertThat(low.validate(14, 100), is(false));
+    }
+
+    @Test
+    public void testValidationHighDiskWatermarkCheck() {
+        DiskWatermarkNodesSysCheck high = new HighDiskWatermarkNodesSysCheck(
+            clusterService,
+            Settings.EMPTY,
+            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+        );
+
+        assertThat(high.id(), is(5));
+        assertThat(high.severity(), is(SysCheck.Severity.HIGH));
 
         // default threshold is: 90% used
-        assertThat(highDiskWatermarkNodesSysCheck.validate(10, 100), is(true));
-        assertThat(highDiskWatermarkNodesSysCheck.validate(9, 100), is(false));
+        assertThat(high.validate(10, 100), is(true));
+        assertThat(high.validate(9, 100), is(false));
+    }
+
+    @Test
+    public void testValidationFloodStageDiskWatermarkCheck() {
+        DiskWatermarkNodesSysCheck floodStage = new FloodStageDiskWatermarkNodesSysCheck(
+            clusterService,
+            Settings.EMPTY,
+            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+        );
+
+        assertThat(floodStage.id(), is(7));
+        assertThat(floodStage.severity(), is(SysCheck.Severity.HIGH));
+
+        // default threshold is: 95% used
+        assertThat(floodStage.validate(5, 100), is(true));
+        assertThat(floodStage.validate(4, 100), is(false));
     }
 }
