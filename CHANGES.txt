@@ -63,6 +63,9 @@ Changes
 Fixes
 =====
 
+- Fixed a regression that caused assignments of arrays including parameter
+  placeholders to not work correctly.
+
 - Fixed a regression which caused ``IS NOT NULL`` predicates on columns of type
   ``array(object)`` to not match correctly.
 

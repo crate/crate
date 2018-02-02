@@ -24,13 +24,17 @@ package io.crate.expression.symbol;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.ExplainLeaf;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -69,6 +73,34 @@ public class Function extends Symbol implements Cloneable {
     @Override
     public boolean canBeCasted() {
         return info.type() == FunctionInfo.Type.SCALAR || info.type() == FunctionInfo.Type.AGGREGATE;
+    }
+
+    @Override
+    public Symbol cast(DataType newDataType, boolean tryCast) {
+        if (newDataType instanceof CollectionType && info.ident().name().equals(ArrayFunction.NAME)) {
+            /* We treat _array(...) in a special way since it's a value constructor and no regular function
+             * This allows us to do proper type inference for inserts/updates where there are assignments like
+             *
+             *      some_array = [?, ?]
+             * or
+             *      some_array = array_cat([?, ?], [1, 2])
+             */
+            return castArrayElements(newDataType, tryCast);
+        } else {
+            return super.cast(newDataType, tryCast);
+        }
+    }
+
+    private Symbol castArrayElements(DataType newDataType, boolean tryCast) {
+        DataType<?> innerType = ((CollectionType) newDataType).innerType();
+        ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
+        for (Symbol arg : arguments) {
+            newArgs.add(arg.cast(innerType, tryCast));
+        }
+        return new Function(
+            new FunctionInfo(new FunctionIdent(info.ident().name(), Symbols.typeView(newArgs)), newDataType),
+            newArgs
+        );
     }
 
     @Override
