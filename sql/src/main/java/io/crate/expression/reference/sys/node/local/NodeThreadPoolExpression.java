@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node.local;
 
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.shard.LiteralNestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.threadpool.ThreadPool;

@@ -35,7 +35,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.LiteralNestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
 import io.crate.expression.reference.sys.shard.ShardNumDocsExpression;
 import io.crate.expression.reference.sys.shard.ShardPartitionIdentExpression;

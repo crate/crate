@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.node.local;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.shard.LiteralNestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import org.apache.lucene.util.BytesRef;
 
 class NodeVersionExpression extends NestedObjectExpression {

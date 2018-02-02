@@ -20,7 +20,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.reference.sys.shard.LiteralNestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

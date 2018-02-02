@@ -28,7 +28,7 @@ import io.crate.expression.NestableInput;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.LiteralNestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
 import io.crate.expression.reference.sys.shard.ShardPathExpression;
 import io.crate.expression.reference.sys.shard.ShardPrimaryExpression;

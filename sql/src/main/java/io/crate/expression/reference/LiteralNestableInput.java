@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.expression.reference.sys.shard;
+package io.crate.expression.reference;
 
 import io.crate.expression.NestableInput;
 
