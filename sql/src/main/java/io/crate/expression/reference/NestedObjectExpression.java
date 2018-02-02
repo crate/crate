@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;

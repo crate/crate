@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;

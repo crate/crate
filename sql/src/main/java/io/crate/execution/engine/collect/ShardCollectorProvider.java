@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.expression.InputFactory;
 import io.crate.execution.jobs.NodeJobsCounter;

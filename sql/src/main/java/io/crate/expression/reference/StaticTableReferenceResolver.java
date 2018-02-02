@@ -24,7 +24,7 @@ package io.crate.expression.reference;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 

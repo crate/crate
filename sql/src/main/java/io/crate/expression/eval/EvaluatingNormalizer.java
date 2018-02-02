@@ -23,6 +23,7 @@
 package io.crate.expression.eval;
 
 import io.crate.analyze.relations.FieldResolver;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -56,7 +57,7 @@ import java.util.Map;
  *  - Convert {@link Field} to {@link Reference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
  *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
- *    and {@link io.crate.metadata.ReferenceImplementation}s can be retrieved for the Reference.
+ *    and {@link ReferenceImplementation}s can be retrieved for the Reference.
  */
 public class EvaluatingNormalizer {
 

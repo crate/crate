@@ -22,7 +22,7 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.settings.CrateSetting;

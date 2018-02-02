@@ -24,7 +24,7 @@ package io.crate.metadata.shard.blob;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.expression.reference.ReferenceResolver;

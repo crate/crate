@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.ReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 

@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 
 public class LiteralReferenceImplementation<T> implements ReferenceImplementation<T> {
 

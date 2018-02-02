@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.ClusterIdService;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 

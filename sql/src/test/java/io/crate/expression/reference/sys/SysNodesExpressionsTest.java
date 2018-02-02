@@ -28,7 +28,7 @@ import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.node.local.NodeSysExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

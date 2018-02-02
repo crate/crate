@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;

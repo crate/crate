@@ -23,7 +23,7 @@
 package io.crate.expression.reference;
 
 import io.crate.core.collections.StringObjectMaps;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.metadata.RowCollectExpression;
 
 import java.util.ArrayList;

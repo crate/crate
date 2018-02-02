@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.shard;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import org.elasticsearch.index.shard.IndexShard;
 
 import java.util.concurrent.TimeUnit;

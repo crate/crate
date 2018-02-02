@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.ReferenceResolver;
 
 import java.util.Map;

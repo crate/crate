@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 
 public class BlobShardBlobPathExpression implements ReferenceImplementation<BytesRef> {

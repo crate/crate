@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys;
 
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;

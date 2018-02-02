@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.ShardId;

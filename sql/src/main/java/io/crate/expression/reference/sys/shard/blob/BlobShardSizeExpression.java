@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 
 public class BlobShardSizeExpression implements ReferenceImplementation<Long> {
 

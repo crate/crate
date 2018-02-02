@@ -22,9 +22,9 @@
 
 package io.crate.expression.reference.sys.node.local;
 
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import org.elasticsearch.cluster.service.ClusterService;

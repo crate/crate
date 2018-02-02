@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.expression.ReferenceImplementation;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 
