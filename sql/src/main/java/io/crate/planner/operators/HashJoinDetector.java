@@ -22,13 +22,18 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.planner.node.dql.join.JoinType;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Helper to detect if a join could be executed with a hash join algorithm.
@@ -36,8 +41,9 @@ import io.crate.planner.node.dql.join.JoinType;
  * Using hash join is possible under following assumptions:
  * <ul>
  * <li>it's a {@link JoinType#INNER} join type</li>
- * <li>the join condition contains at least one {@link EqOperator}</li>
  * <li>the join condition contains no {@link OrOperator}</li>
+ * <li>the join condition contains at least one {@link EqOperator}</li>
+ * <li>at least one argument of the {@link EqOperator} must NOT contain fields to multiple tables</li>
  * </ul>
  */
 public class HashJoinDetector {
@@ -57,6 +63,8 @@ public class HashJoinDetector {
 
     private static class Context {
         boolean isHashJoinPossible = false;
+        boolean insideEqOperator = false;
+        Set<AnalyzedRelation> usedRelationsInsideEqOperatorArgument = new HashSet<>();
     }
 
     private static class Visitor extends SymbolVisitor<Context, Void> {
@@ -64,14 +72,34 @@ public class HashJoinDetector {
         @Override
         public Void visitFunction(Function function, Context context) {
             String functionName = function.info().ident().name();
-            if (functionName.equals(OrOperator.NAME)) {
-                context.isHashJoinPossible = false;
-                return null;
-            } else if (functionName.equals(EqOperator.NAME)) {
-                context.isHashJoinPossible = true;
+            switch (functionName) {
+                case OrOperator.NAME:
+                    context.isHashJoinPossible = false;
+                    return null;
+                case EqOperator.NAME:
+                    context.isHashJoinPossible = true;
+                    context.insideEqOperator = true;
+                    for (Symbol arg : function.arguments()) {
+                        process(arg, context);
+                        if (context.usedRelationsInsideEqOperatorArgument.size() > 1) {
+                            context.isHashJoinPossible = false;
+                        }
+                        context.usedRelationsInsideEqOperatorArgument = new HashSet<>();
+                    }
+                    break;
+                default:
+                    for (Symbol arg : function.arguments()) {
+                        process(arg, context);
+                    }
+                    break;
             }
-            for (Symbol arg : function.arguments()) {
-                process(arg, context);
+            return null;
+        }
+
+        @Override
+        public Void visitField(Field field, Context context) {
+            if (context.insideEqOperator) {
+                context.usedRelationsInsideEqOperatorArgument.add(field.relation());
             }
             return null;
         }
