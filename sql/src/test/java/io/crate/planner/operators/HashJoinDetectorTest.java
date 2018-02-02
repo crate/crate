@@ -54,7 +54,7 @@ public class HashJoinDetectorTest extends CrateUnitTest {
     public void testNotPossibleOnInnerWithoutAnyEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a > t2.b");
         JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(true));
+        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
     }
 
     @Test
