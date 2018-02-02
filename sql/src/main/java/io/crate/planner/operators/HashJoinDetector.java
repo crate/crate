@@ -50,29 +50,30 @@ public class HashJoinDetector {
         }
         Symbol joinCondition = joinPair.condition();
         assert joinCondition != null : "join condition must not be null on inner joins";
-        return VISITOR.process(joinPair.condition(), false);
+        Context context = new Context();
+        VISITOR.process(joinPair.condition(), context);
+        return context.isHashJoinPossible;
     }
 
-    private static class Visitor extends SymbolVisitor<Boolean, Boolean> {
+    private static class Context {
+        boolean isHashJoinPossible = false;
+    }
+
+    private static class Visitor extends SymbolVisitor<Context, Void> {
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, Boolean context) {
-            return true;
-        }
-
-        @Override
-        public Boolean visitFunction(Function function, Boolean context) {
+        public Void visitFunction(Function function, Context context) {
             String functionName = function.info().ident().name();
             if (functionName.equals(OrOperator.NAME)) {
-                return false;
-            }
-            if (context == false && functionName.equals(EqOperator.NAME)) {
-                context = true;
+                context.isHashJoinPossible = false;
+                return null;
+            } else if (functionName.equals(EqOperator.NAME)) {
+                context.isHashJoinPossible = true;
             }
             for (Symbol arg : function.arguments()) {
-                context = process(arg, context);
+                process(arg, context);
             }
-            return context;
+            return null;
         }
     }
 }
