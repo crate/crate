@@ -23,17 +23,19 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -41,10 +43,8 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.predicate.NotPredicate;
-import io.crate.planner.Plan;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingRowConsumer;
@@ -56,6 +56,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -68,6 +69,8 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -101,12 +104,13 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(nestedClusteredByTableInfo)
             .addDocTable(testAliasTableInfo)
-            .addDocTable(tiNestedPk);
+            .addDocTable(tiNestedPk)
+            .addTable("create table bag (id short primary key, ob array(object))");
 
         TableIdent partedGeneratedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted_generated_column");
         TestingTableInfo.Builder partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
@@ -542,6 +546,31 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(VersionInvalidException.class);
         expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
         execute(e.plan("update users set col2 = 'x' where _version is null"), Row.EMPTY);
+    }
+
+    @Test
+    public void testUpdateElementOfObjectArrayUsingParameterExpressionResultsInCorrectlyTypedParameterSymbol() {
+        AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = [?] WHERE id = ?");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("ob", new ArrayType(DataTypes.OBJECT))));
+        assertThat(
+            stmt.assignmentByTargetCol().values(),
+            contains(isFunction("_array", singletonList(DataTypes.OBJECT))));
+    }
+
+    @Test
+    public void testUpdateElementOfObjectArrayUsingParameterExpressionInsideFunctionResultsInCorrectlyTypedParameterSymbol() {
+        AnalyzedUpdateStatement stmt = e.analyze("UPDATE bag SET ob = array_cat([?], [{obb=1}]) WHERE id = ?");
+        assertThat(
+            stmt.assignmentByTargetCol().keySet(),
+            contains(isReference("ob", new ArrayType(DataTypes.OBJECT))));
+        assertThat(
+            stmt.assignmentByTargetCol().values(),
+            contains(isFunction("array_cat",
+                isFunction("_array", singletonList(DataTypes.OBJECT)),
+                instanceOf(Literal.class)
+            )));
     }
 
     private void execute(Plan plan, Row params) {
