@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class SysExpressionsBytesRefTest extends CrateUnitTest {
 
-    static class BytesRefNullSysExpression implements ReferenceImplementation<BytesRef> {
+    static class BytesRefNullSysExpression implements NestableInput<BytesRef> {
 
         @Override
         public BytesRef value() {
@@ -64,7 +64,7 @@ public class SysExpressionsBytesRefTest extends CrateUnitTest {
     @Test
     public void testSysObjectReferenceNull() throws Exception {
         NullFieldSysObjectReference nullRef = new NullFieldSysObjectReference();
-        ReferenceImplementation n = nullRef.getChildImplementation("n");
+        NestableInput n = nullRef.getChild("n");
         assertThat(n, instanceOf(BytesRefNullSysExpression.class));
 
         Map<String, Object> value = nullRef.value();

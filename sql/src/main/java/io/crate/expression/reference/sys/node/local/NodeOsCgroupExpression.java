@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
@@ -49,13 +49,13 @@ public class NodeOsCgroupExpression extends NestedObjectExpression {
         private static final String USAGE_NANOS = "usage_nanos";
 
         NodeOsCgroupCpuAcctExpression(OsStats.Cgroup cgroup) {
-            childImplementations.put(CONTROL_GROUP, (ReferenceImplementation<BytesRef>) () -> {
+            childImplementations.put(CONTROL_GROUP, (NestableInput<BytesRef>) () -> {
                 if (cgroup != null) {
                     return BytesRefs.toBytesRef(cgroup.getCpuAcctControlGroup());
                 }
                 return null;
             });
-            childImplementations.put(USAGE_NANOS, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(USAGE_NANOS, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuAcctUsageNanos();
                 }
@@ -74,37 +74,37 @@ public class NodeOsCgroupExpression extends NestedObjectExpression {
         private static final String TIME_THROTTLED_NANOS = "time_throttled_nanos";
 
         NodeOsCgroupCpuExpression(OsStats.Cgroup cgroup) {
-            childImplementations.put(CONTROL_GROUP, (ReferenceImplementation<BytesRef>) () -> {
+            childImplementations.put(CONTROL_GROUP, (NestableInput<BytesRef>) () -> {
                 if (cgroup != null) {
                     return BytesRefs.toBytesRef(cgroup.getCpuControlGroup());
                 }
                 return null;
             });
-            childImplementations.put(CFS_PERIOD_MICROS, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(CFS_PERIOD_MICROS, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuCfsPeriodMicros();
                 }
                 return null;
             });
-            childImplementations.put(CFS_QUOTA_MICROS, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(CFS_QUOTA_MICROS, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuCfsQuotaMicros();
                 }
                 return null;
             });
-            childImplementations.put(NUM_ELAPSED_PERIODS, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(NUM_ELAPSED_PERIODS, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuStat().getNumberOfElapsedPeriods();
                 }
                 return null;
             });
-            childImplementations.put(NUM_TIMES_THROTTLED, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(NUM_TIMES_THROTTLED, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuStat().getNumberOfTimesThrottled();
                 }
                 return null;
             });
-            childImplementations.put(TIME_THROTTLED_NANOS, (ReferenceImplementation<Long>) () -> {
+            childImplementations.put(TIME_THROTTLED_NANOS, (NestableInput<Long>) () -> {
                 if (cgroup != null) {
                     return cgroup.getCpuStat().getTimeThrottledNanos();
                 }
@@ -120,19 +120,19 @@ public class NodeOsCgroupExpression extends NestedObjectExpression {
         private static final String USAGE_BYTES = "usage_bytes";
 
         public NodeOsCgroupMemExpression(ExtendedOsStats.CgroupMem cgroupMem) {
-            childImplementations.put(CONTROL_GROUP, (ReferenceImplementation<BytesRef>) () -> {
+            childImplementations.put(CONTROL_GROUP, (NestableInput<BytesRef>) () -> {
                 if (cgroupMem != null) {
                     return BytesRefs.toBytesRef(cgroupMem.memoryControlGroup());
                 }
                 return null;
             });
-            childImplementations.put(LIMIT_BYTES, (ReferenceImplementation<BytesRef>) () -> {
+            childImplementations.put(LIMIT_BYTES, (NestableInput<BytesRef>) () -> {
                 if (cgroupMem != null) {
                     return BytesRefs.toBytesRef(cgroupMem.memoryLimitBytes());
                 }
                 return null;
             });
-            childImplementations.put(USAGE_BYTES, (ReferenceImplementation<BytesRef>) () -> {
+            childImplementations.put(USAGE_BYTES, (NestableInput<BytesRef>) () -> {
                 if (cgroupMem != null) {
                     return BytesRefs.toBytesRef(cgroupMem.memoryUsageBytes());
                 }

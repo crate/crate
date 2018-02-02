@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.process.ProcessStats;
 
@@ -38,21 +38,21 @@ class NodeProcessExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ProcessStats processStats) {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, (ReferenceImplementation<Long>) () -> {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, (NestableInput<Long>) () -> {
             if (processStats != null) {
                 return processStats.getOpenFileDescriptors();
             } else {
                 return -1L;
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, (ReferenceImplementation<Long>) () -> {
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, (NestableInput<Long>) () -> {
             if (processStats != null) {
                 return processStats.getMaxFileDescriptors();
             } else {
                 return -1L;
             }
         });
-        childImplementations.put(PROBE_TIMESTAMP, (ReferenceImplementation<Long>) () -> {
+        childImplementations.put(PROBE_TIMESTAMP, (NestableInput<Long>) () -> {
             if (processStats != null) {
                 return processStats.getTimestamp();
             } else {

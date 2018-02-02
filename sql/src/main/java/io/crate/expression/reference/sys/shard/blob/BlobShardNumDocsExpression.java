@@ -22,9 +22,9 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 
-public class BlobShardNumDocsExpression implements ReferenceImplementation<Long> {
+public class BlobShardNumDocsExpression implements NestableInput<Long> {
 
     private final BlobShard blobShard;
 

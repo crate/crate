@@ -22,7 +22,11 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.expression.NestableInput;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.node.local.fs.NodeFsExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -83,7 +87,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     }
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
+    public NestableInput getChild(String name) {
         switch (name) {
             case SysNodesTableInfo.SYS_COL_MEM:
                 return new NodeMemoryExpression(osService.stats());
@@ -107,7 +111,7 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeFsExpression(fsService.stats());
 
             default:
-                return super.getChildImplementation(name);
+                return super.getChild(name);
         }
     }
 }

@@ -64,8 +64,8 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
             clusterService, new CrateSettings(clusterService, clusterService.getSettings()));
 
         assertThat(((BytesRef) clusterSettingsExpression
-                .getChildImplementation("bulk")
-                .getChildImplementation("request_timeout").value()).utf8ToString(),
+                .getChild("bulk")
+                .getChild("request_timeout").value()).utf8ToString(),
             is("20s"));
     }
 

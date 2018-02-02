@@ -22,7 +22,7 @@
 package io.crate.metadata;
 
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 
 /**
  * Base interface for row based expressions.
@@ -30,5 +30,5 @@ import io.crate.expression.ReferenceImplementation;
  * @param <TReturnValue> The returnType of the expression
  */
 public interface RowCollectExpression<TRow, TReturnValue>
-    extends CollectExpression<TRow, TReturnValue>, ReferenceImplementation<TReturnValue> {
+    extends CollectExpression<TRow, TReturnValue>, NestableInput<TReturnValue> {
 }

@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.Functions;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowGranularity;
 import io.crate.expression.InputFactory;
 import io.crate.execution.jobs.NodeJobsCounter;
@@ -59,7 +59,7 @@ public abstract class ShardCollectorProvider {
 
     ShardCollectorProvider(ClusterService clusterService,
                            NodeJobsCounter nodeJobsCounter,
-                           ReferenceResolver<ReferenceImplementation<?>> shardResolver,
+                           ReferenceResolver<NestableInput<?>> shardResolver,
                            Functions functions,
                            ThreadPool threadPool,
                            Settings settings,

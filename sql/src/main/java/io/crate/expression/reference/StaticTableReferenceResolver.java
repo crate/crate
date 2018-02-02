@@ -24,7 +24,7 @@ package io.crate.expression.reference;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 
@@ -67,8 +67,8 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<RowCol
         if (factory == null) {
             return null;
         }
-        ReferenceImplementation<?> refImpl = factory.create();
+        NestableInput<?> refImpl = factory.create();
         //noinspection unchecked
-        return (RowCollectExpression<R, ?>) ReferenceImplementation.getChildByPath(refImpl, columnIdent.path());
+        return (RowCollectExpression<R, ?>) NestableInput.getChildByPath(refImpl, columnIdent.path());
     }
 }

@@ -24,11 +24,11 @@ package io.crate.metadata.shard.blob;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.LiteralReferenceImplementation;
+import io.crate.expression.reference.sys.shard.LiteralNestableInput;
 import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
 import io.crate.expression.reference.sys.shard.ShardPathExpression;
 import io.crate.expression.reference.sys.shard.ShardPrimaryExpression;
@@ -48,25 +48,25 @@ import java.util.HashMap;
 
 public class BlobShardReferenceResolver {
 
-    public static ReferenceResolver<ReferenceImplementation<?>> create(BlobShard blobShard) {
+    public static ReferenceResolver<NestableInput<?>> create(BlobShard blobShard) {
         IndexShard indexShard = blobShard.indexShard();
         ShardId shardId = indexShard.shardId();
-        HashMap<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(15);
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.id()));
+        HashMap<ReferenceIdent, NestableInput> implementations = new HashMap<>(15);
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralNestableInput<>(shardId.id()));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new BlobShardNumDocsExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE,
             new ShardRelocatingNodeExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME,
-            new LiteralReferenceImplementation<>(new BytesRef(BlobSchemaInfo.NAME)));
+            new LiteralNestableInput<>(new BytesRef(BlobSchemaInfo.NAME)));
         implementations.put(SysShardsTableInfo.ReferenceIdents.SIZE, new BlobShardSizeExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, new BlobShardTableNameExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
-            new LiteralReferenceImplementation<>(new BytesRef("")));
+            new LiteralNestableInput<>(new BytesRef("")));
         implementations.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
-            new LiteralReferenceImplementation<>(false));
+            new LiteralNestableInput<>(false));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new BlobShardBlobPathExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,

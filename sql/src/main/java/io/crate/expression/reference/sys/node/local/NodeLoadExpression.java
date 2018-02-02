@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.expression.reference.NestedObjectExpression;
 
@@ -40,7 +40,7 @@ public class NodeLoadExpression extends NestedObjectExpression {
         childImplementations.put(PROBE_TIMESTAMP, os::timestamp);
     }
 
-    private static class LoadExpression implements ReferenceImplementation<Double> {
+    private static class LoadExpression implements NestableInput<Double> {
 
         private final int idx;
         private final ExtendedOsStats stats;

@@ -22,12 +22,12 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardTableNameExpression implements ReferenceImplementation<BytesRef> {
+public class BlobShardTableNameExpression implements NestableInput<BytesRef> {
 
     private final BytesRef tableName;
 

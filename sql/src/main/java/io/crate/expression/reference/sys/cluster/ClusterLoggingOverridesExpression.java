@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
@@ -60,13 +60,13 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
         public static final String LEVEL = "level";
 
         protected ClusterLoggingOverridesChildExpression(final Map.Entry<String, String> setting) {
-            childImplementations.put(NAME, new ReferenceImplementation<BytesRef>() {
+            childImplementations.put(NAME, new NestableInput<BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(setting.getKey());
                 }
             });
-            childImplementations.put(LEVEL, new ReferenceImplementation<BytesRef>() {
+            childImplementations.put(LEVEL, new NestableInput<BytesRef>() {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(setting.getValue().toUpperCase(Locale.ENGLISH));

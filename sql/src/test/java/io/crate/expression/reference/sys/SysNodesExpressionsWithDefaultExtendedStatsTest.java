@@ -95,7 +95,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
     public void testLoad() throws Exception {
         Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.expression.reference.NestedObjectExpression load =
-            (io.crate.expression.reference.NestedObjectExpression) nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.expression.reference.NestedObjectExpression) nodeExpression.getChild(refInfo.ident().columnIdent().name());
         Map<String, Object> v = load.value();
         assertNull(v.get("something"));
         if (isRunningOnWindows()) {
@@ -118,7 +118,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
         boolean ioStatsAvailable = fsService.stats().getIoStats() != null;
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.expression.reference.NestedObjectExpression fs = (io.crate.expression.reference.NestedObjectExpression)
-            nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+            nodeExpression.getChild(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = fs.value();
         Map<String, Object> total = (Map<String, Object>) v.get("total");
@@ -154,7 +154,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
     public void testCpu() throws Exception {
         Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.expression.reference.NestedObjectExpression os = (io.crate.expression.reference.NestedObjectExpression)
-            nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+            nodeExpression.getChild(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = os.value();
         if (Constants.LINUX) {
@@ -179,7 +179,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         NestedObjectExpression fs = (NestedObjectExpression)
-            nodeExpression.getChildImplementation(columnIdent.name());
-        assertThat(((Object[]) fs.getChildImplementation(columnIdent.path().get(0)).value()).length, is(0));
+            nodeExpression.getChild(columnIdent.name());
+        assertThat(((Object[]) fs.getChild(columnIdent.path().get(0)).value()).length, is(0));
     }
 }

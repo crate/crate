@@ -23,11 +23,11 @@ package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardPartitionIdentExpression implements ReferenceImplementation<BytesRef> {
+public class ShardPartitionIdentExpression implements NestableInput<BytesRef> {
 
     private static final BytesRef EMPTY = new BytesRef("");
     private final BytesRef value;

@@ -21,11 +21,11 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 
-class NodeRestUrlExpression implements ReferenceImplementation<BytesRef> {
+class NodeRestUrlExpression implements NestableInput<BytesRef> {
 
     private final ClusterService clusterService;
 

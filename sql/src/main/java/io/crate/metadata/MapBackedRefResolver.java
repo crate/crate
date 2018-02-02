@@ -21,33 +21,33 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 
 import java.util.Map;
 
-public final class MapBackedRefResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+public final class MapBackedRefResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private final Map<ReferenceIdent, ReferenceImplementation> implByIdent;
+    private final Map<ReferenceIdent, NestableInput> implByIdent;
 
-    public MapBackedRefResolver(Map<ReferenceIdent, ReferenceImplementation> implByIdent) {
+    public MapBackedRefResolver(Map<ReferenceIdent, NestableInput> implByIdent) {
         this.implByIdent = implByIdent;
     }
 
     @Override
-    public ReferenceImplementation getImplementation(Reference ref) {
+    public NestableInput getImplementation(Reference ref) {
         return lookupMapWithChildTraversal(implByIdent, ref.ident());
     }
 
-    static ReferenceImplementation lookupMapWithChildTraversal(Map<ReferenceIdent, ReferenceImplementation> implByIdent,
-                                                               ReferenceIdent ident) {
+    static NestableInput lookupMapWithChildTraversal(Map<ReferenceIdent, NestableInput> implByIdent,
+                                                     ReferenceIdent ident) {
         if (ident.columnIdent().isTopLevel()) {
             return implByIdent.get(ident);
         }
-        ReferenceImplementation<?> impl = implByIdent.get(ident.columnReferenceIdent());
+        NestableInput<?> impl = implByIdent.get(ident.columnReferenceIdent());
         if (impl == null) {
             return null;
         }
-        return ReferenceImplementation.getChildByPath(impl, ident.columnIdent().path());
+        return NestableInput.getChildByPath(impl, ident.columnIdent().path());
     }
 }

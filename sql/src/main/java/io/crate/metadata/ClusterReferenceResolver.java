@@ -21,23 +21,23 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
-public class ClusterReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+public class ClusterReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
+    private final Map<ReferenceIdent, NestableInput> implementations;
 
     @Inject
-    public ClusterReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> implementations) {
+    public ClusterReferenceResolver(Map<ReferenceIdent, NestableInput> implementations) {
         this.implementations = implementations;
     }
 
     @Override
-    public ReferenceImplementation<?> getImplementation(Reference ref) {
+    public NestableInput<?> getImplementation(Reference ref) {
         return MapBackedRefResolver.lookupMapWithChildTraversal(implementations, ref.ident());
     }
 }

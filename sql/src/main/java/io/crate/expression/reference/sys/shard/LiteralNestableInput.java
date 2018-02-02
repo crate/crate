@@ -20,33 +20,20 @@
  * agreement.
  */
 
-package io.crate.expression;
+package io.crate.expression.reference.sys.shard;
 
-import io.crate.data.Input;
+import io.crate.expression.NestableInput;
 
-import java.util.List;
+public class LiteralNestableInput<T> implements NestableInput<T> {
 
-public interface ReferenceImplementation<T> extends Input<T> {
+    private final T value;
 
-    /**
-     * Returns an implementation for a child.
-     *
-     * @param name The name of the child
-     * @return an implementation for the child or null if not applicable or if there is no child available
-     * with the given name
-     */
-    default ReferenceImplementation getChildImplementation(String name) {
-        return null;
+    public LiteralNestableInput(T value) {
+        this.value = value;
     }
 
-
-    static ReferenceImplementation<?> getChildByPath(ReferenceImplementation<?> impl, List<String> path) {
-        for (int i = 0; i < path.size(); i++) {
-            impl = impl.getChildImplementation(path.get(i));
-            if (impl == null) {
-                return null;
-            }
-        }
-        return impl;
+    @Override
+    public T value() {
+        return value;
     }
 }

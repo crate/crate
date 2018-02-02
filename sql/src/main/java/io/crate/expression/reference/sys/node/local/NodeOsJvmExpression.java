@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
@@ -40,10 +40,10 @@ class NodeOsJvmExpression extends NestedObjectExpression {
     private static final BytesRef JVM_VENDOR = BytesRefs.toBytesRef(Constants.JVM_VENDOR);
     private static final BytesRef JVM_VERSION = BytesRefs.toBytesRef(Constants.JVM_VERSION);
 
-    private static final ReferenceImplementation<BytesRef> JAVA_VERSION_EXR = () -> JAVA_VERSION;
-    private static final ReferenceImplementation<BytesRef> JVM_NAME_EXPR = () -> JVM_NAME;
-    private static final ReferenceImplementation<BytesRef> JVM_VENDOR_EXPR = () -> JVM_VENDOR;
-    private static final ReferenceImplementation<BytesRef> JVM_VERSION_EXPR = () -> JVM_VERSION;
+    private static final NestableInput<BytesRef> JAVA_VERSION_EXR = () -> JAVA_VERSION;
+    private static final NestableInput<BytesRef> JVM_NAME_EXPR = () -> JVM_NAME;
+    private static final NestableInput<BytesRef> JVM_VENDOR_EXPR = () -> JVM_VENDOR;
+    private static final NestableInput<BytesRef> JVM_VERSION_EXPR = () -> JVM_VERSION;
 
     NodeOsJvmExpression() {
         addChildImplementations();

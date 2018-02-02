@@ -23,12 +23,12 @@ package io.crate.expression.reference.sys.shard;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.elasticsearch.index.shard.IndexShard;
 
 import java.util.concurrent.TimeUnit;
 
-public class ShardSizeExpression implements ReferenceImplementation<Long> {
+public class ShardSizeExpression implements NestableInput<Long> {
 
     private final Supplier<Long> sizeSupplier;
 

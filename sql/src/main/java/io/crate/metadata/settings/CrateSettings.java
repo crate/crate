@@ -28,7 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
@@ -249,7 +249,7 @@ public final class CrateSettings implements ClusterStateListener {
 
     private final Logger logger;
     private final Settings initialSettings;
-    private final Map<String, ReferenceImplementation> referenceImplementationTree;
+    private final Map<String, NestableInput> referenceImplementationTree;
 
     private volatile Settings settings;
 
@@ -285,12 +285,12 @@ public final class CrateSettings implements ClusterStateListener {
         return settings;
     }
 
-    public Map<String, ReferenceImplementation> referenceImplementationTree() {
+    public Map<String, NestableInput> referenceImplementationTree() {
         return referenceImplementationTree;
     }
 
-    private Map<String, ReferenceImplementation> buildReferenceTree() {
-        Map<String, ReferenceImplementation> referenceMap = new HashMap<>(BUILT_IN_SETTINGS.size());
+    private Map<String, NestableInput> buildReferenceTree() {
+        Map<String, NestableInput> referenceMap = new HashMap<>(BUILT_IN_SETTINGS.size());
         for (CrateSetting crateSetting : BUILT_IN_SETTINGS) {
             if (crateSetting.isGroupSetting()) {
                 Map<String, Settings> settingsMap = initialSettings.getGroups(crateSetting.getKey(), true);
@@ -308,7 +308,7 @@ public final class CrateSettings implements ClusterStateListener {
     void buildGroupSettingReferenceTree(String prefix,
                                         String settingKey,
                                         Settings settingValue,
-                                        Map<String, ReferenceImplementation> referenceMap) {
+                                        Map<String, NestableInput> referenceMap) {
         Map<String, String> settingsMap = settingValue.getAsMap();
 
         //this is a nested setting
@@ -330,7 +330,7 @@ public final class CrateSettings implements ClusterStateListener {
         }
     }
 
-    private void buildReferenceTree(Map<String, ReferenceImplementation> referenceMap, CrateSetting<?> crateSetting) {
+    private void buildReferenceTree(Map<String, NestableInput> referenceMap, CrateSetting<?> crateSetting) {
         String fullName = crateSetting.setting().getKey();
         List<String> parts = crateSetting.path();
         int numParts = parts.size();
@@ -339,7 +339,7 @@ public final class CrateSettings implements ClusterStateListener {
             // top level setting
             referenceMap.put(fullName, new SettingExpression(this, crateSetting, fullName));
         } else {
-            ReferenceImplementation referenceImplementation = new SettingExpression(this, crateSetting, name);
+            NestableInput nestableInput = new SettingExpression(this, crateSetting, name);
 
             String topLevelName = parts.get(0);
             NestedSettingExpression topLevelImpl = (NestedSettingExpression) referenceMap.get(topLevelName);
@@ -350,7 +350,7 @@ public final class CrateSettings implements ClusterStateListener {
 
             // group settings have empty name, parent is created above
             if (numParts == 2 && name.isEmpty() == false) {
-                topLevelImpl.putChildImplementation(name, referenceImplementation);
+                topLevelImpl.putChildImplementation(name, nestableInput);
             } else {
                 // find parent impl
                 NestedSettingExpression parentImpl = topLevelImpl;
@@ -365,13 +365,13 @@ public final class CrateSettings implements ClusterStateListener {
                 }
                 // group settings have empty name, parents are created above
                 if (name.isEmpty() == false) {
-                    parentImpl.putChildImplementation(name, referenceImplementation);
+                    parentImpl.putChildImplementation(name, nestableInput);
                 }
             }
         }
     }
 
-    static class SettingExpression implements ReferenceImplementation<Object> {
+    static class SettingExpression implements NestableInput<Object> {
         private final CrateSettings crateSettings;
         private final CrateSetting<?> crateSetting;
         private final String name;
@@ -395,11 +395,11 @@ public final class CrateSettings implements ClusterStateListener {
     @VisibleForTesting
     static class NestedSettingExpression extends NestedObjectExpression {
 
-        void putChildImplementation(String name, ReferenceImplementation settingExpression) {
+        void putChildImplementation(String name, NestableInput settingExpression) {
             childImplementations.put(name, settingExpression);
         }
 
-        public Map<String, ReferenceImplementation> childImplementations() {
+        public Map<String, NestableInput> childImplementations() {
             return childImplementations;
         }
     }

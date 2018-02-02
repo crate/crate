@@ -21,10 +21,10 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardPrimaryExpression implements ReferenceImplementation<Boolean> {
+public class ShardPrimaryExpression implements NestableInput<Boolean> {
 
     private final IndexShard indexShard;
 

@@ -26,7 +26,7 @@ import com.google.common.collect.Lists;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
@@ -41,7 +41,7 @@ import org.elasticsearch.discovery.zen.ElectMasterService;
 public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     private final ClusterService clusterService;
-    private final ReferenceImplementation numMasterNodes;
+    private final NestableInput numMasterNodes;
 
     private static final int ID = 1;
     private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +

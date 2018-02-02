@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -31,17 +31,17 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class SysObjectArrayReference implements ReferenceImplementation<Object[]> {
+public abstract class SysObjectArrayReference implements NestableInput<Object[]> {
 
     protected abstract List<NestedObjectExpression> getChildImplementations();
 
     @Override
-    public ReferenceImplementation<Object[]> getChildImplementation(String name) {
+    public NestableInput<Object[]> getChild(String name) {
         List<NestedObjectExpression> childImplementations = getChildImplementations();
         final Object[] values = new Object[childImplementations.size()];
         int i = 0;
         for (NestedObjectExpression sysObjectReference : childImplementations) {
-            ReferenceImplementation<?> child = sysObjectReference.getChildImplementation(name);
+            NestableInput<?> child = sysObjectReference.getChild(name);
             if (child != null) {
                 Object value = child.value();
                 values[i++] = value;
@@ -58,10 +58,10 @@ public abstract class SysObjectArrayReference implements ReferenceImplementation
         Object[] values = new Object[childImplementations.size()];
         int i = 0;
         for (NestedObjectExpression expression : childImplementations) {
-            Map<String, Object> map = Maps.transformValues(expression.getChildImplementations(), new Function<ReferenceImplementation, Object>() {
+            Map<String, Object> map = Maps.transformValues(expression.getChildImplementations(), new Function<NestableInput, Object>() {
                 @Nullable
                 @Override
-                public Object apply(@Nullable ReferenceImplementation input) {
+                public Object apply(@Nullable NestableInput input) {
                     Object value = input.value();
                     if (value != null && value instanceof BytesRef) {
                         return ((BytesRef) value).utf8ToString();

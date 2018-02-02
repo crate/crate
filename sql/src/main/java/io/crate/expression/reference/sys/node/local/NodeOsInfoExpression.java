@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
@@ -41,9 +41,9 @@ class NodeOsInfoExpression extends NestedObjectExpression {
     private static final BytesRef OS_ARCH = BytesRefs.toBytesRef(Constants.OS_ARCH);
     private static final BytesRef OS_VERSION = BytesRefs.toBytesRef(Constants.OS_VERSION);
 
-    private static final ReferenceImplementation<BytesRef> OS_NAME_EXP = () -> OS_NAME;
-    private static final ReferenceImplementation<BytesRef> OS_ARCH_EXP = () -> OS_ARCH;
-    private static final ReferenceImplementation<BytesRef> OS_VERSION_EXP = () -> OS_VERSION;
+    private static final NestableInput<BytesRef> OS_NAME_EXP = () -> OS_NAME;
+    private static final NestableInput<BytesRef> OS_ARCH_EXP = () -> OS_ARCH;
+    private static final NestableInput<BytesRef> OS_VERSION_EXP = () -> OS_VERSION;
 
     NodeOsInfoExpression(OsInfo info) {
         addChildImplementations(info);

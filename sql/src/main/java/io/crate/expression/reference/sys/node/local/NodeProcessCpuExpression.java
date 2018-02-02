@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.process.ProcessStats;
 
@@ -37,14 +37,14 @@ class NodeProcessCpuExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ProcessStats.Cpu cpuStats) {
-        childImplementations.put(PERCENT, (ReferenceImplementation<Short>) () -> {
+        childImplementations.put(PERCENT, (NestableInput<Short>) () -> {
             if (cpuStats != null) {
                 return cpuStats.getPercent();
             } else {
                 return (short) -1;
             }
         });
-        childImplementations.put(USER, (ReferenceImplementation<Long>) () -> -1L);
-        childImplementations.put(SYSTEM, (ReferenceImplementation<Long>) () -> -1L);
+        childImplementations.put(USER, (NestableInput<Long>) () -> -1L);
+        childImplementations.put(SYSTEM, (NestableInput<Long>) () -> -1L);
     }
 }

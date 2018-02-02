@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -33,8 +33,8 @@ public class SysClusterExpressionModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(ClusterReferenceResolver.class).asEagerSingleton();
-        MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-            .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+        MapBinder<ReferenceIdent, NestableInput> b = MapBinder
+            .newMapBinder(binder(), ReferenceIdent.class, NestableInput.class);
 
         b.addBinding(clusterIdent(ClusterIdExpression.NAME)).to(ClusterIdExpression.class).asEagerSingleton();
         b.addBinding(clusterIdent(ClusterNameExpression.NAME)).to(ClusterNameExpression.class).asEagerSingleton();

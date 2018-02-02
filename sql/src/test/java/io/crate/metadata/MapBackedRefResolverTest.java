@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
@@ -41,9 +41,9 @@ public class MapBackedRefResolverTest {
     @Test
     public void testGetImplementation() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(USERS_TI, new ColumnIdent("obj"));
-        ReferenceResolver<ReferenceImplementation<?>> refResolver = new MapBackedRefResolver(
-            Collections.singletonMap(ident, mock(ReferenceImplementation.class)));
-        ReferenceImplementation implementation = refResolver.getImplementation(new Reference(
+        ReferenceResolver<NestableInput<?>> refResolver = new MapBackedRefResolver(
+            Collections.singletonMap(ident, mock(NestableInput.class)));
+        NestableInput implementation = refResolver.getImplementation(new Reference(
             new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))), RowGranularity.DOC, DataTypes.STRING));
 
         assertThat(implementation, Matchers.nullValue());

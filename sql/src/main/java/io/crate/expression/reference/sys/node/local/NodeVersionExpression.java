@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.node.local;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.shard.LiteralReferenceImplementation;
+import io.crate.expression.reference.sys.shard.LiteralNestableInput;
 import org.apache.lucene.util.BytesRef;
 
 class NodeVersionExpression extends NestedObjectExpression {
@@ -35,8 +35,8 @@ class NodeVersionExpression extends NestedObjectExpression {
     private static final String BUILD_SNAPSHOT = "build_snapshot";
 
     NodeVersionExpression() {
-        childImplementations.put(NUMBER, new LiteralReferenceImplementation<>(new BytesRef(Version.CURRENT.number())));
-        childImplementations.put(BUILD_HASH, new LiteralReferenceImplementation<>(new BytesRef(Build.CURRENT.hash())));
-        childImplementations.put(BUILD_SNAPSHOT, new LiteralReferenceImplementation<>(Version.CURRENT.snapshot));
+        childImplementations.put(NUMBER, new LiteralNestableInput<>(new BytesRef(Version.CURRENT.number())));
+        childImplementations.put(BUILD_HASH, new LiteralNestableInput<>(new BytesRef(Build.CURRENT.hash())));
+        childImplementations.put(BUILD_SNAPSHOT, new LiteralNestableInput<>(Version.CURRENT.snapshot));
     }
 }

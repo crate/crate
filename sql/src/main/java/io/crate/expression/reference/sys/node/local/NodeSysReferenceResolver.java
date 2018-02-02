@@ -24,45 +24,45 @@ package io.crate.expression.reference.sys.node.local;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class NodeSysReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+public class NodeSysReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
     private final NodeSysExpression nodeSysExpression;
-    private final Map<String, ReferenceImplementation> expressionCache;
+    private final Map<String, NestableInput> expressionCache;
 
     public NodeSysReferenceResolver(NodeSysExpression nodeSysExpression) {
         this.nodeSysExpression = nodeSysExpression;
         this.expressionCache = new HashMap<>();
     }
 
-    private ReferenceImplementation getCachedImplementation(String name) {
-        ReferenceImplementation impl = expressionCache.get(name);
+    private NestableInput getCachedImplementation(String name) {
+        NestableInput impl = expressionCache.get(name);
         if (impl == null) {
-            impl = nodeSysExpression.getChildImplementation(name);
+            impl = nodeSysExpression.getChild(name);
             expressionCache.put(name, impl);
         }
         return impl;
     }
 
     @Override
-    public ReferenceImplementation getImplementation(Reference refInfo) {
+    public NestableInput getImplementation(Reference refInfo) {
         ReferenceIdent ident = refInfo.ident();
         if (SysNodesTableInfo.SYS_COL_NAME.equals(ident.columnIdent().name())) {
             if (ident.columnIdent().isTopLevel()) {
                 return nodeSysExpression;
             }
-            ReferenceImplementation impl = null;
+            NestableInput impl = null;
             for (String part : ident.columnIdent().path()) {
                 if (impl == null) {
                     impl = getCachedImplementation(part);
                 } else {
-                    impl = impl.getChildImplementation(part);
+                    impl = impl.getChild(part);
                 }
             }
             return impl;

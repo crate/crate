@@ -22,13 +22,13 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-class NodeHostnameExpression implements ReferenceImplementation<BytesRef> {
+class NodeHostnameExpression implements NestableInput<BytesRef> {
 
     @Override
     public BytesRef value() {

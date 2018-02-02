@@ -23,12 +23,12 @@ package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardPartitionOrphanedExpression implements ReferenceImplementation<Boolean> {
+public class ShardPartitionOrphanedExpression implements NestableInput<Boolean> {
 
     private final ClusterService clusterService;
     private final String aliasName;

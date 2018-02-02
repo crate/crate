@@ -21,30 +21,30 @@
 
 package io.crate.expression.reference;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class NestedObjectExpression implements ReferenceImplementation<Map<String, Object>> {
+public abstract class NestedObjectExpression implements NestableInput<Map<String, Object>> {
 
-    protected Map<String, ReferenceImplementation> childImplementations = new HashMap<>();
+    protected Map<String, NestableInput> childImplementations = new HashMap<>();
 
-    public Map<String, ReferenceImplementation> getChildImplementations() {
+    public Map<String, NestableInput> getChildImplementations() {
         return childImplementations;
     }
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
+    public NestableInput getChild(String name) {
         return childImplementations.get(name);
     }
 
     @Override
     public Map<String, Object> value() {
         Map<String, Object> map = new HashMap<>(childImplementations.size());
-        for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
+        for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
             Object value = e.getValue().value();
 
             // convert nested columns of type e.getValue().value() to String here

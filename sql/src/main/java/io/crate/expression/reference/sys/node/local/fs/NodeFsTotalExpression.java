@@ -27,7 +27,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.apache.logging.log4j.Logger;
@@ -107,7 +107,7 @@ class NodeFsTotalExpression extends NestedObjectExpression {
             .build();
     }
 
-    private class NodeFSTotalChildExpression implements ReferenceImplementation<Long> {
+    private class NodeFSTotalChildExpression implements NestableInput<Long> {
 
         private final String name;
 

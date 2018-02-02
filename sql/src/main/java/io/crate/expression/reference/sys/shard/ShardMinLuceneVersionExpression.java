@@ -22,12 +22,12 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardMinLuceneVersionExpression implements ReferenceImplementation<BytesRef> {
+public class ShardMinLuceneVersionExpression implements NestableInput<BytesRef> {
 
     private IndexShard indexShard;
 

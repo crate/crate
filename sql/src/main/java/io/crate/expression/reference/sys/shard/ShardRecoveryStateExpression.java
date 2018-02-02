@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public abstract class ShardRecoveryStateExpression<T> implements ReferenceImplementation<T> {
+public abstract class ShardRecoveryStateExpression<T> implements NestableInput<T> {
 
     private final IndexShard indexShard;
 

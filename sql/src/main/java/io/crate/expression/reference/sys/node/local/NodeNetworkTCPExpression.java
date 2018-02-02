@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedNetworkStats;
 import io.crate.expression.reference.NestedObjectExpression;
 
@@ -50,7 +50,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
         }
 
         private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
-            childImplementations.put(INITIATED, new ReferenceImplementation<Long>() {
+            childImplementations.put(INITIATED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -59,7 +59,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(ACCEPTED, new ReferenceImplementation<Long>() {
+            childImplementations.put(ACCEPTED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -68,7 +68,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(CURR_ESTABLISHED, new ReferenceImplementation<Long>() {
+            childImplementations.put(CURR_ESTABLISHED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -77,7 +77,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(DROPPED, new ReferenceImplementation<Long>() {
+            childImplementations.put(DROPPED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -86,7 +86,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(EMBRYONIC_DROPPED, new ReferenceImplementation<Long>() {
+            childImplementations.put(EMBRYONIC_DROPPED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -114,7 +114,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
         }
 
         private void addChildImplementations(final ExtendedNetworkStats.Tcp tcp) {
-            childImplementations.put(SENT, new ReferenceImplementation<Long>() {
+            childImplementations.put(SENT, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -123,7 +123,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(RECEIVED, new ReferenceImplementation<Long>() {
+            childImplementations.put(RECEIVED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -132,7 +132,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(RETRANSMITTED, new ReferenceImplementation<Long>() {
+            childImplementations.put(RETRANSMITTED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -141,7 +141,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(ERRORS_RECEIVED, new ReferenceImplementation<Long>() {
+            childImplementations.put(ERRORS_RECEIVED, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {
@@ -150,7 +150,7 @@ class NodeNetworkTCPExpression extends NestedObjectExpression {
                     return VALUE_UNAVAILABLE;
                 }
             });
-            childImplementations.put(RST_SENT, new ReferenceImplementation<Long>() {
+            childImplementations.put(RST_SENT, new NestableInput<Long>() {
                 @Override
                 public Long value() {
                     if (tcp != null) {

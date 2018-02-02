@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.expression.reference.NestedObjectExpression;
 
@@ -39,14 +39,14 @@ class NodeOsExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ExtendedOsStats extendedOsStats) {
-        childImplementations.put(UPTIME, new ReferenceImplementation<Long>() {
+        childImplementations.put(UPTIME, new NestableInput<Long>() {
             @Override
             public Long value() {
                 long uptime = extendedOsStats.uptime().millis();
                 return uptime == -1000 ? -1 : uptime;
             }
         });
-        childImplementations.put(TIMESTAMP, new ReferenceImplementation<Long>() {
+        childImplementations.put(TIMESTAMP, new NestableInput<Long>() {
             final long ts = System.currentTimeMillis();
 
             @Override

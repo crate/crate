@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowCollectExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -39,13 +39,13 @@ public abstract class RowCollectNestedObjectExpression<R> extends NestedObjectEx
     @Override
     public Map<String, Object> value() {
         Map<String, Object> map = new HashMap<>(childImplementations.size());
-        for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
-            ReferenceImplementation referenceImplementation = e.getValue();
-            if (referenceImplementation instanceof RowCollectExpression) {
+        for (Map.Entry<String, NestableInput> e : childImplementations.entrySet()) {
+            NestableInput nestableInput = e.getValue();
+            if (nestableInput instanceof RowCollectExpression) {
                 //noinspection unchecked
-                ((RowCollectExpression) referenceImplementation).setNextRow(this.row);
+                ((RowCollectExpression) nestableInput).setNextRow(this.row);
             }
-            Object value = referenceImplementation.value();
+            Object value = nestableInput.value();
 
             // convert nested columns of type e.getValue().value() to String here
             // as we do not want to convert them when building the response

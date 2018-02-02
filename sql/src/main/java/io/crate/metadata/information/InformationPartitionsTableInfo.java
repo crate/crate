@@ -30,7 +30,7 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -147,7 +147,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 }
 
                 @Override
-                public ReferenceImplementation getChildImplementation(String name) {
+                public NestableInput getChild(String name) {
                     // The input values could be of mixed types (select values['p'];  t1 (p int); t2 (p string))
                     // The result is casted to string because streaming (via pg) doesn't support mixed types;
                     return new MapLookupByPathExpression<>(

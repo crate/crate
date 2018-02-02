@@ -22,13 +22,13 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.function.Supplier;
 
-class NodeNameExpression implements ReferenceImplementation<BytesRef> {
+class NodeNameExpression implements NestableInput<BytesRef> {
 
     private final Supplier<String> nodeNameSupplier;
     private BytesRef value = null;

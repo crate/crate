@@ -23,10 +23,10 @@
 package io.crate.expression.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 
-public class BlobShardBlobPathExpression implements ReferenceImplementation<BytesRef> {
+public class BlobShardBlobPathExpression implements NestableInput<BytesRef> {
 
     private final BytesRef path;
 

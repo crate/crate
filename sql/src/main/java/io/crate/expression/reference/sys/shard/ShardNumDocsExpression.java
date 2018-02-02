@@ -21,11 +21,11 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardNumDocsExpression implements ReferenceImplementation<Long> {
+public class ShardNumDocsExpression implements NestableInput<Long> {
 
     private final IndexShard indexShard;
 

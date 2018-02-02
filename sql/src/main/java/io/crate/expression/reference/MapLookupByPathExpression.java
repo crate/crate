@@ -23,7 +23,7 @@
 package io.crate.expression.reference;
 
 import io.crate.core.collections.StringObjectMaps;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowCollectExpression;
 
 import java.util.ArrayList;
@@ -57,7 +57,7 @@ public final class MapLookupByPathExpression<T, R> implements RowCollectExpressi
     }
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
+    public NestableInput getChild(String name) {
         ArrayList<String> newPath = new ArrayList<>(path.size() + 1);
         newPath.addAll(path);
         newPath.add(name);

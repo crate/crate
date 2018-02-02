@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node.local;
 
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.expression.reference.sys.shard.LiteralReferenceImplementation;
+import io.crate.expression.reference.sys.shard.LiteralNestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,7 +51,7 @@ class NodeThreadPoolExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations() {
-        childImplementations.put(POOL_NAME, new LiteralReferenceImplementation<>(name));
+        childImplementations.put(POOL_NAME, new LiteralNestableInput<>(name));
         childImplementations.put(ACTIVE, threadPoolExecutor::getActiveCount);
         childImplementations.put(REJECTED, () -> {
             long rejected = -1;

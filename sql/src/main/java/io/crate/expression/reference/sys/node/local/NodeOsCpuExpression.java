@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.expression.reference.NestedObjectExpression;
 
@@ -39,7 +39,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ExtendedOsStats.Cpu cpu) {
-        childImplementations.put(SYS, new ReferenceImplementation<Short>() {
+        childImplementations.put(SYS, new NestableInput<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -49,7 +49,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(USER, new ReferenceImplementation<Short>() {
+        childImplementations.put(USER, new NestableInput<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -59,7 +59,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(IDLE, new ReferenceImplementation<Short>() {
+        childImplementations.put(IDLE, new NestableInput<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -69,7 +69,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(USAGE, new ReferenceImplementation<Short>() {
+        childImplementations.put(USAGE, new NestableInput<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -79,7 +79,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(STOLEN, new ReferenceImplementation<Short>() {
+        childImplementations.put(STOLEN, new NestableInput<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {

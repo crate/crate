@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import org.elasticsearch.common.transport.TransportAddress;
 
@@ -46,13 +46,13 @@ class NodePortExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations() {
-        childImplementations.put(HTTP, new ReferenceImplementation<Integer>() {
+        childImplementations.put(HTTP, new NestableInput<Integer>() {
             @Override
             public Integer value() {
                 return portFromAddress(httpAddress.get());
             }
         });
-        childImplementations.put(TRANSPORT, new ReferenceImplementation<Integer>() {
+        childImplementations.put(TRANSPORT, new NestableInput<Integer>() {
             @Override
             public Integer value() {
                 return portFromAddress(transportAddress.get());

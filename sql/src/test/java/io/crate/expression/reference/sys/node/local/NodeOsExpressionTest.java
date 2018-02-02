@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node.local;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.monitor.os.OsStats;
@@ -38,7 +38,7 @@ public class NodeOsExpressionTest extends CrateUnitTest {
         OsStats osStats = mock(OsStats.class);
         ExtendedOsStats extendedOsStats = new ExtendedOsStats(1000L, cpu, new double[]{-1.0d, -1.0d, -1.0d}, 1000L, osStats, null);
         NodeOsExpression nodeOsExpression = new NodeOsExpression(extendedOsStats);
-        ReferenceImplementation timestampExpr = nodeOsExpression.getChildImplementation("timestamp");
+        NestableInput timestampExpr = nodeOsExpression.getChild("timestamp");
         Long ts1 = (Long) timestampExpr.value();
         Thread.sleep(10L);
         Long ts2 = (Long) timestampExpr.value();

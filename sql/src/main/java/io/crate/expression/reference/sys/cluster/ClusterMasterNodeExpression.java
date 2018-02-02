@@ -21,12 +21,12 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterMasterNodeExpression implements ReferenceImplementation<BytesRef> {
+public class ClusterMasterNodeExpression implements NestableInput<BytesRef> {
 
     public static final String NAME = "master_node";
     private final ClusterService clusterService;

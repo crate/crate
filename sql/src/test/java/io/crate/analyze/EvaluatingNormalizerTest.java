@@ -11,7 +11,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.ReferenceImplementation;
+import io.crate.expression.NestableInput;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -20,7 +20,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
-import io.crate.expression.reference.sys.shard.LiteralReferenceImplementation;
+import io.crate.expression.reference.sys.shard.LiteralNestableInput;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -45,12 +45,12 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Map<ReferenceIdent, ReferenceImplementation> referenceImplementationMap = new HashMap<>(1, 1);
+        Map<ReferenceIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
-        referenceImplementationMap.put(dummyLoadIdent, new LiteralReferenceImplementation<>(0.08d));
+        referenceImplementationMap.put(dummyLoadIdent, new LiteralNestableInput<>(0.08d));
         functions = getFunctions();
         referenceResolver = new ClusterReferenceResolver(referenceImplementationMap);
     }

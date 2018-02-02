@@ -30,7 +30,7 @@ public class NodePortExpressionTest extends CrateUnitTest {
     @Test
     public void testNoHttpServerAvailable() throws Exception {
         NodePortExpression nodePortExpression = new NodePortExpression(() -> null, () -> null);
-        Object value = nodePortExpression.getChildImplementation("http").value();
+        Object value = nodePortExpression.getChild("http").value();
         assertThat(value, Matchers.nullValue());
     }
 }
