@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.expression.NestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
@@ -48,7 +48,7 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
         List<NestedObjectExpression> loggerExpressions = new ArrayList<>();
         for (final Map.Entry<String, String> entry : settingsMap.entrySet()) {
             if (entry.getKey().startsWith("logger.")) {
-                loggerExpressions.add(new ClusterLoggingOverridesChildExpression(entry));
+                loggerExpressions.add(new ClusterLoggingOverridesChildExpression(entry.getKey(), entry.getValue()));
             }
         }
         return loggerExpressions;
@@ -59,20 +59,9 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
         public static final String NAME = "name";
         public static final String LEVEL = "level";
 
-        protected ClusterLoggingOverridesChildExpression(final Map.Entry<String, String> setting) {
-            childImplementations.put(NAME, new NestableInput<BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(setting.getKey());
-                }
-            });
-            childImplementations.put(LEVEL, new NestableInput<BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(setting.getValue().toUpperCase(Locale.ENGLISH));
-                }
-            });
-
+        ClusterLoggingOverridesChildExpression(String loggerName, String level) {
+            childImplementations.put(NAME, new LiteralNestableInput<>(new BytesRef(loggerName)));
+            childImplementations.put(LEVEL, new LiteralNestableInput<>(new BytesRef(level.toUpperCase(Locale.ENGLISH))));
         }
     }
 }
