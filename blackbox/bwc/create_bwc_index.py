@@ -111,6 +111,10 @@ def create_index(index_name, crate_home, output_dir):
         transport_port=CRATE_TRANSPORT_PORT,
         settings={
             'es.api.enabled': True,
+            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+            "cluster.routing.allocation.disk.watermark.low" : "100k",
+            "cluster.routing.allocation.disk.watermark.high" : "10k",
+            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
         }
     )
     crate_layer.start()
