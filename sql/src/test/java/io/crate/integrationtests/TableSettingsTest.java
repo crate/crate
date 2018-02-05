@@ -35,6 +35,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         // set all settings so they are deterministic
         execute("create table settings_table (name string) with (" +
                 "\"blocks.read_only\" = false, " +
+                "\"blocks.read_only_allow_delete\" = false, " +
                 "\"blocks.read\" = false, " +
                 "\"blocks.write\" = true, " +
                 "\"blocks.metadata\" = false, " +

@@ -84,9 +84,9 @@ clause::
 
 .. NOTE::
 
-    This setting is *not* the same as the :ref:`Blocks Settings
-    <ref-configuration-blocks>`. Closing and opening a table will preserve
-    these settings if they are already set.
+    This setting is *not* the same as :ref:`table-settings-blocks.read_only`.
+    Closing and opening a table will preserve these settings if they are
+    already set.
 
 Renaming Tables
 ===============

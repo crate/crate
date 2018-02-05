@@ -795,6 +795,10 @@ Disk-based Shard Allocation
   Defines the threshold on which CrateDB enforces a read-only block on every
   index that has at least one shard allocated on a node with at least one disk
   exceeding the flood stage.
+  Note, that the read-only blocks are not automatically removed from the
+  indices if the disk space is freed and the threshold is undershot. To remove
+  the block, execute ``ALTER TABLE ... SET ("blocks.read_only_allow_delete" =
+  FALSE)`` for affected tables (see :ref:`table-settings-blocks.read_only_allow_delete`).
 
 ``cluster.routing.allocation.disk.watermark`` settings may be defined as
 percentages or bytes values. However, it is not possible to mix the value

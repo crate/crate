@@ -50,6 +50,7 @@ public class TableParameterInfo {
     public static final String REFRESH_INTERVAL = IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey();
     public static final String NUMBER_OF_SHARDS = IndexMetaData.SETTING_NUMBER_OF_SHARDS;
     public static final String READ_ONLY = IndexMetaData.SETTING_READ_ONLY;
+    public static final String READ_ONLY_ALLOW_DELETE = IndexMetaData.SETTING_READ_ONLY_ALLOW_DELETE;
     public static final String BLOCKS_READ = IndexMetaData.SETTING_BLOCKS_READ;
     public static final String BLOCKS_WRITE = IndexMetaData.SETTING_BLOCKS_WRITE;
     public static final String BLOCKS_METADATA = IndexMetaData.SETTING_BLOCKS_METADATA;
@@ -74,6 +75,7 @@ public class TableParameterInfo {
             .add(NUMBER_OF_REPLICAS)
             .add(REFRESH_INTERVAL)
             .add(READ_ONLY)
+            .add(READ_ONLY_ALLOW_DELETE)
             .add(BLOCKS_READ)
             .add(BLOCKS_WRITE)
             .add(BLOCKS_METADATA)
@@ -125,6 +127,7 @@ public class TableParameterInfo {
         Settings settings = metaData.getSettings();
         return ImmutableMap.<String, Object>builder()
             .put(TableParameterInfo.READ_ONLY, CrateTableSettings.READ_ONLY.extract(settings))
+            .put(TableParameterInfo.READ_ONLY_ALLOW_DELETE, CrateTableSettings.READ_ONLY_ALLOW_DELETE.extract(settings))
             .put(TableParameterInfo.BLOCKS_READ, CrateTableSettings.BLOCKS_READ.extract(settings))
             .put(TableParameterInfo.BLOCKS_WRITE, CrateTableSettings.BLOCKS_WRITE.extract(settings))
             .put(TableParameterInfo.BLOCKS_METADATA, CrateTableSettings.BLOCKS_METADATA.extract(settings))

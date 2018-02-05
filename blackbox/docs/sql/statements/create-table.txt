@@ -300,7 +300,7 @@ The number of shard copies is defined like this::
   value is set to ``all`` which will cause write operations to wait for
   the primary and all replica shards to be active.
 
-.. _ref-configuration-blocks:
+.. _table-settings-blocks.read_only:
 
 ``blocks.read_only``
 ....................
@@ -310,6 +310,22 @@ Allows to have a read only table.
 :value:
   Table is read only if value set to ``true``. Allows writes and table
   settings changes if set to ``false``.
+
+.. _table-settings-blocks.read_only_allow_delete:
+
+``blocks.read_only_allow_delete``
+.................................
+
+Allows to have a read only table that additionally can be deleted.
+
+:value:
+  Table is read only and can be deleted if value set to ``true``. Allows writes
+  and table settings changes if set to ``false``.
+  When a disk on a node exceeds the
+  ``cluster.routing.allocation.disk.watermark.flood_stage`` threshold, this
+  block is applied (set to ``true``) to all tables on that affected node. Once
+  you've freed disk space again and the threshold is undershot, you need to set
+  the ``blocks.read_only_allow_delete`` table setting to ``false``.
 
 ``blocks.read``
 ...............

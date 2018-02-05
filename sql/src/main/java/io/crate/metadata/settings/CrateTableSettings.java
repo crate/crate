@@ -40,6 +40,8 @@ public final class CrateTableSettings {
 
     public static final BoolSetting READ_ONLY = new BoolSetting(TableParameterInfo.READ_ONLY, false);
 
+    public static final BoolSetting READ_ONLY_ALLOW_DELETE = new BoolSetting(TableParameterInfo.READ_ONLY_ALLOW_DELETE, false);
+
     public static final BoolSetting BLOCKS_READ = new BoolSetting(TableParameterInfo.BLOCKS_READ, false);
 
     public static final BoolSetting BLOCKS_WRITE = new BoolSetting(TableParameterInfo.BLOCKS_WRITE, false);
