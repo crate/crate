@@ -5,6 +5,6 @@ group = 'io.crate'
 
 dependencies {
     compile project(':core')
-    compile 'dnsjava:dnsjava:2.1.7'
+    compile 'dnsjava:dnsjava:2.1.8'
     testCompile project(':integration-testing')
 }
