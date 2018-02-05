@@ -163,7 +163,11 @@ def test_suite():
         },
         settings={
             'stats.enabled': True,
-            'license.enterprise': True
+            'license.enterprise': True,
+            # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+            "cluster.routing.allocation.disk.watermark.low" : "100k",
+            "cluster.routing.allocation.disk.watermark.high" : "10k",
+            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
         }
     )
     suite.addTest(s)

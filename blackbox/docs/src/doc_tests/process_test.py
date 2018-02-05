@@ -115,6 +115,12 @@ class GracefulStopTest(unittest.TestCase):
                 host='localhost',
                 port=GLOBAL_PORT_POOL.get(),
                 transport_port=transport_port_range,
+                settings={
+                    # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+                    "cluster.routing.allocation.disk.watermark.low" : "100k",
+                    "cluster.routing.allocation.disk.watermark.high" : "10k",
+                    "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
+                },
                 cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)
