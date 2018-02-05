@@ -65,10 +65,12 @@ import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.IndexParts;
@@ -488,6 +490,19 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
             for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
                 process(relation, context);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, RelationContext context) {
+            process(relation.childRelation(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
+            process(unionSelect.left(), context);
+            process(unionSelect.right(), context);
             return null;
         }
 

@@ -300,6 +300,25 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     }
 
     @Test
+    public void testSelectUnion() throws Exception {
+        analyze("select name from sys.cluster union all select name from users");
+        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    /**
+     * Union with order by (and/or limit) results
+     * in a {@link io.crate.analyze.relations.OrderedLimitedRelation}
+     * which wraps the {@link io.crate.analyze.relations.UnionSelect}
+     */
+    @Test
+    public void testSelectUnionWithOrderBy() throws Exception {
+        analyze("select * from sys.cluster union all select * from users order by 1");
+        assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
     public void testSelectWithSubSelect() throws Exception {
         analyze("select * from (" +
                 " select users.id from users join parted on users.id = parted.id::long order by users.name limit 2" +

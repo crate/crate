@@ -63,6 +63,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``MissingPrivilegeException`` for non-superusers
+  for queries with ``UNION ALL``.
+
 - Fixed a regression that caused assignments of arrays including parameter
   placeholders to not work correctly.
 
