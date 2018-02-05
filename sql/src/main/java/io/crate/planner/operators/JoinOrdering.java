@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Utility class which is used by the {@link Join} for the building of
+ * Utility class which is used by the {@link JoinPlanBuilder} for the building of
  * the join tree, which helps to find the optimal ordering of the tables.
  */
 final class JoinOrdering {

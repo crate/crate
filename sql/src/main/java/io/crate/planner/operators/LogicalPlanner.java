@@ -223,7 +223,7 @@ public class LogicalPlanner {
             return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
-            return Join.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner);
+            return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner);
         }
         if (queriedRelation instanceof UnionSelect) {
             return Union.create((UnionSelect) queriedRelation, subqueryPlanner);

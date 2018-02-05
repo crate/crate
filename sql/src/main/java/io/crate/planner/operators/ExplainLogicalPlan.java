@@ -170,7 +170,7 @@ public class ExplainLogicalPlan {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitJoin(Join logicalPlan, Context context) {
+        public ImmutableMap.Builder<String, Object> visitJoin(NestedLoopJoin logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
                 .put("left", explainMap(logicalPlan.lhs, context))
                 .put("right", explainMap(logicalPlan.rhs, context))

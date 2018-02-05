@@ -23,14 +23,9 @@
 package io.crate.planner.operators;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.relations.QuerySplitter;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -40,45 +35,33 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
-import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.TableStats;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-public class Join extends TwoInputPlan {
+class NestedLoopJoin extends TwoInputPlan {
 
     final JoinType joinType;
 
@@ -88,225 +71,13 @@ public class Join extends TwoInputPlan {
     private final boolean hasOuterJoins;
     private final AnalyzedRelation leftRelation;
 
-    static Builder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
-        return (tableStats, usedColsByParent) -> {
-
-            LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
-            for (JoinPair joinPair : mss.joinPairs()) {
-                if (joinPair.condition() == null) {
-                    continue;
-                }
-                JoinPair prevPair = joinPairs.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
-                if (prevPair != null) {
-                    throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
-                }
-            }
-            final boolean hasOuterJoins = joinPairs.values().stream().anyMatch(p -> p.joinType().isOuter());
-            Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
-
-            Collection<QualifiedName> orderedRelationNames;
-            if (mss.sources().size() > 2) {
-                orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-                    mss.sources().keySet(),
-                    joinPairs.keySet(),
-                    queryParts.keySet()
-                );
-            } else {
-                orderedRelationNames = mss.sources().keySet();
-            }
-
-            Iterator<QualifiedName> it = orderedRelationNames.iterator();
-
-            final QualifiedName lhsName = it.next();
-            final QualifiedName rhsName = it.next();
-            QueriedRelation lhs = (QueriedRelation) mss.sources().get(lhsName);
-            QueriedRelation rhs = (QueriedRelation) mss.sources().get(rhsName);
-            Set<QualifiedName> joinNames = new HashSet<>();
-            joinNames.add(lhsName);
-            joinNames.add(rhsName);
-
-            JoinPair joinLhsRhs = joinPairs.remove(joinNames);
-            final JoinType joinType;
-            final Symbol joinCondition;
-            if (joinLhsRhs == null) {
-                joinType = JoinType.CROSS;
-                joinCondition = null;
-            } else {
-                joinType = maybeInvertPair(rhsName, joinLhsRhs);
-                joinCondition = joinLhsRhs.condition();
-            }
-
-            Set<Symbol> usedFromLeft = new HashSet<>();
-            Set<Symbol> usedFromRight = new HashSet<>();
-            for (JoinPair joinPair : mss.joinPairs()) {
-                addColumnsFrom(joinPair.condition(), usedFromLeft::add, lhs);
-                addColumnsFrom(joinPair.condition(), usedFromRight::add, rhs);
-            }
-            addColumnsFrom(where.query(), usedFromLeft::add, lhs);
-            addColumnsFrom(where.query(), usedFromRight::add, rhs);
-
-            addColumnsFrom(usedColsByParent, usedFromLeft::add, lhs);
-            addColumnsFrom(usedColsByParent, usedFromRight::add, rhs);
-
-            // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
-            // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
-            // have more than 1 fetchProjection within a single execution
-            LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromLeft);
-            LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromRight);
-            Symbol query = removeParts(queryParts, lhsName, rhsName);
-            LogicalPlan join = new Join(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                query != null && !(query instanceof Literal),
-                hasOuterJoins,
-                lhs);
-
-            join = Filter.create(join, query);
-            while (it.hasNext()) {
-                QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
-                join = joinWithNext(
-                    tableStats,
-                    join,
-                    nextRel,
-                    usedColsByParent,
-                    joinNames,
-                    joinPairs,
-                    queryParts,
-                    subqueryPlanner,
-                    hasOuterJoins,
-                    lhs);
-                joinNames.add(nextRel.getQualifiedName());
-            }
-            assert queryParts.isEmpty() : "Must've applied all queryParts";
-            assert joinPairs.isEmpty() : "Must've applied all joinPairs";
-
-            return join;
-        };
-    }
-
-    private static JoinType maybeInvertPair(QualifiedName rhsName, JoinPair pair) {
-        // A matching joinPair for two relations is retrieved using pairByQualifiedNames.remove(setOf(a, b))
-        // This returns a pair for both cases: (a ⋈ b) and (b ⋈ a) -> invert joinType to execute correct join
-        // Note that this can only happen if a re-ordering optimization happened, otherwise the joinPair would always
-        // be in the correct format.
-        if (pair.right().equals(rhsName)) {
-            return pair.joinType();
-        }
-        return pair.joinType().invert();
-    }
-
-    private static LogicalPlan joinWithNext(TableStats tableStats,
-                                            LogicalPlan source,
-                                            QueriedRelation nextRel,
-                                            Set<Symbol> usedColumns,
-                                            Set<QualifiedName> joinNames,
-                                            Map<Set<QualifiedName>, JoinPair> joinPairs,
-                                            Map<Set<QualifiedName>, Symbol> queryParts,
-                                            SubqueryPlanner subqueryPlanner,
-                                            boolean hasOuterJoins,
-                                            AnalyzedRelation leftRelation) {
-        QualifiedName nextName = nextRel.getQualifiedName();
-
-        Set<Symbol> usedFromNext = new HashSet<>();
-        Consumer<Symbol> addToUsedColumns = usedFromNext::add;
-        JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
-        final JoinType type;
-        final Symbol condition;
-        if (joinPair == null) {
-            type = JoinType.CROSS;
-            condition = null;
-        } else {
-            type = maybeInvertPair(nextName, joinPair);
-            condition = joinPair.condition();
-            addColumnsFrom(condition, addToUsedColumns, nextRel);
-        }
-        for (JoinPair pair : joinPairs.values()) {
-            addColumnsFrom(pair.condition(), addToUsedColumns, nextRel);
-        }
-        for (Symbol queryPart : queryParts.values()) {
-            addColumnsFrom(queryPart, addToUsedColumns, nextRel);
-        }
-        addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
-
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromNext);
-
-        Symbol query = AndOperator.join(
-            Stream.of(
-                removeMatch(queryParts, joinNames, nextName),
-                queryParts.remove(Collections.singleton(nextName)))
-                .filter(Objects::nonNull).iterator()
-        );
-        return Filter.create(
-            new Join(
-                source,
-                nextPlan,
-                type,
-                condition,
-                query != null && !(query instanceof Literal),
-                hasOuterJoins,
-                leftRelation),
-            query
-        );
-    }
-
-    @Nullable
-    private static Symbol removeParts(Map<Set<QualifiedName>, Symbol> queryParts, QualifiedName lhsName, QualifiedName rhsName) {
-        // query parts can affect a single relation without being pushed down in the outer-join case
-        Symbol left = queryParts.remove(Collections.singleton(lhsName));
-        Symbol right = queryParts.remove(Collections.singleton(rhsName));
-        Symbol both = queryParts.remove(Sets.newHashSet(lhsName, rhsName));
-        return AndOperator.join(
-            Stream.of(left, right, both).filter(Objects::nonNull).iterator()
-        );
-    }
-
-    @Nullable
-    private static <V> V removeMatch(Map<Set<QualifiedName>, V> valuesByNames, Set<QualifiedName> names, QualifiedName nextName) {
-        for (QualifiedName name : names) {
-            V v = valuesByNames.remove(Sets.newHashSet(name, nextName));
-            if (v != null) {
-                return v;
-            }
-        }
-        return null;
-    }
-
-    private static void addColumnsFrom(Iterable<? extends Symbol> symbols,
-                                       Consumer<? super Symbol> consumer,
-                                       QueriedRelation rel) {
-
-        for (Symbol symbol : symbols) {
-            addColumnsFrom(symbol, consumer, rel);
-        }
-    }
-
-    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, QueriedRelation rel) {
-        if (symbol == null) {
-            return;
-        }
-        FieldsVisitor.visitFields(symbol, f -> {
-            if (f.relation().getQualifiedName().equals(rel.getQualifiedName())) {
-                consumer.accept(rel.querySpec().outputs().get(f.index()));
-            }
-        });
-    }
-
-    private static Map<Set<QualifiedName>,Symbol> getQueryParts(WhereClause where) {
-        if (where.hasQuery()) {
-            return QuerySplitter.split(where.query());
-        }
-        return Collections.emptyMap();
-    }
-
-    private Join(LogicalPlan lhs,
-                 LogicalPlan rhs,
-                 JoinType joinType,
-                 @Nullable Symbol joinCondition,
-                 boolean isFiltered,
-                 boolean hasOuterJoins,
-                 AnalyzedRelation leftRelation) {
+    NestedLoopJoin(LogicalPlan lhs,
+                   LogicalPlan rhs,
+                   JoinType joinType,
+                   @Nullable Symbol joinCondition,
+                   boolean isFiltered,
+                   boolean hasOuterJoins,
+                   AnalyzedRelation leftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
         this.joinCondition = joinCondition;
@@ -473,7 +244,7 @@ public class Join extends TwoInputPlan {
 
     @Override
     protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new Join(newLeftSource, newRightSource, joinType, joinCondition, isFiltered, hasOuterJoins, leftRelation);
+        return new NestedLoopJoin(newLeftSource, newRightSource, joinType, joinCondition, isFiltered, hasOuterJoins, leftRelation);
     }
 
     @Override

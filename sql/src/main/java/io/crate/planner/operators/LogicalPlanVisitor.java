@@ -70,7 +70,7 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
-    public R visitJoin(Join logicalPlan, C context) {
+    public R visitJoin(NestedLoopJoin logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }
 

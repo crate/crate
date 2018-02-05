@@ -165,7 +165,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                " (select i from t2 limit 1) t2 " +
                                "on t1.cnt = t2.i::long ");
         assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
-                                "Join[\n" +
+                                "NestedLoopJoin[\n" +
                                 "    Boundary[cnt]\n" +
                                 "    Count[doc.t1 | All]\n" +
                                 "    --- INNER ---\n" +
@@ -186,7 +186,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "limit 10");
         assertThat(plan, isPlan("FetchOrEval[x, a, y]\n" +
                                 "Limit[10;0]\n" +
-                                "Join[\n" +
+                                "NestedLoopJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    FetchOrEval[_fetchid, x]\n" +
                                 "    OrderBy['x' ASC]\n" +
@@ -359,15 +359,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 sb.append("]\n");
                 plan = aggregate.source;
             }
-            if (plan instanceof Join) {
-                Join join = (Join) plan;
-                startLine("Join[\n");
+            if (plan instanceof NestedLoopJoin) {
+                NestedLoopJoin nestedLoopJoin = (NestedLoopJoin) plan;
+                startLine("NestedLoopJoin[\n");
                 indentation += 4;
-                printPlan(join.lhs);
+                printPlan(nestedLoopJoin.lhs);
                 startLine("--- ");
-                sb.append(join.joinType);
+                sb.append(nestedLoopJoin.joinType);
                 sb.append(" ---\n");
-                printPlan(join.rhs);
+                printPlan(nestedLoopJoin.rhs);
                 indentation -= 4;
                 sb.append("]\n");
                 return sb.toString();
