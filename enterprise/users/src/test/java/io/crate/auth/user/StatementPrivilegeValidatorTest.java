@@ -313,7 +313,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
      */
     @Test
     public void testSelectUnionWithOrderBy() throws Exception {
-        analyze("select * from sys.cluster union all select * from users order by 1");
+        analyze("select name from sys.cluster union all select name from users order by 1");
         assertAskedForTable(Privilege.Type.DQL, "sys.cluster");
         assertAskedForTable(Privilege.Type.DQL, "doc.users");
     }
