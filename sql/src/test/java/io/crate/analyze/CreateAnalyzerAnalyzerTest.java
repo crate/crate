@@ -27,10 +27,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -71,7 +71,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertEquals("a2", createAnalyzerAnalysis.ident());
         assertEquals("a2_tok2", createAnalyzerAnalysis.tokenizerDefinition().v1());
         assertThat(
-            createAnalyzerAnalysis.tokenizerDefinition().v2().getAsMap(),
+            createAnalyzerAnalysis.tokenizerDefinition().v2(),
             allOf(
                 hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
                 hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
@@ -108,7 +108,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         );
 
         assertThat(
-            createAnalyzerAnalysis.charFilters().get("a3_my_mapping").getAsMap(),
+            createAnalyzerAnalysis.charFilters().get("a3_my_mapping"),
             hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
         );
         assertThat(
@@ -145,7 +145,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
         );
 
         assertThat(
-            createAnalyzerAnalysis.tokenFilters().get("a11_mystop").getAsMap(),
+            createAnalyzerAnalysis.tokenFilters().get("a11_mystop"),
             hasEntry("index.analysis.filter.a11_mystop.type", "stop")
         );
         assertThat(

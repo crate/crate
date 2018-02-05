@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -39,12 +40,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SettingMatcher.hasEntry;
+import static io.crate.testing.SettingMatcher.hasKey;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.collection.IsMapContaining.hasEntry;
-import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
@@ -66,7 +67,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     @After
     public void tearDown() throws Exception {
         Map<String, Object> settingsToRemove = new HashMap<>();
-        getPersistentClusterSettings().getAsMap().keySet().stream()
+        getPersistentClusterSettings().keySet().stream()
             .filter(s -> s.startsWith("crate"))
             .forEach(s -> settingsToRemove.put(s, null));
         if (!settingsToRemove.isEmpty()) {
@@ -86,13 +87,13 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void resolveSimpleAnalyzerSettings() throws Exception {
         execute("CREATE ANALYZER a1 (tokenizer lowercase)");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a1");
-        assertThat(fullAnalyzerSettings.getAsMap().size(), is(2));
+        assertThat(fullAnalyzerSettings.size(), is(2));
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a1.type", "custom")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a1.tokenizer", "lowercase")
         );
     }
@@ -109,15 +110,15 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a2");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a2.type", "custom")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a2.tokenizer", "a2_tok2")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             allOf(
                 hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
                 hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
@@ -142,11 +143,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a3");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a3.type", "custom")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a3.tokenizer", "lowercase")
         );
         assertThat(
@@ -154,7 +155,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             arrayContainingInAnyOrder("html_strip", "a3_my_mapping")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
         );
         assertThat(
@@ -174,7 +175,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a4");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a4.type", "german")
         );
         assertThat(
@@ -189,7 +190,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a4e");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a4e.type", "german")
         );
         assertThat(
@@ -210,7 +211,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("builtin_filter");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             allOf(
                 hasEntry("index.analysis.filter.builtin_filter_ngram.type", "ngram"),
                 hasEntry("index.analysis.filter.builtin_filter_ngram.min_gram", "1")
@@ -232,11 +233,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a5");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a5.type", "custom")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a5.tokenizer", "whitespace")
         );
         assertThat(
@@ -244,7 +245,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             arrayContainingInAnyOrder("lowercase", "a5_germanstemmer")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             allOf(
                 hasEntry("index.analysis.filter.a5_germanstemmer.type", "stemmer"),
                 hasEntry("index.analysis.filter.a5_germanstemmer.language", "german")
@@ -264,11 +265,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
         fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a5e");
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a5e.type", "custom")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a5e.tokenizer", "letter")
         );
         assertThat(
@@ -276,7 +277,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             arrayContainingInAnyOrder("lowercase", "a5_germanstemmer")
         );
         assertThat(
-            fullAnalyzerSettings.getAsMap(),
+            fullAnalyzerSettings,
             allOf(
                 hasEntry("index.analysis.filter.a5_germanstemmer.type", "stemmer"),
                 hasEntry("index.analysis.filter.a5_germanstemmer.language", "german")
@@ -339,6 +340,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0)
     public void createAndExtendFullCustomAnalyzer() throws IOException {
         execute("CREATE ANALYZER a7 (" +
                 "  char_filters (" +
@@ -371,7 +373,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Settings settings = getPersistentClusterSettings();
 
         assertThat(
-            settings.getAsMap(),
+            settings,
             allOf(
                 hasKey("crate.analysis.custom.analyzer.a7"),
                 hasKey("crate.analysis.custom.tokenizer.a7_mytok"),
@@ -390,7 +392,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             arrayContainingInAnyOrder("a7_myshingle", "lowercase", "a7_my_stemmer")
         );
         assertThat(
-            analyzerSettings.getAsMap(),
+            analyzerSettings,
             hasEntry("index.analysis.analyzer.a7.tokenizer", "a7_mytok")
         );
         execute("CREATE ANALYZER a8 EXTENDS a7 (" +
@@ -401,7 +403,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings extendedSettings = getPersistentClusterSettings();
         assertThat(
-            extendedSettings.getAsMap(),
+            extendedSettings,
             allOf(
                 hasKey("crate.analysis.custom.analyzer.a8"),
                 hasKey("crate.analysis.custom.tokenizer.a7_mytok")
@@ -409,11 +411,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         );
         Settings extendedAnalyzerSettings = FulltextAnalyzerResolver.decodeSettings(extendedSettings.get("crate.analysis.custom.analyzer.a8"));
         assertThat(
-            extendedAnalyzerSettings.getAsMap(),
+            extendedAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a8.type", "custom")
         );
         assertThat(
-            extendedAnalyzerSettings.getAsMap(),
+            extendedAnalyzerSettings,
             hasEntry("index.analysis.analyzer.a8.tokenizer", "a7_mytok")
         );
         assertThat(
@@ -470,7 +472,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 ")");
         Settings settings = getPersistentClusterSettings();
         assertThat(
-            settings.getAsMap(),
+            settings,
             allOf(
                 hasKey("crate.analysis.custom.analyzer.a11"),
                 hasKey("crate.analysis.custom.filter.a11_mystop")

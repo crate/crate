@@ -27,11 +27,11 @@ import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
 
@@ -44,11 +44,11 @@ public class ClusterLoggingOverridesExpression extends SysObjectArrayReference {
 
     @Override
     protected List<NestedObjectExpression> getChildImplementations() {
-        Map<String, String> settingsMap = clusterService.state().metaData().settings().getAsMap();
+        Settings settings = clusterService.state().metaData().settings();
         List<NestedObjectExpression> loggerExpressions = new ArrayList<>();
-        for (final Map.Entry<String, String> entry : settingsMap.entrySet()) {
-            if (entry.getKey().startsWith("logger.")) {
-                loggerExpressions.add(new ClusterLoggingOverridesChildExpression(entry.getKey(), entry.getValue()));
+        for (String settingName : settings.keySet()) {
+            if (settingName.startsWith("logger.")) {
+                loggerExpressions.add(new ClusterLoggingOverridesChildExpression(settingName, settings.get(settingName)));
             }
         }
         return loggerExpressions;

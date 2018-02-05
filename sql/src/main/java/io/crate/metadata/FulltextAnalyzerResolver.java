@@ -129,10 +129,10 @@ public class FulltextAnalyzerResolver {
 
     public Map<String, Settings> getCustomAnalyzers() throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.ANALYZER)
-            .getAsMap().entrySet()) {
-            if (!entry.getKey().endsWith("." + SQL_STATEMENT_KEY)) {
-                result.put(entry.getKey(), decodeSettings(entry.getValue()));
+        Settings analyzer = getCustomThingies(CustomType.ANALYZER);
+        for (String settingName : analyzer.keySet()) {
+            if (!settingName.endsWith("." + SQL_STATEMENT_KEY)) {
+                result.put(settingName, decodeSettings(analyzer.get(settingName)));
             }
         }
         return result;
@@ -154,11 +154,7 @@ public class FulltextAnalyzerResolver {
     }
 
     public Map<String, Settings> getCustomTokenizers() throws IOException {
-        Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKENIZER).getAsMap().entrySet()) {
-            result.put(entry.getKey(), decodeSettings(entry.getValue()));
-        }
-        return result;
+        return getDecodedSettings(getCustomThingies(CustomType.TOKENIZER));
     }
 
     public boolean hasBuiltInCharFilter(String name) {
@@ -172,11 +168,7 @@ public class FulltextAnalyzerResolver {
     }
 
     public Map<String, Settings> getCustomCharFilters() throws IOException {
-        Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.CHAR_FILTER).getAsMap().entrySet()) {
-            result.put(entry.getKey(), decodeSettings(entry.getValue()));
-        }
-        return result;
+        return getDecodedSettings(getCustomThingies(CustomType.CHAR_FILTER));
     }
 
     public boolean hasBuiltInTokenFilter(String name) {
@@ -191,9 +183,13 @@ public class FulltextAnalyzerResolver {
     }
 
     public Map<String, Settings> getCustomTokenFilters() throws IOException {
+        return getDecodedSettings(getCustomThingies(CustomType.TOKEN_FILTER));
+    }
+
+    private static Map<String, Settings> getDecodedSettings(Settings settings) throws IOException {
         Map<String, Settings> result = new HashMap<>();
-        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKEN_FILTER).getAsMap().entrySet()) {
-            result.put(entry.getKey(), decodeSettings(entry.getValue()));
+        for (String name : settings.keySet()) {
+            result.put(name, decodeSettings(settings.get(name)));
         }
         return result;
     }
@@ -203,8 +199,8 @@ public class FulltextAnalyzerResolver {
             BytesStreamOutput bso = new BytesStreamOutput();
             XContentBuilder builder = XContentFactory.jsonBuilder(bso);
             builder.startObject();
-            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
-                builder.field(entry.getKey(), entry.getValue());
+            for (String name : settings.keySet()) {
+                builder.field(name, settings.get(name));
             }
             builder.endObject();
             builder.flush();

@@ -43,6 +43,7 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -64,14 +65,13 @@ public class NodeSettingsTest extends CrateUnitTest {
     private Path createConfigPath() throws IOException {
         File config = tmp.newFolder("crate", "config");
 
-        Settings pathSettings = Settings.builder()
-            .put(PATH_DATA_SETTING.getKey(), tmp.newFolder("crate", "data").getPath())
-            .put(PATH_LOGS_SETTING.getKey(), tmp.newFolder("crate", "logs").getPath())
-            .build();
+        HashMap<String, String> pathSettings = new HashMap<>();
+        pathSettings.put(PATH_DATA_SETTING.getKey(), tmp.newFolder("crate", "data").getPath());
+        pathSettings.put(PATH_LOGS_SETTING.getKey(), tmp.newFolder("crate", "logs").getPath());
 
         try (Writer writer = new FileWriter(Paths.get(config.getPath(), "crate.yml").toFile())) {
             Yaml yaml = new Yaml();
-            yaml.dump(pathSettings.getAsMap(), writer);
+            yaml.dump(pathSettings, writer);
         }
 
         return config.toPath();

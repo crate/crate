@@ -70,7 +70,7 @@ public class RepositoryParamValidator {
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
             genericProperties, parameterContext, allSettings).build();
 
-        Set<String> names = settings.getAsMap().keySet();
+        Set<String> names = settings.keySet();
         Sets.SetView<String> missingRequiredSettings = Sets.difference(typeSettings.required().keySet(), names);
         if (!missingRequiredSettings.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,

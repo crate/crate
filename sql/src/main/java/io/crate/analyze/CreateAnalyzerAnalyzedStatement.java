@@ -152,8 +152,9 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         if (extendsCustomAnalyzer()) {
             // use analyzer-settings from extended analyzer only
             Settings stripped = extendedCustomAnalyzer.getByPrefix(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s", extendedAnalyzerName));
-            for (Map.Entry<String, String> entry : stripped.getAsMap().entrySet()) {
-                builder.put(String.format(Locale.ENGLISH, "index.analysis.analyzer.%s%s", ident, entry.getKey()), entry.getValue());
+
+            for (String settingName : stripped.keySet()) {
+                builder.put("index.analysis.analyzer." + ident + settingName, stripped.get(settingName));
             }
 
             if (tokenizerDefinition == null) {
@@ -271,14 +272,14 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         );
         */
 
-        if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {
+        if (tokenizerDefinition != null && !tokenizerDefinition.v2().isEmpty()) {
             builder.put(
                 CUSTOM_ANALYSIS_SETTINGS_PREFIX + "tokenizer." + tokenizerDefinition.v1(),
                 FulltextAnalyzerResolver.encodeSettings(tokenizerDefinition.v2()).utf8ToString()
             );
         }
         for (Map.Entry<String, Settings> tokenFilterDefinition : tokenFilters.entrySet()) {
-            if (!tokenFilterDefinition.getValue().getAsMap().isEmpty()) {
+            if (!tokenFilterDefinition.getValue().isEmpty()) {
                 builder.put(
                     CUSTOM_ANALYSIS_SETTINGS_PREFIX + "filter." + tokenFilterDefinition.getKey(),
                     FulltextAnalyzerResolver.encodeSettings(tokenFilterDefinition.getValue()).utf8ToString()
@@ -286,7 +287,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
             }
         }
         for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
-            if (!charFilterDefinition.getValue().getAsMap().isEmpty()) {
+            if (!charFilterDefinition.getValue().isEmpty()) {
                 builder.put(
                     CUSTOM_ANALYSIS_SETTINGS_PREFIX + "char_filter." + charFilterDefinition.getKey(),
                     FulltextAnalyzerResolver.encodeSettings(charFilterDefinition.getValue()).utf8ToString()

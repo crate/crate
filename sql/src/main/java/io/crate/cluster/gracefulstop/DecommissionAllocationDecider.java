@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Map;
 import java.util.Set;
 
 
@@ -55,8 +54,7 @@ public class DecommissionAllocationDecider extends AllocationDecider {
     }
 
     private void updateDecommissioningNodes(Settings decommissionNodesSettings) {
-        Map<String, String> decommissionMap = decommissionNodesSettings.getAsMap();
-        decommissioningNodes = decommissionMap.keySet();
+        decommissioningNodes = decommissionNodesSettings.keySet();
     }
 
     private void updateMinAvailability(DataAvailability availability) {

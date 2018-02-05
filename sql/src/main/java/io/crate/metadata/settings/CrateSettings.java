@@ -309,18 +309,16 @@ public final class CrateSettings implements ClusterStateListener {
                                         String settingKey,
                                         Settings settingValue,
                                         Map<String, NestableInput> referenceMap) {
-        Map<String, String> settingsMap = settingValue.getAsMap();
-
         //this is a nested setting
-        if (!settingsMap.isEmpty()) {
+        if (!settingValue.isEmpty()) {
             //we need to build the reference tree for the current setting
             buildReferenceTree(referenceMap,
                 CrateSetting.of(Setting.groupSetting(prefix + settingKey + ".",
                     Setting.Property.NodeScope),
                     DataTypes.OBJECT));
             //build the reference tree for every child setting
-            for (Map.Entry<String, String> entry : settingsMap.entrySet()) {
-                String nestedPrefix = prefix + settingKey + "." + entry.getKey();
+            for (String settingName : settingValue.keySet()) {
+                String nestedPrefix = prefix + settingKey + "." + settingName;
 
                 buildReferenceTree(referenceMap,
                     CrateSetting.of(Setting.simpleString(nestedPrefix,

@@ -498,7 +498,7 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
-        if (concreteTableParameter.settings().getAsMap().isEmpty() || indices.length == 0) {
+        if (concreteTableParameter.settings().isEmpty() || indices.length == 0) {
             return CompletableFuture.completedFuture(null);
         }
         UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);

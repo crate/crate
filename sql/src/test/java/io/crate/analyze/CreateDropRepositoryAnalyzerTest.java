@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -37,8 +35,8 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-
+import static io.crate.testing.SettingMatcher.hasEntry;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
@@ -112,24 +110,26 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                                                              "canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
         assertThat(analysis.repositoryName(), is("foo"));
-        Map<String, String> sortedSettingsMap = ImmutableSortedMap.copyOf(analysis.settings().getAsMap());
+
         assertThat(
-            Joiner.on(",").withKeyValueSeparator(":")
-                .join(sortedSettingsMap),
-            is("access_key:0xAFFE," +
-               "base_path:/holz/," +
-               "bucket:abc," +
-               "buffer_size:131072b," +
-               "canned_acl:false," +
-               "chunk_size:12582912b," +
-               "compress:true," +
-               "concurrent_streams:4," +
-               "endpoint:www.example.com," +
-               "max_retries:2," +
-               "protocol:arp," +
-               "region:us-north-42," +
-               "secret_key:0xCAFEE," +
-               "server_side_encryption:false"));
+            analysis.settings(),
+            allOf(
+                hasEntry("access_key", "0xAFFE"),
+                hasEntry("base_path", "/holz/"),
+                hasEntry("bucket", "abc"),
+                hasEntry("buffer_size", "131072b"),
+                hasEntry("canned_acl", "false"),
+                hasEntry("chunk_size", "12582912b"),
+                hasEntry("compress", "true"),
+                hasEntry("concurrent_streams", "4"),
+                hasEntry("endpoint", "www.example.com"),
+                hasEntry("max_retries", "2"),
+                hasEntry("protocol", "arp"),
+                hasEntry("region", "us-north-42"),
+                hasEntry("secret_key", "0xCAFEE"),
+                hasEntry("server_side_encryption", "false")
+            )
+        );
     }
 
     @Test
@@ -138,7 +138,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(analysis.repositoryName(), is("foo"));
         assertThat(analysis.repositoryType(), is("s3"));
         // two settings are there because those have default values
-        assertThat(analysis.settings().getAsMap().keySet(), containsInAnyOrder("compress", "server_side_encryption"));
+        assertThat(analysis.settings().keySet(), containsInAnyOrder("compress", "server_side_encryption"));
     }
 
     @Test

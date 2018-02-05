@@ -48,10 +48,10 @@ import org.junit.Test;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -93,7 +93,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.indices(), is(CreateSnapshotAnalyzedStatement.ALL_INDICES));
         assertThat(statement.snapshot().getRepository(), is("my_repo"));
         assertThat(statement.snapshot().getSnapshotId().getName(), is("my_snapshot"));
-        assertThat(statement.snapshotSettings().getAsMap(),
+        assertThat(statement.snapshotSettings(),
             allOf(
                 hasEntry("wait_for_completion", "true"),
                 hasEntry("ignore_unavailable", "false")
@@ -155,8 +155,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.indices(), containsInAnyOrder("users", "locations"));
         assertThat(statement.snapshot().getRepository(), is("my_repo"));
         assertThat(statement.snapshot().getSnapshotId().getName(), is("my_snapshot"));
-        assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
-        assertThat(statement.snapshotSettings().getAsMap(),
+        assertThat(statement.snapshotSettings().size(), is(2));
+        assertThat(statement.snapshotSettings(),
             allOf(
                 hasEntry("wait_for_completion", "true"),
                 hasEntry("ignore_unavailable", "false")
@@ -235,7 +235,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.repositoryName(), is("my_repo"));
         assertThat(statement.restoreAll(), is(true));
         assertThat(statement.restoreAll(), is(true));
-        assertThat(statement.settings().getAsMap(), // default settings
+        assertThat(statement.settings(), // default settings
             allOf(
                 hasEntry("wait_for_completion", "false"),
                 hasEntry("ignore_unavailable", "false")
@@ -248,7 +248,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent("custom", "restoreme")));
         assertThat(statement.restoreTables().get(0).partitionName(), is(nullValue()));
-        assertThat(statement.settings().getAsMap(),
+        assertThat(statement.settings(),
             allOf(
                 hasEntry("wait_for_completion", "false"),
                 hasEntry("ignore_unavailable", "false")

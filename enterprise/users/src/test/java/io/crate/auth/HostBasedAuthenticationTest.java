@@ -18,7 +18,6 @@
 
 package io.crate.auth;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBufAllocator;
@@ -89,16 +88,6 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             .startTls(false)
             .build().newHandler(ByteBufAllocator.DEFAULT);
         sslSession = sslHandler.engine().getSession();
-    }
-
-    private static Map<String, Map<String, String>> createHbaConf(Settings... entries) {
-        ImmutableMap.Builder<String, Map<String, String>> builder = ImmutableMap.builder();
-        int idx = 0;
-        for (Settings entry : entries) {
-            builder.put(String.valueOf(idx), entry.getAsMap());
-            idx++;
-        }
-        return builder.build();
     }
 
     @Test

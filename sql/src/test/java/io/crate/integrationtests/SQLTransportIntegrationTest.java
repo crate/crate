@@ -589,8 +589,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             builder.startObject(indexMetaData.getIndex().getName());
             builder.startObject("settings");
             Settings settings = indexMetaData.getSettings();
-            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
-                builder.field(entry.getKey(), entry.getValue());
+            for (String settingName : settings.keySet()) {
+                builder.field(settingName, settings.get(settingName));
             }
             builder.endObject();
 

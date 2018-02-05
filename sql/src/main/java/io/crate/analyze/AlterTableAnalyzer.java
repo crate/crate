@@ -101,7 +101,7 @@ public class AlterTableAnalyzer {
 
     // Only check for permission if statement is not changing the metadata blocks, so don't block `re-enabling` these.
     private static void maybeRaiseBlockedException(DocTableInfo tableInfo, Settings tableSettings) {
-        if (tableSettings.getAsMap().size() != 1 ||
+        if (tableSettings.size() != 1 ||
             (tableSettings.get(IndexMetaData.SETTING_BLOCKS_METADATA) == null &&
              tableSettings.get(IndexMetaData.SETTING_READ_ONLY) == null)) {
 
