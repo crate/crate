@@ -22,11 +22,9 @@
 
 package io.crate.plugin;
 
-import io.crate.ClusterIdService;
 import io.crate.metadata.CustomMetaDataUpgraderLoader;
 import io.crate.module.CrateCoreModule;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
@@ -45,11 +43,6 @@ public class CrateCorePlugin extends Plugin {
     public CrateCorePlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerProxy = new IndexEventListenerProxy();
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return Collections.singletonList(ClusterIdService.class);
     }
 
     @Override

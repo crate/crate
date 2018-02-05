@@ -24,7 +24,6 @@ package io.crate.udc.ping;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;
@@ -52,7 +51,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimerTask;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -62,7 +60,6 @@ public class PingTask extends TimerTask {
     private static final Logger logger = Loggers.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
-    private final ClusterIdService clusterIdService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
     private final Settings settings;
@@ -72,13 +69,11 @@ public class PingTask extends TimerTask {
     private AtomicLong failCounter = new AtomicLong(0);
 
     public PingTask(ClusterService clusterService,
-                    ClusterIdService clusterIdService,
                     ExtendedNodeInfo extendedNodeInfo,
                     String pingUrl,
                     ClusterSettings clusterSettings,
                     Settings settings) {
         this.clusterService = clusterService;
-        this.clusterIdService = clusterIdService;
         this.pingUrl = pingUrl;
         this.settings = settings;
         this.licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
@@ -90,17 +85,8 @@ public class PingTask extends TimerTask {
         return extendedNodeInfo.osInfo().kernelData();
     }
 
-    @Nullable
     private String getClusterId() {
-        // wait until clusterId is available (master has been elected)
-        try {
-            return clusterIdService.clusterId().get();
-        } catch (InterruptedException | ExecutionException e) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Error getting cluster id", e);
-            }
-            return null;
-        }
+        return clusterService.state().metaData().clusterUUID();
     }
 
     private Boolean isMasterNode() {
@@ -140,7 +126,7 @@ public class PingTask extends TimerTask {
         final URI uri = new URI(this.pingUrl);
 
         Map<String, String> queryMap = new HashMap<>(9);
-        queryMap.put("cluster_id", getClusterId()); // block until clusterId is available
+        queryMap.put("cluster_id", getClusterId());
         queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
         queryMap.put("master", isMasterNode().toString());
         queryMap.put("enterprise", isEnterprise());

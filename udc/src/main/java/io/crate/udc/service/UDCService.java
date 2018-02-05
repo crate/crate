@@ -21,7 +21,6 @@
 
 package io.crate.udc.service;
 
-import io.crate.ClusterIdService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -30,7 +29,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -58,7 +56,6 @@ public class UDCService extends AbstractLifecycleComponent {
     private final Timer timer;
 
     private final ClusterService clusterService;
-    private final Provider<ClusterIdService> clusterIdServiceProvider;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final ClusterSettings clusterSettings;
 
@@ -66,12 +63,10 @@ public class UDCService extends AbstractLifecycleComponent {
     public UDCService(Settings settings,
                       ExtendedNodeInfo extendedNodeInfo,
                       ClusterService clusterService,
-                      Provider<ClusterIdService> clusterIdServiceProvider,
                       ClusterSettings clusterSettings) {
         super(settings);
         this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
-        this.clusterIdServiceProvider = clusterIdServiceProvider;
         this.timer = new Timer("crate-udc");
         this.clusterSettings = clusterSettings;
     }
@@ -85,8 +80,7 @@ public class UDCService extends AbstractLifecycleComponent {
         if (logger.isDebugEnabled()) {
             logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
-        PingTask pingTask = new PingTask(clusterService, clusterIdServiceProvider.get(), extendedNodeInfo, url,
-            clusterSettings, settings);
+        PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, clusterSettings, settings);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 

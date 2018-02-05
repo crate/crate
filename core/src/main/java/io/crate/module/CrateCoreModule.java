@@ -22,7 +22,6 @@
 
 package io.crate.module;
 
-import io.crate.ClusterIdService;
 import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +45,6 @@ public class CrateCoreModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(ClusterIdService.class).asEagerSingleton();
         bind(IndexEventListenerProxy.class).toInstance(indexEventListenerProxy);
     }
 }

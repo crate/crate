@@ -21,18 +21,15 @@
 
 package io.crate.udc.ping;
 
-import io.crate.ClusterIdService;
 import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ExtendedOsInfo;
 import io.crate.monitor.SysInfo;
 import io.crate.settings.SharedSettings;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
@@ -43,8 +40,6 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.notNullValue;
@@ -52,10 +47,8 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PingTaskTest extends CrateUnitTest {
+public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
-    private ClusterService clusterService;
-    private ClusterIdService clusterIdService;
     private ExtendedNodeInfo extendedNodeInfo;
     private ClusterSettings clusterSettings = new ClusterSettings(
         Settings.EMPTY,
@@ -66,7 +59,6 @@ public class PingTaskTest extends CrateUnitTest {
     private PingTask createPingTask(String pingUrl, Settings settings) {
         return new PingTask(
             clusterService,
-            clusterIdService,
             extendedNodeInfo,
             pingUrl,
             clusterSettings,
@@ -87,15 +79,6 @@ public class PingTaskTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        clusterService = mock(ClusterService.class);
-        clusterIdService = mock(ClusterIdService.class);
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-
-        CompletableFuture<String> clusterIdFuture = CompletableFuture.completedFuture(UUID.randomUUID().toString());
-        when(clusterIdService.clusterId()).thenReturn(clusterIdFuture);
-        when(clusterService.localNode()).thenReturn(discoveryNode);
-        when(discoveryNode.isMasterNode()).thenReturn(true);
-
         extendedNodeInfo = mock(ExtendedNodeInfo.class);
         when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
         when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(SysInfo.gather()));
