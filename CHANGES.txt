@@ -64,6 +64,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused a ``NullPointerException`` if ``REFRESH TABLE``
+  was executed on a table with closed partitions.
+
 - Fixed an issue that caused ``MissingPrivilegeException`` for non-superusers
   for queries with ``UNION ALL``.
 

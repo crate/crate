@@ -33,7 +33,8 @@ and any new requests will block until the previous optimization is complete.
 The ``PARTITION`` clause can be used to only optimize specific partitions of a
 partitioned table. All columns by which a table is partitioned are required.
 
-In case the ``PARTITION`` clause is omitted all partitions will be optimized.
+In case the ``PARTITION`` clause is omitted all open partitions will be
+optimized. Closed partitions are not optimized.
 For performance reasons doing that should be avoided if possible.
 
 See :ref:`partitioned_tables` for more information on partitioned tables.

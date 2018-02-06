@@ -2129,4 +2129,18 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select values['p'], values['obj[''p'']'] from information_schema.table_partitions");
         assertThat(printedTable(response.rows()), is("1| 10\n"));
     }
+
+    @Test
+    @UseJdbc(0) // requires rowcount for refresh
+    public void testRefreshIgnoresClosedPartitions() {
+        execute("create table t (x int, p int) " +
+                "partitioned by (p) clustered into 1 shards with (number_of_replicas = 0, refresh_interval = 0)");
+        execute("insert into t (x, p) values (1, 1), (2, 2)");
+        execute("alter table t partition (p = 2) close");
+        assertThat(execute("refresh table t").rowCount(), is(1L));
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| 1\n")
+        );
+    }
 }

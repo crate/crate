@@ -38,15 +38,14 @@ final class TableAnalyzer {
                                               List<Assignment> partitionProperties,
                                               DocTableInfo tableInfo) {
         if (partitionProperties.isEmpty()) {
-            return Arrays.asList(tableInfo.concreteIndices());
+            return Arrays.asList(tableInfo.concreteOpenIndices());
         } else {
-            DocTableInfo docTableInfo = tableInfo;
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                docTableInfo,
+                tableInfo,
                 partitionProperties,
                 parameterContext.parameters()
             );
-            if (!docTableInfo.partitions().contains(partitionName)) {
+            if (!tableInfo.partitions().contains(partitionName)) {
                 throw new PartitionUnknownException(partitionName);
             }
             return Collections.singletonList(partitionName.asIndexName());
