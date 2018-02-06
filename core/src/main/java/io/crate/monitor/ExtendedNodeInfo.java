@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
@@ -73,13 +72,11 @@ public class ExtendedNodeInfo {
         OsStats osStats = OsProbe.getInstance().osStats();
         OsStats.Cpu cpuProbe = osStats.getCpu();
         ExtendedOsStats.Cpu cpu = new ExtendedOsStats.Cpu(cpuProbe.getPercent());
-        ExtendedOsStats.CgroupMem cgroupMem = Constants.LINUX ? CgroupMemoryProbe.getCgroup() : null;
         return new ExtendedOsStats(System.currentTimeMillis(),
             cpu,
             cpuProbe.getLoadAverage() == null ? NA_LOAD : cpuProbe.getLoadAverage(),
             SysInfo.getSystemUptime(),
-            osStats,
-            cgroupMem);
+            osStats);
     }
 
     public ExtendedOsInfo osInfo() {

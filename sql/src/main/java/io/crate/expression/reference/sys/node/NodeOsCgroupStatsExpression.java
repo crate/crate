@@ -22,7 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedOsStats;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.monitor.os.OsStats;
@@ -111,6 +110,10 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         }
     }
 
+    private static OsStats.Cgroup cgroup(NodeStatsContext row) {
+        return row.extendedOsStats().osStats().getCgroup();
+    }
+
     private class NodeOsCgroupMemStatsExpression extends NestedNodeStatsExpression {
 
         private static final String CONTROL_GROUP = "control_group";
@@ -122,9 +125,9 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
                 @Override
                 public BytesRef innerValue() {
                     if (row.isComplete()) {
-                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
-                        if (cgroupMem != null) {
-                            return BytesRefs.toBytesRef(cgroupMem.memoryControlGroup());
+                        OsStats.Cgroup cgroup = cgroup(row);
+                        if (cgroup != null) {
+                            return BytesRefs.toBytesRef(cgroup.getMemoryControlGroup());
                         }
                     }
                     return null;
@@ -134,9 +137,9 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
                 @Override
                 public BytesRef innerValue() {
                     if (row.isComplete()) {
-                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
-                        if (cgroupMem != null) {
-                            return BytesRefs.toBytesRef(cgroupMem.memoryLimitBytes());
+                        OsStats.Cgroup cgroup = cgroup(row);
+                        if (cgroup != null) {
+                            return BytesRefs.toBytesRef(cgroup.getMemoryLimitInBytes());
                         }
                     }
                     return null;
@@ -146,9 +149,9 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
                 @Override
                 public BytesRef innerValue() {
                     if (row.isComplete()) {
-                        ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
-                        if (cgroupMem != null) {
-                            return BytesRefs.toBytesRef(cgroupMem.memoryUsageBytes());
+                        OsStats.Cgroup cgroup = cgroup(row);
+                        if (cgroup != null) {
+                            return BytesRefs.toBytesRef(cgroup.getMemoryUsageInBytes());
                         }
                     }
                     return null;
@@ -159,8 +162,8 @@ public class NodeOsCgroupStatsExpression extends NestedNodeStatsExpression {
         @Override
         public Map<String, Object> value() {
             if (row.isComplete()) {
-                ExtendedOsStats.CgroupMem cgroupMem = row.extendedOsStats().cgroupMem();
-                if (cgroupMem != null) {
+                OsStats.Cgroup cgroup = cgroup(row);
+                if (cgroup != null) {
                     return super.value();
                 }
             }
