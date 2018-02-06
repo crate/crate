@@ -19,23 +19,27 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
-import doctest
-import zc.customdoctests
-from crate.testing.layer import CrateLayer
 import os
+import re
 import time
 import shutil
-import re
-import tempfile
+import doctest
 import logging
+import tempfile
+import unittest
+import zc.customdoctests
+
 from functools import partial
-from . import process_test
+
 from testutils.paths import crate_path, project_path
 from testutils.ports import GLOBAL_PORT_POOL
+
+from crate.client import connect
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
-from crate.client import connect
+from crate.testing.layer import CrateLayer
+
+from . import process_test
 
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
