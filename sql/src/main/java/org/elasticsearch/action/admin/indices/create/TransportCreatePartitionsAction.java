@@ -23,6 +23,7 @@ package org.elasticsearch.action.admin.indices.create;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -200,7 +201,7 @@ public class TransportCreatePartitionsAction
      * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
-    ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
+    private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
         List<String> indicesToCreate = new ArrayList<>(request.indices().size());
         List<String> removalReasons = new ArrayList<>(request.indices().size());
         List<Index> createdIndices = new ArrayList<>(request.indices().size());
@@ -321,8 +322,9 @@ public class TransportCreatePartitionsAction
         }
     }
 
-    private void createIndices(final CreatePartitionsRequest request,
-                               final ActionListener<ClusterStateUpdateResponse> listener) {
+    @VisibleForTesting
+    void createIndices(final CreatePartitionsRequest request,
+                       final ActionListener<ClusterStateUpdateResponse> listener) {
         clusterService.submitStateUpdateTask(
             "bulk-create-indices",
             request,
