@@ -28,8 +28,11 @@ all changes made to that table available to all further commands.
 The ``PARTITION`` clause can be used to only refresh specific partitions of a
 partitioned table. All columns by which a table is partitioned are required.
 
-In case the ``PARTITION`` clause is omitted all partitions will be refreshed.
-For performance reasons doing that should be avoided if possible.
+In case the ``PARTITION`` clause is omitted all open partitions will be
+refreshed. Closed partitions are not refreshed.
+
+For performance reasons refreshing all open partitions should be avoided if
+possible.
 
 See :ref:`partitioned_tables` for more information on partitioned tables.
 
