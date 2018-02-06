@@ -23,8 +23,10 @@ package org.elasticsearch.action.admin.indices.create;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
@@ -35,6 +37,8 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 
@@ -59,6 +63,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
             .indices().prepareExists("index1", "index2", "index3", "index4")
             .execute().actionGet();
+
         assertThat(indicesExistsResponse.isExists(), is(true));
     }
 
@@ -70,13 +75,28 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
             .execute().actionGet();
         ensureYellow("index_0");
 
-        ClusterState currentState = internalCluster().clusterService().state();
-
         CreatePartitionsRequest request = new CreatePartitionsRequest(
             Arrays.asList("index_0", "index_1"),
             UUID.randomUUID());
-        currentState = action.executeCreateIndices(currentState, request);
 
+        CompletableFuture<ClusterStateUpdateResponse> response = new CompletableFuture<>();
+
+        action.createIndices(request, new ActionListener<ClusterStateUpdateResponse>() {
+            @Override
+            public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
+                response.complete(clusterStateUpdateResponse);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                response.completeExceptionally(e);
+            }
+        });
+
+        assertThat("Create indices action did not lead to a new cluster state",
+            response.get(5, TimeUnit.SECONDS).isAcknowledged(), is(true));
+
+        ClusterState currentState = internalCluster().clusterService().state();
         ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
         assertTrue("[index_0][0] must be started already", newRouting.get(0).primaryShard().started());
     }
