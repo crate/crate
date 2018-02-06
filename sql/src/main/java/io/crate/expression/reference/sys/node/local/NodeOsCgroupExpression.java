@@ -37,10 +37,9 @@ public class NodeOsCgroupExpression extends NestedObjectExpression {
 
     NodeOsCgroupExpression(ExtendedOsStats extendedOsStats) {
         OsStats.Cgroup cgroup = extendedOsStats.osStats().getCgroup();
-        ExtendedOsStats.CgroupMem cgroupMem = extendedOsStats.cgroupMem();
         childImplementations.put(CPUACCT, new NodeOsCgroupCpuAcctExpression(cgroup));
         childImplementations.put(CPU, new NodeOsCgroupCpuExpression(cgroup));
-        childImplementations.put(MEM, new NodeOsCgroupMemExpression(cgroupMem));
+        childImplementations.put(MEM, new NodeOsCgroupMemExpression(cgroup));
     }
 
     private class NodeOsCgroupCpuAcctExpression extends NestedObjectExpression {
@@ -119,22 +118,22 @@ public class NodeOsCgroupExpression extends NestedObjectExpression {
         private static final String LIMIT_BYTES = "limit_bytes";
         private static final String USAGE_BYTES = "usage_bytes";
 
-        public NodeOsCgroupMemExpression(ExtendedOsStats.CgroupMem cgroupMem) {
+        public NodeOsCgroupMemExpression(OsStats.Cgroup cgroup) {
             childImplementations.put(CONTROL_GROUP, (NestableInput<BytesRef>) () -> {
-                if (cgroupMem != null) {
-                    return BytesRefs.toBytesRef(cgroupMem.memoryControlGroup());
+                if (cgroup != null) {
+                    return BytesRefs.toBytesRef(cgroup.getMemoryControlGroup());
                 }
                 return null;
             });
             childImplementations.put(LIMIT_BYTES, (NestableInput<BytesRef>) () -> {
-                if (cgroupMem != null) {
-                    return BytesRefs.toBytesRef(cgroupMem.memoryLimitBytes());
+                if (cgroup != null) {
+                    return BytesRefs.toBytesRef(cgroup.getMemoryLimitInBytes());
                 }
                 return null;
             });
             childImplementations.put(USAGE_BYTES, (NestableInput<BytesRef>) () -> {
-                if (cgroupMem != null) {
-                    return BytesRefs.toBytesRef(cgroupMem.memoryUsageBytes());
+                if (cgroup != null) {
+                    return BytesRefs.toBytesRef(cgroup.getMemoryUsageInBytes());
                 }
                 return null;
             });

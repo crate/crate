@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -36,9 +35,6 @@ public class ExtendedOsStats implements Streamable {
 
     private Cpu cpu;
     private OsStats osStats;
-    @Nullable
-    @Deprecated // must be replaced with osStats.Cgroup memory when updating to ES6
-    private CgroupMem cgroupMem;
     private long timestamp;
     private long uptime = -1;
     private double[] loadAverage = new double[0];
@@ -52,13 +48,12 @@ public class ExtendedOsStats implements Streamable {
     public ExtendedOsStats() {
     }
 
-    public ExtendedOsStats(long timestamp, Cpu cpu, double[] load, long uptime, OsStats osStats, @Nullable CgroupMem cgroupMem) {
+    public ExtendedOsStats(long timestamp, Cpu cpu, double[] load, long uptime, OsStats osStats) {
         this.timestamp = timestamp;
         this.cpu = cpu;
         this.loadAverage = load;
         this.uptime = uptime;
         this.osStats = osStats;
-        this.cgroupMem = cgroupMem;
     }
 
     public long timestamp() {
@@ -81,11 +76,6 @@ public class ExtendedOsStats implements Streamable {
         return osStats;
     }
 
-    @Nullable
-    public CgroupMem cgroupMem() {
-        return cgroupMem;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         timestamp = in.readLong();
@@ -93,7 +83,6 @@ public class ExtendedOsStats implements Streamable {
         loadAverage = in.readDoubleArray();
         cpu = in.readOptionalStreamable(Cpu::new);
         osStats = in.readOptionalWriteable(OsStats::new);
-        cgroupMem = in.readOptionalStreamable(CgroupMem::new);
     }
 
     @Override
@@ -103,7 +92,6 @@ public class ExtendedOsStats implements Streamable {
         out.writeDoubleArray(loadAverage);
         out.writeOptionalStreamable(cpu);
         out.writeOptionalWriteable(osStats);
-        out.writeOptionalStreamable(cgroupMem);
     }
 
     public static class Cpu implements Streamable {
@@ -166,52 +154,6 @@ public class ExtendedOsStats implements Streamable {
             out.writeShort(idle);
             out.writeShort(stolen);
             out.writeShort(percent);
-        }
-    }
-
-    @Deprecated // must be superseded by OsStats.Cgroup once we use ES6
-    public static class CgroupMem implements Streamable {
-
-        @Nullable
-        private String memoryControlGroup;
-        private String memoryLimitBytes;
-        private String memoryUsageBytes;
-
-        public CgroupMem() {
-            this(null, null, null);
-        }
-
-        public CgroupMem(@Nullable String memoryControlGroup, String memoryLimitBytes, String memoryUsageBytes) {
-            this.memoryControlGroup = memoryControlGroup;
-            this.memoryLimitBytes = memoryLimitBytes;
-            this.memoryUsageBytes = memoryUsageBytes;
-        }
-
-        @Nullable
-        public String memoryControlGroup() {
-            return memoryControlGroup;
-        }
-
-        public String memoryLimitBytes() {
-            return memoryLimitBytes;
-        }
-
-        public String memoryUsageBytes() {
-            return memoryUsageBytes;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            memoryControlGroup = in.readOptionalString();
-            memoryLimitBytes = in.readString();
-            memoryUsageBytes = in.readString();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeOptionalString(memoryControlGroup);
-            out.writeString(memoryLimitBytes);
-            out.writeString(memoryUsageBytes);
         }
     }
 }
