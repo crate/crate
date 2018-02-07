@@ -23,9 +23,11 @@
 package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.PlannerContext;
@@ -34,7 +36,6 @@ import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -73,7 +74,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
+            .build(tableStats, Collections.emptySet());
         NestedLoop nl = (NestedLoop) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
@@ -85,7 +87,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
         tableStats.updateTableStats(rowCountByTable);
 
-        operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner).build(tableStats, Collections.emptySet());
+        operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
+            .build(tableStats, Collections.emptySet());
         nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),

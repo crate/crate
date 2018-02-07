@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
@@ -45,6 +46,7 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -57,6 +59,7 @@ import io.crate.planner.consumer.OptimizingRewriter;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -104,7 +107,8 @@ public class LogicalPlanner {
             relation,
             FetchMode.NEVER_CLEAR,
             subqueryPlanner,
-            true);
+            true,
+            plannerContext.transactionContext().sessionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
         LogicalPlan optimizedPlan = tryOptimize(planBuilder.build(tableStats, Collections.emptySet()));
@@ -132,10 +136,11 @@ public class LogicalPlanner {
                             PlannerContext plannerContext,
                             SubqueryPlanner subqueryPlanner,
                             FetchMode fetchMode) {
-        QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
+        TransactionContext transactionContext = plannerContext.transactionContext();
+        QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, transactionContext);
 
-        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true)
-            .build(tableStats, new LinkedHashSet<>(relation.outputs()));
+        LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, transactionContext.sessionContext())
+            .build(tableStats, new HashSet<>(relation.outputs()));
 
         LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
 
@@ -158,8 +163,9 @@ public class LogicalPlanner {
     static LogicalPlan.Builder plan(QueriedRelation relation,
                                     FetchMode fetchMode,
                                     SubqueryPlanner subqueryPlanner,
-                                    boolean isLastFetch) {
-        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch);
+                                    boolean isLastFetch,
+                                    SessionContext sessionContext) {
+        LogicalPlan.Builder builder = prePlan(relation, fetchMode, subqueryPlanner, isLastFetch, sessionContext);
         if (isLastFetch) {
             return builder;
         }
@@ -169,7 +175,8 @@ public class LogicalPlanner {
     private static LogicalPlan.Builder prePlan(QueriedRelation relation,
                                                FetchMode fetchMode,
                                                SubqueryPlanner subqueryPlanner,
-                                               boolean isLastFetch) {
+                                               boolean isLastFetch,
+                                               SessionContext sessionContext) {
         SplitPoints splitPoints = SplitPoints.create(relation);
         return
             FetchOrEval.create(
@@ -182,7 +189,8 @@ public class LogicalPlanner {
                                     splitPoints.toCollect(),
                                     relation.where(),
                                     subqueryPlanner,
-                                    fetchMode
+                                    fetchMode,
+                                    sessionContext
                                 ),
                                 relation.groupBy(),
                                 splitPoints.aggregates()),
@@ -217,23 +225,24 @@ public class LogicalPlanner {
                                                         List<Symbol> toCollect,
                                                         WhereClause where,
                                                         SubqueryPlanner subqueryPlanner,
-                                                        FetchMode fetchMode) {
+                                                        FetchMode fetchMode,
+                                                        SessionContext sessionContext) {
         if (queriedRelation instanceof QueriedTableRelation) {
             return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
-            return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner);
+            return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner, sessionContext);
         }
         if (queriedRelation instanceof UnionSelect) {
-            return Union.create((UnionSelect) queriedRelation, subqueryPlanner);
+            return Union.create((UnionSelect) queriedRelation, subqueryPlanner, sessionContext);
         }
         if (queriedRelation instanceof OrderedLimitedRelation) {
-            return plan(((OrderedLimitedRelation) queriedRelation).childRelation(), fetchMode, subqueryPlanner, false);
+            return plan(((OrderedLimitedRelation) queriedRelation).childRelation(), fetchMode, subqueryPlanner, false, sessionContext);
         }
         if (queriedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation selectRelation = (QueriedSelectRelation) queriedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false),
+                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false, sessionContext),
                 where
             );
         }
