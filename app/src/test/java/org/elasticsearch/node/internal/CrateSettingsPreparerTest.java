@@ -41,6 +41,7 @@ import java.nio.file.Path;
 
 import static org.elasticsearch.transport.TcpTransport.PORT;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
@@ -109,21 +110,24 @@ public class CrateSettingsPreparerTest {
         // Value kept from crate.yml
         assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
         // Overriding value from crate.yml
-        assertThat(finalSettings.get("cluster.name", null), is("clusterNameOverridden"));
+        assertThat(finalSettings.get("cluster.name"), is("clusterNameOverridden"));
         // Value kept from crate.yml
         assertThat(finalSettings.get("path.logs"), is("/some/other/path"));
     }
 
     @Test
-    public void testConfigSettingsLoaded() throws Exception {
+    public void testCustomConfigMustNotContainSettingsFromDefaultCrateYml() throws Exception {
         Settings.Builder builder = Settings.builder();
-        builder.put("path.home", ".");
-        Path config = PathUtils.get(getClass().getResource("config").toURI());
+        Path home = PathUtils.get(getClass().getResource(".").toURI());
+        builder.put("path.home", home);
+        Path config = PathUtils.get(getClass().getResource("config_custom").toURI());
         builder.put("path.conf", config);
         Settings settings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
         // Values from crate.yml
-        assertThat(settings.get("cluster.name", null), is("testCluster"));
-        assertThat(settings.get("path.logs"), is("/some/path"));
+        assertThat(settings.get("cluster.name"), is("custom"));
+        // path.logs is not set in config_custom/crate.yml
+        // so it needs to use default value and not the value set in config/crate.yml
+        assertThat(settings.get("path.logs"), endsWith("/test/org/elasticsearch/node/internal/logs"));
     }
 
     @Test
@@ -133,7 +137,7 @@ public class CrateSettingsPreparerTest {
         builder.put("cluster.name", "clusterName");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
-        assertThat(finalSettings.get("cluster.name", null), is("clusterName"));
+        assertThat(finalSettings.get("cluster.name"), is("clusterName"));
     }
 
     @Test
@@ -143,7 +147,7 @@ public class CrateSettingsPreparerTest {
         builder.put("cluster.name", "elasticsearch");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, builder.internalMap(), config).settings();
-        assertThat(finalSettings.get("cluster.name", null), is("crate"));
+        assertThat(finalSettings.get("cluster.name"), is("crate"));
     }
 
     @Test

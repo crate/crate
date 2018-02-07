@@ -80,14 +80,14 @@ public class CrateSettingsPreparer {
         validateKnownSettings(newSettings);
         applyCrateDefaults(newSettings);
 
-        env = new Environment(newSettings.build(), configPath);
+        env = new Environment(newSettings.build(), env.configFile());
 
         // we put back the path.logs so we can use it in the logging configuration file
         newSettings.put(
             Environment.PATH_LOGS_SETTING.getKey(),
             env.logsFile().toAbsolutePath().normalize().toString());
 
-        return new Environment(newSettings.build());
+        return new Environment(newSettings.build(), env.configFile());
     }
 
     static void validateKnownSettings(Settings.Builder builder) {
