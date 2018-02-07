@@ -127,11 +127,11 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
+import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -243,7 +243,7 @@ public class SQLExecutor {
         private void addNodesToClusterState(ClusterService clusterService, int numNodes) {
             DiscoveryNodes.Builder builder = DiscoveryNodes.builder();
             for (int i = 1; i <= numNodes; i++) {
-                builder.add(new DiscoveryNode("n" + i, buildNewFakeTransportAddress(), Version.CURRENT));
+                builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
             }
             builder.localNodeId("n1");
             ClusterServiceUtils.setState(

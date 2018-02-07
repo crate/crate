@@ -24,22 +24,36 @@ package io.crate.testing;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
 
 import java.util.Collections;
-
-import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DiscoveryNodes {
 
+    private static final AtomicInteger PORT_GENERATOR = new AtomicInteger();
+
     public static DiscoveryNode newNode(String nodeId) {
-        return new DiscoveryNode(nodeId, buildNewFakeTransportAddress(), Version.CURRENT);
+        return new DiscoveryNode(
+            nodeId,
+            newFakeAddress(),
+            Version.CURRENT);
+    }
+
+    /**
+     * Re-implementation of {@link ESTestCase#buildNewFakeTransportAddress()}
+     * that does not cause RandomizedTest to be loaded so it's usable in benchmarks
+     */
+    static TransportAddress newFakeAddress() {
+        return new TransportAddress(TransportAddress.META_ADDRESS, PORT_GENERATOR.incrementAndGet());
     }
 
     public static DiscoveryNode newNode(String name, String id) {
         return new DiscoveryNode(
             name,
             id,
-            buildNewFakeTransportAddress(),
+            newFakeAddress(),
             Collections.emptyMap(),
             Collections.emptySet(),
             Version.CURRENT);

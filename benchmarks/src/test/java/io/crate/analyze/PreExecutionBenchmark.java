@@ -31,7 +31,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -55,6 +54,7 @@ import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -71,7 +71,7 @@ public class PreExecutionBenchmark {
     @Setup
     public void setup() throws Exception {
         threadPool = new TestThreadPool("testing");
-        DiscoveryNode localNode = DiscoveryNodes.newNode("benchmarkNode", "n1");
+        DiscoveryNode localNode = newNode("benchmarkNode", "n1");
         ClusterService clusterService = createClusterService(threadPool, localNode);
         long dummySeed = 10;
         e = SQLExecutor.builder(clusterService, 1, new Random(dummySeed))
