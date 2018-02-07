@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -62,7 +63,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  */
 public class Union extends TwoInputPlan {
 
-    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner) {
+    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, SessionContext sessionContext) {
         return (tableStats, usedColsByParent) -> {
 
             QueriedRelation left = ttr.left();
@@ -78,11 +79,11 @@ public class Union extends TwoInputPlan {
             usedFromRight.addAll(right.outputs());
 
             LogicalPlan lhsPlan = LogicalPlanner
-                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false)
+                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
                 .build(tableStats, usedFromLeft);
 
             LogicalPlan rhsPlan = LogicalPlanner
-                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false)
+                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
                 .build(tableStats, usedFromRight);
 
             return new Union(lhsPlan, rhsPlan, ttr.outputs());
