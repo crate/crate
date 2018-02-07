@@ -25,9 +25,13 @@ package io.crate.execution.engine.fetch;
 import io.crate.data.Row;
 
 /**
- * An array backed row, which returns the inner array upon materialize
+ * An array backed row, which returns the inner array upon materialize.
+ * <p>
+ * Unlike {@link io.crate.data.ArrayRow} it doesn't copy the {@link #cells} on
+ * {@link #materialize()} (to optimize performance) therefore should be used
+ * in special cases, since not copying the array returned can lead to data errors.
  */
-public class ArrayBackedRow implements Row {
+class UnsafeArrayRow implements Row {
 
     Object[] cells;
 

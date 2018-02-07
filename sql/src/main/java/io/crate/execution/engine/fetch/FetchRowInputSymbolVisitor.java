@@ -39,13 +39,13 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
     public static class Context {
 
-        private final ArrayBackedRow[] fetchRows;
+        private final UnsafeArrayRow[] fetchRows;
         private final Map<TableIdent, FetchSource> fetchSources;
-        private final ArrayBackedRow inputRow = new ArrayBackedRow();
+        private final UnsafeArrayRow inputRow = new UnsafeArrayRow();
         private final int[] fetchIdPositions;
         private final Object[][] nullCells;
 
-        private ArrayBackedRow[] partitionRows;
+        private UnsafeArrayRow[] partitionRows;
 
         public Context(Map<TableIdent, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty() : "fetchSources must not be empty";
@@ -56,18 +56,18 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 numFetchIds += fetchSource.fetchIdCols().size();
             }
 
-            this.fetchRows = new ArrayBackedRow[numFetchIds];
+            this.fetchRows = new UnsafeArrayRow[numFetchIds];
             this.fetchIdPositions = new int[numFetchIds];
-            this.partitionRows = new ArrayBackedRow[numFetchIds];
+            this.partitionRows = new UnsafeArrayRow[numFetchIds];
             nullCells = new Object[numFetchIds][];
 
             int idx = 0;
             for (FetchSource fetchSource : fetchSources.values()) {
                 for (InputColumn col : fetchSource.fetchIdCols()) {
-                    fetchRows[idx] = new ArrayBackedRow();
+                    fetchRows[idx] = new UnsafeArrayRow();
                     fetchIdPositions[idx] = col.index();
                     if (!fetchSource.partitionedByColumns().isEmpty()) {
-                        partitionRows[idx] = new ArrayBackedRow();
+                        partitionRows[idx] = new UnsafeArrayRow();
                     }
                     nullCells[idx] = new Object[fetchSource.references().size()];
                     idx++;
@@ -82,15 +82,15 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             return fetchIdPositions;
         }
 
-        public ArrayBackedRow[] fetchRows() {
+        public UnsafeArrayRow[] fetchRows() {
             return fetchRows;
         }
 
-        public ArrayBackedRow[] partitionRows() {
+        public UnsafeArrayRow[] partitionRows() {
             return partitionRows;
         }
 
-        public ArrayBackedRow inputRow() {
+        public UnsafeArrayRow inputRow() {
             return inputRow;
         }
 
@@ -123,11 +123,11 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             }
             assert fs != null : "fs must not be null";
             if (partitionRows == null) {
-                partitionRows = new ArrayBackedRow[fetchSources.size()];
+                partitionRows = new UnsafeArrayRow[fetchSources.size()];
             }
-            ArrayBackedRow row = partitionRows[fetchIdx];
+            UnsafeArrayRow row = partitionRows[fetchIdx];
             if (row == null) {
-                row = new ArrayBackedRow();
+                row = new UnsafeArrayRow();
                 partitionRows[fetchIdx] = row;
             }
             return new RowInput(row, idx);

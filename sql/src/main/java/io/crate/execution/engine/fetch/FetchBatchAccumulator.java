@@ -134,9 +134,9 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         return new Iterator<Row>() {
 
             final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
-            final ArrayBackedRow inputRow = collectRowContext.inputRow();
-            final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
-            final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
+            final UnsafeArrayRow inputRow = collectRowContext.inputRow();
+            final UnsafeArrayRow[] fetchRows = collectRowContext.fetchRows();
+            final UnsafeArrayRow[] partitionRows = collectRowContext.partitionRows();
             final Object[][] nullCells = collectRowContext.nullCells();
 
             int idx = 0;
@@ -208,7 +208,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         return toFetch;
     }
 
-    private void setPartitionRow(ArrayBackedRow[] partitionRows, int i, ReaderBucket readerBucket) {
+    private void setPartitionRow(UnsafeArrayRow[] partitionRows, int i, ReaderBucket readerBucket) {
         if (partitionRows != null && partitionRows[i] != null) {
             assert readerBucket.partitionValues != null : "readerBucket's partitionValues must not be null";
             partitionRows[i].cells = readerBucket.partitionValues;
