@@ -267,7 +267,7 @@ class NestedLoopJoin extends TwoInputPlan {
 
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitJoin(this, context);
+        return visitor.visitNestedLoopJoin(this, context);
     }
 
     @Override
