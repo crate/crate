@@ -574,7 +574,9 @@ inserted into it, but otherwise ignore them.
    Filtering by and ordering on them is possible but very performance
    intensive. ``Ignored`` objects are a *black box* for the storage engine, so
    the filtering/ordering is done using an expensive table scan and a
-   filter/order function outside of the storage engine.
+   filter/order function outside of the storage engine. Using ``ignored``
+   objects for grouping or aggregations is not possible at all and will result
+   in an exception or ``NULL`` value if used with excplicit casts.
 
 .. _data-type-object-literals:
 
