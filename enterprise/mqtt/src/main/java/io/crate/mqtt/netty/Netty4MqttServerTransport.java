@@ -20,6 +20,7 @@ package io.crate.mqtt.netty;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.user.UserManager;
 import io.crate.ingestion.IngestionService;
@@ -93,6 +94,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     }
 
     private final NetworkService networkService;
+    private final String[] bindHosts;
+    private final String[] publishHosts;
     private final String port;
     private final Logger logger;
     private final TimeValue defaultIdleTimeout;
@@ -120,6 +123,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         logger = Loggers.getLogger("mqtt", settings);
         isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         isEnabled = MQTT_ENABLED_SETTING.setting().get(settings);
+        bindHosts = NetworkService.GLOBAL_NETWORK_BINDHOST_SETTING.get(settings).toArray(new String[0]);
+        publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISHHOST_SETTING.get(settings).toArray(new String[0]);
         port = MQTT_PORT_SETTING.setting().get(settings);
         defaultIdleTimeout = MQTT_TIMEOUT_SETTING.setting().get(settings);
         mqttMessageLogger = new MqttMessageLogger(settings);
@@ -176,7 +181,8 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         return boundAddress;
     }
 
-    private static int resolvePublishPort(List<TransportAddress> boundAddresses, InetAddress publishInetAddress) {
+    @VisibleForTesting
+    static int resolvePublishPort(List<TransportAddress> boundAddresses, InetAddress publishInetAddress) {
         for (TransportAddress boundAddress : boundAddresses) {
             InetAddress boundInetAddress = boundAddress.address().getAddress();
             if (boundInetAddress.isAnyLocalAddress() || boundInetAddress.equals(publishInetAddress)) {
@@ -231,10 +237,10 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
     private BoundTransportAddress resolveBindAddress() {
         // Bind and start to accept incoming connections.
         try {
-            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
+            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
             for (InetAddress address : hostAddresses) {
                 if (address instanceof Inet4Address) {
-                    boundAddresses.add((TransportAddress) bindAddress(address));
+                    boundAddresses.add(bindAddress(address));
                 }
             }
         } catch (IOException e) {
@@ -242,7 +248,7 @@ public class Netty4MqttServerTransport extends AbstractLifecycleComponent {
         }
         final InetAddress publishInetAddress;
         try {
-            publishInetAddress = networkService.resolvePublishHostAddresses(null);
+            publishInetAddress = networkService.resolvePublishHostAddresses(publishHosts);
         } catch (Exception e) {
             throw new BindTransportException("Failed to resolve publish address", e);
         }

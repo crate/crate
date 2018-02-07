@@ -24,7 +24,6 @@ package io.crate.protocols.postgres;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
 import io.crate.netty.CrateChannelBootstrapFactory;
@@ -60,8 +59,6 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -81,6 +78,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final NetworkService networkService;
 
     private final boolean enabled;
+    private final String[] bindHosts;
+    private final String[] publishHosts;
     private final String port;
     private final Authentication authentication;
     private final SslContextProvider sslContextProvider;
@@ -107,6 +106,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sslContextProvider = sslContextProvider;
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
+        bindHosts = NetworkService.GLOBAL_NETWORK_BINDHOST_SETTING.get(settings).toArray(new String[0]);
+        publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISHHOST_SETTING.get(settings).toArray(new String[0]);
         port = PSQL_PORT_SETTING.setting().get(settings);
     }
 
@@ -179,7 +180,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private BoundTransportAddress resolveBindAddress() {
         // Bind and start to accept incoming connections.
         try {
-            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
+            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
             for (InetAddress address : hostAddresses) {
                 if (address instanceof Inet4Address || address instanceof Inet6Address) {
                     boundAddresses.add(bindAddress(address));
@@ -190,7 +191,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         final InetAddress publishInetAddress;
         try {
-            publishInetAddress = networkService.resolvePublishHostAddresses(null);
+            publishInetAddress = networkService.resolvePublishHostAddresses(publishHosts);
         } catch (Exception e) {
             throw new BindTransportException("Failed to resolve publish address", e);
         }
@@ -242,8 +243,4 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     protected void doClose() {
     }
 
-    @VisibleForTesting
-    public Collection<TransportAddress> boundAddresses() {
-        return Collections.unmodifiableCollection(boundAddresses);
-    }
 }

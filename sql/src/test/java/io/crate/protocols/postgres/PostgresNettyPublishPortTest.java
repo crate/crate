@@ -22,17 +22,26 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.SQLOperations;
+import io.crate.auth.AlwaysOKNullAuthentication;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
+import org.elasticsearch.transport.BindTransportException;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.net.UnknownHostException;
+import java.util.Collections;
 
 import static io.crate.protocols.postgres.PostgresNetty.resolvePublishPort;
 import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class PostgresNettyPublishPortTest extends CrateUnitTest {
 
@@ -61,6 +70,73 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         expectedException.expectMessage("Failed to auto-resolve psql publish port, multiple bound addresses");
         resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)),
             getByName("127.0.0.3"));
+    }
+
+    @Test
+    public void testBindAndPublishAddressDefault() {
+        // First check if binding to a local works
+        NetworkService networkService = new NetworkService(Collections.emptyList());
+        PostgresNetty psql = new PostgresNetty(Settings.EMPTY, Mockito.mock(SQLOperations.class),
+            networkService, new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        try {
+            psql.doStart();
+        } finally {
+            psql.doStop();
+        }
+    }
+
+    @Test
+    public void testGeneralBindAndPublishAddressOverrideSetting() {
+        // Check override for network.host
+        Settings settingsWithCustomHost = Settings.builder().put("network.host", "cantbindtothis").build();
+        NetworkService networkService = new NetworkService(Collections.emptyList());
+        PostgresNetty psql = new PostgresNetty(settingsWithCustomHost, Mockito.mock(SQLOperations.class), networkService,
+            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        try {
+            psql.doStart();
+            fail("Should have failed due to custom hostname");
+        } catch (BindPostgresException e) {
+            // that's what we want
+            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+        } finally {
+            psql.doStop();
+        }
+    }
+
+    @Test
+    public void testBindAddressOverrideSetting() {
+        // Check override for network.bind_host
+        Settings settingsWithCustomBind = Settings.builder().put("network.bind_host", "cantbindtothis").build();
+        NetworkService networkService = new NetworkService(Collections.emptyList());
+        PostgresNetty psql = new PostgresNetty(settingsWithCustomBind, Mockito.mock(SQLOperations.class), networkService,
+            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        try {
+            psql.doStart();
+            fail("Should have failed due to custom hostname");
+        } catch (BindPostgresException e) {
+            // that's what we want
+            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+        } finally {
+            psql.doStop();
+        }
+    }
+
+    @Test
+    public void testPublishAddressOverride() {
+        // Check override for network.publish_host
+        Settings settingsWithCustomPublish = Settings.builder().put("network.publish_host", "cantbindtothis").build();
+        NetworkService networkService = new NetworkService(Collections.emptyList());
+        PostgresNetty psql = new PostgresNetty(settingsWithCustomPublish, Mockito.mock(SQLOperations.class), networkService,
+            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        try {
+            psql.doStart();
+            fail("Should have failed due to custom hostname");
+        } catch (BindTransportException e) {
+            // that's what we want
+            assertThat(e.getCause(), instanceOf(UnknownHostException.class));
+        } finally {
+            psql.doStop();
+        }
     }
 
     private TransportAddress address(String host, int port) throws UnknownHostException {
