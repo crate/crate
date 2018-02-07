@@ -40,6 +40,7 @@ from crate.client import connect
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
+CRATE_DSN = 'localhost:' + str(CRATE_HTTP_PORT)
 
 log = logging.getLogger('crate.testing.layer')
 ch = logging.StreamHandler()
@@ -49,10 +50,9 @@ log.addHandler(ch)
 
 class CrateTestCmd(CrateCmd):
 
-    def __init__(self, **kwargs):
-        super(CrateTestCmd, self).__init__(**kwargs)
-        doctest_print = PrintWrapper()
-        self.logger = ColorPrinter(False, stream=doctest_print, line_end='\n')
+    def __init__(self):
+        super(CrateTestCmd, self).__init__(is_tty=False)
+        self.logger = ColorPrinter(False, stream=PrintWrapper(), line_end='\n')
 
     def stmt(self, stmt):
         stmt = stmt.replace('\n', ' ')
@@ -62,39 +62,49 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 
-cmd = CrateTestCmd(is_tty=False)
+cmd = CrateTestCmd()
+
+
+def _execute_sql(stmt):
+    """
+    Invoke a single SQL statement and automatically close the HTTP connection
+    when done.
+    """
+    with connect(CRATE_DSN) as conn:
+        c = conn.cursor()
+        c.execute(stmt)
 
 
 def wait_for_schema_update(schema, table, column):
-    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
-    c = conn.cursor()
-    count = 0
-    while count == 0:
-        c.execute(
-            ('select count(*) from information_schema.columns '
-             'where table_schema = ? and table_name = ? '
-             'and column_name = ?'),
-            (schema, table, column)
-        )
-        count = c.fetchone()[0]
+    with connect(CRATE_DSN) as conn:
+        c = conn.cursor()
+        count = 0
+        while count == 0:
+            c.execute(
+                ('select count(*) from information_schema.columns '
+                 'where table_schema = ? and table_name = ? '
+                 'and column_name = ?'),
+                (schema, table, column)
+            )
+            count = c.fetchone()[0]
 
 
 def wait_for_function(signature):
-    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
-    c = conn.cursor()
-    wait = 0.0
+    with connect(CRATE_DSN) as conn:
+        c = conn.cursor()
+        wait = 0.0
 
-    while True:
-        try:
-            c.execute('SELECT ' + signature)
-        except Exception as e:
-            wait += 0.1
-            if wait >= 2.0:
-                raise e
+        while True:
+            try:
+                c.execute('SELECT ' + signature)
+            except Exception as e:
+                wait += 0.1
+                if wait >= 2.0:
+                    raise e
+                else:
+                    time.sleep(0.1)
             else:
-                time.sleep(0.1)
-        else:
-            break
+                break
 
 
 def bash_transform(s):
@@ -165,7 +175,7 @@ crate_layer = ConnectingCrateLayer(
 def setUpLocations(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_function'] = wait_for_function
-    cmd.stmt("""
+    _execute_sql("""
         create table locations (
           id string primary key,
           name string,
@@ -185,19 +195,19 @@ def setUpLocations(test):
           ),
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
-    cmd.stmt("delete from locations")
+    _execute_sql("delete from locations")
     locations_file = get_abspath("locations.json")
-    cmd.stmt("""copy locations from '{0}'""".format(locations_file))
-    cmd.stmt("""refresh table locations""")
+    _execute_sql("""copy locations from '{0}'""".format(locations_file))
+    _execute_sql("""refresh table locations""")
 
 
 def tearDownLocations(test):
-    cmd.stmt("""drop table if exists locations""")
+    _execute_sql("""drop table if exists locations""")
 
 
 def setUpUserVisits(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table uservisits (
           id integer primary key,
           name string,
@@ -206,34 +216,34 @@ def setUpUserVisits(test):
         )
     """.strip())
     uservisits_file = get_abspath("uservisits.json")
-    cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
-    cmd.stmt("""refresh table uservisits""")
+    _execute_sql("""copy uservisits from '{0}'""".format(uservisits_file))
+    _execute_sql("""refresh table uservisits""")
 
 
 def tearDownUserVisits(test):
-    cmd.stmt("""drop table if exists uservisits""")
+    _execute_sql("""drop table if exists uservisits""")
 
 
 def setUpArticles(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table articles (
           id integer primary key,
           name string,
           price float
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
     articles_file = get_abspath("articles.json")
-    cmd.stmt("""copy articles from '{0}'""".format(articles_file))
-    cmd.stmt("""refresh table articles""")
+    _execute_sql("""copy articles from '{0}'""".format(articles_file))
+    _execute_sql("""refresh table articles""")
 
 
 def tearDownArticles(test):
-    cmd.stmt("""drop table if exists articles""")
+    _execute_sql("""drop table if exists articles""")
 
 
 def setUpColors(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table colors (
           id integer primary key,
           name string,
@@ -241,17 +251,17 @@ def setUpColors(test):
           coolness float
         ) with (number_of_replicas=0)""".strip())
     colors_file = get_abspath("colors.json")
-    cmd.stmt("""copy colors from '{0}'""".format(colors_file))
-    cmd.stmt("""refresh table colors""")
+    _execute_sql("""copy colors from '{0}'""".format(colors_file))
+    _execute_sql("""refresh table colors""")
 
 
 def tearDownColors(test):
-    cmd.stmt("""drop table if exists colors""")
+    _execute_sql("""drop table if exists colors""")
 
 
 def setUpEmployees(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table employees (
           id integer primary key,
           name string,
@@ -260,17 +270,17 @@ def setUpEmployees(test):
           sex string
         ) with (number_of_replicas=0)""".strip())
     emp_file = get_abspath("employees.json")
-    cmd.stmt("""copy employees from '{0}'""".format(emp_file))
-    cmd.stmt("""refresh table employees""")
+    _execute_sql("""copy employees from '{0}'""".format(emp_file))
+    _execute_sql("""refresh table employees""")
 
 
 def tearDownEmployees(test):
-    cmd.stmt("""drop table if exists employees""")
+    _execute_sql("""drop table if exists employees""")
 
 
 def setUpDepartments(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table departments (
           id integer primary key,
           name string,
@@ -278,17 +288,17 @@ def setUpDepartments(test):
           location integer
         ) with (number_of_replicas=0)""".strip())
     dept_file = get_abspath("departments.json")
-    cmd.stmt("""copy departments from '{0}'""".format(dept_file))
-    cmd.stmt("""refresh table departments""")
+    _execute_sql("""copy departments from '{0}'""".format(dept_file))
+    _execute_sql("""refresh table departments""")
 
 
 def tearDownDepartments(test):
-    cmd.stmt("""drop table if exists departments""")
+    _execute_sql("""drop table if exists departments""")
 
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table quotes (
           id integer primary key,
           quote string,
@@ -306,40 +316,40 @@ def setUpQuotes(test):
 
 
 def tearDownQuotes(test):
-    cmd.stmt("""drop table if exists quotes""")
+    _execute_sql("""drop table if exists quotes""")
 
 
 def setUpPhotos(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table photos (
           name string,
           location geo_point
         ) with(number_of_replicas=0)""".strip())
     dept_file = get_abspath("photos.json")
-    cmd.stmt("""copy photos from '{0}'""".format(dept_file))
-    cmd.stmt("""refresh table photos""")
+    _execute_sql("""copy photos from '{0}'""".format(dept_file))
+    _execute_sql("""refresh table photos""")
 
 
 def tearDownPhotos(test):
-    cmd.stmt("""drop table if exists photos""")
+    _execute_sql("""drop table if exists photos""")
 
 
 def setUpCountries(test):
     test.globs['cmd'] = cmd
-    cmd.stmt("""
+    _execute_sql("""
         create table countries (
           name string,
           "geo" geo_shape INDEX using GEOHASH with (precision='1km'),
           population long
         ) with(number_of_replicas=0)""".strip())
     dept_file = get_abspath("countries.json")
-    cmd.stmt("""copy countries from '{0}'""".format(dept_file))
-    cmd.stmt("""refresh table countries""")
+    _execute_sql("""copy countries from '{0}'""".format(dept_file))
+    _execute_sql("""refresh table countries""")
 
 
 def tearDownCountries(test):
-    cmd.stmt("""drop table if exists countries""")
+    _execute_sql("""drop table if exists countries""")
 
 
 def setUpLocationsAndQuotes(test):

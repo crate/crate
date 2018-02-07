@@ -54,11 +54,11 @@ task monitoringTest(type: Exec) {
 }
 
 task itest(type: Exec) {
-    commandLine "$projectDir/bin/test-docs", '-1', '-t', '!process_test'
+    commandLine "$projectDir/bin/test-docs", '-vvvxt', '!process_test'
 }
 
 task gtest(type: Exec) {
-    commandLine "$projectDir/bin/test-docs", '-1', '-t', 'process_test'
+    commandLine "$projectDir/bin/test-docs", '-vvvxt', 'process_test'
 }
 
 task logicTest(type: Exec) {
