@@ -40,18 +40,21 @@ public class ArrayRow implements Row {
 
     @Override
     public Object get(int index) {
+        assert cells != null : "cells must not be null";
         return cells[index];
     }
 
     @Override
     public Object[] materialize() {
-        Object[] copy = new Object[cells.length];
-        System.arraycopy(cells, 0, copy, 0, cells.length);
-        return copy;
+        return cells;
     }
 
     public void cells(Object[] cells) {
         this.cells = cells;
+    }
+
+    public boolean isEmpty() {
+        return this.cells == null;
     }
 
     @Override
