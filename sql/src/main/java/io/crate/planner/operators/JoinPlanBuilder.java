@@ -22,6 +22,7 @@
 
 package io.crate.planner.operators;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -50,20 +51,36 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+/**
+ * A logical plan builder for `Join` operations. It will also evaluate which `Join` operator to use and build the
+ * corresponding `LogicalPlan`.
+ * <p>
+ * We currently support the {@link NestedLoopJoin} and {@link HashJoin} operators (the hash join operator is
+ * enabled by the {@link io.crate.metadata.settings.session.SessionSettingRegistry#HASH_JOIN_KEY} setting and its
+ * application is mandated by {@link HashJoinDetector}).
+ */
 public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     private final MultiSourceSelect mss;
     private final WhereClause where;
     private final SubqueryPlanner subqueryPlanner;
+    private final SessionContext sessionContext;
 
-    private JoinPlanBuilder(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
+    private JoinPlanBuilder(MultiSourceSelect mss,
+                            WhereClause where,
+                            SubqueryPlanner subqueryPlanner,
+                            SessionContext sessionContext) {
         this.mss = mss;
         this.where = where;
         this.subqueryPlanner = subqueryPlanner;
+        this.sessionContext = sessionContext;
     }
 
-    static JoinPlanBuilder createNodes(MultiSourceSelect mss, WhereClause where, SubqueryPlanner subqueryPlanner) {
-        return new JoinPlanBuilder(mss, where, subqueryPlanner);
+    static JoinPlanBuilder createNodes(MultiSourceSelect mss,
+                                       WhereClause where,
+                                       SubqueryPlanner subqueryPlanner,
+                                       SessionContext sessionContext) {
+        return new JoinPlanBuilder(mss, where, subqueryPlanner, sessionContext);
     }
 
     @Override
@@ -128,17 +145,12 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
         // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
         // have more than 1 fetchProjection within a single execution
-        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromLeft);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromRight);
+        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+            .build(tableStats, usedFromLeft);
+        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+            .build(tableStats, usedFromRight);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
-        LogicalPlan joinPlan = new NestedLoopJoin(
-            lhsPlan,
-            rhsPlan,
-            joinType,
-            joinCondition,
-            !query.symbolType().isValueSymbol(),
-            hasOuterJoins,
-            lhs);
+        LogicalPlan joinPlan = createJoinPlan(lhsPlan, rhsPlan, joinLhsRhs, joinType, joinCondition, lhs, query, hasOuterJoins);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -153,13 +165,42 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 queryParts,
                 subqueryPlanner,
                 hasOuterJoins,
-                lhs);
+                lhs,
+                sessionContext);
             joinNames.add(nextRel.getQualifiedName());
         }
         assert queryParts.isEmpty() : "Must've applied all queryParts";
         assert joinPairs.isEmpty() : "Must've applied all joinPairs";
 
         return joinPlan;
+    }
+
+    private LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
+                                       LogicalPlan rhsPlan,
+                                       JoinPair joinLhsRhs,
+                                       JoinType joinType,
+                                       Symbol joinCondition,
+                                       QueriedRelation lhs,
+                                       Symbol query,
+                                       boolean hasOuterJoins) {
+        if (isHashJoinPossible(joinLhsRhs, sessionContext)) {
+            return new HashJoin(
+                lhsPlan,
+                rhsPlan);
+        } else {
+            return new NestedLoopJoin(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                !query.symbolType().isValueSymbol(),
+                hasOuterJoins,
+                lhs);
+        }
+    }
+
+    private boolean isHashJoinPossible(JoinPair joinPair, SessionContext sessionContext) {
+        return sessionContext.isHashJoinEnabled() && HashJoinDetector.isHashJoinPossible(joinPair);
     }
 
     private static JoinType maybeInvertPair(QualifiedName rhsName, JoinPair pair) {
@@ -182,7 +223,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             Map<Set<QualifiedName>, Symbol> queryParts,
                                             SubqueryPlanner subqueryPlanner,
                                             boolean hasOuterJoins,
-                                            AnalyzedRelation leftRelation) {
+                                            AnalyzedRelation leftRelation,
+                                            SessionContext sessionContext) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
         Set<Symbol> usedFromNext = new HashSet<>();
@@ -206,7 +248,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false).build(tableStats, usedFromNext);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
+            .build(tableStats, usedFromNext);
 
         Symbol query = AndOperator.join(
             Stream.of(
