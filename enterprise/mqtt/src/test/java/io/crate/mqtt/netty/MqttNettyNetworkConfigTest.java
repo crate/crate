@@ -29,6 +29,7 @@ import io.crate.user.StubUserManager;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -37,10 +38,40 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 
 import static io.crate.mqtt.netty.Netty4MqttServerTransport.MQTT_ENABLED_SETTING;
+import static io.crate.mqtt.netty.Netty4MqttServerTransport.resolvePublishPort;
 import static java.net.InetAddress.getByName;
+import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class MqttNettyNetworkConfigTest extends CrateUnitTest {
+
+    @Test
+    public void testPublishPortSelection() throws Exception {
+        int boundPort = randomIntBetween(9000, 9100);
+        int otherBoundPort = randomIntBetween(9200, 9300);
+
+        int publishPort = resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)), getByName("127.0.0.1"));
+        assertThat("Publish port should be derived from matched address", publishPort, equalTo(boundPort));
+
+        publishPort = resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", boundPort)), getByName("127.0.0.3"));
+        assertThat("Publish port should be derived from unique port of bound addresses", publishPort, equalTo(boundPort));
+
+        publishPort = resolvePublishPort(asList(address("0.0.0.0", boundPort), address("127.0.0.2", otherBoundPort)),
+            getByName("127.0.0.1"));
+        assertThat("Publish port should be derived from matching wildcard address", publishPort, equalTo(boundPort));
+    }
+
+    @Test
+    public void testNonUniqueBoundAddress() throws Exception {
+        int boundPort = randomIntBetween(9000, 9100);
+        int otherBoundPort = randomIntBetween(9200, 9300);
+
+        expectedException.expect(BindHttpException.class);
+        expectedException.expectMessage("Failed to auto-resolve mqtt publish port, multiple bound addresses");
+        resolvePublishPort(asList(address("127.0.0.1", boundPort), address("127.0.0.2", otherBoundPort)),
+            getByName("127.0.0.3"));
+    }
 
     private static Settings.Builder createBaseSettings() {
         return Settings.builder()
