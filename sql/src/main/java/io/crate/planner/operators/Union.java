@@ -22,14 +22,17 @@
 
 package io.crate.planner.operators;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Row;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -38,8 +41,6 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -62,7 +63,7 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  */
 public class Union extends TwoInputPlan {
 
-    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner) {
+    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, SessionContext sessionContext) {
         return (tableStats, usedColsByParent) -> {
 
             QueriedRelation left = ttr.left();
@@ -78,11 +79,11 @@ public class Union extends TwoInputPlan {
             usedFromRight.addAll(right.outputs());
 
             LogicalPlan lhsPlan = LogicalPlanner
-                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false)
+                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
                 .build(tableStats, usedFromLeft);
 
             LogicalPlan rhsPlan = LogicalPlanner
-                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false)
+                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
                 .build(tableStats, usedFromRight);
 
             return new Union(lhsPlan, rhsPlan, ttr.outputs());
