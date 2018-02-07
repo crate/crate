@@ -28,14 +28,15 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.expression.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.data.ArrayRow;
 import io.crate.data.BatchAccumulator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.metadata.Functions;
 import io.crate.expression.InputRow;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -79,7 +80,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
     @Override
     public void onItem(Row row) {
         Object[] cells = row.materialize();
-        collectRowContext.inputRow().cells = cells;
+        collectRowContext.inputRow().cells(cells);
         for (int i : collectRowContext.fetchIdPositions()) {
             Object fetchId = cells[i];
             if (fetchId != null) {
@@ -134,9 +135,9 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         return new Iterator<Row>() {
 
             final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
-            final ArrayBackedRow inputRow = collectRowContext.inputRow();
-            final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
-            final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
+            final ArrayRow inputRow = collectRowContext.inputRow();
+            final ArrayRow[] fetchRows = collectRowContext.fetchRows();
+            final ArrayRow[] partitionRows = collectRowContext.partitionRows();
             final Object[][] nullCells = collectRowContext.nullCells();
 
             int idx = 0;
@@ -152,11 +153,11 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     throw new NoSuchElementException("Iterator is exhausted");
                 }
                 Object[] cells = inputValues.get(idx);
-                inputRow.cells = cells;
+                inputRow.cells(cells);
                 for (int i = 0; i < fetchIdPositions.length; i++) {
                     Object fetchIdObj = cells[fetchIdPositions[i]];
                     if (fetchIdObj == null) {
-                        fetchRows[i].cells = nullCells[i];
+                        fetchRows[i].cells(nullCells[i]);
                         continue;
                     }
                     long fetchId = (long) fetchIdObj;
@@ -165,8 +166,8 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     ReaderBucket readerBucket = context.getReaderBucket(readerId);
                     assert readerBucket != null : "readerBucket must not be null";
                     setPartitionRow(partitionRows, i, readerBucket);
-                    fetchRows[i].cells = readerBucket.get(docId);
-                    assert !readerBucket.fetchRequired() || fetchRows[i].cells != null :
+                    fetchRows[i].cells(readerBucket.get(docId));
+                    assert !readerBucket.fetchRequired() || !fetchRows[i].isEmpty() :
                         "readerBucket doesn't require fetch or row is fetched";
                 }
                 idx++;
@@ -208,10 +209,10 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
         return toFetch;
     }
 
-    private void setPartitionRow(ArrayBackedRow[] partitionRows, int i, ReaderBucket readerBucket) {
+    private void setPartitionRow(ArrayRow[] partitionRows, int i, ReaderBucket readerBucket) {
         if (partitionRows != null && partitionRows[i] != null) {
             assert readerBucket.partitionValues != null : "readerBucket's partitionValues must not be null";
-            partitionRows[i].cells = readerBucket.partitionValues;
+            partitionRows[i].cells(readerBucket.partitionValues);
         }
     }
 }
