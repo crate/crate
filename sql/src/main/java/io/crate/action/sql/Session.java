@@ -26,12 +26,12 @@ import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
@@ -145,7 +145,9 @@ public class Session {
     }
 
     public void parse(String statementName, String query, List<DataType> paramTypes) {
-        LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
+        }
 
         Statement statement;
         try {
@@ -165,7 +167,9 @@ public class Session {
                      String statementName,
                      List<Object> params,
                      @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
+        }
 
         Portal portal = getOrCreatePortal(portalName);
         try {
@@ -186,7 +190,9 @@ public class Session {
     }
 
     public DescribeResult describe(char type, String portalOrStatement) {
-        LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
+        }
         switch (type) {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
@@ -246,7 +252,9 @@ public class Session {
     }
 
     public void execute(String portalName, int maxRows, ResultReceiver resultReceiver) {
-        LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
+        }
 
         Portal portal = getSafePortal(portalName);
         portal.execute(resultReceiver, maxRows);
