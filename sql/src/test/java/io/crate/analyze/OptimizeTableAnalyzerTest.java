@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -48,7 +49,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeSystemTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
                                         "operations, as it is read-only.");
         e.analyze("OPTIMIZE TABLE sys.shards");
@@ -153,7 +154,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeSysPartitioned() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
                                         "operations, as it is read-only.");
         e.analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");

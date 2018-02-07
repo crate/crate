@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
@@ -93,8 +94,11 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         e.analyze("copy unknown from '/some/distant/file.ext'");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testCopyFromSystemTable() throws Exception {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow INSERT "+
+                                        "operations, as it is read-only.");
         e.analyze("copy sys.shards from '/nope/nope/still.nope'");
     }
 
@@ -129,7 +133,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopySysTableTo() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow COPY TO " +
                                         "operations, as it is read-only.");
         e.analyze("copy sys.nodes to directory '/foo'");

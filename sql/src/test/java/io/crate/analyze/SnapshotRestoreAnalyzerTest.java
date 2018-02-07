@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.RepositoryUnknownException;
@@ -179,7 +180,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCreateSnapshotSnapshotSysTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow " +
                                         "CREATE SNAPSHOT operations, as it is read-only.");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE sys.shards");
@@ -194,7 +195,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCreateSnapshotFromBlobTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations.");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE blob.my_blobs");
     }

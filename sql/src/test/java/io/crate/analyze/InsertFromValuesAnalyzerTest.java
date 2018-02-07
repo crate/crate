@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
@@ -307,14 +308,17 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users ('a') values (1)");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testInsertIntoSysTable() throws Exception {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow INSERT " +
+                                        "operations, as it is read-only.");
         e.analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
     @Test
     public void testInsertIntoAliasTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"doc.alias\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
         e.analyze("insert into alias (bla) values ('blubb')");

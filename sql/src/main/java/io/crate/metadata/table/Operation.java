@@ -23,6 +23,7 @@
 package io.crate.metadata.table;
 
 import com.google.common.collect.Sets;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -102,7 +103,7 @@ public enum Operation {
             } else {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations.";
             }
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+            throw new OperationOnInaccessibleRelationException(tableInfo.ident(), String.format(Locale.ENGLISH,
                 exceptionMessage, tableInfo.ident().fqn(), operation));
         }
     }

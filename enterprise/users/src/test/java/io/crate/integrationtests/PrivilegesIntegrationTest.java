@@ -295,4 +295,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expectMessage(containsString("UnauthorizedException: User \"normal\" is not authorized to execute statement"));
         executeAsNormalUser("alter cluster reroute retry failed");
     }
+
+    @Test
+    public void testOperationOnClosedTableAsAuthorizedUser() {
+        executeAsSuperuser("create table s.t1 (x int)");
+        executeAsSuperuser("alter table s.t1 close");
+        ensureYellow();
+
+        executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
+        assertThat(response.rowCount(), is(1L));
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("OperationOnInaccessibleRelationException: The relation " +
+                                                       "\"s.t1\" doesn't support or allow REFRESH operations, as it " +
+                                                       "is currently closed."));
+        execute("refresh table s.t1", null, testUserSession());
+    }
 }

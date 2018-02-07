@@ -325,6 +325,9 @@ Code   Error
 ------ ---------------------------------------------------------------------
 4006   The used column alias is ambiguous.
 ------ ---------------------------------------------------------------------
+4007   The operation is not supported on this relation, as it is not
+       accessible.
+------ ---------------------------------------------------------------------
 4010   User is not authorized to perform the SQL statement.
 ------ ---------------------------------------------------------------------
 4011   Missing privilege for user.
