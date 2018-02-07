@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -80,7 +81,7 @@ public class SchemasTest {
 
     @Test
     public void testSystemSchemaIsNotWritable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
 
@@ -98,7 +99,7 @@ public class SchemasTest {
 
     @Test
     public void testTableAliasIsNotWritable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT operations.");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");

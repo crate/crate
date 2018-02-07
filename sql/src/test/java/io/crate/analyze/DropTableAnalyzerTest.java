@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -64,7 +65,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropSystemTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
                                         "operations, as it is read-only.");
         e.analyze("drop table sys.cluster");
@@ -72,7 +73,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropInformationSchemaTable() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"information_schema.tables\" doesn't support or allow " +
                                         "DROP operations, as it is read-only.");
         e.analyze("drop table information_schema.tables");
@@ -120,7 +121,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropAliasFails() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
                                         "operations, as it is read-only.");
         e.analyze("drop table alias_table");
@@ -128,7 +129,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropAliasIfExists() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
                                         "operations, as it is read-only.");
         e.analyze("drop table if exists alias_table");

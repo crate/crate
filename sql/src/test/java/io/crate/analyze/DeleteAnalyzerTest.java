@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.RowGranularity;
@@ -60,8 +61,11 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian")));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testDeleteSystemTable() throws Exception {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow DELETE "+
+                                        "operations, as it is read-only.");
         e.analyze("delete from sys.nodes where name='Trillian'");
     }
 

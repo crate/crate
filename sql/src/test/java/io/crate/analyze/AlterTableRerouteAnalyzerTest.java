@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.Literal;
@@ -47,7 +48,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testRerouteOnSystemTableIsNotAllowed() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER REROUTE operations, as it is read-only.");
         e.analyze("ALTER TABLE sys.cluster REROUTE MOVE SHARD 0 FROM 'node1' TO 'node2'");
     }

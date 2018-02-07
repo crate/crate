@@ -64,6 +64,12 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that only occurred in Enterprise Edition, when privileges
+  are enabled. This issue would result in an exception about missing
+  privileges being thrown, rather than the expected Unsupported Feature
+  exception, when attempting operations on closed tables/partitions as a
+  user.
+
 - Fixed an issue that caused a ``NullPointerException`` if ``REFRESH TABLE``
   was executed on a table with closed partitions.
 

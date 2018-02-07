@@ -28,6 +28,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.NotPredicate;
@@ -175,8 +176,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         analyze("update users set details['arms']=3, details['arms']=5");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testUpdateSysTables() throws Exception {
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
+        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
+                                        "operations, as it is read-only.");
         analyze("update sys.nodes set fs=?", new Object[]{new HashMap<String, Object>() {{
             put("free", 0);
         }}});

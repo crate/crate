@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.core.collections.StringObjectMaps;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -51,7 +52,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow ALTER " +
                                         "operations, as it is read-only.");
         e.analyze("alter table sys.shards add column foobar string");
