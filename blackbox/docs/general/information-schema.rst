@@ -63,7 +63,6 @@ settings like the ``number of shards`` or ``number of replicas``.
     | table_schema       | table_name              | number_of_shards | number_of_replicas |
     +--------------------+-------------------------+------------------+--------------------+
     | blob               | myblobs                 |                3 | 0                  |
-    | doc                | documents               |                4 | 0-1                |
     | doc                | locations               |                2 | 0                  |
     | doc                | partitioned_table       |                4 | 0-1                |
     | doc                | quotes                  |                2 | 0                  |
@@ -94,7 +93,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 |                1 | 0                  |
     | sys                | users                   |                1 | 0                  |
     +--------------------+-------------------------+------------------+--------------------+
-    SELECT 31 rows in set (... sec)
+    SELECT 30 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
@@ -109,12 +108,11 @@ columns::
     | table_name        | clustered_by | partitioned_by | blobs_path |
     +-------------------+--------------+----------------+--------...-+
     | myblobs           | digest       | NULL           | ...        |
-    | documents         | _id          | NULL           | NULL       |
     | locations         | id           | NULL           | NULL       |
     | partitioned_table | _id          | ["date"]       | NULL       |
     | quotes            | id           | NULL           | NULL       |
     +-------------------+--------------+----------------+--------...-+
-    SELECT 5 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 .. rubric:: Schema
 
@@ -210,8 +208,6 @@ and their definition like data type and ordinal position inside the table::
     +-------------------+--------------------------------+------+--------------+
     | table_name        | column_name                    |  pos | data_type    |
     +-------------------+--------------------------------+------+--------------+
-    | documents         | body                           |    1 | string       |
-    | documents         | title                          |    2 | string       |
     | locations         | date                           |    1 | timestamp    |
     | locations         | description                    |    2 | string       |
     | locations         | id                             |    3 | string       |
@@ -231,7 +227,7 @@ and their definition like data type and ordinal position inside the table::
     | quotes            | id                             |    1 | integer      |
     | quotes            | quote                          |    2 | string       |
     +-------------------+--------------------------------+------+--------------+
-    SELECT 20 rows in set (... sec)
+    SELECT 18 rows in set (... sec)
 
 You can even query this tables' own columns (attention: this might lead to
 infinite recursion of your mind, beware!)::

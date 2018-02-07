@@ -173,8 +173,7 @@ crate_layer = ConnectingCrateLayer(
 
 
 def setUpLocations(test):
-    test.globs['cmd'] = cmd
-    test.globs['wait_for_function'] = wait_for_function
+    setUp(test)
     _execute_sql("""
         create table locations (
           id string primary key,
@@ -201,12 +200,8 @@ def setUpLocations(test):
     _execute_sql("""refresh table locations""")
 
 
-def tearDownLocations(test):
-    _execute_sql("""drop table if exists locations""")
-
-
 def setUpUserVisits(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table uservisits (
           id integer primary key,
@@ -220,12 +215,8 @@ def setUpUserVisits(test):
     _execute_sql("""refresh table uservisits""")
 
 
-def tearDownUserVisits(test):
-    _execute_sql("""drop table if exists uservisits""")
-
-
 def setUpArticles(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table articles (
           id integer primary key,
@@ -237,12 +228,8 @@ def setUpArticles(test):
     _execute_sql("""refresh table articles""")
 
 
-def tearDownArticles(test):
-    _execute_sql("""drop table if exists articles""")
-
-
 def setUpColors(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table colors (
           id integer primary key,
@@ -255,12 +242,8 @@ def setUpColors(test):
     _execute_sql("""refresh table colors""")
 
 
-def tearDownColors(test):
-    _execute_sql("""drop table if exists colors""")
-
-
 def setUpEmployees(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table employees (
           id integer primary key,
@@ -274,12 +257,8 @@ def setUpEmployees(test):
     _execute_sql("""refresh table employees""")
 
 
-def tearDownEmployees(test):
-    _execute_sql("""drop table if exists employees""")
-
-
 def setUpDepartments(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table departments (
           id integer primary key,
@@ -292,12 +271,8 @@ def setUpDepartments(test):
     _execute_sql("""refresh table departments""")
 
 
-def tearDownDepartments(test):
-    _execute_sql("""drop table if exists departments""")
-
-
 def setUpQuotes(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table quotes (
           id integer primary key,
@@ -315,12 +290,8 @@ def setUpQuotes(test):
     )
 
 
-def tearDownQuotes(test):
-    _execute_sql("""drop table if exists quotes""")
-
-
 def setUpPhotos(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table photos (
           name string,
@@ -331,12 +302,8 @@ def setUpPhotos(test):
     _execute_sql("""refresh table photos""")
 
 
-def tearDownPhotos(test):
-    _execute_sql("""drop table if exists photos""")
-
-
 def setUpCountries(test):
-    test.globs['cmd'] = cmd
+    setUp(test)
     _execute_sql("""
         create table countries (
           name string,
@@ -348,70 +315,41 @@ def setUpCountries(test):
     _execute_sql("""refresh table countries""")
 
 
-def tearDownCountries(test):
-    _execute_sql("""drop table if exists countries""")
-
-
 def setUpLocationsAndQuotes(test):
+    setUp(test)
     setUpLocations(test)
     setUpQuotes(test)
 
 
-def tearDownLocationsAndQuotes(test):
-    tearDownLocations(test)
-    tearDownQuotes(test)
-
-
 def setUpColorsAndArticles(test):
+    setUp(test)
     setUpColors(test)
     setUpArticles(test)
 
 
-def tearDownColorsAndArticles(test):
-    tearDownArticles(test)
-    tearDownColors(test)
-
-
 def setUpLocationsQuotesAndUserVisits(test):
+    setUp(test)
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
 
 
-def tearDownLocationsQuotesAndUserVisits(test):
-    tearDownLocationsAndQuotes(test)
-    tearDownUserVisits(test)
-
-
 def setUpEmployeesAndDepartments(test):
+    setUp(test)
     setUpEmployees(test)
     setUpDepartments(test)
 
 
-def tearDownEmployeesAndDepartments(test):
-    tearDownEmployees(test)
-    tearDownDepartments(test)
-
-
 def setUpPhotosAndCountries(test):
+    setUp(test)
     setUpPhotos(test)
     setUpCountries(test)
 
 
-def tearDownPhotosAndCountries(test):
-    tearDownPhotos(test)
-    tearDownCountries(test)
-
-
 def setUpEmpDeptAndColourArticlesAndGeo(test):
+    setUp(test)
     setUpEmployeesAndDepartments(test)
     setUpColorsAndArticles(test)
     setUpPhotosAndCountries(test)
-
-
-def tearDownEmpDeptAndColourArticlesAndGeo(test):
-    tearDownEmployeesAndDepartments(test)
-    tearDownColorsAndArticles(test)
-    tearDownPhotosAndCountries(test)
 
 
 def setUpTutorials(test):
@@ -431,11 +369,31 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
+    test.globs['wait_for_function'] = wait_for_function
 
 
-docsuite = partial(doctest.DocFileSuite,
-                   optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
-                   encoding='utf-8')
+def tearDown(test):
+    with connect(CRATE_DSN) as conn:
+        c = conn.cursor()
+        c.execute("""
+            SELECT table_schema, table_name
+            FROM information_schema.tables
+            WHERE table_schema NOT IN ('blob', 'sys', 'information_schema', 'pg_catalog')
+            ORDER BY 1, 2
+        """)
+        for schema, table in c.fetchall():
+            try:
+                c.execute("""
+                    DROP TABLE IF EXISTS "{}"."{}"
+                """.format(schema, table))
+            except Exception as e:
+                print('Failed to drop table {}.{}: {}'.format(schema, table, e))
+
+
+def get_abspath(name):
+    return os.path.abspath(
+        os.path.join(os.path.dirname(__file__), name)
+    )
 
 
 def test_suite():
@@ -446,6 +404,10 @@ def test_suite():
     suite.addTest(process_suite)
 
     # Documentation tests
+    docsuite = partial(doctest.DocFileSuite,
+                       optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
+                       encoding='utf-8')
+
     docs_suite = unittest.TestSuite()
     s = docsuite('../../general/blobs.rst', parser=bash_parser, setUp=setUp)
     s.layer = crate_layer
@@ -454,7 +416,7 @@ def test_suite():
         s = docsuite('../../' + fn,
                      parser=bash_parser,
                      setUp=setUpLocations,
-                     tearDown=tearDownLocations)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('general/ddl/create-table.rst',
@@ -490,14 +452,14 @@ def test_suite():
                'interfaces/postgres.rst'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
-                     tearDown=tearDownLocationsAndQuotes)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('general/dql/geo.rst',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpCountries,
-                     tearDown=tearDownCountries)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('general/dql/joins.rst',
@@ -506,21 +468,21 @@ def test_suite():
         s = docsuite(path,
                      parser=crash_parser,
                      setUp=setUpEmpDeptAndColourArticlesAndGeo,
-                     tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('general/dml.rst',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsQuotesAndUserVisits,
-                     tearDown=tearDownLocationsQuotesAndUserVisits)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('admin/snapshots.rst',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
-                     tearDown=tearDownLocationsAndQuotes)
+                     tearDown=tearDown)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('general/dql/union.rst',):
@@ -528,7 +490,7 @@ def test_suite():
         s = doctest.DocFileSuite(path,
                                  parser=crash_parser,
                                  setUp=setUpPhotosAndCountries,
-                                 tearDown=tearDownPhotosAndCountries,
+                                 tearDown=tearDown,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                              doctest.ELLIPSIS,
                                  encoding='utf-8')
@@ -537,9 +499,3 @@ def test_suite():
 
     suite.addTests(docs_suite)
     return suite
-
-
-def get_abspath(name):
-    return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), name)
-    )

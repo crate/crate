@@ -14,17 +14,22 @@ Altering Tables
 .. contents::
    :local:
 
+.. hide:
+
+    cr> CREATE TABLE my_table (id LONG);
+    CREATE OK, 1 row affected (... sec)
+
 Updating Parameters
 ===================
 
 The parameters of a table can be modified using the ``ALTER TABLE`` clause::
 
-    cr> alter table my_table1 set (number_of_replicas = '0-all');
+    cr> alter table my_table set (number_of_replicas = '0-all');
     ALTER OK, -1 rows affected (... sec)
 
 In order to set a parameter to its default value use ``reset``::
 
-    cr> alter table my_table1 reset (number_of_replicas);
+    cr> alter table my_table reset (number_of_replicas);
     ALTER OK, -1 rows affected (... sec)
 
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to
@@ -36,7 +41,7 @@ Adding Columns
 In order to add a column to an existing table use ``ALTER TABLE`` with the
 ``ADD COLUMN`` clause::
 
-    cr> alter table my_table1 add column new_column_name string;
+    cr> alter table my_table add column new_column_name string;
     ALTER OK, -1 rows affected (... sec)
 
 The inner schema of object columns can also be extended, as shown in the
@@ -44,18 +49,18 @@ following example.
 
 First a column of type object is added::
 
-    cr> alter table my_table1 add column obj_column object as (age int);
+    cr> alter table my_table add column obj_column object as (age int);
     ALTER OK, -1 rows affected (... sec)
 
 And now a nested column named ``name`` is added to the ``obj_column``::
 
-    cr> alter table my_table1 add column obj_column['name'] string;
+    cr> alter table my_table add column obj_column['name'] string;
     ALTER OK, -1 rows affected (... sec)
 
 ::
 
     cr> select column_name, data_type from information_schema.columns
-    ... where table_name = 'my_table1' and column_name like 'obj_%';
+    ... where table_name = 'my_table' and column_name like 'obj_%';
     +--------------------+-----------+
     | column_name        | data_type |
     +--------------------+-----------+
@@ -70,7 +75,7 @@ Closing and Opening Tables
 
 A table can be closed by using ``ALTER TABLE`` with the ``CLOSE`` clause::
 
-    cr> alter table my_table1 close;
+    cr> alter table my_table close;
     ALTER OK, -1 rows affected (... sec)
 
 Closing a table will cause all operations beside ``ALTER TABLE ... OPEN`` to
@@ -79,7 +84,7 @@ fail.
 A table can be reopened again by using ``ALTER TABLE`` with the ``OPEN``
 clause::
 
-    cr> alter table my_table1 open;
+    cr> alter table my_table open;
     ALTER OK, -1 rows affected (... sec)
 
 .. NOTE::
@@ -91,25 +96,13 @@ clause::
 Renaming Tables
 ===============
 
-.. Hidden: CREATE TABLE::
-
-    cr> create table table_a (
-    ... id long
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
 A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
 
-     cr> alter table table_a rename to table_b;
+     cr> alter table my_table rename to my_new_table;
      ALTER OK, -1 rows affected (... sec)
 
 During the rename operation the table will be closed, and all operations on the
 table will fail until the rename operation is completed.
-
-.. Hidden: DROP TABLE::
-
-    cr> drop table if exists table_b;
-    DROP OK, 1 row affected (... sec)
 
 .. Warning::
 
