@@ -16,7 +16,7 @@ general user.
    dml
    dql/index
    builtins/index
-   user-defined-functions.txt
+   user-defined-functions.rst
    blobs
    occ
    information-schema
