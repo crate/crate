@@ -1576,7 +1576,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     @UseRandomizedSession(schema = false)
     public void testUnknownTableJobGetsRemoved() throws Exception {
-        execute("set global stats.enabled=true");
         String uniqueId = UUID.randomUUID().toString();
         String stmtStr = "select '" + uniqueId + "' from foobar";
         String stmtStrWhere = "select ''" + uniqueId + "'' from foobar";
@@ -1587,8 +1586,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "Table '%s.foobar' unknown", sqlExecutor.getDefaultSchema())));
             execute("select stmt from sys.jobs where stmt='" + stmtStrWhere + "'");
             assertEquals(response.rowCount(), 0L);
-        } finally {
-            execute("reset global stats.enabled");
         }
     }
 

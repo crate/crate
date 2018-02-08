@@ -37,7 +37,6 @@ public class SysJobsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testQueryAllColumns() throws Exception {
-        execute("set global stats.enabled = true");
         String stmt = "select * from sys.jobs";
 
         // the response contains all current jobs, if the tests are executed in parallel

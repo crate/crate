@@ -29,6 +29,7 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -46,9 +47,9 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
         execute("select name from sys.cluster");
         execute("select * from sys.jobs_log");
-        assertThat(response.rowCount(), is(0L)); // default length is zero
+        assertThat(response.rowCount(), greaterThan(0L));
 
-        execute("set global transient stats.enabled = true, stats.jobs_log_size=1");
+        execute("set global transient stats.jobs_log_size=1");
 
         execute("select id from sys.cluster");
         execute("select id from sys.cluster");
@@ -60,7 +61,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
         assertThat(response.rows()[0][0], is("select id from sys.cluster"));
 
-        execute("reset global stats.enabled, stats.jobs_log_size");
+        execute("set global transient stats.enabled = false");
         waitNoPendingTasksOnAll();
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
@@ -80,7 +81,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(7));
 
-        execute("reset global stats.enabled, stats.jobs_log_size");
+        execute("reset global stats.jobs_log_size");
         assertThat(response.rowCount(), is(1L));
         waitNoPendingTasksOnAll();
 

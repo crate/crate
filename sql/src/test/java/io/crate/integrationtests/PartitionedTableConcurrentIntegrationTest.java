@@ -63,11 +63,6 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
 
-    @After
-    public void resetSettings() throws Exception {
-        execute("reset global stats.enabled");
-    }
-
     /**
      * Test depends on 2 data nodes
      */
@@ -83,7 +78,6 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
             new Object[]{"Trillian", "a"},
         });
         execute("refresh table t");
-        execute("set global stats.enabled=true");
 
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
         final CountDownLatch selects = new CountDownLatch(100);

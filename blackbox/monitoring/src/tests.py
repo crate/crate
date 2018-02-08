@@ -162,7 +162,6 @@ def test_suite():
                 JMX_OPTS.format(MonitoringIntegrationTest.JMX_PORT)
         },
         settings={
-            'stats.enabled': True,
             'license.enterprise': True,
             # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
             "cluster.routing.allocation.disk.watermark.low" : "100k",
@@ -186,7 +185,6 @@ def test_suite():
                 JMX_OPTS.format(MonitoringSettingIntegrationTest.JMX_PORT)
         },
         settings={
-            'stats.enabled': True,
             'license.enterprise': False,
             # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
             "cluster.routing.allocation.disk.watermark.low" : "100k",

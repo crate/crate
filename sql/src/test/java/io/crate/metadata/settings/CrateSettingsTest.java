@@ -132,7 +132,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         NestedObjectExpression stats = (NestedObjectExpression) crateSettings.referenceImplementationTree().get("stats");
         CrateSettings.SettingExpression statsEnabled = (CrateSettings.SettingExpression) stats.getChild("enabled");
         assertThat(statsEnabled.name(), is("enabled"));
-        assertThat(statsEnabled.value(), is(false));
+        assertThat(statsEnabled.value(), is(true));
     }
 
     @Test

@@ -59,9 +59,9 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSetResetGlobalSetting() throws Exception {
-        execute("set global persistent stats.enabled = true");
+        execute("set global persistent stats.enabled = false");
         execute("select settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rows()[0][0], is(true));
+        assertThat(response.rows()[0][0], is(false));
 
         execute("reset global stats.enabled");
         execute("select settings['stats']['enabled'] from sys.cluster");

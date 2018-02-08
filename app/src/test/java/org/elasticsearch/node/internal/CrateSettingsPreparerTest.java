@@ -56,7 +56,7 @@ public class CrateSettingsPreparerTest {
     @Test
     public void testValidateKnownSettings() {
         Settings.Builder builder = Settings.builder()
-            .put("stats.enabled", true)
+            .put("stats.enabled", false)
             .put("psql.port", 5432);
         CrateSettingsPreparer.validateKnownSettings(builder);
     }
@@ -102,12 +102,12 @@ public class CrateSettingsPreparerTest {
         settings.put("path.home", ".");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         settings.put("path.conf", config.toString());
-        settings.put("stats.enabled", "true");
+        settings.put("stats.enabled", "false");
         settings.put("cluster.name", "clusterNameOverridden");
         settings.put("path.logs", "/some/other/path");
         Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
         // Overriding value from crate.yml
-        assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(true));
+        assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(false));
         // Value kept from crate.yml
         assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
         // Overriding value from crate.yml
