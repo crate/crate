@@ -45,6 +45,9 @@ Breaking Changes
 Changes
 =======
 
+- Statistics for jobs and operations are enabled by default.  If you don't need
+  any statistics, please set ``stats.enabled`` to ``false``.
+
 - ``ALTER TABLE <name> OPEN`` will now wait for all shards to become active
   before returning to be consistent with the behaviour of other statements.
 

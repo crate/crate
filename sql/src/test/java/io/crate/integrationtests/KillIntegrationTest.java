@@ -63,11 +63,6 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    @Before
-    public void setSetup() {
-        execute("SET GLOBAL stats.enabled = true");
-    }
-
     @Test
     public void testKillInsertFromSubQuery() throws Exception {
         setup.setUpEmployees();
@@ -186,12 +181,6 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(killResponse.rowCount(), is(0L));
         SQLResponse logResponse = execute("select * from sys.jobs_log where error = ?", new Object[]{"KILLED"});
         assertThat(logResponse.rowCount(), is(0L));
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        super.tearDown();
-        execute("reset GLOBAL stats.enabled");
     }
 
 }

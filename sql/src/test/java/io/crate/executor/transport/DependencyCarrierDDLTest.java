@@ -174,14 +174,14 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
         // Update persistent only
         Map<String, List<Expression>> persistentSettings = new HashMap<String, List<Expression>>(){{
-            put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(true)));
+            put(persistentSetting, ImmutableList.<Expression>of(Literal.fromObject(false)));
         }};
 
         ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(persistentSettings);
         Bucket objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("true", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
+        assertEquals("false", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
             .persistentSettings().get(persistentSetting)
         );
 

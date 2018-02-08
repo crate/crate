@@ -87,25 +87,33 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDefaultSettings() {
         JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterSettings, scheduler, breakerService);
-        assertThat(stats.isEnabled(), is(false));
+        assertThat(stats.isEnabled(), is(true));
         assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
         assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
         assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault()));
         assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault()));
-
-        // even though jobsLog size and opertionsLog size are > 0 it must be a NoopQueue because the stats are disabled
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
     }
 
     @Test
-    public void testEnableStats() throws Exception {
+    public void testReEnableStats() {
+        clusterService.getClusterSettings().applySettings(Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
+            .build());
+
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
+
+        assertThat(stats.isEnabled(), is(false));
+        assertThat(stats.jobsLogSize, is(100));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.operationsLogSize, is(100));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
 
         clusterService.getClusterSettings().applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)

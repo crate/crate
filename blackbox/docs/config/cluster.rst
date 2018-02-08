@@ -38,7 +38,7 @@ Collecting Stats
 .. _stats.enabled:
 
 **stats.enabled**
-  | *Default:*    ``false``
+  | *Default:*    ``true``
   | *Runtime:*   ``yes``
 
   A boolean indicating whether or not to collect statistical information about
@@ -46,7 +46,7 @@ Collecting Stats
 
   .. NOTE::
 
-     Enabling the collection of statistical information incurs a performance
+     The collection of statistical information incurs a slight performance
      penalty, as details about every job and operation across the cluster will
      cause data to be inserted into the corresponding system tables.
 

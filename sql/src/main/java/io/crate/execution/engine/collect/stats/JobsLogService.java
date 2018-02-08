@@ -59,7 +59,7 @@ import java.util.concurrent.ScheduledFuture;
 public class JobsLogService extends AbstractLifecycleComponent implements Provider<JobsLogs> {
 
     public static final CrateSetting<Boolean> STATS_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
-        "stats.enabled", false, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.BOOLEAN);
+        "stats.enabled", true, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.BOOLEAN);
     public static final CrateSetting<Integer> STATS_JOBS_LOG_SIZE_SETTING = CrateSetting.of(Setting.intSetting(
         "stats.jobs_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.INTEGER);
     public static final CrateSetting<TimeValue> STATS_JOBS_LOG_EXPIRATION_SETTING = CrateSetting.of(Setting.timeSetting(

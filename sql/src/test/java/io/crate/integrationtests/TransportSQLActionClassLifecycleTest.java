@@ -547,6 +547,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void testSysOperationsLog() throws Exception {
+        execute("set global transient stats.enabled = false");
+
         execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
         SQLResponse resp = execute("select count(*) from sys.operations_log");
@@ -574,7 +576,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                 Matchers.hasItems("distributed merge", "localMerge")));
         }, 10L, TimeUnit.SECONDS);
 
-        execute("reset global stats.enabled, stats.operations_log_size");
+        execute("set global transient stats.enabled = false");
         waitNoPendingTasksOnAll();
         resp = execute("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
@@ -611,7 +613,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSelectFromJobsLogWithLimit() throws Exception {
         // this is an regression test to verify that the CollectionTerminatedException is handled correctly
-        execute("set global transient stats.enabled = true");
         execute("select * from sys.jobs");
         execute("select * from sys.jobs");
         execute("select * from sys.jobs");

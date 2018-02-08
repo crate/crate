@@ -36,16 +36,6 @@ import static org.hamcrest.Matchers.startsWith;
 
 public class SysOperationsTest extends SQLTransportIntegrationTest {
 
-    @Before
-    public void enableStats() throws Exception {
-        execute("set global stats.enabled = true");
-    }
-
-    @After
-    public void disableStats() {
-        execute("reset global stats.enabled");
-    }
-
     @Test
     public void testDistinctSysOperations() throws Exception {
         // this tests a distributing collect without shards but DOC level granularity

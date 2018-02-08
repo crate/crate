@@ -340,49 +340,38 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCloseConnectionWithUnfinishedResultSetDoesNotLeaveAnyPendingOperations() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW), properties);
-             Statement statement = conn.createStatement()) {
-            statement.execute("SET GLOBAL stats.enabled = TRUE");
-        }
-        try {
-            try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-                conn.setAutoCommit(false);
-                try (Statement statement = conn.createStatement()) {
-                    statement.setFetchSize(2);
-                    try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
-                        resultSet.next();
-                        resultSet.next();
-                    }
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.setAutoCommit(false);
+            try (Statement statement = conn.createStatement()) {
+                statement.setFetchSize(2);
+                try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
+                    resultSet.next();
+                    resultSet.next();
                 }
             }
+        }
 
-            // The client closes connections lazy, so the statement issued below may arrive on the server *before*
-            // the previous connection is closed, so it may see the previous operation -> use assertBusy
-            assertBusy(() -> {
-                try {
-                    try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-                        String q =
-                            "SELECT j.stmt || '-' || o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id" +
-                            " and j.stmt = ?";
-                        PreparedStatement statement = conn.prepareStatement(q);
-                        statement.setString(1, "select mountain from sys.summits");
-                        ResultSet rs = statement.executeQuery();
-                        List<String> operations = new ArrayList<>();
-                        while (rs.next()) {
-                            operations.add(rs.getString(1));
-                        }
-                        assertThat(operations, Matchers.empty());
+        // The client closes connections lazy, so the statement issued below may arrive on the server *before*
+        // the previous connection is closed, so it may see the previous operation -> use assertBusy
+        assertBusy(() -> {
+            try {
+                try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+                    String q =
+                        "SELECT j.stmt || '-' || o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id" +
+                        " and j.stmt = ?";
+                    PreparedStatement statement = conn.prepareStatement(q);
+                    statement.setString(1, "select mountain from sys.summits");
+                    ResultSet rs = statement.executeQuery();
+                    List<String> operations = new ArrayList<>();
+                    while (rs.next()) {
+                        operations.add(rs.getString(1));
                     }
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+                    assertThat(operations, Matchers.empty());
                 }
-            });
-        } finally {
-            try (Connection conn = DriverManager.getConnection(url(RW), properties);
-                 Statement statement = conn.createStatement()) {
-                statement.execute("RESET GLOBAL stats.enabled");
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
             }
-        }
+        });
     }
 
     @Test

@@ -29,11 +29,11 @@ Enable Collecting Stats
 
 .. highlight:: psql
 
-You can enable :ref:`conf_collecting_stats` via the CrateDB configuration file.
+By default, :ref:`conf_collecting_stats` is enabled.
+You can disable collecting stats via the CrateDB configuration file
+or by running this statement::
 
-Alternatively, run this query::
-
-  cr> SET GLOBAL "stats.enabled" = TRUE;
+  cr> SET GLOBAL "stats.enabled" = FALSE;
 
 Enable the JMX API
 ------------------

@@ -93,7 +93,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @After
-    public void resetSettings() throws Exception {
+    public void resetSettings() {
         execute("RESET GLOBAL stats.enabled");
     }
 
@@ -1979,8 +1979,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testFetchPartitionedTable() throws Exception {
-        execute("SET GLOBAL stats.enabled = true");
+    public void testFetchPartitionedTable() {
+        // clear jobs logs
+        execute("set global stats.enabled = false");
+        execute("set global stats.enabled = true");
+
         execute("create table fetch_partition_test (name string, p string) partitioned by (p) with (number_of_replicas=0)");
         ensureYellow();
         Object[][] bulkArgs = new Object[3][];
