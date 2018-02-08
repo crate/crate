@@ -14,6 +14,7 @@ dependencies {
     compile project(':shared')
 
     testCompile "junit:junit:${versions.junit}"
+    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 }
 
 task jarTest (type: Jar) {
