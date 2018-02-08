@@ -23,18 +23,21 @@
 package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * BatchIterator implementations for Joins
  * <ul>
- *   <li>{@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner)}</li>
- *   <li>{@link #leftJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
- *   <li>{@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
- *   <li>{@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
- *   <li>{@link #semiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
- *   <li>{@link #antiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #crossJoin(BatchIterator, BatchIterator, ElementCombiner)}</li>
+ * <li>{@link #leftJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #rightJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #semiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #antiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
+ * <li>{@link #hashInnerJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate, int)}</li>
  * </ul>
  */
 public final class JoinBatchIterators {
@@ -43,7 +46,7 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates a full-outer-join of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates a full-outer-join of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<C> fullOuterJoin(BatchIterator<L> left,
                                                            BatchIterator<R> right,
@@ -53,7 +56,7 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates a cross-join of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates a cross-join of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<C> crossJoin(BatchIterator<L> left,
                                                        BatchIterator<R> right,
@@ -62,7 +65,7 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates the left-outer-join result of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates the left-outer-join result of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<C> leftJoin(BatchIterator<L> left,
                                                       BatchIterator<R> right,
@@ -72,7 +75,7 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates the right-outer-join result of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates the right-outer-join result of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<C> rightJoin(BatchIterator<L> left,
                                                        BatchIterator<R> right,
@@ -82,7 +85,7 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates the semi-join result of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates the semi-join result of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<L> semiJoin(BatchIterator<L> left,
                                                       BatchIterator<R> right,
@@ -92,12 +95,32 @@ public final class JoinBatchIterators {
     }
 
     /**
-     * Create a BatchIterator that creates the anti-join result of {@code left} and {@code right}.
+     * Create a NestedLoop BatchIterator that creates the anti-join result of {@code left} and {@code right}.
      */
     public static <L, R, C> BatchIterator<L> antiJoin(BatchIterator<L> left,
                                                       BatchIterator<R> right,
                                                       ElementCombiner<L, R, C> combiner,
                                                       Predicate<C> joinCondition) {
         return new AntiJoinNLBatchIterator<>(left, right, combiner, joinCondition);
+    }
+
+    /**
+     * Create a HashJoin BatchIterator that creates the inner equi-join result of {@code left} and {@code right}.
+     */
+    public static <L extends Row, R extends Row, C> BatchIterator<C> hashInnerJoin(BatchIterator<L> left,
+                                                                                   BatchIterator<R> right,
+                                                                                   ElementCombiner<L, R, C> combiner,
+                                                                                   Predicate<C> joinCondition,
+                                                                                   Function<L, Integer> hashForLeft,
+                                                                                   Function<R, Integer> hashForRight,
+                                                                                   int leftSize) {
+        return new HashInnerJoinBatchIterator<>(
+            left,
+            right,
+            combiner,
+            joinCondition,
+            hashForLeft,
+            hashForRight,
+            leftSize);
     }
 }
