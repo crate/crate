@@ -23,8 +23,8 @@
 package io.crate.expression.reference.sys.node;
 
 import com.google.common.collect.Lists;
-import io.crate.monitor.ThreadPools;
 import io.crate.expression.reference.sys.ArrayTypeRowContextCollectorExpression;
+import io.crate.monitor.ThreadPools;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -54,17 +54,16 @@ public class NodeThreadPoolsExpression
 
     @Override
     protected Object valueForItem(final Map.Entry<BytesRef, ThreadPools.ThreadPoolExecutorContext> input) {
-        return new HashMap<String, Object>() {
-            {
-                put(POOL_NAME, BytesRefs.toBytesRef(input.getKey()));
-                put(ACTIVE, input.getValue().activeCount());
-                put(COMPLETED, input.getValue().completedTaskCount());
-                put(REJECTED, input.getValue().rejectedCount());
-                put(LARGEST, input.getValue().largestPoolSize());
-                put(QUEUE, input.getValue().queueSize());
-                put(THREADS, input.getValue().poolSize());
-            }
-        };
+        HashMap<String, Object> result = new HashMap<>();
+        result.put(POOL_NAME, BytesRefs.toBytesRef(input.getKey()));
+        ThreadPools.ThreadPoolExecutorContext tpContext = input.getValue();
+        result.put(ACTIVE, tpContext.activeCount());
+        result.put(COMPLETED, tpContext.completedTaskCount());
+        result.put(REJECTED, tpContext.rejectedCount());
+        result.put(LARGEST, tpContext.largestPoolSize());
+        result.put(QUEUE, tpContext.queueSize());
+        result.put(THREADS, tpContext.poolSize());
+        return result;
     }
 
     @Override
