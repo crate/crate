@@ -66,7 +66,7 @@ import java.util.function.Predicate;
  * This information is not available for the {@link HashInnerJoinBatchIterator}, so it's the responsibility of the
  * caller to provide those two functions that operate on the left and right rows accordingly and return the hash values.
  */
-class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
+public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
     private final Predicate<C> joinCondition;
     private final IntObjectHashMap<List<Object[]>> buffer;
