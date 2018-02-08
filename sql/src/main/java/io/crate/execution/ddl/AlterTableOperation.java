@@ -66,6 +66,7 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRespons
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -177,6 +178,7 @@ public class AlterTableOperation {
     private CompletableFuture<Long> openTable(String... indices) {
         FutureActionListener<OpenIndexResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         OpenIndexRequest request = new OpenIndexRequest(indices);
+        request.waitForActiveShards(ActiveShardCount.ALL);
         transportOpenIndexAction.execute(request, listener);
         return listener;
     }
