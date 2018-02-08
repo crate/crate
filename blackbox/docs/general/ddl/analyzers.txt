@@ -203,14 +203,16 @@ stopwords_path
     A path (either relative to config location, or absolute) to a stopwords
     file configuration.
 
-The following analyzers support setting custom ``stem_exclusion`` list:
-
-``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bengali``,
-``bulgarian``, ``catalan``, ``czech``, ``danish``, ``dutch``, ``english``,
-``finnish``, ``french``, ``galician``, ``german``, ``hindi``, ``hungarian``,
-``indonesian``, ``italian``, ``latvian``, ``lithuanian``, ``norwegian``,
-``portuguese``, ``romanian``, ``russian``, ``spanish``, ``swedish``,
-``turkish``.
+stem_exclusion
+    The stem_exclusion parameter allows you to specify an array of lowercase words
+    that should not be stemmed. The following analyzers support setting
+    stem_exclusion:
+    ``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bengali``,
+    ``bulgarian``, ``catalan``, ``czech``, ``danish``, ``dutch``, ``english``,
+    ``finnish``, ``french``, ``galician``, ``german``, ``hindi``, ``hungarian``,
+    ``indonesian``, ``italian``, ``latvian``, ``lithuanian``, ``norwegian``,
+    ``portuguese``, ``romanian``, ``russian``, ``spanish``, ``swedish``,
+    ``turkish``.
 
 .. _snowball-analyzer:
 
