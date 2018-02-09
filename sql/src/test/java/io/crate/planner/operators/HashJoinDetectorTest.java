@@ -79,6 +79,11 @@ public class HashJoinDetectorTest extends CrateUnitTest {
     }
 
     @Test
+    public void testNotPossibleIfNullJoinPair() {
+        assertThat(HashJoinDetector.isHashJoinPossible(null), is(false));
+    }
+
+    @Test
     public void testNotPossibleIfNotAnInnerJoin() {
         JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.CROSS, null);
         assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));

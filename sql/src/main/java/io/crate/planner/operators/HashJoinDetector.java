@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.planner.node.dql.join.JoinType;
+import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -50,8 +51,8 @@ public class HashJoinDetector {
 
     private static final Visitor VISITOR = new Visitor();
 
-    public static boolean isHashJoinPossible(JoinPair joinPair) {
-        if (joinPair.joinType() != JoinType.INNER) {
+    public static boolean isHashJoinPossible(@Nullable JoinPair joinPair) {
+        if (joinPair == null || joinPair.joinType() != JoinType.INNER) {
             return false;
         }
         Symbol joinCondition = joinPair.condition();
