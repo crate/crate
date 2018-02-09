@@ -23,20 +23,19 @@ package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.expression.operator.EqOperator;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -94,8 +93,9 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         StreamInput input = output.bytes().streamInput();
         NestedLoopPhase node2 = new NestedLoopPhase(input);
 
-        assertThat(node.nodeIds(), Is.is(node2.nodeIds()));
-        assertThat(node.jobId(), Is.is(node2.jobId()));
+        assertThat(node.nodeIds(), is(node2.nodeIds()));
+        assertThat(node.jobId(), is(node2.jobId()));
+        assertThat(node.joinCondition(), is(node2.joinCondition()));
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));
         assertThat(node.joinType(), is(node2.joinType()));
