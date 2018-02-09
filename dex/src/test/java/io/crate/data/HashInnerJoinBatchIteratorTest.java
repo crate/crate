@@ -60,6 +60,9 @@ public class HashInnerJoinBatchIteratorTest {
     private static Function<Row, Integer> getHashForRight() {
         return row -> Objects.hash(row.get(0));
     }
+    private static Function<Row, Integer> getHashWithCollisions() {
+        return row -> (Integer) row.get(0) % 3;
+    }
 
     public HashInnerJoinBatchIteratorTest(@SuppressWarnings("unused") @Name("dataSetName") String testName,
                                           @Name("dataForLeft") Supplier<BatchIterator<Row>> leftIterator,
@@ -115,6 +118,21 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
+            5
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testInnerHashJoinWithHashCollisions() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+            leftIterator.get(),
+            rightIterator.get(),
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashWithCollisions(),
+            getHashWithCollisions(),
             5
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
