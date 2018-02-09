@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Inherited
-public @interface UseHashJoin {
+public @interface UseHashJoins {
 
     // 0 -> disabled
     // 1 -> always enabled

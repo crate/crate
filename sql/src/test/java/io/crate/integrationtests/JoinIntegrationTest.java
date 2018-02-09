@@ -26,7 +26,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseHashJoin;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -804,7 +804,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     @UseJdbc(value = 1)
-    @UseHashJoin(value = 1)
+    @UseHashJoins(value = 1)
     public void testHashJoinNotImplemented() throws Exception {
         execute("create table t_left (id long primary key, temp float, ref_id int) clustered into 2 shards with (number_of_replicas = 0)");
         execute("create table t_right (id int primary key, name string) clustered into 2 shards with (number_of_replicas = 0)");
