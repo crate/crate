@@ -115,4 +115,8 @@ public final class CrateTableSettings {
     public static final IntSetting ALLOCATION_MAX_RETRIES = new IntSetting(
         TableParameterInfo.ALLOCATION_MAX_RETRIES,
         MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getDefault(Settings.EMPTY));
+
+    public static final IntSetting MAX_NGRAM_DIFF = new IntSetting(TableParameterInfo.MAX_NGRAM_DIFF, 1);
+    public static final IntSetting MAX_SHINGLE_DIFF = new IntSetting(TableParameterInfo.MAX_SHINGLE_DIFF, 3);
+
 }

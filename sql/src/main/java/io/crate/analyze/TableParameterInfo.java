@@ -63,6 +63,8 @@ public class TableParameterInfo {
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey();
     public static final String MAPPING_TOTAL_FIELDS_LIMIT = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey();
     public static final String ALLOCATION_MAX_RETRIES = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getKey();
+    public static final String MAX_NGRAM_DIFF = IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey();
+    public static final String MAX_SHINGLE_DIFF = IndexSettings.MAX_SHINGLE_DIFF_SETTING.getKey();
 
     public static final String WARMER_ENABLED = IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey();
     public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey();
@@ -89,6 +91,8 @@ public class TableParameterInfo {
             .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .add(ALLOCATION_MAX_RETRIES)
+            .add(MAX_NGRAM_DIFF)
+            .add(MAX_SHINGLE_DIFF)
             .build();
 
     private static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
