@@ -228,6 +228,22 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testAlterTableWithMaxNGramDiffSetting() {
+        AlterTableAnalyzedStatement analysisSet = e.analyze(
+            "ALTER TABLE users " +
+            "SET (max_ngram_diff = 42)");
+        assertThat(analysisSet.tableParameter().settings().get(TableParameterInfo.MAX_NGRAM_DIFF), is("42"));
+    }
+
+    @Test
+    public void testAlterTableWithMaxShingleDiffSetting() {
+        AlterTableAnalyzedStatement analysisSet = e.analyze(
+            "ALTER TABLE users " +
+            "SET (max_shingle_diff = 43)");
+        assertThat(analysisSet.tableParameter().settings().get(TableParameterInfo.MAX_SHINGLE_DIFF), is("43"));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(

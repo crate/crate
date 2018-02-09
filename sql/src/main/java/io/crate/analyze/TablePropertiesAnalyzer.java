@@ -69,6 +69,8 @@ public final class TablePropertiesAnalyzer {
             .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
             .put(stripIndexPrefix(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS), TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .put(stripIndexPrefix(TableParameterInfo.ALLOCATION_MAX_RETRIES), TableParameterInfo.ALLOCATION_MAX_RETRIES)
+            .put(stripIndexPrefix(TableParameterInfo.MAX_NGRAM_DIFF), TableParameterInfo.MAX_NGRAM_DIFF)
+            .put(stripIndexPrefix(TableParameterInfo.MAX_SHINGLE_DIFF), TableParameterInfo.MAX_SHINGLE_DIFF)
             .put("blobs_path", TableParameterInfo.BLOBS_PATH)
             .build();
 
@@ -104,6 +106,8 @@ public final class TablePropertiesAnalyzer {
             .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
             .put(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.SETTING_WAIT_FOR_ACTIVE_SHARDS))
             .put(TableParameterInfo.ALLOCATION_MAX_RETRIES, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.ALLOCATION_MAX_RETRIES))
+            .put(TableParameterInfo.MAX_NGRAM_DIFF, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.MAX_NGRAM_DIFF))
+            .put(TableParameterInfo.MAX_SHINGLE_DIFF, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.MAX_SHINGLE_DIFF))
             .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
             .build();
 

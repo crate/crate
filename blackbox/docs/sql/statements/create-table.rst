@@ -508,3 +508,15 @@ The column policy is defined like this::
   clauses.
 
 For futher details and examples see :ref:`column_policy` or :ref:`config`.
+
+``max_ngram_diff``
+..................
+
+Specifies the maximum difference between max_ngram and min_ngram when using
+the NGramTokenizer or the NGramTokenFilter. The default is 1.
+
+``max_shingle_diff``
+....................
+
+Specifies the maximum difference between min_shingle_size and max_shingle_size
+when using the ShingleTokenFilter. The default is 3.
