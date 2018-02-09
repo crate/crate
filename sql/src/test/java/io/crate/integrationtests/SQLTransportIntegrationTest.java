@@ -64,7 +64,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.TestExecutionConfig;
-import io.crate.testing.UseHashJoin;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -680,18 +680,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
-     * If the Test class or method is annotated with {@link UseHashJoin} then,
+     * If the Test class or method is annotated with {@link UseHashJoins} then,
      * based on the provided ratio, a random value of true or false is returned.
-     * For more details on the ratio see {@link UseHashJoin}
+     * For more details on the ratio see {@link UseHashJoins}
      * <p>
      * Method annotations have higher priority than class annotations.
      */
     private boolean isHashJoinEnabled() {
-        UseHashJoin useHashJoin = getTestAnnotation(UseHashJoin.class);
-        if (useHashJoin == null) {
+        UseHashJoins useHashJoins = getTestAnnotation(UseHashJoins.class);
+        if (useHashJoins == null) {
             return false;
         }
-        return isFeatureEnabled(useHashJoin.value());
+        return isFeatureEnabled(useHashJoins.value());
     }
 
     /**
