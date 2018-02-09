@@ -199,7 +199,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
     }
 
-    private boolean isHashJoinPossible(JoinPair joinPair, SessionContext sessionContext) {
+    private boolean isHashJoinPossible(@Nullable JoinPair joinPair, SessionContext sessionContext) {
         return sessionContext.isHashJoinEnabled() && HashJoinDetector.isHashJoinPossible(joinPair);
     }
 
