@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an Admin-UI issue that caused the translation strings to not be loaded
+  correctly.
+
 - Fixed an issue that only occurred in Enterprise Edition, when privileges
   are enabled. This issue would result in an exception about missing
   privileges being thrown, rather than the expected Unsupported Feature
