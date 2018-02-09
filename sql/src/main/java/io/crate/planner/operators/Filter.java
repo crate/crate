@@ -71,11 +71,8 @@ class Filter extends OneInputPlan {
         assert query.valueType().equals(DataTypes.BOOLEAN)
             : "query must have a boolean result type, got: " + query.valueType();
 
-        if (query instanceof Literal) {
-            Boolean value = (Boolean) ((Literal) query).value();
-            if (value != null && value) {
-                return source;
-            }
+        if (query.symbolType().isValueSymbol() && ((Literal) query).value() == Boolean.TRUE) {
+            return source;
         }
         return new Filter(source, new WhereClause(query));
     }

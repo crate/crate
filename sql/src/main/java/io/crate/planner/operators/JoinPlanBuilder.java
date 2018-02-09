@@ -30,7 +30,6 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -137,7 +136,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             rhsPlan,
             joinType,
             joinCondition,
-            query != null && !(query instanceof Literal),
+            !query.symbolType().isValueSymbol(),
             hasOuterJoins,
             lhs);
 
@@ -221,14 +220,13 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 nextPlan,
                 type,
                 condition,
-                query != null && !(query instanceof Literal),
+                !query.symbolType().isValueSymbol(),
                 hasOuterJoins,
                 leftRelation),
             query
         );
     }
 
-    @Nullable
     private static Symbol removeParts(Map<Set<QualifiedName>, Symbol> queryParts, QualifiedName lhsName, QualifiedName rhsName) {
         // query parts can affect a single relation without being pushed down in the outer-join case
         Symbol left = queryParts.remove(Collections.singleton(lhsName));
