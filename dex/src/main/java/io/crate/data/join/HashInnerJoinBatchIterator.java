@@ -58,6 +58,13 @@ import java.util.function.Predicate;
  *         }
  *     }
  * </pre>
+ * <p>
+ * The caller of the ctor needs to pass two functions {@link #hashBuilderForLeft} and {@link #hashBuilderForRight}.
+ * Those functions are called on each row of the left and right side respectively and they return the hash value of
+ * the relevant columns of the row.
+ * <p>
+ * This information is not available for the {@link HashInnerJoinBatchIterator}, so it's the responsibility of the
+ * caller to provide those two functions that operate on the left and right rows accordingly and return the hash values.
  */
 class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
@@ -67,22 +74,21 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
     private final ArrayRow leftRow = new ArrayRow();
-    // TODO: document the usage of those when we glue it with execution plan
-    private final Function<L, Integer> hashForLeft;
-    private final Function<R, Integer> hashForRight;
+    private final Function<L, Integer> hashBuilderForLeft;
+    private final Function<R, Integer> hashBuilderForRight;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
     HashInnerJoinBatchIterator(BatchIterator<L> left,
                                BatchIterator<R> right,
                                ElementCombiner<L, R, C> combiner,
                                Predicate<C> joinCondition,
-                               Function<L, Integer> hashForLeft,
-                               Function<R, Integer> hashForRight,
+                               Function<L, Integer> hashBuilderForLeft,
+                               Function<R, Integer> hashBuilderForRight,
                                int leftSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
-        this.hashForLeft = hashForLeft;
-        this.hashForRight = hashForRight;
+        this.hashBuilderForLeft = hashBuilderForLeft;
+        this.hashBuilderForRight = hashBuilderForRight;
         this.buffer = LinkedListMultimap.create(leftSize);
         this.activeIt = left;
     }
@@ -107,7 +113,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         if (activeIt == left) {
             while (left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
-                buffer.put(hashForLeft.apply(left.currentElement()), currentRow);
+                buffer.put(hashBuilderForLeft.apply(left.currentElement()), currentRow);
             }
             if (left.allLoaded()) {
                 activeIt = right;
@@ -122,7 +128,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         }
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
-            int rightHash = hashForRight.apply(right.currentElement());
+            int rightHash = hashBuilderForRight.apply(right.currentElement());
             Collection<Object[]> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
                 leftMatchingRowsIterator = leftMatchingRows.iterator();
