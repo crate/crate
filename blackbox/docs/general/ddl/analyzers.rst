@@ -372,10 +372,10 @@ N-Gram Tokenizer
 .. rubric:: Parameters
 
 min_gram
-    Minimum size in codepoints of a single n-gram. default 1.
+    Minimum length of characters in a gram. default: 1.
 
 max_gram
-    Maximum size in codepoints of a single n-gram. default 2.
+    Maximum length of characters in a gram. default: 2.
 
 token_chars
     Characters classes to keep in the tokens, will split on characters that
@@ -396,10 +396,10 @@ keeps n-grams which start at the beginning of a token.
 .. rubric:: Parameters
 
 min_gram
-    Minimum size in codepoints of a single n-gram. default: 1
+    Minimum length of characters in a gram. default: 1
 
 max_gram
-    Maximum size in codepoints of a single n-gram. default: 2
+    Maximum length of characters in a gram. default: 2
 
 token_chars
     Characters classes to keep in the tokens, will split on characters that
