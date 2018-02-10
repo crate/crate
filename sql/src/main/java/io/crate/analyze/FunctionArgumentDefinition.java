@@ -27,7 +27,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.types.DataType;
@@ -127,21 +126,34 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
     }
 
     public static FunctionArgumentDefinition fromXContent(XContentParser parser) throws IOException {
-        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"name".equals(parser.currentName())) {
-            throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected name field");
+        if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
+            throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
         }
-        String name = parseStringField(parser);
-        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"data_type".equals(parser.currentName())) {
-            throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected data_type field");
+        String name = null;
+        DataType type = null;
+        XContentParser.Token token;
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                if ("name".equals(parser.currentName())) {
+                    name = parseStringField(parser);
+                } else if ("data_type".equals(parser.currentName())) {
+                    if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
+                        throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
+                    }
+                    type = UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
+                } else {
+                    throw new IllegalArgumentException("Expected \"name\" or \"data_type\", but got " + parser.currentName());
+                }
+            } else {
+                throw new IllegalArgumentException("Expected a FIELD_NAME but got " + parser.currentToken());
+            }
         }
-        DataType type = UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
-        parser.nextToken();
         return new FunctionArgumentDefinition(name, type);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
         if (parser.nextToken() != XContentParser.Token.VALUE_STRING && parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-            throw new UnhandledServerException("failed to parse function");
+            throw new IllegalArgumentException("Failed to parse string field");
         }
         return parser.textOrNull();
     }
