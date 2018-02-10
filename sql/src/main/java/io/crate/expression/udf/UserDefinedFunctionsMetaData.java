@@ -129,11 +129,12 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
 
     public static UserDefinedFunctionsMetaData fromXContent(XContentParser parser) throws IOException {
         List<UserDefinedFunctionMetaData> functions = new ArrayList<>();
-        if (parser.nextToken() == XContentParser.Token.FIELD_NAME && Objects.equals(parser.currentName(), "functions")) {
-            if ((parser.nextToken()) == XContentParser.Token.START_ARRAY) {
-                XContentParser.Token token;
-                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
-                    functions.add(UserDefinedFunctionMetaData.fromXContent(parser));
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME && Objects.equals(parser.currentName(), "functions")) {
+                if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+                    while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                        functions.add(UserDefinedFunctionMetaData.fromXContent(parser));
+                    }
                 }
             }
         }

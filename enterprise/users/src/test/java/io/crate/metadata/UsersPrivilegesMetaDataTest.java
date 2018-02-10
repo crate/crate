@@ -72,8 +72,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
     private static final String USER_WITH_SCHEMA_AND_TABLE_PRIVS = "userWithTableAndSchemaPrivs";
     private UsersPrivilegesMetaData usersPrivilegesMetaData;
 
-    @Before
-    public void setUpPrivileges() {
+    static UsersPrivilegesMetaData createMetaData() {
         Map<String, Set<Privilege>> usersPrivileges = new HashMap<>();
         for (String userName : USERNAMES) {
             usersPrivileges.put(userName, new HashSet<>(PRIVILEGES));
@@ -82,7 +81,12 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Collections.singletonList(DENY_DQL)));
         usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL)));
 
-        usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
+        return new UsersPrivilegesMetaData(usersPrivileges);
+    }
+
+    @Before
+    public void setUpPrivileges() {
+        usersPrivilegesMetaData = createMetaData();
     }
 
     @Test

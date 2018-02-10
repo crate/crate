@@ -26,7 +26,6 @@ import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -45,12 +44,12 @@ import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
-    private String definition = "function(a, b) {return a - b;}";
-    private List<FunctionArgumentDefinition> args = ImmutableList.of(
+    private static String definition = "function(a, b) {return a - b;}";
+    private static List<FunctionArgumentDefinition> args = ImmutableList.of(
         FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
         FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
     );
-    private UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+    private static final UserDefinedFunctionMetaData FUNCTION_META_DATA = new UserDefinedFunctionMetaData(
         "my_schema",
         "my_add",
         args,
@@ -59,14 +58,16 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
        definition
     );
 
+    public static final UserDefinedFunctionsMetaData DUMMY_UDF_META_DATA = UserDefinedFunctionsMetaData.of(FUNCTION_META_DATA);
+
     @Test
     public void testUserDefinedFunctionStreaming() throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
-        udfMeta.writeTo(out);
+        FUNCTION_META_DATA.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
         UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
-        assertThat(udfMeta, is(udfMeta2));
+        assertThat(FUNCTION_META_DATA, is(udfMeta2));
 
         assertThat(udfMeta2.schema(), is("my_schema"));
         assertThat(udfMeta2.name(), is("my_add"));
@@ -87,14 +88,13 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
-        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.of(udfMeta);
-        functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        DUMMY_UDF_META_DATA.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
-        assertEquals(functions, functions2);
+        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.fromXContent(parser);
+        assertEquals(DUMMY_UDF_META_DATA, functions);
     }
 
     @Test
@@ -108,28 +108,29 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         builder.endObject();
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
-        parser.nextToken(); // start object
-        parser.nextToken(); // field name
+        parser.nextToken(); // enter START_OBJECT
         UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
         assertEquals(functions, functions2);
     }
 
     @Test
     public void testDataTypeStreaming() throws Exception {
-        ArrayType type = new ArrayType(new ArrayType(StringType.INSTANCE));
         XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        ArrayType type = new ArrayType(new ArrayType(DataTypes.STRING));
         UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
         XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
+        parser.nextToken();  // enter START_OBJECT
         ArrayType type2 = (ArrayType) UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
         assertTrue(type.equals(type2));
     }
 
     @Test
     public void testSameSignature() throws Exception {
-        assertThat(udfMeta.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
-        assertThat(udfMeta.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
-        assertThat(udfMeta.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
-        assertThat(udfMeta.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
+        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
+        assertThat(FUNCTION_META_DATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
+        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
+        assertThat(FUNCTION_META_DATA.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
     }
 
     @Test

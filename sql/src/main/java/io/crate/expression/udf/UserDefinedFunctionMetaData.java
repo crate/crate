@@ -164,6 +164,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     }
 
     static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
+        if (parser.currentToken() != XContentParser.Token.START_OBJECT) {
+            throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
+        }
         XContentParser.Token token;
         String schema = null;
         String name = null;
@@ -183,18 +186,21 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                     definition = parseStringField(parser);
                 } else if ("arguments".equals(parser.currentName())) {
                     if (parser.nextToken() != XContentParser.Token.START_ARRAY) {
-                        throw new UnhandledServerException("failed to parse function");
+                        throw new IllegalArgumentException("Expected a START_ARRAY but got " + parser.currentToken());
                     }
                     while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                         arguments.add(FunctionArgumentDefinition.fromXContent(parser));
                     }
                 } else if ("return_type".equals(parser.currentName())) {
+                    if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
+                        throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
+                    }
                     returnType = DataTypeXContent.fromXContent(parser);
                 } else {
-                    throw new UnhandledServerException("failed to parse function");
+                    throw new IllegalArgumentException("Got unexpected FIELD_NAME " + parser.currentToken());
                 }
             } else {
-                throw new UnhandledServerException("failed to parse function");
+                throw new IllegalArgumentException("Expected a FIELD_NAME but got " + parser.currentToken());
             }
         }
         return new UserDefinedFunctionMetaData(schema, name, arguments, returnType, language, definition);
@@ -240,27 +246,34 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         }
 
         public static DataType fromXContent(XContentParser parser) throws IOException {
-            XContentParser.Token token;
-            DataType type = null;
+            XContentParser.Token token = parser.currentToken();
+            if (token != XContentParser.Token.START_OBJECT) {
+                throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
+            }
+            int id = DataTypes.NOT_SUPPORTED.id();
+            DataType innerType = null;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                if (token == XContentParser.Token.VALUE_NUMBER) {
-                    int id = parser.intValue();
-                    if (id == ArrayType.ID || id == SetType.ID) {
-                        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"inner_type".equals(parser.currentName())) {
-                            throw new IllegalStateException("Can't parse DataType form XContent");
+                if (token == XContentParser.Token.FIELD_NAME) {
+                    String fieldName = parser.currentName();
+                    if ("id".equals(fieldName)) {
+                        if (parser.nextToken() != XContentParser.Token.VALUE_NUMBER) {
+                            throw new IllegalArgumentException("Expected a VALUE_NUMBER but got " + parser.currentToken());
                         }
-                        DataType innerType = fromXContent(parser);
-                        if (id == ArrayType.ID) {
-                            type = new ArrayType(innerType);
-                        } else {
-                            type = new SetType(innerType);
+                        id = parser.intValue();
+                    } else if ("inner_type".equals(fieldName)) {
+                        if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
+                            throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
                         }
-                    } else {
-                        type = DataTypes.fromId(id);
+                        innerType = fromXContent(parser);
                     }
                 }
             }
-            return type;
+            if (id == ArrayType.ID) {
+                return new ArrayType(innerType);
+            } else if (id == SetType.ID) {
+                return new SetType(innerType);
+            }
+            return DataTypes.fromId(id);
         }
     }
 
