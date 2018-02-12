@@ -83,6 +83,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.metadata.Schemas.DOC_SCHEMA_NAME;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -145,7 +146,9 @@ public class SQLTransportExecutor {
         Random random = RandomizedContext.current().getRandom();
 
         List<String> sessionList = new ArrayList<>();
-        sessionList.add("set search_path='" + defaultSchema + "'");
+        if (defaultSchema != null && !defaultSchema.equals(DOC_SCHEMA_NAME)) {
+            sessionList.add("set search_path='" + defaultSchema + "'");
+        }
 
         if (isSemiJoinsEnabled) {
             sessionList.add("set enable_semijoin=true");
@@ -162,7 +165,7 @@ public class SQLTransportExecutor {
                 sessionList);
         }
         try {
-            if (isSemiJoinsEnabled) {
+            if (!sessionList.isEmpty()) {
                 Session session = newSession();
                 sessionList.forEach((setting) -> exec(setting, session));
                 return execute(stmt, args, session).actionGet(timeout);

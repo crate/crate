@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -33,6 +34,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@UseRandomizedSession(schema = false) // Avoid set session stmt to interfere with tests
 @UseSemiJoins(0) // Avoid set session stmt to interfere with tests
 public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
