@@ -22,6 +22,8 @@
 
 package io.crate.data.join;
 
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -29,7 +31,10 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
+import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.testing.RowGenerator;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -38,6 +43,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +58,11 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @State(Scope.Benchmark)
 public class RowsBatchIteratorBenchmark {
 
+    private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
+
+    private final RamAccountingContext ramAccountingContext = new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER);
+    private final RowAccounting rowAccounting = new RowAccounting(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
+
     // use materialize to not have shared row instances
     // this is done in the startup, otherwise the allocation costs will make up the majority of the benchmark.
     private List<Row> rows = StreamSupport.stream(RowGenerator.range(0, 10_000_000).spliterator(), false)
@@ -64,7 +75,7 @@ public class RowsBatchIteratorBenchmark {
     private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
 
     @Benchmark
-    public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeBatchIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         while (it.moveNext()) {
             blackhole.consume(it.currentElement().get(0));
@@ -72,7 +83,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         BatchIterator<Row> itCloseAsserting = new CloseAssertingBatchIterator<>(it);
         while (itCloseAsserting.moveNext()) {
@@ -81,7 +92,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeSkippingBatchIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         BatchIterator<Row> skippingIt = new SkippingBatchIterator<>(it, 100);
         while (skippingIt.moveNext()) {
@@ -90,7 +101,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
+    public void measureConsumeNestedLoopJoin(Blackhole blackhole) {
         BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
@@ -102,7 +113,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
+    public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = JoinBatchIterators.leftJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
@@ -112,6 +123,42 @@ public class RowsBatchIteratorBenchmark {
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }
-        leftJoin.moveToStart();
+    }
+
+    @Benchmark
+    public void measureConsumeHashInnerJoin(Blackhole blackhole) {
+        BatchIterator<Row> leftJoin = JoinBatchIterators.hashInnerJoin(
+            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            1000
+        );
+        while (leftJoin.moveNext()) {
+            blackhole.consume(leftJoin.currentElement().get(0));
+        }
+    }
+
+    @Benchmark
+    public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
+        BatchIterator<Row> leftJoin = JoinBatchIterators.hashInnerJoin(
+            new RamAccountingBatchIterator<>(InMemoryBatchIterator.of(oneThousandRows, SENTINEL), rowAccounting),
+            InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> {
+                // For the 0-499 records no collisions
+                // For the 500-1000 records produce chains of length 5 but don't interfere with the 0-499
+                Integer value = (Integer) row.get(0);
+                return value < 500 ? value : (value % 100) + 500;
+            },
+            row -> (Integer) row.get(0) % 500,
+            1000
+        );
+        while (leftJoin.moveNext()) {
+            blackhole.consume(leftJoin.currentElement().get(0));
+        }
     }
 }
