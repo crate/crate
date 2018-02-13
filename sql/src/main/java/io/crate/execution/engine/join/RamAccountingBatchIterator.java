@@ -42,7 +42,7 @@ public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIt
     private final BatchIterator<T> delegateBatchIterator;
     private final RowAccounting rowAccounting;
 
-    RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccounting rowAccounting) {
         this.delegateBatchIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }
