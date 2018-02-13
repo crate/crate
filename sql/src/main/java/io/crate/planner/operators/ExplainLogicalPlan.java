@@ -24,11 +24,11 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlanPrinter;
@@ -174,8 +174,19 @@ public class ExplainLogicalPlan {
             return createMap(logicalPlan, createSubMap()
                 .put("left", explainMap(logicalPlan.lhs, context))
                 .put("right", explainMap(logicalPlan.rhs, context))
-                .put("joinType", logicalPlan.joinType)
-                .put("joinCondition", SymbolPrinter.INSTANCE.print(logicalPlan.joinCondition, SymbolPrinter.Style.FULL_QUALIFIED)));
+                .put("joinType", logicalPlan.joinType())
+                .put("joinCondition",
+                    SymbolPrinter.INSTANCE.print(logicalPlan.joinCondition(), SymbolPrinter.Style.FULL_QUALIFIED)));
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitHashJoin(HashJoin logicalPlan, Context context) {
+            return createMap(logicalPlan, createSubMap()
+                .put("left", explainMap(logicalPlan.lhs, context))
+                .put("right", explainMap(logicalPlan.rhs, context))
+                .put("joinType", logicalPlan.joinType())
+                .put("joinCondition",
+                    SymbolPrinter.INSTANCE.print(logicalPlan.joinCondition(), SymbolPrinter.Style.FULL_QUALIFIED)));
         }
 
         @Override

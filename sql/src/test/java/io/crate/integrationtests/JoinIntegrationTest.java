@@ -21,13 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -803,15 +801,19 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(value = 1)
-    @UseHashJoins(value = 1)
-    public void testHashJoinNotImplemented() throws Exception {
-        execute("create table t_left (id long primary key, temp float, ref_id int) clustered into 2 shards with (number_of_replicas = 0)");
-        execute("create table t_right (id int primary key, name string) clustered into 2 shards with (number_of_replicas = 0)");
+    @UseHashJoins(1)
+    public void testInnerEquiJoinUsingHashJoin() {
+        execute("create table t1 (a integer)");
+        execute("create table t2 (x integer)");
         ensureYellow();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("HashJoin not implemented");
-        execute("select temp, name from t_left inner join t_right on t_left.ref_id = t_right.id order by temp");
+        execute("insert into t1 (a) values (0), (1), (1), (2), (2), (4)");
+        execute("insert into t2 (x) values (1), (3), (3), (4), (4)");
+        execute("refresh table t1, t2");
+        execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1  order by a, x");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1| 1\n" +
+               "1| 1\n" +
+               "4| 4\n" +
+               "4| 4\n"));
     }
 }

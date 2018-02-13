@@ -31,9 +31,9 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -45,7 +45,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -53,7 +52,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -63,13 +61,13 @@ import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 class NestedLoopJoin extends TwoInputPlan {
 
-    final JoinType joinType;
-
     @Nullable
-    final Symbol joinCondition;
-    private final boolean isFiltered;
-    private final boolean hasOuterJoins;
+    private final Symbol joinCondition;
     private final AnalyzedRelation leftRelation;
+    private final JoinType joinType;
+    private final boolean hasOuterJoins;
+
+    private final boolean isFiltered;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -80,7 +78,6 @@ class NestedLoopJoin extends TwoInputPlan {
                    AnalyzedRelation leftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
-        this.joinCondition = joinCondition;
         this.isFiltered = isFiltered;
         if (joinType == JoinType.SEMI) {
             this.outputs.addAll(lhs.outputs());
@@ -88,8 +85,25 @@ class NestedLoopJoin extends TwoInputPlan {
             this.outputs.addAll(lhs.outputs());
             this.outputs.addAll(rhs.outputs());
         }
-        this.hasOuterJoins = hasOuterJoins;
         this.leftRelation = leftRelation;
+        this.joinCondition = joinCondition;
+        this.hasOuterJoins = hasOuterJoins;
+    }
+
+    public JoinType joinType() {
+        return joinType;
+    }
+
+    @Nullable
+    public Symbol joinCondition() {
+        return joinCondition;
+    }
+
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(lhs.dependencies().size() + rhs.dependencies().size());
+        deps.putAll(lhs.dependencies());
+        deps.putAll(rhs.dependencies());
+        return deps;
     }
 
     @Override
@@ -150,8 +164,8 @@ class NestedLoopJoin extends TwoInputPlan {
             nlExecutionNodes = leftResultDesc.nodeIds();
         } else {
             left.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-            if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
-                leftMerge = buildMergePhase(plannerContext, leftResultDesc, nlExecutionNodes);
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
+                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
             }
         }
         if (nlExecutionNodes.size() == 1
@@ -162,8 +176,8 @@ class NestedLoopJoin extends TwoInputPlan {
             // are on the same node
             right.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
         } else {
-            if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, isDistributed)) {
-                rightMerge = buildMergePhase(plannerContext, rightResultDesc, nlExecutionNodes);
+            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, isDistributed)) {
+                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
             }
             right.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
         }
@@ -185,17 +199,17 @@ class NestedLoopJoin extends TwoInputPlan {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             isDistributed ? "distributed-nested-loop" : "nested-loop",
-            // NestedLoopPhase ctor want's at least one projection
+            // JoinPhase ctor wants at least one projection
             Collections.singletonList(new EvalProjection(InputColumn.fromSymbols(outputs))),
             leftMerge,
             rightMerge,
+            lhs.outputs().size(),
+            rhs.outputs().size(),
             nlExecutionNodes,
             joinType,
-            joinInput,
-            lhs.outputs().size(),
-            rhs.outputs().size()
+            joinInput
         );
-        return new NestedLoop(
+        return new io.crate.planner.node.dql.join.Join(
             nlPhase,
             left,
             right,
@@ -207,52 +221,16 @@ class NestedLoopJoin extends TwoInputPlan {
         );
     }
 
-    private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
-                                              ResultDescription resultDescription,
-                                              boolean isDistributed) {
-        return isDistributed ||
-               resultDescription.hasRemainingLimitOrOffset() ||
-               !resultDescription.nodeIds().equals(executionNodes);
-    }
-
-    private static MergePhase buildMergePhase(PlannerContext plannerContext,
-                                              ResultDescription resultDescription,
-                                              Collection<String> nlExecutionNodes) {
-        List<Projection> projections = Collections.emptyList();
-        if (resultDescription.hasRemainingLimitOrOffset()) {
-            projections = Collections.singletonList(ProjectionBuilder.topNOrEvalIfNeeded(
-                resultDescription.limit(),
-                resultDescription.offset(),
-                resultDescription.numOutputs(),
-                resultDescription.streamOutputs()
-            ));
-        }
-
-        return new MergePhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            "nl-merge",
-            resultDescription.nodeIds().size(),
-            1,
-            nlExecutionNodes,
-            resultDescription.streamOutputs(),
-            projections,
-            DistributionInfo.DEFAULT_SAME_NODE,
-            resultDescription.orderBy()
-        );
-    }
-
     @Override
     protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new NestedLoopJoin(newLeftSource, newRightSource, joinType, joinCondition, isFiltered, hasOuterJoins, leftRelation);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>();
-        deps.putAll(lhs.dependencies());
-        deps.putAll(rhs.dependencies());
-        return deps;
+        return new NestedLoopJoin(
+            newLeftSource,
+            newRightSource,
+            joinType,
+            joinCondition,
+            isFiltered,
+            hasOuterJoins,
+            leftRelation);
     }
 
     @Override
@@ -263,11 +241,6 @@ class NestedLoopJoin extends TwoInputPlan {
             // We don't have any cardinality estimates, so just take the bigger table
             return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
         }
-    }
-
-    @Override
-    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitNestedLoopJoin(this, context);
     }
 
     @Override
@@ -302,5 +275,10 @@ class NestedLoopJoin extends TwoInputPlan {
             }
         }
         return super.tryOptimize(pushDown);
+    }
+
+    @Override
+    public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+        return visitor.visitNestedLoopJoin(this, context);
     }
 }

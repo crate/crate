@@ -47,6 +47,7 @@ public interface ExecutionPhase extends Writeable {
         MERGE(MergePhase::new),
         FETCH(FetchPhase::new),
         NESTED_LOOP(NestedLoopPhase::new),
+        HASH_JOIN(HashJoinPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
         PKLookup(PKLookupPhase::new);

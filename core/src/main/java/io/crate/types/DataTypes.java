@@ -159,6 +159,10 @@ public final class DataTypes {
         return type.id() == ArrayType.ID || type.id() == SetType.ID || type.id() == SingleColumnTableType.ID;
     }
 
+    public static List<DataType> listFromStream(StreamInput in) throws IOException {
+        return in.readList(DataTypes::fromStream);
+    }
+
     public static DataType fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
         try {
@@ -168,6 +172,13 @@ public final class DataTypes {
         } catch (NullPointerException e) {
             logger.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
+        }
+    }
+
+    public static void toStream(Collection<? extends DataType> types, StreamOutput out) throws IOException {
+        out.writeVInt(types.size());
+        for (DataType type : types) {
+            toStream(type, out);
         }
     }
 

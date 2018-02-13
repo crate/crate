@@ -24,6 +24,16 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.FilterProjection;
+import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
@@ -35,21 +45,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.FilterProjection;
-import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
@@ -673,11 +673,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @Ignore("Need to figure out a way to test this - the projection no longer matches the loop output")
     public void testJoinConditionFieldsAreNotPartOfNLOutputInGroupByOnJoin() throws Exception {
-        NestedLoop nl = e.plan("select count(*), u1.name " +
-                               "from users u1 " +
-                               "  inner join users u2 on u1.id = u2.id " +
-                               "group by u1.name");
-        List<Projection> projections = nl.nestedLoopPhase().projections();
+        Join nl = e.plan("select count(*), u1.name " +
+                         "from users u1 " +
+                         "  inner join users u2 on u1.id = u2.id " +
+                         "group by u1.name");
+        List<Projection> projections = nl.joinPhase().projections();
         assertThat(projections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(GroupProjection.class),
