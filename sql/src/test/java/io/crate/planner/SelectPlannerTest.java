@@ -25,12 +25,6 @@ package io.crate.planner;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -47,6 +41,12 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -58,8 +58,8 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -68,6 +68,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -106,9 +107,15 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
+            .addDocTable(T3.T2_INFO)
             .addDocTable(bindGeneratedColumnTable())
             .addTable("create table t_pk_part_generated (ts timestamp, p as date_trunc('day', ts), primary key (ts, p))")
             .build();
+    }
+
+    @After
+    public void resetPlannerOptimizationFlags() {
+        e.getSessionContext().setHashJoinEnabled(false);
     }
 
     private DocTableInfo bindGeneratedColumnTable() {
@@ -545,10 +552,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                   "  u1.name = 'Arthur'" +
                                   "  and u2.id = u1.id" +
                                   "  and u2.name = u1.name");
-        NestedLoop outerNl = (NestedLoop) qtf.subPlan();
-        NestedLoop innerNl = (NestedLoop) outerNl.left();
+        Join outerNl = (Join) qtf.subPlan();
+        Join innerNl = (Join) outerNl.left();
 
-        assertThat(((FilterProjection) innerNl.nestedLoopPhase().projections().get(1)).query(),
+        assertThat(((FilterProjection) innerNl.joinPhase().projections().get(1)).query(),
             isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
     }
 
@@ -558,8 +565,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                   "from users u1 left join users u2 on u1.id = u2.id " +
                                   "where u2.name = 'Arthur'" +
                                   "and u2.id > 1 ");
-        NestedLoop nl = (NestedLoop) qtf.subPlan();
-        assertThat(nl.nestedLoopPhase().joinType(), is(JoinType.INNER));
+        Join nl = (Join) qtf.subPlan();
+        assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
         Collect rightCM = (Collect) nl.right();
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(),
             isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
@@ -624,44 +631,44 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGlobalAggregationOn3TableJoinWithImplicitJoinConditions() {
         Merge plan = e.plan("select count(*) from users t1, users t2, users t3 " +
                             "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
-        NestedLoop outerNL = (NestedLoop)plan.subPlan();
-        assertThat(outerNL.nestedLoopPhase().projections().get(1), instanceOf(FilterProjection.class));
-        FilterProjection filterProjection = (FilterProjection) outerNL.nestedLoopPhase().projections().get(1);
+        assertThat(plan.subPlan(), instanceOf(Join.class));
+        Join outerNL = (Join)plan.subPlan();
+        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) outerNL.joinPhase().projections().get(1);
         assertThat(filterProjection.query(), isSQL("(INPUT(1) = INPUT(2))"));
-        assertThat(outerNL.nestedLoopPhase().outputTypes().size(), is(1));
-        assertThat(outerNL.nestedLoopPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
+        assertThat(outerNL.joinPhase().outputTypes().size(), is(1));
+        assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
-        NestedLoop innerNL = (NestedLoop) outerNL.left();
-        assertThat(innerNL.nestedLoopPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) innerNL.nestedLoopPhase().projections().get(1);
+        Join innerNL = (Join) outerNL.left();
+        assertThat(innerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) innerNL.joinPhase().projections().get(1);
         assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(1))"));
-        assertThat(innerNL.nestedLoopPhase().outputTypes().size(), is(2));
-        assertThat(innerNL.nestedLoopPhase().outputTypes().get(0), is(DataTypes.LONG));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(2));
+        assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
 
         plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
                             "where t1.id = t2.id and t2.id = t3.id");
-        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
-        outerNL = (NestedLoop)plan.subPlan();
-        assertThat(outerNL.nestedLoopPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) outerNL.nestedLoopPhase().projections().get(1);
+        assertThat(plan.subPlan(), instanceOf(Join.class));
+        outerNL = (Join)plan.subPlan();
+        assertThat(outerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) outerNL.joinPhase().projections().get(1);
         assertThat(filterProjection.query(), isSQL("(INPUT(2) = INPUT(3))"));
-        assertThat(outerNL.nestedLoopPhase().outputTypes().size(), is(1));
-        assertThat(outerNL.nestedLoopPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
+        assertThat(outerNL.joinPhase().outputTypes().size(), is(1));
+        assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
-        innerNL = (NestedLoop) outerNL.left();
-        assertThat(innerNL.nestedLoopPhase().projections().get(1), instanceOf(FilterProjection.class));
-        filterProjection = (FilterProjection) innerNL.nestedLoopPhase().projections().get(1);
+        innerNL = (Join) outerNL.left();
+        assertThat(innerNL.joinPhase().projections().get(1), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) innerNL.joinPhase().projections().get(1);
         assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(2))"));
-        assertThat(innerNL.nestedLoopPhase().outputTypes().size(), is(3));
-        assertThat(innerNL.nestedLoopPhase().outputTypes().get(0), is(DataTypes.LONG));
-        assertThat(innerNL.nestedLoopPhase().outputTypes().get(1), is(DataTypes.LONG));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(3));
+        assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
+        assertThat(innerNL.joinPhase().outputTypes().get(1), is(DataTypes.LONG));
     }
 
     @Test
     public void test2TableJoinWithNoMatch() throws Exception {
         QueryThenFetch qtf = e.plan("select * from users t1, users t2 WHERE 1=2");
-        NestedLoop nl = (NestedLoop) qtf.subPlan();
+        Join nl = (Join) qtf.subPlan();
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
         assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
@@ -671,16 +678,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test3TableJoinWithNoMatch() throws Exception {
         QueryThenFetch qtf = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
-        NestedLoop outer = (NestedLoop) qtf.subPlan();
+        Join outer = (Join) qtf.subPlan();
         assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
-        NestedLoop inner = (NestedLoop) outer.left();
+        Join inner = (Join) outer.left();
         assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
         assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testGlobalAggregateOn2TableJoinWithNoMatch() throws Exception {
-        NestedLoop nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
+        Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
         assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
@@ -689,8 +696,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
-        NestedLoop outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
-        NestedLoop inner = (NestedLoop) outer.left();
+        Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
+        Join inner = (Join) outer.left();
         assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
         assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
         assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
@@ -703,5 +710,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[1]\n" +
             "Get[doc.t_pk_part_generated | 1 | DocKeys{0, 0}"
         ));
+    }
+
+    @Test
+    public void testInnerJoinResultsInHashJoinIfHashJoinIsEnabled() {
+        e.getSessionContext().setHashJoinEnabled(true);
+        Join join = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
+        assertThat(join.joinPhase().type(), is(ExecutionPhase.Type.HASH_JOIN));
     }
 }

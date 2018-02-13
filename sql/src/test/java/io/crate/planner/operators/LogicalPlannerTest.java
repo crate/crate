@@ -365,9 +365,22 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 indentation += 4;
                 printPlan(nestedLoopJoin.lhs);
                 startLine("--- ");
-                sb.append(nestedLoopJoin.joinType);
+                sb.append(nestedLoopJoin.joinType());
                 sb.append(" ---\n");
                 printPlan(nestedLoopJoin.rhs);
+                indentation -= 4;
+                sb.append("]\n");
+                return sb.toString();
+            }
+            if (plan instanceof HashJoin) {
+                HashJoin hashJoin = (HashJoin) plan;
+                startLine("HashJoin[\n");
+                indentation += 4;
+                printPlan(hashJoin.lhs);
+                startLine("--- ");
+                sb.append(hashJoin.joinType());
+                sb.append(" ---\n");
+                printPlan(hashJoin.rhs);
                 indentation -= 4;
                 sb.append("]\n");
                 return sb.toString();

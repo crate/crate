@@ -170,4 +170,22 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "    Collect[doc.t1 | [a] | All]\n" +
                                                           "]\n"));
     }
+
+    @Test
+    public void testOrderByWithHashJoinNotPushedDown() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        LogicalPlan plan = LogicalPlannerTest.plan("select t1.a, t2.b " +
+                                                   "from t1 inner join t2 on t1.a = t2.b " +
+                                                   "order by t1.a",
+                                                   sqlExecutor, clusterService, tableStats);
+        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy['a' ASC]\n" +
+                                                          "HashJoin[\n" +
+                                                          "    Boundary[a]\n" +
+                                                          "    Collect[doc.t1 | [a] | All]\n" +
+                                                          "    --- INNER ---\n" +
+                                                          "    Boundary[b]\n" +
+                                                          "    Collect[doc.t2 | [b] | All]\n" +
+                                                          "]\n"));
+    }
 }

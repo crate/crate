@@ -150,7 +150,16 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, sessionContext)
             .build(tableStats, usedFromRight);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
-        LogicalPlan joinPlan = createJoinPlan(lhsPlan, rhsPlan, joinLhsRhs, joinType, joinCondition, lhs, query, hasOuterJoins);
+        LogicalPlan joinPlan = createJoinPlan(
+            lhsPlan,
+            rhsPlan,
+            joinLhsRhs,
+            joinType,
+            joinCondition,
+            lhs,
+            rhs,
+            query,
+            hasOuterJoins);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -181,12 +190,16 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                        JoinType joinType,
                                        Symbol joinCondition,
                                        QueriedRelation lhs,
+                                       QueriedRelation rhs,
                                        Symbol query,
                                        boolean hasOuterJoins) {
         if (isHashJoinPossible(joinLhsRhs, sessionContext)) {
             return new HashJoin(
                 lhsPlan,
-                rhsPlan);
+                rhsPlan,
+                joinCondition,
+                lhs,
+                rhs);
         } else {
             return new NestedLoopJoin(
                 lhsPlan,

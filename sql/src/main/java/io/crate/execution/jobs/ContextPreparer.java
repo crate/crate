@@ -35,7 +35,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
@@ -43,38 +42,41 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
-import io.crate.execution.engine.distribution.SingleBucketBuilder;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Routing;
-import io.crate.expression.InputFactory;
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.engine.collect.PKLookupOperation;
-import io.crate.execution.support.Paging;
-import io.crate.expression.RowFilter;
-import io.crate.execution.engine.collect.JobCollectContext;
-import io.crate.execution.engine.collect.MapSideDataCollectOperation;
-import io.crate.execution.engine.collect.sources.SystemCollectSource;
-import io.crate.execution.engine.collect.count.CountOperation;
-import io.crate.execution.engine.fetch.FetchContext;
-import io.crate.execution.engine.join.NestedLoopOperation;
-import io.crate.execution.engine.distribution.merge.PagingIterator;
-import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
-import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
-import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.planner.distribution.DistributionType;
-import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
 import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.planner.node.StreamerVisitor;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.CountPhase;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.NestedLoopPhase;
-import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.engine.collect.JobCollectContext;
+import io.crate.execution.engine.collect.MapSideDataCollectOperation;
+import io.crate.execution.engine.collect.PKLookupOperation;
+import io.crate.execution.engine.collect.count.CountOperation;
+import io.crate.execution.engine.collect.sources.SystemCollectSource;
+import io.crate.execution.engine.distribution.DistributingConsumerFactory;
+import io.crate.execution.engine.distribution.SingleBucketBuilder;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
+import io.crate.execution.engine.fetch.FetchContext;
+import io.crate.execution.engine.join.HashJoinOperation;
+import io.crate.execution.engine.join.NestedLoopOperation;
+import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
+import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
+import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.support.Paging;
+import io.crate.expression.InputFactory;
+import io.crate.expression.RowFilter;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Routing;
+import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.node.StreamerVisitor;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -85,8 +87,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -130,7 +132,7 @@ public class ContextPreparer extends AbstractComponent {
                            SystemCollectSource systemCollectSource,
                            BigArrays bigArrays) {
         super(settings);
-        nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
+        nlContextLogger = Loggers.getLogger(JoinContext.class, settings);
         pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
@@ -371,7 +373,8 @@ public class ContextPreparer extends AbstractComponent {
                 ExecutionPhase executionPhase = nodeOperation.executionPhase();
                 // explicit SAME_NODE distribution enforced by the planner
                 if (executionPhase instanceof UpstreamPhase &&
-                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() == DistributionType.SAME_NODE) {
+                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                    DistributionType.SAME_NODE) {
                     continue;
                 }
 
@@ -676,19 +679,71 @@ public class ContextPreparer extends AbstractComponent {
                 lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
             Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
-            NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
+            NestedLoopOperation joinOperation = new NestedLoopOperation(
                 phase.numLeftOutputs(),
                 phase.numRightOutputs(),
                 firstConsumer,
                 joinCondition,
-                phase.joinType()
-            );
+                phase.joinType());
+
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,
                 (byte) 0,
                 phase.leftMergePhase(),
-                nestedLoopOperation.leftConsumer(),
+                joinOperation.leftConsumer(),
+                ramAccountingContext);
+
+            if (left != null) {
+                context.registerSubContext(left);
+            }
+
+            PageDownstreamContext right = pageDownstreamContextForNestedLoop(
+                phase.phaseId(),
+                context,
+                (byte) 1,
+                phase.rightMergePhase(),
+                joinOperation.rightConsumer(),
+                ramAccountingContext
+            );
+            if (right != null) {
+                context.registerSubContext(right);
+            }
+            context.registerSubContext(new JoinContext(
+                nlContextLogger,
+                phase,
+                joinOperation,
+                left,
+                right
+            ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitHashJoinPhase(HashJoinPhase phase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            RowConsumer lastConsumer = context.getRowConsumer(phase, Paging.PAGE_SIZE);
+
+            RowConsumer firstConsumer = ProjectingRowConsumer.create(
+                lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
+            Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
+
+            HashJoinOperation joinOperation = new HashJoinOperation(
+                phase.numLeftOutputs(),
+                phase.numRightOutputs(),
+                firstConsumer,
+                joinCondition,
+                phase.leftJoinConditionInputs(),
+                phase.rightJoinConditionInputs(),
+                new RowAccounting(phase.leftOutputTypes(), ramAccountingContext),
+                inputFactory,
+                phase.leftNumRowsEstimate());
+            PageDownstreamContext left = pageDownstreamContextForNestedLoop(
+                phase.phaseId(),
+                context,
+                (byte) 0,
+                phase.leftMergePhase(),
+                joinOperation.leftConsumer(),
                 ramAccountingContext);
             if (left != null) {
                 context.registerSubContext(left);
@@ -698,16 +753,16 @@ public class ContextPreparer extends AbstractComponent {
                 context,
                 (byte) 1,
                 phase.rightMergePhase(),
-                nestedLoopOperation.rightConsumer(),
+                joinOperation.rightConsumer(),
                 ramAccountingContext
             );
             if (right != null) {
                 context.registerSubContext(right);
             }
-            context.registerSubContext(new NestedLoopContext(
+            context.registerSubContext(new JoinContext(
                 nlContextLogger,
                 phase,
-                nestedLoopOperation,
+                joinOperation,
                 left,
                 right
             ));

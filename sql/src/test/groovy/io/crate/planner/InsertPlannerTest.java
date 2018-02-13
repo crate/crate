@@ -23,25 +23,25 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
-import io.crate.planner.node.dml.LegacyUpsertById;
-import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.planner.node.dml.LegacyUpsertById;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -264,15 +264,15 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryJoin() throws Exception {
-        NestedLoop nestedLoop = e.plan(
+        Join join = e.plan(
             "insert into users (id, name) (select u1.id, u2.name from users u1 CROSS JOIN users u2)");
-        assertThat(nestedLoop.nestedLoopPhase().projections(), contains(
+        assertThat(join.joinPhase().projections(), contains(
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)
         ));
 
-        assertThat(nestedLoop.nestedLoopPhase().projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) nestedLoop.nestedLoopPhase().projections().get(1);
+        assertThat(join.joinPhase().projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) join.joinPhase().projections().get(1);
 
         assertThat(projection.columnReferences().size(), is(2));
         assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("id"));
