@@ -22,14 +22,14 @@
 package io.crate.execution.jobs;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.phases.JoinPhase;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
-public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
+class JoinContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
-    private final NestedLoopPhase nestedLoopPhase;
+    private final JoinPhase joinPhase;
 
     @Nullable
     private final PageBucketReceiver leftBucketReceiver;
@@ -37,14 +37,14 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     @Nullable
     private final PageBucketReceiver rightBucketReceiver;
 
-    public NestedLoopContext(Logger logger,
-                             NestedLoopPhase nestedLoopPhase,
-                             CompletionListenable completionListenable,
-                             @Nullable PageBucketReceiver leftBucketReceiver,
-                             @Nullable PageBucketReceiver rightBucketReceiver) {
-        super(nestedLoopPhase.phaseId(), logger);
+    JoinContext(Logger logger,
+                JoinPhase joinPhase,
+                CompletionListenable completionListenable,
+                @Nullable PageBucketReceiver leftBucketReceiver,
+                @Nullable PageBucketReceiver rightBucketReceiver) {
+        super(joinPhase.phaseId(), logger);
 
-        this.nestedLoopPhase = nestedLoopPhase;
+        this.joinPhase = joinPhase;
         this.leftBucketReceiver = leftBucketReceiver;
         this.rightBucketReceiver = rightBucketReceiver;
 
@@ -54,7 +54,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     public String name() {
-        return nestedLoopPhase.name();
+        return joinPhase.name();
     }
 
     @Override
@@ -78,7 +78,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     public String toString() {
-        return "NestedLoopContext{" +
+        return "JoinContext{" +
                "id=" + id() +
                ", leftCtx=" + leftBucketReceiver +
                ", rightCtx=" + rightBucketReceiver +

@@ -22,22 +22,22 @@
 
 package io.crate.execution.engine;
 
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 import io.crate.execution.dsl.phases.NodeOperationTree;
+import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.engine.distribution.DistributingConsumerFactory;
 import io.crate.execution.support.Paging;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.execution.dsl.phases.UpstreamPhase;
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.Join;
 
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
@@ -261,8 +261,8 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
     }
 
     @Override
-    public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
-        context.addPhase(plan.nestedLoopPhase());
+    public Void visitJoin(Join plan, NodeOperationTreeContext context) {
+        context.addPhase(plan.joinPhase());
 
         context.branch((byte) 0);
         process(plan.left(), context);

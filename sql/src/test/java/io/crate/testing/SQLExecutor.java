@@ -559,4 +559,8 @@ public class SQLExecutor {
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
     }
+
+    public SessionContext getSessionContext() {
+        return sessionContext;
+    }
 }

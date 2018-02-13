@@ -30,7 +30,7 @@ import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.Join;
 
 import java.util.function.Function;
 
@@ -71,10 +71,10 @@ public class ExecutionPlanSymbolMapper extends ExecutionPlanVisitor<Function<? s
     }
 
     @Override
-    public Void visitNestedLoop(NestedLoop plan, Function<? super Symbol, ? extends Symbol> mapper) {
+    public Void visitJoin(Join plan, Function<? super Symbol, ? extends Symbol> mapper) {
         process(plan.left(), mapper);
         process(plan.right(), mapper);
-        plan.nestedLoopPhase().replaceSymbols(mapper);
+        plan.joinPhase().replaceSymbols(mapper);
         return null;
     }
 

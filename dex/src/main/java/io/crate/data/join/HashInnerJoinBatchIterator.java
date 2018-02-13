@@ -68,6 +68,7 @@ import java.util.function.Predicate;
  */
 class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
+    private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
     private final Multimap<Integer, Object[]> buffer;
     /**
@@ -89,7 +90,11 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        this.buffer = LinkedListMultimap.create(leftSize);
+        if (leftSize <= 0) {
+            this.buffer = LinkedListMultimap.create(DEFAULT_BUFFER_SIZE);
+        } else {
+            this.buffer = LinkedListMultimap.create(leftSize);
+        }
         this.activeIt = left;
     }
 

@@ -29,6 +29,8 @@ import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
 import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.dsl.phases.HashJoinPhase;
+import io.crate.execution.dsl.phases.JoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -37,7 +39,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.Join;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -151,6 +153,15 @@ public class PlanPrinter {
 
         @Override
         public ImmutableMap.Builder<String, Object> visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
+            return getBuilderForJoinPhase(phase);
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitHashJoinPhase(HashJoinPhase phase, Void context) {
+            return getBuilderForJoinPhase(phase);
+        }
+
+        private ImmutableMap.Builder<String, Object> getBuilderForJoinPhase(JoinPhase phase) {
             ImmutableMap.Builder<String, Object> b = upstreamPhase(
                 phase,
                 createSubMap(phase).put("joinType", phase.joinType()));
@@ -197,11 +208,11 @@ public class PlanPrinter {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitNestedLoop(NestedLoop plan, Void context) {
+        public ImmutableMap.Builder<String, Object> visitJoin(Join plan, Void context) {
             return createMap(plan, createSubMap()
                 .put("left", process(plan.left(), context).build())
                 .put("right", process(plan.right(), context).build())
-                .put("nestedLoopPhase", phaseMap(plan.nestedLoopPhase())));
+                .put("joinPhase", phaseMap(plan.joinPhase())));
         }
 
         @Override

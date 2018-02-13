@@ -24,7 +24,7 @@ package io.crate.planner;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.Join;
 import org.elasticsearch.common.Nullable;
 
 public class ExecutionPlanVisitor<C, R> {
@@ -49,7 +49,7 @@ public class ExecutionPlanVisitor<C, R> {
         return visitPlan(countPlan, context);
     }
 
-    public R visitNestedLoop(NestedLoop plan, C context) {
+    public R visitJoin(Join plan, C context) {
         return visitPlan(plan, context);
     }
 
