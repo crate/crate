@@ -25,22 +25,32 @@ package io.crate.action.sql;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
 import io.crate.protocols.postgres.FormatCodes;
+import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
+import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -57,6 +67,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Stateful Session
@@ -121,6 +132,92 @@ public class Session {
         this.executor = executor;
         this.sessionContext = sessionContext;
         this.parameterTypeExtractor = new Session.ParameterTypeExtractor();
+    }
+
+    /**
+     * See {@link #quickExec(String, Function, ResultReceiver, Row)}
+     */
+    public void quickExec(String statement, ResultReceiver resultReceiver, Row params) {
+        quickExec(statement, SqlParser::createStatement, resultReceiver, params);
+    }
+
+    /**
+     * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
+     * Opposed to using parse/bind/execute/sync this method is thread-safe.
+     *
+     * This only works for statements that support unbound analyze
+     *
+     * @param parse A function to parse the statement; This can be used to cache the parsed statement.
+     *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
+     */
+    public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver resultReceiver, Row params) {
+        TransactionContext txnCtx = new TransactionContext(sessionContext);
+        Statement parsedStmt = parse.apply(statement);
+        AnalyzedStatement analyzedStatement = analyzer.unboundAnalyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
+        assert analyzedStatement.isUnboundPlanningSupported()
+            : "quickExec can only be used with statements supporting unbound planning";
+        RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        UUID jobId = UUID.randomUUID();
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.functions(),
+            txnCtx,
+            0,
+            0
+        );
+        Plan plan;
+        try {
+            plan = planner.plan(analyzedStatement, plannerContext);
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionContext.user());
+            throw t;
+        }
+        jobsLogs.logExecutionStart(jobId, statement, sessionContext.user());
+        resultReceiver.completionFuture().whenComplete(new JobsLogsUpdateListener(jobId, jobsLogs));
+
+        if (!analyzedStatement.isWriteOperation()) {
+            resultReceiver = new RetryOnFailureResultReceiver(
+                resultReceiver,
+                jobId,
+                (newJobId, retryResultReceiver) -> retryQuery(
+                    newJobId,
+                    analyzedStatement,
+                    routingProvider,
+                    new RowConsumerToResultReceiver(retryResultReceiver, 0),
+                    params,
+                    txnCtx
+                )
+            );
+        }
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0);
+        plan.execute(executor, plannerContext, consumer, params, Collections.emptyMap());
+    }
+
+    private void retryQuery(UUID jobId,
+                            AnalyzedStatement stmt,
+                            RoutingProvider routingProvider,
+                            RowConsumer consumer,
+                            Row params,
+                            TransactionContext txnCtx) {
+        PlannerContext plannerContext = new PlannerContext(
+            planner.currentClusterState(),
+            routingProvider,
+            jobId,
+            planner.functions(),
+            txnCtx,
+            0,
+            0
+        );
+        Plan plan = planner.plan(stmt, plannerContext);
+        plan.execute(
+            executor,
+            plannerContext,
+            consumer,
+            params,
+            Collections.emptyMap()
+        );
     }
 
     private Portal getOrCreatePortal(String portalName) {

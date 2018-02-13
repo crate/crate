@@ -28,9 +28,12 @@ import com.carrotsearch.hppc.ObjectLongMap;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.settings.CrateSetting;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,7 +48,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import java.util.Collections;
 import java.util.function.Consumer;
 
 @Singleton
@@ -55,15 +57,14 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
 
-    static final String TABLE_STATS = "table_stats";
-    static final int DEFAULT_SOFT_LIMIT = 10_000;
     static final String STMT =
         "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
+    private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final TableStatsResultReceiver resultReceiver;
-    private final SQLOperations.SQLDirectExecutor sqlDirectExecutor;
+    private final Session session;
 
     @VisibleForTesting
     ThreadPool.Cancellable refreshScheduledTask = null;
@@ -82,7 +83,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
         refreshScheduledTask = scheduleRefresh(refreshInterval);
-        sqlDirectExecutor = sqlOperations.createSystemExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
+        session = sqlOperations.newSystemSession();
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting(), this::setRefreshInterval);
@@ -104,7 +105,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         }
 
         try {
-            sqlDirectExecutor.execute(resultReceiver, Collections.emptyList());
+            session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }

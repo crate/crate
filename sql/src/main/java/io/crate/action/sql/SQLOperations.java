@@ -23,9 +23,10 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,8 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 
@@ -89,6 +88,13 @@ public class SQLOperations {
             sessionContext);
     }
 
+    public Session newSystemSession() {
+        User user = userManager.findUser("crate");
+        return createSession(new SessionContext(
+            SysSchemaInfo.NAME, user, userManager.getStatementValidator(user), userManager.getExceptionValidator(user))
+        );
+    }
+
     public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
         return createSession(new SessionContext(defaultSchema, user,
             userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
@@ -117,53 +123,5 @@ public class SQLOperations {
 
     public boolean isEnabled() {
         return !disabled;
-    }
-
-    /**
-     * Create an {@link SQLDirectExecutor} instance.
-     *
-     * If the user-management module is available it uses the "crate" superuser as session user.
-     * Otherwise it uses `NULL` instead.
-     *
-     * @param defaultSchema the defaultSchema to use
-     * @param preparedStmtName the name of the prepared statement
-     * @param sqlStmt the SQL statement
-     * @param defaultLimit the default limit to be applied
-     * @return an instance of {@link SQLDirectExecutor} class
-     */
-    public SQLDirectExecutor createSystemExecutor(String defaultSchema,
-                                                  String preparedStmtName,
-                                                  String sqlStmt,
-                                                  int defaultLimit) {
-        User crateUser = userManager.findUser("crate");
-        Session session = createSession(defaultSchema, crateUser, Option.NONE, defaultLimit);
-        session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
-        return new SQLDirectExecutor(session, preparedStmtName, sqlStmt);
-    }
-
-    /**
-     * Stateful class that uses a prepared statement
-     * and can execute it multiple times.
-     */
-    public static class SQLDirectExecutor {
-
-        private final Session session;
-        private final String preparedStmtName;
-
-        private SQLDirectExecutor(Session session, String preparedStmtName, String sqlStmt) {
-            this.session = session;
-            this.session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
-            this.preparedStmtName = preparedStmtName;
-        }
-
-        public void execute(ResultReceiver resultReceiver, List<Object> params) throws Throwable {
-            session.bind(preparedStmtName, preparedStmtName, params, null);
-            session.execute(preparedStmtName, 0, resultReceiver);
-            session.sync().whenComplete((o, throwable) -> session.close((byte) 'P', preparedStmtName));
-        }
-
-        public Session getSession() {
-            return session;
-        }
     }
 }

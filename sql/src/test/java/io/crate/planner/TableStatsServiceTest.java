@@ -23,8 +23,8 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongMap;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.data.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.plugin.SQLPlugin;
@@ -36,10 +36,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.Mockito;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,10 +47,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyObject;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -135,14 +133,9 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStatsQueriesCorrectly() throws Throwable {
-        final SQLOperations sqlOperations = mock(SQLOperations.class);
-        SQLOperations.SQLDirectExecutor sqlDirectExecutor = mock(SQLOperations.SQLDirectExecutor.class);
-        when(sqlOperations.createSystemExecutor(
-            eq("sys"),
-            eq(TableStatsService.TABLE_STATS),
-            eq(TableStatsService.STMT),
-            eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
-            .thenReturn(sqlDirectExecutor);
+        SQLOperations sqlOperations = mock(SQLOperations.class);
+        Session session = mock(Session.class);
+        when(sqlOperations.newSystemSession()).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
@@ -153,9 +146,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
         statsService.run();
 
-        verify(sqlDirectExecutor, times(1)).execute(
-            any(TableStatsService.TableStatsResultReceiver.class),
-            eq(Collections.emptyList()));
+        verify(session, times(1)).quickExec(eq(TableStatsService.STMT), any(), any(), any());
     }
 
     @Test
@@ -176,6 +167,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         statsService.run();
-        Mockito.verify(session, times(0)).sync();
+        verify(session, times(0)).sync();
     }
 }
