@@ -40,7 +40,7 @@ public class RetryOnFailureResultReceiverTest {
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
         RetryOnFailureResultReceiver retryOnFailureResultReceiver =
-            new RetryOnFailureResultReceiver(baseResultReceiver, UUID.randomUUID(), newJobId -> numRetries.incrementAndGet());
+            new RetryOnFailureResultReceiver(baseResultReceiver, UUID.randomUUID(), (newJobId, receiver) -> numRetries.incrementAndGet());
 
         retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
 

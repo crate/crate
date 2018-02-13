@@ -29,15 +29,15 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.symbol.Field;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -183,7 +183,7 @@ public class SimplePortal extends AbstractPortal {
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
-                resultReceiver, jobId, newJobId -> retryQuery(planner, newJobId));
+                resultReceiver, jobId, (newJobId, resultReceiver) -> retryQuery(planner, newJobId));
         }
 
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());

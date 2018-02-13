@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that could result in a ``Bulk operation not supported for
+  RootRelationBoundary`` error when querying ``sys.checks``
+
 - Fixed a bug in parsing the UDF meta data when read from state file during
   node start that could cause other custom meta data (such as users) to
   disappear from cluster state.

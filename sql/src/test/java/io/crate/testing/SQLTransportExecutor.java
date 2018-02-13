@@ -178,26 +178,6 @@ public class SQLTransportExecutor {
         return clientProvider.pgUrl();
     }
 
-    /**
-     * Executes the stmt on directly on the system using {@link SQLOperations.SQLDirectExecutor}
-     *
-     * @param stmt      the SQL stmt
-     * @param executor  an instance of {@link SQLOperations.SQLDirectExecutor}
-     * @return          an {@link ActionFuture} containing the SQL response
-     */
-    public static ActionFuture<SQLResponse> systemExecute(String stmt, SQLOperations.SQLDirectExecutor executor) {
-        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
-        executor.getSession().parse(UNNAMED, stmt, Collections.emptyList());
-        executor.getSession().bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-        List<Field> outputFields = executor.getSession().describe('P', UNNAMED).getFields();
-        try {
-            executor.execute(new ResultSetReceiver(actionFuture, executor.getSession().sessionContext(), outputFields), Collections.emptyList());
-        } catch (Throwable t) {
-            actionFuture.onFailure(SQLExceptions.createSQLActionException(t, executor.getSession().sessionContext()));
-        }
-        return actionFuture;
-    }
-
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         return execute(stmt, args, newSession());
     }

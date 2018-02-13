@@ -33,18 +33,18 @@ import org.elasticsearch.transport.ConnectTransportException;
 import javax.annotation.Nonnull;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
-class RetryOnFailureResultReceiver implements ResultReceiver {
+public class RetryOnFailureResultReceiver implements ResultReceiver {
 
     private static final Logger LOGGER = Loggers.getLogger(RetryOnFailureResultReceiver.class);
 
     private final ResultReceiver delegate;
     private final UUID jobId;
-    private final Consumer<UUID> retryAction;
+    private final BiConsumer<UUID, ResultReceiver> retryAction;
     private int attempt = 1;
 
-    RetryOnFailureResultReceiver(ResultReceiver delegate, UUID jobId, Consumer<UUID> retryAction) {
+    public RetryOnFailureResultReceiver(ResultReceiver delegate, UUID jobId, BiConsumer<UUID, ResultReceiver> retryAction) {
         this.delegate = delegate;
         this.jobId = jobId;
         this.retryAction = retryAction;
@@ -82,7 +82,7 @@ class RetryOnFailureResultReceiver implements ResultReceiver {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
         }
-        retryAction.accept(newJobId);
+        retryAction.accept(newJobId, this);
     }
 
     @Override

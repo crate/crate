@@ -33,6 +33,9 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
+import io.crate.auth.user.User;
+import io.crate.auth.user.User;
+import io.crate.auth.user.UserLookup;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
@@ -80,6 +83,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -319,8 +323,15 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        SQLOperations.SQLDirectExecutor directExecutor = sqlOperations.createSystemExecutor(schema, "system_query", stmt, 10_000);
-        response = SQLTransportExecutor.systemExecute(stmt, directExecutor).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        UserLookup userLookup;
+        try {
+            userLookup = internalCluster().getInstance(UserLookup.class, node);
+        } catch (ConfigurationException ignored) {
+            // If enterprise is not enabled there is no UserLookup instance bound in guice
+            userLookup = userName -> null;
+        }
+        Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"));
+        response = SQLTransportExecutor.execute(stmt, null, session).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
         return response;
     }
 

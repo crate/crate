@@ -24,8 +24,12 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
@@ -38,7 +42,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
@@ -54,14 +57,13 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
                                        Version.LATEST.major + ".%.%' " +
                                        "AND (NOT schema_name || '.' || table_name = ANY (?)) " +
                                        "order by 1";
-    private static final int LIMIT = 50_000;
-    private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";
+    private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final Logger logger;
     private final ClusterService clusterService;
     private final Provider<SQLOperations> sqlOperationsProvider;
-    private SQLOperations.SQLDirectExecutor sqlDirectExecutor;
     private volatile Collection<String> tablesNeedUpgrade;
+    private Session session;
 
     @Inject
     public TablesNeedUpgradeSysCheck(ClusterService clusterService,
@@ -88,7 +90,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
         Object[] sqlParam = tablesNeedRecreation.toArray(new String[]{});
         try {
-            directExecutor().execute(new SycCheckResultReceiver(result), Collections.singletonList(sqlParam));
+            session().quickExec(STMT, stmt -> PARSED_STMT, new SycCheckResultReceiver(result), new Row1(sqlParam));
         } catch (Throwable t) {
             result.completeExceptionally(t);
         }
@@ -101,12 +103,11 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         });
     }
 
-    private SQLOperations.SQLDirectExecutor directExecutor() {
-        if (sqlDirectExecutor == null) {
-            sqlDirectExecutor = sqlOperationsProvider.get().createSystemExecutor(
-                "sys", PREP_STMT_NAME, STMT, LIMIT);
+    private Session session() {
+        if (session == null) {
+            session = sqlOperationsProvider.get().newSystemSession();
         }
-        return sqlDirectExecutor;
+        return session;
     }
 
     @Override

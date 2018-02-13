@@ -24,9 +24,13 @@ package io.crate.integrationtests;
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.settings.Settings.builder;
 import static org.hamcrest.Matchers.equalTo;
@@ -98,5 +102,21 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into bar (id) values (?)", new Object[]{1});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
+    }
+
+    @Test
+    public void testSelectingConcurrentlyFromSysCheckPassesWithoutExceptions() {
+        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
+        internalCluster().ensureAtLeastNumDataNodes(2);
+
+        ArrayList<ActionFuture<SQLResponse>> responses = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            responses.add(sqlExecutor.execute("select * from sys.checks", null));
+        }
+        for (ActionFuture<SQLResponse> response : responses) {
+            response.actionGet(5, TimeUnit.SECONDS);
+        }
     }
 }

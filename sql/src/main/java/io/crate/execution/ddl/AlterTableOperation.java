@@ -114,9 +114,10 @@ public class AlterTableOperation {
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
-    private final SQLOperations sqlOperations;
     private final IndexScopedSettings indexScopedSettings;
     private final Logger logger;
+    private final SQLOperations sqlOperations;
+    private Session session;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
@@ -139,8 +140,8 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
-        this.sqlOperations = sqlOperations;
         this.indexScopedSettings = indexScopedSettings;
+        this.sqlOperations = sqlOperations;
         logger = Loggers.getLogger(getClass(), settings);
     }
 
@@ -151,13 +152,8 @@ public class AlterTableOperation {
             String stmt =
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
-            SQLOperations.SQLDirectExecutor sqlDirectExecutor = sqlOperations.createSystemExecutor(
-                null,
-                Session.UNNAMED,
-                stmt,
-                1);
             try {
-                sqlDirectExecutor.execute(new ResultSetReceiver(analysis, result), Collections.emptyList());
+                session().quickExec(stmt, new ResultSetReceiver(analysis, result), Row.EMPTY);
             } catch (Throwable t) {
                 result.completeExceptionally(t);
             }
@@ -165,6 +161,13 @@ public class AlterTableOperation {
             addColumnToTable(analysis, result);
         }
         return result;
+    }
+
+    private Session session() {
+        if (session == null) {
+            this.session = sqlOperations.newSystemSession();
+        }
+        return session;
     }
 
     public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
