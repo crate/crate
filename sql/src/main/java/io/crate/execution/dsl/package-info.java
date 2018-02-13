@@ -54,7 +54,7 @@
  *  </li>
  *  <li>
  *      Phases that describe how to receive and process data
- *      ({@link io.crate.execution.dsl.phases.MergePhase}, {@link io.crate.execution.dsl.phases.NestedLoopPhase})
+ *      ({@link io.crate.execution.dsl.phases.MergePhase}, {@link io.crate.execution.dsl.phases.JoinPhase})
  *  </li>
  *  <li>
  *      Phases that instruct the executor to create some kind of "context" which may be used by other phases.

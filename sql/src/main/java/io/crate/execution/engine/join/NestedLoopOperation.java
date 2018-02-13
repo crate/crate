@@ -31,7 +31,6 @@ import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterators;
 import io.crate.planner.node.dql.join.JoinType;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
@@ -64,6 +63,19 @@ public class NestedLoopOperation implements CompletionListenable {
                     nlResultConsumer.accept(null, failure);
                 }
             });
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
+    }
+
+    public RowConsumer leftConsumer() {
+        return JoinOperations.getBatchConsumer(leftBatchIterator, false);
+    }
+
+    public RowConsumer rightConsumer() {
+        return JoinOperations.getBatchConsumer(rightBatchIterator, true);
     }
 
     private static BatchIterator<Row> createNestedLoopIterator(BatchIterator<Row> left,
@@ -100,36 +112,4 @@ public class NestedLoopOperation implements CompletionListenable {
                 throw new AssertionError("Invalid joinType: " + joinType);
         }
     }
-
-    public RowConsumer leftConsumer() {
-        return getBatchConsumer(leftBatchIterator, false);
-    }
-
-    public RowConsumer rightConsumer() {
-        return getBatchConsumer(rightBatchIterator, true);
-    }
-
-    private RowConsumer getBatchConsumer(CompletableFuture<BatchIterator<Row>> future, boolean requiresRepeat) {
-        return new RowConsumer() {
-            @Override
-            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-                if (failure == null) {
-                    future.complete(iterator);
-                } else {
-                    future.completeExceptionally(failure);
-                }
-            }
-
-            @Override
-            public boolean requiresScroll() {
-                return requiresRepeat;
-            }
-        };
-    }
-
-    @Override
-    public CompletableFuture<?> completionFuture() {
-        return completionFuture;
-    }
-
 }

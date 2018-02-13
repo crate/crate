@@ -35,9 +35,10 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.join.NestedLoop;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,6 +46,8 @@ import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
@@ -76,7 +79,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
             .build(tableStats, Collections.emptySet());
-        NestedLoop nl = (NestedLoop) operator.build(
+        Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
@@ -89,10 +92,67 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
             .build(tableStats, Collections.emptySet());
-        nl = (NestedLoop) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        nl = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
         assertThat(
             ((Collect) nl.left()).collectPhase().distributionInfo().distributionType(),
             is(DistributionType.SAME_NODE)
         );
+    }
+
+    @Test
+    public void testHashJoinTableOrderInLogicalAndExecutionPlan() {
+        MultiSourceSelect mss = e.analyze("select users.name, locations.id " +
+                                          "from users " +
+                                          "join locations on users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 10);
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 100);
+        tableStats.updateTableStats(rowCountByTable);
+
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+        SessionContext sessionContext = SessionContext.create();
+        sessionContext.setHashJoinEnabled(true);
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+            .build(tableStats, Collections.emptySet());
+        assertThat(operator, instanceOf(HashJoin.class));
+        assertThat(((HashJoin) operator).leftRelation.toString(), is("QueriedTable{DocTableRelation{doc.users}}"));
+        assertThat(((HashJoin) operator).rightRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+
+        Join join = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
+        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG));
+    }
+
+    @Test
+    public void testHashJoinTablesSwitchRightSmallerThanLeft() {
+        MultiSourceSelect mss = e.analyze("select users.name, locations.id " +
+                                          "from users " +
+                                          "join locations on users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 100);
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
+        tableStats.updateTableStats(rowCountByTable);
+
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
+        SessionContext sessionContext = SessionContext.create();
+        sessionContext.setHashJoinEnabled(true);
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
+            .build(tableStats, Collections.emptySet());
+        assertThat(operator, instanceOf(HashJoin.class));
+        assertThat(((HashJoin) operator).leftRelation.toString(), is("QueriedTable{DocTableRelation{doc.users}}"));
+        assertThat(((HashJoin) operator).rightRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+
+        Join join = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
+        // Plans must be switched (left<->right)
+        assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG));
+        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
     }
 }

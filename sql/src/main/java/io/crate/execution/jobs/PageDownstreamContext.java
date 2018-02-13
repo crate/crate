@@ -351,7 +351,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     /**
      * The default behavior is to receive all upstream buckets,
      * regardless of the input id. For a {@link DownstreamExecutionSubContext}
-     * which uses the inputId, see {@link NestedLoopContext}.
+     * which uses the inputId, see {@link JoinContext}.
      */
     @Nullable
     @Override
