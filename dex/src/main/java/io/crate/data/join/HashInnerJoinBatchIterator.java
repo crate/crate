@@ -68,6 +68,7 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
+    private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
@@ -90,7 +91,11 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        this.buffer = new IntObjectHashMap<>(leftSize);
+        if (leftSize <= 0) {
+            this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
+        } else {
+            this.buffer = new IntObjectHashMap<>(leftSize);
+        }
         this.activeIt = left;
     }
 

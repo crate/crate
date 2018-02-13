@@ -22,13 +22,7 @@
 
 package io.crate.planner;
 
-import io.crate.expression.symbol.Function;
-import io.crate.metadata.RowGranularity;
-import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -37,6 +31,12 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.Function;
+import io.crate.metadata.RowGranularity;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -151,10 +151,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedSimpleSelectWithJoin() throws Exception {
-        NestedLoop nl= e.plan("select t1x from (" +
-                                    "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
-                                    ") t order by t1x desc limit 3");
-        List<Projection> projections = nl.nestedLoopPhase().projections();
+        Join nl= e.plan("select t1x from (" +
+                        "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
+                        ") t order by t1x desc limit 3");
+        List<Projection> projections = nl.joinPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
             isTopN(10, 0),
@@ -184,15 +184,15 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("ConstantConditions")
     public void testJoinOnSubSelectsWithLimitAndOffset() throws Exception {
-        NestedLoop nl = e.plan("select * from " +
-                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
-                               "join" +
-                               " (select i from t2 order by b limit 10 offset 5) t2 " +
-                               "on t1.i = t2.i");
-        assertThat(nl.nestedLoopPhase().projections().size(), is(1));
-        assertThat(nl.nestedLoopPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
+        Join nl = e.plan("select * from " +
+                         " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                         "join" +
+                         " (select i from t2 order by b limit 10 offset 5) t2 " +
+                         "on t1.i = t2.i");
+        assertThat(nl.joinPhase().projections().size(), is(1));
+        assertThat(nl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
+        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
 
         Collect left = (Collect) nl.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
@@ -213,14 +213,14 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("ConstantConditions")
     public void testJoinWithAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
-        NestedLoop nl = e.plan("select t1.a, count(*) from " +
-                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
-                               "join" +
-                               " (select i from t2 order by i desc limit 10 offset 5) t2 " +
-                               "on t1.i = t2.i " +
-                               "group by t1.a");
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
+        Join nl = e.plan("select t1.a, count(*) from " +
+                         " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                         "join" +
+                         " (select i from t2 order by i desc limit 10 offset 5) t2 " +
+                         "on t1.i = t2.i " +
+                         "group by t1.a");
+        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
+        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
 
         Collect left = (Collect) nl.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
@@ -239,7 +239,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
 
 
-        List<Projection> nlProjections = nl.nestedLoopPhase().projections();
+        List<Projection> nlProjections = nl.joinPhase().projections();
         assertThat(nlProjections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(GroupProjection.class)
@@ -249,14 +249,14 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("ConstantConditions")
     public void testJoinWithGlobalAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
-        NestedLoop nl = e.plan("select count(*) from " +
-                               " (select i, a from t1 order by a limit 5 offset 2) t1 " +
-                               "join" +
-                               " (select i from t2 order by i desc limit 10 offset 5) t2 " +
-                               "on t1.i = t2.i");
+        Join nl = e.plan("select count(*) from " +
+                         " (select i, a from t1 order by a limit 5 offset 2) t1 " +
+                         "join" +
+                         " (select i from t2 order by i desc limit 10 offset 5) t2 " +
+                         "on t1.i = t2.i");
 
-        assertThat(nl.nestedLoopPhase().leftMergePhase(), nullValue());
-        assertThat(nl.nestedLoopPhase().rightMergePhase(), nullValue());
+        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
+        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
 
         Collect left = (Collect) nl.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
@@ -276,7 +276,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
 
 
-        List<Projection> nlProjections = nl.nestedLoopPhase().projections();
+        List<Projection> nlProjections = nl.joinPhase().projections();
         assertThat(nlProjections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class)
@@ -285,13 +285,13 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testJoinWithAggregationOnSubSelectsWithAggregations() throws Exception {
-        NestedLoop nl = e.plan("select t1.a, count(*) from " +
-                               " (select a, count(*) as cnt from t1 group by a) t1 " +
-                               "join" +
-                               " (select distinct i from t2) t2 " +
-                               "on t1.cnt = t2.i::long " +
-                               "group by t1.a");
-        assertThat(nl.nestedLoopPhase().projections(), contains(
+        Join nl = e.plan("select t1.a, count(*) from " +
+                         " (select a, count(*) as cnt from t1 group by a) t1 " +
+                         "join" +
+                         " (select distinct i from t2) t2 " +
+                         "on t1.cnt = t2.i::long " +
+                         "group by t1.a");
+        assertThat(nl.joinPhase().projections(), contains(
             instanceOf(EvalProjection.class),
             instanceOf(GroupProjection.class)
         ));

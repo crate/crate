@@ -64,12 +64,12 @@ import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
-import io.crate.testing.TestExecutionConfig;
-import io.crate.testing.UseHashJoins;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.TestExecutionConfig;
 import io.crate.testing.TestingRowConsumer;
+import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSession;
 import io.crate.testing.UseSemiJoins;
@@ -135,6 +135,7 @@ import static org.hamcrest.Matchers.nullValue;
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
 @UseSemiJoins
+@UseHashJoins
 @UseRandomizedSession
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 

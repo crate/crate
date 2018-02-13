@@ -23,13 +23,13 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -77,9 +77,9 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     @Test
     @Ignore("TODO: figure out if early output stripping is necessary")
     public void testJoinConditionFieldsAreNotPartOfNLOutputOnAggOnJoin() throws Exception {
-        NestedLoop nl = e.plan("select sum(u1.ints) from users u1 " +
-                               "    inner join users u2 on u1.id = u2.id ");
-        List<Projection> projections = nl.nestedLoopPhase().projections();
+        Join nl = e.plan("select sum(u1.ints) from users u1 " +
+                         "    inner join users u2 on u1.id = u2.id ");
+        List<Projection> projections = nl.joinPhase().projections();
         assertThat(projections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class)

@@ -21,23 +21,22 @@
 
 package io.crate.planner.node.dql.join;
 
-import io.crate.execution.dsl.phases.NestedLoopPhase;
+import io.crate.execution.dsl.phases.JoinPhase;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
- * Plan that will be executed with the awesome nested loop algorithm
- * performing CROSS JOINs
+ * Plan that will execute a join.
+ * The join can be executed either with NestedLoop or HashJoin algorithms
  * <p>
  * This Plan makes a lot of assumptions:
  * <p>
@@ -45,24 +44,21 @@ import java.util.UUID;
  * <li> limit and offset are already pushed down to left and right plan nodes
  * <li> where clause is already splitted to left and right plan nodes
  * <li> order by symbols are already splitted, too
- * <li> if the first order by symbol in the whole statement is from the left node,
- * set <code>leftOuterLoop</code> to true, otherwise to false
  * <p>
  * </ul>
  * <p>
  * Properties:
  * <p>
  * <ul>
- * <li> the resulting outputs from the join operations are the same, no matter if
- * <code>leftOuterLoop</code> is true or not - so the projections added,
- * can assume the same order of symbols, first symbols from left, then from right.
+ * <li> the resulting outputs from the join operations are the same, so the projections
+ * added can assume the same order of symbols, first symbols from left, then from right.
  * If sth. else is selected a projection has to reorder those.
  */
-public class NestedLoop implements ExecutionPlan, ResultDescription {
+public class Join implements ExecutionPlan, ResultDescription {
 
     private final ExecutionPlan left;
     private final ExecutionPlan right;
-    private final NestedLoopPhase nestedLoopPhase;
+    private final JoinPhase joinPhase;
 
     private int limit;
     private int offset;
@@ -71,46 +67,18 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
     private final int maxRowsPerNode;
     @Nullable
     private PositionalOrderBy orderBy;
-    private final UUID jobId;
 
-    /**
-     * create a new NestedLoop
-     * <p>
-     * side in the outer loop, the right in the inner.
-     * Resulting in rows like:
-     * <p>
-     * a | 1
-     * a | 2
-     * a | 3
-     * b | 1
-     * b | 2
-     * b | 3
-     * <p>
-     * This is the case if the left relation is referenced
-     * by the first order by symbol references. E.g.
-     * for <code>ORDER BY left.a, right.b</code>
-     * If false, the nested loop is executed the other way around.
-     * With the following results:
-     * <p>
-     * a | 1
-     * b | 1
-     * a | 2
-     * b | 2
-     * a | 3
-     * b | 3
-     */
-    public NestedLoop(NestedLoopPhase nestedLoopPhase,
-                      ExecutionPlan left,
-                      ExecutionPlan right,
-                      int limit,
-                      int offset,
-                      int maxRowsPerNode,
-                      int numOutputs,
-                      @Nullable PositionalOrderBy orderBy) {
-        this.jobId = nestedLoopPhase.jobId();
+    public Join(JoinPhase joinPhase,
+                ExecutionPlan left,
+                ExecutionPlan right,
+                int limit,
+                int offset,
+                int maxRowsPerNode,
+                int numOutputs,
+                @Nullable PositionalOrderBy orderBy) {
         this.left = left;
         this.right = right;
-        this.nestedLoopPhase = nestedLoopPhase;
+        this.joinPhase = joinPhase;
         this.limit = limit;
         this.offset = offset;
         this.maxRowsPerNode = maxRowsPerNode;
@@ -126,8 +94,8 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
         return right;
     }
 
-    public NestedLoopPhase nestedLoopPhase() {
-        return nestedLoopPhase;
+    public JoinPhase joinPhase() {
+        return joinPhase;
     }
 
     @Override
@@ -137,17 +105,17 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        nestedLoopPhase.distributionInfo(distributionInfo);
+        joinPhase.distributionInfo(distributionInfo);
     }
 
     @Override
     public <C, R> R accept(ExecutionPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitNestedLoop(this, context);
+        return visitor.visitJoin(this, context);
     }
 
     @Override
     public void addProjection(Projection projection) {
-        nestedLoopPhase.addProjection(projection);
+        joinPhase.addProjection(projection);
         numOutputs = projection.outputs().size();
     }
 
@@ -156,7 +124,7 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
                               int unfinishedLimit,
                               int unfinishedOffset,
                               @Nullable PositionalOrderBy unfinishedOrderBy) {
-        nestedLoopPhase.addProjection(projection);
+        joinPhase.addProjection(projection);
         limit = unfinishedLimit;
         offset = unfinishedOffset;
         orderBy = unfinishedOrderBy;
@@ -165,7 +133,7 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
 
     @Override
     public Collection<String> nodeIds() {
-        return nestedLoopPhase.nodeIds();
+        return joinPhase.nodeIds();
     }
 
     @Nullable
@@ -196,6 +164,6 @@ public class NestedLoop implements ExecutionPlan, ResultDescription {
 
     @Override
     public List<DataType> streamOutputs() {
-        return nestedLoopPhase.outputTypes();
+        return joinPhase.outputTypes();
     }
 }
