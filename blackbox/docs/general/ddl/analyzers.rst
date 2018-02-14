@@ -346,6 +346,12 @@ Witespace Tokenizer
 
 The ``whitespace`` tokenizer splits text at whitespace.
 
+.. rubric:: Parameters
+
+max_token_length
+    The maximum token length. If a token is seen that exceeds this length then
+    it is discarded. Defaults to ``255``.
+
 .. _uaxemailurl-tokenizer:
 
 UAX URL Email Tokenizer
