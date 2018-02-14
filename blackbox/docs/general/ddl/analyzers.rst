@@ -89,8 +89,8 @@ stopwords
     Defaults to the english stop words.
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is discarded. Defaults to ``255``.
+    The maximum token length. If a token exceeds this length it is split in
+    max_token_length intervals. Defaults to ``255``.
 
 .. _default-analyzer:
 
@@ -285,8 +285,8 @@ Standard Annex #29.
 .. rubric:: Parameters
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is discarded. Defaults to ``255``.
+    The maximum token length. If a token exceeds this length it is split in
+    max_token_length intervals. Defaults to ``255``.
 
 .. _classic-tokenizer:
 
@@ -304,8 +304,8 @@ languages other than English.
 .. rubric:: Parameters
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is split at max_token_length intervals. Defaults to ``255``.
+    The maximum token length. If a token exceeds this length it is split in
+    max_token_length intervals. Defaults to ``255``.
 
 .. _thai-tokenizer:
 
@@ -349,8 +349,8 @@ The ``whitespace`` tokenizer splits text at whitespace.
 .. rubric:: Parameters
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is discarded. Defaults to ``255``.
+    The maximum token length. If a token exceeds this length it is split in
+    max_token_length intervals. Defaults to ``255``.
 
 .. _uaxemailurl-tokenizer:
 
@@ -365,8 +365,8 @@ tokenizes emails and urls as single tokens.
 .. rubric:: Parameters
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then
-    it is discarded. Defaults to ``255``.
+    The maximum token length. If a token exceeds this length it is split in
+    max_token_length intervals. Defaults to ``255``.
 
 .. _ngram-tokenizer:
 
