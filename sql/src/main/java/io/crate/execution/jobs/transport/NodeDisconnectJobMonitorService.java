@@ -22,9 +22,9 @@
 
 package io.crate.execution.jobs.transport;
 
+import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
-import io.crate.execution.jobs.JobContextService;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -33,13 +33,11 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,22 +47,18 @@ import java.util.stream.Collectors;
 @Singleton
 public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
-    private final ThreadPool threadPool;
     private final JobContextService jobContextService;
     private final TransportService transportService;
 
-    private static final TimeValue DELAY = TimeValue.timeValueMinutes(1);
     private final TransportKillJobsNodeAction killJobsNodeAction;
     private static final Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,
-                                           ThreadPool threadPool,
                                            JobContextService jobContextService,
                                            TransportService transportService,
                                            TransportKillJobsNodeAction killJobsNodeAction) {
         super(settings);
-        this.threadPool = threadPool;
         this.jobContextService = jobContextService;
         this.transportService = transportService;
         this.killJobsNodeAction = killJobsNodeAction;
@@ -91,27 +85,78 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
 
     @Override
     public void onNodeDisconnected(final DiscoveryNode node) {
-        final Collection<UUID> contexts = jobContextService.getJobIdsByCoordinatorNode(node.getId()).collect(Collectors.toList());
-        if (contexts.isEmpty()) {
-            // Disconnected node is not a handler node --> kill jobs on all participated nodes
-            contexts.addAll(jobContextService.getJobIdsByParticipatingNodes(node.getId()).collect(Collectors.toList()));
-            KillJobsRequest killJobsRequest = new KillJobsRequest(contexts);
-            if (!contexts.isEmpty()) {
-                killJobsNodeAction.broadcast(killJobsRequest, new ActionListener<Long>() {
-                    @Override
-                    public void onResponse(Long numKilled) {
-                    }
+        killJobsCoordinatedBy(node);
+        broadcastKillToParticipatingNodes(node);
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        LOGGER.warn("failed to send kill request to nodes");
-                    }
-                }, Collections.singletonList(node.getId()));
-            } else {
-                return;
-            }
+    }
+
+    /**
+     * Broadcast the kill if *this* node is the coordinator and a participating node died
+     * The information which nodes are participating is only available on the coordinator, so other nodes
+     * can not kill the jobs on their own.
+     *
+     * <pre>
+     *              n1                      n2                  n3
+     *               |                      |                   |
+     *           startJob 1 (n1,n2,n3)      |                   |
+     *               |                      |                   |
+     *               |                    *dies*                |
+     *               |                                          |
+     *           onNodeDisc(n2)                            onNodeDisc(n2)
+     *            broadcast kill job1                   does not know which jobs involve n2
+     *                  |
+     *      kill job1 <-+---------------------------------->  kill job1
+     *
+     * </pre>
+     */
+    private void broadcastKillToParticipatingNodes(DiscoveryNode deadNode) {
+        List<UUID> affectedJobs = jobContextService
+            .getJobIdsByParticipatingNodes(deadNode.getId()).collect(Collectors.toList());
+        if (affectedJobs.isEmpty()) {
+            return;
         }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
+                "Broadcasting kill for {} jobs because they involved disconnected node={}",
+                affectedJobs.size(),
+                deadNode.getId());
+        }
+        List<String> excludedNodeIds = Collections.singletonList(deadNode.getId());
+        killJobsNodeAction.broadcast(new KillJobsRequest(affectedJobs), new ActionListener<Long>() {
+            @Override
+            public void onResponse(Long numKilled) {
+            }
 
-        threadPool.schedule(DELAY, ThreadPool.Names.GENERIC, () -> jobContextService.killJobs(contexts));
+            @Override
+            public void onFailure(Exception e) {
+                LOGGER.warn("failed to send kill request to nodes");
+            }
+        }, excludedNodeIds);
+    }
+
+    /**
+     * Immediately kills all jobs that were initiated by the disconnected node.
+     * It is not possible to send results to the disconnected node.
+     * <pre>
+     *
+     *              n1                      n2                  n3
+     *               |                      |                   |
+     *           startJob 1 (n1,n2,n3)      |                   |
+     *               |                      |                   |
+     *              *dies*                  |                   |
+     *                                   onNodeDisc(n1)      onNodeDisc(n1)
+     *                                    killJob 1            killJob1
+     * </pre>
+     */
+    private void killJobsCoordinatedBy(DiscoveryNode deadNode) {
+        List<UUID> jobsStartedByDeadNode = jobContextService
+            .getJobIdsByCoordinatorNode(deadNode.getId()).collect(Collectors.toList());
+        if (jobsStartedByDeadNode.isEmpty()) {
+            return;
+        }
+        jobContextService.killJobs(jobsStartedByDeadNode);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Killed {} jobs started by disconnected node={}", jobsStartedByDeadNode.size(), deadNode.getId());
+        }
     }
 }

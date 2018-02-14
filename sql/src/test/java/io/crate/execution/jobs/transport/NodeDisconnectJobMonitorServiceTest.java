@@ -33,24 +33,19 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
-import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.UUID;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.eq;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -65,15 +60,8 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         builder.addSubContext(new DummySubContext());
         JobExecutionContext context = jobContextService.createContext(builder);
 
-        ThreadPool threadPool = mock(ThreadPool.class);
-        when(threadPool.schedule(any(TimeValue.class), anyString(), any(Runnable.class))).thenAnswer((Answer<Object>) invocation -> {
-            ((Runnable) invocation.getArguments()[2]).run();
-            return null;
-        });
-
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
-            threadPool,
             jobContextService,
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
@@ -91,37 +79,35 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
     public void testOnParticipatingNodeDisconnectedKillsJob() throws Exception {
         JobContextService jobContextService = jobContextService();
 
-        DiscoveryNode coordinator_node = new DiscoveryNode(
-            "coordinator_node_id",
-            buildNewFakeTransportAddress(),
-            Version.CURRENT);
-        DiscoveryNode data_node = new DiscoveryNode(
-            "data_node_id",
-            buildNewFakeTransportAddress(),
-            Version.CURRENT);
+        DiscoveryNode coordinator = newNode("coordinator");
+        DiscoveryNode dataNode = newNode("dataNode");
 
-        DiscoveryNodes discoveryNodes = DiscoveryNodes.builder()
-            .localNodeId("coordinator_node_id")
-            .add(coordinator_node)
-            .add(data_node)
-            .build();
-
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID(), coordinator_node.getId(), Arrays.asList(coordinator_node.getId(), data_node.getId()));
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(
+            UUID.randomUUID(),
+            coordinator.getId(),
+            Arrays.asList(coordinator.getId(), dataNode.getId())
+        );
         builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
-        TransportKillJobsNodeAction killAction = mock(TransportKillJobsNodeAction.class);
 
+        // add a second job that is coordinated by the other node to make sure the the broadcast logic is run
+        // even though there are jobs coordinated by the disconnected node
+        builder = jobContextService.newBuilder(UUID.randomUUID(), dataNode.getId());
+        builder.addSubContext(new DummySubContext());
+        jobContextService.createContext(builder);
+
+        TransportKillJobsNodeAction killAction = mock(TransportKillJobsNodeAction.class);
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
-            mock(ThreadPool.class),
             jobContextService,
             mock(TransportService.class),
             killAction);
 
-        monitorService.onNodeDisconnected(discoveryNodes.get("data_node_id"));
+        monitorService.onNodeDisconnected(dataNode);
+
         verify(killAction, times(1)).broadcast(
             any(KillJobsRequest.class),
             any(ActionListener.class),
-            eq(Arrays.asList(discoveryNodes.get("data_node_id").getId())));
+            eq(Arrays.asList(dataNode.getId())));
     }
 }

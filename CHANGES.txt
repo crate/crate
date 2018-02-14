@@ -73,6 +73,9 @@ Changes
 Fixes
 =====
 
+- Improved the handling of node disconnects to ensure there are no stale
+  queries in case a node dies.
+
 - Fixed an issue that could result in a ``Bulk operation not supported for
   RootRelationBoundary`` error when querying ``sys.checks``
 
