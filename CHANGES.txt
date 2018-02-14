@@ -45,6 +45,8 @@ Breaking Changes
 Changes
 =======
 
+- Add max_token_length parameter to whitespace tokenizer.
+
 - Statistics for jobs and operations are enabled by default.  If you don't need
   any statistics, please set ``stats.enabled`` to ``false``.
 
