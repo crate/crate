@@ -79,5 +79,8 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition that could cause the decommissioning of nodes using
+  the graceful shutdown procedure to interrupt the execution of active queries.
+
 - Read only queries should no longer fail with a ``TableUnknownException`` in
   case of a shard relocation.

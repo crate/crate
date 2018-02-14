@@ -24,6 +24,8 @@ import os
 import signal
 import time
 import random
+import string
+import threading
 from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from crate.client.exceptions import ProgrammingError
@@ -117,9 +119,9 @@ class GracefulStopTest(unittest.TestCase):
                 transport_port=transport_port_range,
                 settings={
                     # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-                    "cluster.routing.allocation.disk.watermark.low" : "100k",
-                    "cluster.routing.allocation.disk.watermark.high" : "10k",
-                    "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
+                    "cluster.routing.allocation.disk.watermark.low": "100k",
+                    "cluster.routing.allocation.disk.watermark.high": "10k",
+                    "cluster.routing.allocation.disk.watermark.flood_stage": "1k",
                 },
                 cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
@@ -280,3 +282,65 @@ class TestGracefulStopNone(GracefulStopTest):
     def tearDown(self):
         client = self.clients[1]
         client.sql("drop table t1")
+
+
+class TestGracefulStopDuringQueryExecution(GracefulStopTest):
+
+    NUM_SERVERS = 3
+
+    def setUp(self):
+        super().setUp()
+        client = self.clients[0]
+
+        client.sql('''
+            CREATE TABLE t1 (id int, name string)
+            CLUSTERED INTO 4 SHARDS
+            WITH (number_of_replicas = 1)
+        ''')
+        self.set_settings({'discovery.zen.minimum_master_nodes': 2})
+
+        def bulk_params():
+            for i in range(5000):
+                chars = list(string.ascii_lowercase[:14])
+                random.shuffle(chars)
+                yield (i, ''.join(chars))
+        bulk_params = list(bulk_params())
+        client.sql('INSERT INTO t1 (id, name) values (?, ?)', None, bulk_params)
+        client.sql('REFRESH TABLE t1')
+
+    def test_graceful_stop_concurrent_queries(self):
+        self.set_settings({
+            "cluster.graceful_stop.min_availability": "full",
+            "cluster.graceful_stop.force": "false"
+        })
+
+        concurrency = 8
+        client = self.clients[0]
+        run_queries = [True]
+        errors = []
+        threads_finished_b = threading.Barrier(concurrency + 1)
+        func_args = (client, run_queries, errors, threads_finished_b)
+        for i in range(concurrency):
+            t = threading.Thread(
+                target=TestGracefulStopDuringQueryExecution.exec_queries,
+                args=func_args
+            )
+            t.start()
+
+        decommission(self.crates[1].process)
+
+        run_queries[0] = False
+        threads_finished_b.wait()
+        self.assertEqual(errors, [])
+
+    def tearDown(self):
+        self.clients[0].sql('DROP TABLE t1')
+
+    @staticmethod
+    def exec_queries(client, is_active, errors, finished):
+        while is_active[0]:
+            try:
+                client.sql('select name, count(*) from t1 group by name')
+            except Exception as e:
+                errors.append(e)
+        finished.wait()
