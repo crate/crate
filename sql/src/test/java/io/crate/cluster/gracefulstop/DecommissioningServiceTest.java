@@ -43,6 +43,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -55,6 +56,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     private TestableDecommissioningService decommissioningService;
     private ScheduledExecutorService executorService;
     private SQLOperations sqlOperations;
+    private AtomicBoolean exited = new AtomicBoolean(false);
 
     @Override
     protected Set<Setting<?>> additionalClusterSettings() {
@@ -73,6 +75,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
             jobsLogs,
             executorService,
             sqlOperations,
+            () -> exited.set(true),
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)
         );
@@ -81,7 +84,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testExitIfNoActiveRequests() throws Exception {
         decommissioningService.exitIfNoActiveRequests(0);
-        assertThat(decommissioningService.exited, is(true));
+        assertThat(exited.get(), is(true));
         assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
     }
 
@@ -89,7 +92,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     public void testNoExitIfRequestAreActive() throws Exception {
         jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
-        assertThat(decommissioningService.exited, is(false));
+        assertThat(exited.get(), is(false));
         assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
         verify(executorService, times(1)).schedule(
             Mockito.any(Runnable.class), Mockito.anyLong(), Mockito.any(TimeUnit.class));
@@ -105,7 +108,6 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     private static class TestableDecommissioningService extends DecommissioningService {
 
-        private boolean exited = false;
         private boolean forceStopOrAbortCalled = false;
 
         TestableDecommissioningService(Settings settings,
@@ -113,6 +115,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
                                        JobsLogs jobsLogs,
                                        ScheduledExecutorService executorService,
                                        SQLOperations sqlOperations,
+                                       Runnable safeExitAction,
                                        TransportClusterHealthAction healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
             super(
@@ -121,13 +124,10 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
                 jobsLogs,
                 executorService,
                 sqlOperations,
+                () -> 0,
+                safeExitAction,
                 healthAction,
                 updateSettingsAction);
-        }
-
-        @Override
-        void exit() {
-            exited = true;
         }
 
         @Override

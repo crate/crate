@@ -25,6 +25,7 @@ package io.crate.cluster.gracefulstop;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.JobContextService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -58,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.IntSupplier;
 
 @Singleton
 public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
@@ -81,8 +83,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private final JobsLogs jobsLogs;
     private final ScheduledExecutorService executorService;
     private final SQLOperations sqlOperations;
+    private final IntSupplier numActiveContexts;
     private final TransportClusterHealthAction healthAction;
     private final TransportClusterUpdateSettingsAction updateSettingsAction;
+    private final Runnable safeExitAction;
 
     private TimeValue gracefulStopTimeout;
     private Boolean forceStop;
@@ -93,6 +97,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   final ClusterService clusterService,
                                   JobsLogs jobsLogs,
                                   SQLOperations sqlOperations,
+                                  JobContextService jobContextService,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
 
@@ -102,6 +107,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             jobsLogs,
             Executors.newSingleThreadScheduledExecutor(),
             sqlOperations,
+            jobContextService::numActive,
+            null,
             healthAction,
             updateSettingsAction);
     }
@@ -112,14 +119,24 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                      JobsLogs jobsLogs,
                                      ScheduledExecutorService executorService,
                                      SQLOperations sqlOperations,
+                                     IntSupplier numActiveContexts,
+                                     @Nullable Runnable safeExitAction,
                                      final TransportClusterHealthAction healthAction,
                                      final TransportClusterUpdateSettingsAction updateSettingsAction) {
         super(settings);
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
         this.sqlOperations = sqlOperations;
+        this.numActiveContexts = numActiveContexts;
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
+
+        // There is a window where this node removed the last shards but still receives new operations because
+        // other nodes created the routing based on an earlier cluterState.
+        // We delay here to give these requests a chance to finish
+        this.safeExitAction = safeExitAction == null
+            ? () -> executorService.schedule(this::exit, 15, TimeUnit.SECONDS)
+            : safeExitAction;
 
         gracefulStopTimeout = GRACEFUL_STOP_TIMEOUT_SETTING.setting().get(settings);
         forceStop = GRACEFUL_STOP_FORCE_SETTING.setting().get(settings);
@@ -242,8 +259,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     }
 
     void exitIfNoActiveRequests(final long startTime) {
-        if (jobsLogs.activeRequests() == 0L) {
-            exit();
+        if (jobsLogs.activeRequests() == 0L && numActiveContexts.getAsInt() == 0) {
+            safeExitAction.run();
             return;
         }
 
