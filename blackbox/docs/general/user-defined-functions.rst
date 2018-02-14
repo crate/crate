@@ -28,24 +28,24 @@ full syntax description.
 
 These functions can be created like so::
 
-    cr> CREATE FUNCTION subtract(integer, integer)
+    cr> CREATE FUNCTION my_subtract_function(integer, integer)
     ...  RETURNS integer
     ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function subtract(a, b) { return a - b; }';
+    ...  AS 'function my_subtract_function(a, b) { return a - b; }';
     CREATE OK, 1 row affected  (... sec)
 
 .. hide:
 
-    cr> _wait_for_function('subtract(1::integer, 1::integer)')
+    cr> _wait_for_function('my_subtract_function(1::integer, 1::integer)')
 
 ::
 
-    cr> SELECT subtract(3, 1);
-    +----------------+
-    | subtract(3, 1) |
-    +----------------+
-    |              2 |
-    +----------------+
+    cr> SELECT doc.my_subtract_function(3, 1);
+    +--------------------------------+
+    | doc.my_subtract_function(3, 1) |
+    +--------------------------------+
+    |                              2 |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 ``OR REPLACE`` can be used to replace an existing function::
@@ -62,12 +62,12 @@ These functions can be created like so::
 
 ::
 
-    cr> SELECT log10(10);
-    +-----------+
-    | log10(10) |
-    +-----------+
-    |       1.0 |
-    +-----------+
+    cr> SELECT doc.log10(10);
+    +---------------+
+    | doc.log10(10) |
+    +---------------+
+    |           1.0 |
+    +---------------+
     SELECT 1 row in set (... sec)
 
 Arguments can be named in the function definition.
@@ -125,41 +125,45 @@ Overloading
 Within a specific schema, you can overload functions by defining two functions
 with the same name that have a different set of arguments::
 
-    cr> CREATE FUNCTION my_schema.multiply(integer, integer)
+    cr> CREATE FUNCTION my_schema.my_multiply(integer, integer)
     ...  RETURNS integer
     ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function multiply(a, b) { return a * b; }';
+    ...  AS 'function my_multiply(a, b) { return a * b; }';
     CREATE OK, 1 row affected  (... sec)
 
-This would overload our ``multiply`` function with different argument types::
+This would overload our ``my_multiply`` function with different argument
+types::
 
-    cr> CREATE FUNCTION my_schema.multiply(long, long)
+    cr> CREATE FUNCTION my_schema.my_multiply(long, long)
     ...  RETURNS long
     ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function multiply(a, b) { return a * b; }';
+    ...  AS 'function my_multiply(a, b) { return a * b; }';
     CREATE OK, 1 row affected  (... sec)
 
-This would overload our ``multiply`` function with more arguments::
+This would overload our ``my_multiply`` function with more arguments::
 
-    cr> CREATE FUNCTION my_schema.multiply(long, long, long)
+    cr> CREATE FUNCTION my_schema.my_multiply(long, long, long)
     ...  RETURNS long
     ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function multiply(a, b, c) { return a * b * c; }';
+    ...  AS 'function my_multiply(a, b, c) { return a * b * c; }';
     CREATE OK, 1 row affected  (... sec)
 
-.. NOTE::
+.. WARNING::
 
     It is considered bad practice to create functions that have the same name
-    as the CrateDB built-in functions.
+    as the CrateDB built-in functions!
+
+.. NOTE::
 
     If you call a function without a schema name, CrateDB will look it up in
     the built-in functions first and only then in the user-defined functions
     with the schema of the current session (see
     :ref:`conf-session-settings`).
 
-    Therefore a built-in function with the same name as a user-defined function
-    will hide the latter. However, such functions can still be called if the
-    schema name is explicitly provided.
+    **Therefore a built-in function with the same name as a user-defined
+    function will hide the latter, even if it contains a different set of
+    arguments!** However, such functions can still be called if the schema name
+    is explicitly provided.
 
 Determinism
 ===========
@@ -176,18 +180,18 @@ Determinism
 
 Functions can be dropped like this::
 
-     cr> DROP FUNCTION log10(long);
+     cr> DROP FUNCTION doc.log10(long);
      DROP OK, 1 row affected  (... sec)
 
 Adding ``IF EXISTS`` prevents from raising an error if the function doesn't
 exist::
 
-     cr> DROP FUNCTION IF EXISTS log10(integer);
+     cr> DROP FUNCTION IF EXISTS doc.log10(integer);
      DROP OK, 1 row affected  (... sec)
 
 Optionally, argument names can be specified within the drop statement::
 
-     cr> DROP FUNCTION IF EXISTS calculate_distance(start_point geo_point, end_point geo_point);
+     cr> DROP FUNCTION IF EXISTS doc.calculate_distance(start_point geo_point, end_point geo_point);
      DROP OK, 1 row affected  (... sec)
 
 Optionally, you can provide a schema::
@@ -349,16 +353,16 @@ is returned::
 
 .. hide:
 
-    cr> DROP FUNCTION subtract(integer, integer);
+    cr> DROP FUNCTION my_subtract_function(integer, integer);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION my_schema.multiply(integer, integer);
+    cr> DROP FUNCTION my_schema.my_multiply(integer, integer);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION my_schema.multiply(long, long, long);
+    cr> DROP FUNCTION my_schema.my_multiply(long, long, long);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION my_schema.multiply(long, long);
+    cr> DROP FUNCTION my_schema.my_multiply(long, long);
     DROP OK, 1 row affected  (... sec)
 
     cr> DROP FUNCTION rotate_point(point geo_point, angle float);

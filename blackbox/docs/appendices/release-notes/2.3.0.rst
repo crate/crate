@@ -59,6 +59,12 @@ Breaking Changes
   ``PRIMARY_KEY`` has been changed to ``PRIMARY KEY``. Also PRIMARY KEY
   constraint is not returned when not explicitly defined.
 
+- Scalar functions are resolved more strictly based on the argument types. This
+  means that built-in functions with the same name as user defined functions
+  will always "hide" the latter, even if the UDF has a different set of
+  arguments. Using the same name as a built-in function for a user defined
+  function is considered bad practice.
+
 Changes
 -------
 
