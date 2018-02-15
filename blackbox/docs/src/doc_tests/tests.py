@@ -26,13 +26,16 @@ from crate.testing.layer import CrateLayer
 import os
 import time
 import shutil
+import json
 import re
+import random
 import tempfile
 import logging
 from functools import partial
 from . import process_test
 from testutils.paths import crate_path, project_path
 from testutils.ports import GLOBAL_PORT_POOL
+from urllib.request import urlopen, Request
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
@@ -150,26 +153,10 @@ class ConnectingCrateLayer(CrateLayer):
         cmd._connect(self.crate_servers[0])
 
     def tearDown(self):
+        print('')
+        print('ConnectingCrateLayer.tearDown()')
         shutil.rmtree(self.repo_path, ignore_errors=True)
         super(ConnectingCrateLayer, self).tearDown()
-
-
-crate_layer = ConnectingCrateLayer(
-    'crate',
-    host='localhost',
-    crate_home=crate_path(),
-    port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
-    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
-    settings={
-         # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-        'cluster.routing.allocation.disk.watermark.low': '100k',
-        'cluster.routing.allocation.disk.watermark.high': '10k',
-        'cluster.routing.allocation.disk.watermark.flood_stage': '1k',
-        'license.enterprise': 'true',
-        'lang.js.enabled': 'true'
-    }
-)
 
 
 def setUpLocations(test):
@@ -316,37 +303,31 @@ def setUpCountries(test):
 
 
 def setUpLocationsAndQuotes(test):
-    setUp(test)
     setUpLocations(test)
     setUpQuotes(test)
 
 
 def setUpColorsAndArticles(test):
-    setUp(test)
     setUpColors(test)
     setUpArticles(test)
 
 
 def setUpLocationsQuotesAndUserVisits(test):
-    setUp(test)
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
 
 
 def setUpEmployeesAndDepartments(test):
-    setUp(test)
     setUpEmployees(test)
     setUpDepartments(test)
 
 
 def setUpPhotosAndCountries(test):
-    setUp(test)
     setUpPhotos(test)
     setUpCountries(test)
 
 
 def setUpEmpDeptAndColourArticlesAndGeo(test):
-    setUp(test)
     setUpEmployeesAndDepartments(test)
     setUpColorsAndArticles(test)
     setUpPhotosAndCountries(test)
@@ -373,13 +354,13 @@ def setUp(test):
 
 
 def tearDown(test):
+    # drop leftover tables after each test
     with connect(CRATE_DSN) as conn:
         c = conn.cursor()
         c.execute("""
             SELECT table_schema, table_name
             FROM information_schema.tables
             WHERE table_schema NOT IN ('blob', 'sys', 'information_schema', 'pg_catalog')
-            ORDER BY 1, 2
         """)
         for schema, table in c.fetchall():
             try:
@@ -389,6 +370,36 @@ def tearDown(test):
             except Exception as e:
                 print('Failed to drop table {}.{}: {}'.format(schema, table, e))
 
+    # at the moment it is not possible to reset custom analyzers, char_filters,
+    # and tokenizers via SQL
+    # that's why we do a PUT request to the ES api
+    reset_custom_analysis = {
+        'persistent': {
+            'crate.analysis.custom.analyzer.*': None,
+            'crate.analysis.custom.char_filter.*': None,
+            'crate.analysis.custom.tokenizer.*': None,
+        }
+    }
+    request = Request('http://' + CRATE_DSN + '/_cluster/settings',
+                      data=json.dumps(reset_custom_analysis).encode('utf-8'),
+                      headers={'Content-Type': 'application/json'},
+                      method='PUT')
+    with urlopen(request) as response:
+        assert response.status == 200
+
+
+docsuite = partial(doctest.DocFileSuite,
+                   tearDown=tearDown,
+                   parser=crash_parser,
+                   optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
+                   encoding='utf-8')
+
+doctest_file = partial(os.path.join, '..', '..')
+
+
+def doctest_files(*items):
+    return (doctest_file(item) for item in items)
+
 
 def get_abspath(name):
     return os.path.abspath(
@@ -396,106 +407,99 @@ def get_abspath(name):
     )
 
 
+def create_doctest_suite():
+    crate_layer = ConnectingCrateLayer(
+        'crate',
+        host='localhost',
+        crate_home=crate_path(),
+        port=CRATE_HTTP_PORT,
+        transport_port=CRATE_TRANSPORT_PORT,
+        env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
+        settings={
+             # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
+            'cluster.routing.allocation.disk.watermark.low': '100k',
+            'cluster.routing.allocation.disk.watermark.high': '10k',
+            'cluster.routing.allocation.disk.watermark.flood_stage': '1k',
+            'license.enterprise': 'true',
+            'lang.js.enabled': 'true',
+            'es.api.enabled': 'true',
+        }
+    )
+    tests = []
+
+    for fn in doctest_files('general/blobs.rst',
+                            'interfaces/http.rst',):
+        s = docsuite(fn, parser=bash_parser, setUp=setUpLocations)
+        s.layer = crate_layer
+        tests.append(s)
+
+    for fn in doctest_files('general/ddl/create-table.rst',
+                            'general/ddl/generated-columns.rst',
+                            'general/ddl/constraints.rst',
+                            'general/ddl/sharding.rst',
+                            'general/ddl/replication.rst',
+                            'general/ddl/column-policy.rst',
+                            'general/ddl/system-columns.rst',
+                            'general/ddl/alter-table.rst',
+                            'general/ddl/storage.rst',
+                            'general/ddl/fulltext-indices.rst',
+                            'admin/runtime-config.rst',
+                            'general/ddl/show-create-table.rst',
+                            'general/user-defined-functions.rst',
+                            'admin/user-management.rst',
+                            'admin/snapshots.rst',
+                            'admin/privileges.rst',
+                            'admin/ingestion/rules.rst',
+                            'general/dql/index.rst',
+                            'general/dql/refresh.rst',
+                            'admin/optimization.rst',
+                            'general/dql/fulltext.rst',
+                            'general/ddl/data-types.rst',
+                            'general/occ.rst',
+                            'general/information-schema.rst',
+                            'general/ddl/partitioned-tables.rst',
+                            'general/builtins/aggregation.rst',
+                            'general/builtins/arithmetic.rst',
+                            'general/builtins/scalar.rst',
+                            'general/builtins/table-functions.rst',
+                            'admin/system-information.rst',
+                            'general/dql/selects.rst',
+                            'interfaces/postgres.rst',):
+        s = docsuite(fn, setUp=setUpLocationsAndQuotes)
+        s.layer = crate_layer
+        tests.append(s)
+
+    for fn in doctest_files('general/dql/geo.rst',):
+        s = docsuite(fn, setUp=setUpCountries)
+        s.layer = crate_layer
+        tests.append(s)
+
+    for fn in doctest_files('general/dql/joins.rst',
+                            'general/builtins/subquery-expressions.rst',):
+        s = docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo)
+        s.layer = crate_layer
+        tests.append(s)
+
+    for fn in doctest_files('general/dml.rst',):
+        s = docsuite(fn, setUp=setUpLocationsQuotesAndUserVisits)
+        s.layer = crate_layer
+        tests.append(s)
+
+    for fn in doctest_files('general/dql/union.rst',):
+        s = docsuite(fn, setUp=setUpPhotosAndCountries)
+        s.layer = crate_layer
+        tests.append(s)
+
+    # randomize order of tests to make sure they don't depend on each other
+    random.shuffle(tests)
+
+    suite = unittest.TestSuite()
+    suite.addTests(tests)
+    return suite
+
+
 def test_suite():
     suite = unittest.TestSuite()
-
-    # Graceful stop tests
-    process_suite = unittest.TestLoader().loadTestsFromModule(process_test)
-    suite.addTest(process_suite)
-
-    # Documentation tests
-    docsuite = partial(doctest.DocFileSuite,
-                       optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
-                       encoding='utf-8')
-
-    docs_suite = unittest.TestSuite()
-    s = docsuite('../../general/blobs.rst', parser=bash_parser, setUp=setUp)
-    s.layer = crate_layer
-    docs_suite.addTest(s)
-    for fn in ('interfaces/http.rst',):
-        s = docsuite('../../' + fn,
-                     parser=bash_parser,
-                     setUp=setUpLocations,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('general/ddl/create-table.rst',
-               'general/ddl/generated-columns.rst',
-               'general/ddl/constraints.rst',
-               'general/ddl/sharding.rst',
-               'general/ddl/replication.rst',
-               'general/ddl/column-policy.rst',
-               'general/ddl/fulltext-indices.rst',
-               'general/ddl/system-columns.rst',
-               'general/ddl/alter-table.rst',
-               'general/ddl/storage.rst',
-               'admin/runtime-config.rst',
-               'general/ddl/show-create-table.rst',
-               'general/user-defined-functions.rst',
-               'admin/user-management.rst',
-               'admin/privileges.rst',
-               'admin/ingestion/rules.rst',
-               'general/dql/index.rst',
-               'general/dql/refresh.rst',
-               'admin/optimization.rst',
-               'general/dql/fulltext.rst',
-               'general/ddl/data-types.rst',
-               'general/occ.rst',
-               'general/information-schema.rst',
-               'general/ddl/partitioned-tables.rst',
-               'general/builtins/aggregation.rst',
-               'general/builtins/arithmetic.rst',
-               'general/builtins/scalar.rst',
-               'general/builtins/table-functions.rst',
-               'admin/system-information.rst',
-               'general/dql/selects.rst',
-               'interfaces/postgres.rst'):
-        s = docsuite('../../' + fn, parser=crash_parser,
-                     setUp=setUpLocationsAndQuotes,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('general/dql/geo.rst',):
-        s = docsuite('../../' + fn,
-                     parser=crash_parser,
-                     setUp=setUpCountries,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('general/dql/joins.rst',
-               'general/builtins/subquery-expressions.rst',):
-        path = os.path.join('..', '..', fn)
-        s = docsuite(path,
-                     parser=crash_parser,
-                     setUp=setUpEmpDeptAndColourArticlesAndGeo,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('general/dml.rst',):
-        s = docsuite('../../' + fn,
-                     parser=crash_parser,
-                     setUp=setUpLocationsQuotesAndUserVisits,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('admin/snapshots.rst',):
-        s = docsuite('../../' + fn,
-                     parser=crash_parser,
-                     setUp=setUpLocationsAndQuotes,
-                     tearDown=tearDown)
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-    for fn in ('general/dql/union.rst',):
-        path = os.path.join('..', '..', fn)
-        s = doctest.DocFileSuite(path,
-                                 parser=crash_parser,
-                                 setUp=setUpPhotosAndCountries,
-                                 tearDown=tearDown,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                             doctest.ELLIPSIS,
-                                 encoding='utf-8')
-        s.layer = crate_layer
-        docs_suite.addTest(s)
-
-    suite.addTests(docs_suite)
+    suite.addTest(unittest.TestLoader().loadTestsFromModule(process_test))
+    suite.addTests(create_doctest_suite())
     return suite

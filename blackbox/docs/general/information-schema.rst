@@ -62,7 +62,6 @@ settings like the ``number of shards`` or ``number of replicas``.
     +--------------------+-------------------------+------------------+--------------------+
     | table_schema       | table_name              | number_of_shards | number_of_replicas |
     +--------------------+-------------------------+------------------+--------------------+
-    | blob               | myblobs                 |                3 | 0                  |
     | doc                | locations               |                2 | 0                  |
     | doc                | partitioned_table       |                4 | 0-1                |
     | doc                | quotes                  |                2 | 0                  |
@@ -93,26 +92,25 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 |                1 | 0                  |
     | sys                | users                   |                1 | 0                  |
     +--------------------+-------------------------+------------------+--------------------+
-    SELECT 30 rows in set (... sec)
+    SELECT 29 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
 columns::
 
-    cr> select table_name, clustered_by, partitioned_by, blobs_path
+    cr> select table_name, clustered_by, partitioned_by
     ... from information_schema.tables
     ... where table_name not like 'my_table%'
-    ...   and (table_schema = 'doc' or table_schema = 'blob')
+    ...   and table_schema = 'doc'
     ... order by table_schema asc, table_name asc;
-    +-------------------+--------------+----------------+--------...-+
-    | table_name        | clustered_by | partitioned_by | blobs_path |
-    +-------------------+--------------+----------------+--------...-+
-    | myblobs           | digest       | NULL           | ...        |
-    | locations         | id           | NULL           | NULL       |
-    | partitioned_table | _id          | ["date"]       | NULL       |
-    | quotes            | id           | NULL           | NULL       |
-    +-------------------+--------------+----------------+--------...-+
-    SELECT 4 rows in set (... sec)
+    +-------------------+--------------+----------------+
+    | table_name        | clustered_by | partitioned_by |
+    +-------------------+--------------+----------------+
+    | locations         | id           | NULL           |
+    | partitioned_table | _id          | ["date"]       |
+    | quotes            | id           | NULL           |
+    +-------------------+--------------+----------------+
+    SELECT 3 rows in set (... sec)
 
 .. rubric:: Schema
 
@@ -525,20 +523,20 @@ For example you can use this table to list existing tokenizers like this::
     ... from information_schema.routines
     ... where routine_type='TOKENIZER'
     ... order by routine_name asc limit 10;
-    +---------------+
-    | routine_name  |
-    +---------------+
-    | PathHierarchy |
-    | classic       |
-    | e2_mypattern  |
-    | edgeNGram     |
-    | edge_ngram    |
-    | keyword       |
-    | letter        |
-    | lowercase     |
-    | nGram         |
-    | ngram         |
-    +---------------+
+    +----------------+
+    | routine_name   |
+    +----------------+
+    | PathHierarchy  |
+    | classic        |
+    | edgeNGram      |
+    | edge_ngram     |
+    | keyword        |
+    | letter         |
+    | lowercase      |
+    | nGram          |
+    | ngram          |
+    | path_hierarchy |
+    +----------------+
     SELECT 10 rows in set (... sec)
 
 Or get an overview of how many routines and routine types are available::
@@ -550,9 +548,9 @@ Or get an overview of how many routines and routine types are available::
     +----------+--------------+
     | count(*) | routine_type |
     +----------+--------------+
-    |       49 | ANALYZER     |
-    |        4 | CHAR_FILTER  |
-    |       18 | TOKENIZER    |
+    |       45 | ANALYZER     |
+    |        3 | CHAR_FILTER  |
+    |       17 | TOKENIZER    |
     |       60 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
@@ -595,7 +593,7 @@ Or get an overview of how many routines and routine types are available::
     The return type of the function.
     If it doesn't apply, then ``NULL``.
 :is_deterministic:
-    If the routine is deterministic then ``True``, else ``False`` (``NULL`` if 
+    If the routine is deterministic then ``True``, else ``False`` (``NULL`` if
     it doesn't apply).
 :routine_definition:
     The function definition (``NULL`` if it doesn't apply).

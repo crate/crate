@@ -47,26 +47,26 @@ and will never produce a hit when queried.
 
 ::
 
-    cr> create table my_table1b (
+    cr> create table table_a (
     ...   first_column string INDEX OFF
     ... );
     CREATE OK, 1 row affected (... sec)
 
 ::
 
-    cr> insert into my_table1b (first_column) values ('hello');
+    cr> insert into table_a (first_column) values ('hello');
     INSERT OK, 1 row affected (... sec)
 
 .. Hidden: Refresh::
 
-    cr> refresh table my_table1b;
+    cr> refresh table table_a;
     REFRESH OK, ...
 
 When a not indexed column is queried the query will return an error.
 
 ::
 
-    cr> select * from my_table1b where first_column = 'hello';
+    cr> select * from table_a where first_column = 'hello';
     SQLActionException[UnhandledServerException: java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
 
 .. _sql_ddl_index_plain:
@@ -78,14 +78,14 @@ An index of type ``plain`` is indexing the input data as-is without analyzing.
 Using the ``plain`` index method is the default behaviour but can also be
 declared explicitly::
 
-    cr> create table my_table1b1 (
+    cr> create table table_b1 (
     ...   first_column string INDEX using plain
     ... );
     CREATE OK, 1 row affected (... sec)
 
 This results in the same behaviour than without any index declaration::
 
-    cr> create table my_table1b2 (
+    cr> create table table_b2 (
     ...   first_column string
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -103,7 +103,7 @@ builtin analyzer or :ref:`sql-ddl-custom-analyzer`.
 If no analyzer is specified when using a fulltext index, the
 :ref:`standard <standard-analyzer>` analyzer is used::
 
-    cr> create table my_table1c (
+    cr> create table table_c (
     ...   first_column string INDEX using fulltext
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -111,7 +111,7 @@ If no analyzer is specified when using a fulltext index, the
 Defining the usage of a concrete analyzer is straight forward by defining the
 analyzer as a parameter using the ``WITH`` statement::
 
-    cr> create table my_table1d (
+    cr> create table table_d (
     ...   first_column string INDEX using fulltext with (analyzer = 'english')
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -123,7 +123,7 @@ It's also possible to define an index column which treat the data of a given
 column as input. This is especially useful if you want to search for both, the
 exact and analyzed data::
 
-    cr> create table my_table1e (
+    cr> create table table_e (
     ...   first_column string,
     ...   INDEX first_column_ft using fulltext (first_column)
     ... );
@@ -131,7 +131,7 @@ exact and analyzed data::
 
 Of course defining a custom analyzer is possible here too::
 
-    cr> create table my_table1f (
+    cr> create table table_f (
     ...   first_column string,
     ...   INDEX first_column_ft
     ...     using fulltext(first_column) with (analyzer = 'english')
@@ -146,7 +146,7 @@ Defining a Composite Index
 Defining a composite (or combined) index is done using the same syntax as above
 despite multiple columns are given to the ``fulltext`` index method::
 
-    cr> create table documents (
+    cr> create table documents_a (
     ...   title string,
     ...   body string,
     ...   INDEX title_body_ft
@@ -156,7 +156,7 @@ despite multiple columns are given to the ``fulltext`` index method::
 
 Composite indices can include nested columns within object columns as well::
 
-    cr> create table my_table1g (
+    cr> create table documents_b (
     ...   title string,
     ...   author object(dynamic) as (
     ...     name string,
@@ -192,7 +192,7 @@ results for data provided in a certain language.
 
 Here is a simple Example::
 
-    cr> create ANALYZER myanalyzer (
+    cr> CREATE ANALYZER myanalyzer (
     ...   TOKENIZER whitespace,
     ...   TOKEN_FILTERS (
     ...     lowercase,
@@ -204,9 +204,9 @@ Here is a simple Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. hide:
+.. hide: Test table creation with custom analyzer::
 
-    cr> create table hidden_test_table(
+    cr> create table hidden_test_table (
     ...     fc string index using fulltext with(analyzer=myanalyzer)
     ... );
     CREATE OK...
