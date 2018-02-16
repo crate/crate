@@ -179,6 +179,9 @@ public class Session {
 
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
+                // not using planner.currentClusterState().metaData()::hasIndex to make sure the *current*
+                // clusterState at the time of the index check is used
+                indexName -> planner.currentClusterState().metaData().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, retryResultReceiver) -> retryQuery(

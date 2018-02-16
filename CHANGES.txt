@@ -82,6 +82,9 @@ Changes
 Fixes
 =====
 
+- Read only queries should no longer fail with a ``TableUnknownException`` in
+  case of a shard relocation.
+
 - Improved the handling of node disconnects to ensure there are no stale
   queries in case a node dies.
 
