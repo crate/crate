@@ -423,6 +423,11 @@ The following fields are supported:
   | *Return type:* ``integer``
   | the second field
 
+**EPOCH**
+  | *Return type:* ``double``
+  | The number of seconds since Jan 1, 1970.
+  | Can be negative if earlier than Jan 1, 1970.
+
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 

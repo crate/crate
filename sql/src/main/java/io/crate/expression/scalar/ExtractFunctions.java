@@ -22,13 +22,13 @@
 package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.data.Input;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -56,6 +56,7 @@ public class ExtractFunctions {
         new FunctionIdent(GENERIC_NAME, ImmutableList.of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
     private static final String NAME_PREFIX = "extract_";
 
+    private static final String EXTRACT_EPOCH_PREFIX = "extract(epoch from ";
     private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
     private static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
     private static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
@@ -80,6 +81,7 @@ public class ExtractFunctions {
         scalarFunctionModule.register(ExtractHour.INSTANCE);
         scalarFunctionModule.register(ExtractMinute.INSTANCE);
         scalarFunctionModule.register(ExtractSecond.INSTANCE);
+        scalarFunctionModule.register(ExtractEpoch.INSTANCE);
         // The resolver translates to a specialized version of extract
         scalarFunctionModule.register(GENERIC_NAME, new ExtractFunctionResolver());
     }
@@ -111,6 +113,8 @@ public class ExtractFunctions {
                 return ExtractMinute.INSTANCE;
             case SECOND:
                 return ExtractSecond.INSTANCE;
+            case EPOCH:
+                return ExtractEpoch.INSTANCE;
             // fall through
             case TIMEZONE_HOUR:
             case TIMEZONE_MINUTE:
@@ -118,14 +122,6 @@ public class ExtractFunctions {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
         }
-    }
-
-    private static FunctionInfo createFunctionInfo(Extract.Field field) {
-        return new FunctionInfo(
-            new FunctionIdent(NAME_PREFIX + field.toString(), ARGUMENT_TYPES),
-            DataTypes.INTEGER,
-            FunctionInfo.Type.SCALAR
-        );
     }
 
     private static class ExtractFunctionResolver extends BaseFunctionResolver {
@@ -197,10 +193,10 @@ public class ExtractFunctions {
 
     private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements FunctionFormatSpec {
 
-        public abstract int evaluate(long value);
+        public abstract Number evaluate(long value);
 
         @Override
-        public Integer evaluate(Input... args) {
+        public Number evaluate(Input... args) {
             assert args.length == 1 : "extract only takes one argument";
             Object value = args[0].value();
             if (value == null) {
@@ -219,6 +215,22 @@ public class ExtractFunctions {
         public String afterArgs(Function function) {
             return SymbolPrinter.Strings.PAREN_CLOSE;
         }
+
+        static FunctionInfo createFunctionInfo(Extract.Field field) {
+            final DataType returnType;
+            switch (field) {
+                case EPOCH:
+                    returnType = DataTypes.DOUBLE;
+                    break;
+                default:
+                    returnType = DataTypes.INTEGER;
+            }
+            return new FunctionInfo(
+                new FunctionIdent(NAME_PREFIX + field.toString(), ARGUMENT_TYPES),
+                returnType,
+                FunctionInfo.Type.SCALAR
+            );
+        }
     }
 
     private static class ExtractCentury extends GenericExtractFunction {
@@ -231,7 +243,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return CENTURY.get(value);
         }
 
@@ -253,7 +265,7 @@ public class ExtractFunctions {
         static final ExtractYear INSTANCE = new ExtractYear();
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return YEAR.get(value);
         }
 
@@ -278,7 +290,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return QUARTER.get(value);
         }
 
@@ -303,7 +315,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return MONTH.get(value);
         }
 
@@ -328,7 +340,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return WEEK_OF_WEEK_YEAR.get(value);
         }
 
@@ -353,7 +365,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return DAY_OF_MONTH.get(value);
         }
 
@@ -375,7 +387,7 @@ public class ExtractFunctions {
         public static final ExtractDayOfWeek INSTANCE = new ExtractDayOfWeek();
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return DAY_OF_WEEK.get(value);
         }
 
@@ -400,7 +412,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return SECOND_OF_MINUTE.get(value);
         }
 
@@ -425,7 +437,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return MINUTE_OF_HOUR.get(value);
         }
 
@@ -450,7 +462,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return HOUR_OF_DAY.get(value);
         }
 
@@ -475,7 +487,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public int evaluate(long value) {
+        public Integer evaluate(long value) {
             return DAY_OF_YEAR.get(value);
         }
 
@@ -487,6 +499,30 @@ public class ExtractFunctions {
         @Override
         public String beforeArgs(Function function) {
             return EXTRACT_DAY_OF_YEAR_PREFIX;
+        }
+    }
+
+    private static class ExtractEpoch extends GenericExtractFunction {
+
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.EPOCH);
+        private static final ExtractEpoch INSTANCE = new ExtractEpoch();
+
+        private ExtractEpoch() {
+        }
+
+        @Override
+        public Double evaluate(long value) {
+            return (double) value / 1000;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return INFO;
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return EXTRACT_EPOCH_PREFIX;
         }
     }
 }

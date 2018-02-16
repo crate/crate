@@ -97,4 +97,14 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
     public void testSecond() throws Exception {
         assertEvaluate("extract(second from timestamp)", 23);
     }
+
+    @Test
+    public void testExtractEpoch() {
+        assertEvaluate("extract(epoch from '1970-01-01T00:00:01')", 1.0);
+        assertEvaluate("extract(epoch from '1970-01-01T00:00:00.5')", 0.5);
+        assertEvaluate("extract(epoch from '1970-01-01T00:00:00')", 0.0);
+        assertEvaluate("extract(epoch from '1969-12-31T23:59:59')", -1.0);
+        assertEvaluate("extract(epoch from timestamp)", 1392500003.0);
+    }
+
 }

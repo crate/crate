@@ -48,7 +48,8 @@ public class Extract
         MINUTE,
         SECOND,
         TIMEZONE_HOUR,
-        TIMEZONE_MINUTE
+        TIMEZONE_MINUTE,
+        EPOCH
     }
 
     public Extract(Expression expression, Expression field) {
