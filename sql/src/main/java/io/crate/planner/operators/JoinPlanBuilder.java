@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
@@ -154,13 +153,13 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
             rhsPlan,
-            joinLhsRhs,
             joinType,
             joinCondition,
             lhs,
             rhs,
             query,
-            hasOuterJoins);
+            hasOuterJoins,
+            sessionContext);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -185,16 +184,16 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         return joinPlan;
     }
 
-    private LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
-                                       LogicalPlan rhsPlan,
-                                       JoinPair joinLhsRhs,
-                                       JoinType joinType,
-                                       Symbol joinCondition,
-                                       QueriedRelation lhs,
-                                       QueriedRelation rhs,
-                                       Symbol query,
-                                       boolean hasOuterJoins) {
-        if (isHashJoinPossible(joinLhsRhs, sessionContext)) {
+    private static LogicalPlan createJoinPlan(LogicalPlan lhsPlan,
+                                              LogicalPlan rhsPlan,
+                                              JoinType joinType,
+                                              Symbol joinCondition,
+                                              QueriedRelation lhs,
+                                              QueriedRelation rhs,
+                                              Symbol query,
+                                              boolean hasOuterJoins,
+                                              SessionContext sessionContext) {
+        if (isHashJoinPossible(joinType, joinCondition, sessionContext)) {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
@@ -213,8 +212,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
     }
 
-    private boolean isHashJoinPossible(JoinPair joinPair, SessionContext sessionContext) {
-        return sessionContext.isHashJoinEnabled() && HashJoinDetector.isHashJoinPossible(joinPair);
+    private static boolean isHashJoinPossible(JoinType joinType, Symbol joinCondition, SessionContext sessionContext) {
+        return sessionContext.isHashJoinEnabled() && HashJoinDetector.isHashJoinPossible(joinType, joinCondition);
     }
 
     private static JoinType maybeInvertPair(QualifiedName rhsName, JoinPair pair) {
@@ -237,7 +236,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             Map<Set<QualifiedName>, Symbol> queryParts,
                                             SubqueryPlanner subqueryPlanner,
                                             boolean hasOuterJoins,
-                                            AnalyzedRelation leftRelation,
+                                            QueriedRelation leftRelation,
                                             SessionContext sessionContext) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
@@ -272,14 +271,16 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 .filter(Objects::nonNull).iterator()
         );
         return Filter.create(
-            new NestedLoopJoin(
+            createJoinPlan(
                 source,
                 nextPlan,
                 type,
                 condition,
-                !query.symbolType().isValueSymbol(),
+                leftRelation,
+                nextRel,
+                query,
                 hasOuterJoins,
-                leftRelation),
+                sessionContext),
             query
         );
     }

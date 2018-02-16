@@ -63,7 +63,7 @@ class NestedLoopJoin extends TwoInputPlan {
 
     @Nullable
     private final Symbol joinCondition;
-    private final AnalyzedRelation leftRelation;
+    private final AnalyzedRelation topMostLeftRelation;
     private final JoinType joinType;
     private final boolean hasOuterJoins;
 
@@ -75,7 +75,7 @@ class NestedLoopJoin extends TwoInputPlan {
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
                    boolean hasOuterJoins,
-                   AnalyzedRelation leftRelation) {
+                   AnalyzedRelation topMostLeftRelation) {
         super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
         this.isFiltered = isFiltered;
@@ -85,7 +85,7 @@ class NestedLoopJoin extends TwoInputPlan {
             this.outputs.addAll(lhs.outputs());
             this.outputs.addAll(rhs.outputs());
         }
-        this.leftRelation = leftRelation;
+        this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.hasOuterJoins = hasOuterJoins;
     }
@@ -230,7 +230,7 @@ class NestedLoopJoin extends TwoInputPlan {
             joinCondition,
             isFiltered,
             hasOuterJoins,
-            leftRelation);
+            topMostLeftRelation);
     }
 
     @Override
@@ -265,7 +265,7 @@ class NestedLoopJoin extends TwoInputPlan {
                 }
                 if (relationsInOrderBy.size() == 1) {
                     AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
-                    if (relationInOrderBy == leftRelation) {
+                    if (relationInOrderBy == topMostLeftRelation) {
                         LogicalPlan newLhs = lhs.tryOptimize(pushDown);
                         if (newLhs != null) {
                             return updateSources(newLhs, rhs);

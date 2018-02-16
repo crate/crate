@@ -53,6 +53,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
@@ -60,17 +61,17 @@ class HashJoin extends TwoInputPlan {
 
     private final Symbol joinCondition;
     @VisibleForTesting
-    AnalyzedRelation leftRelation;
+    AnalyzedRelation topMostLeftRelation;
     @VisibleForTesting
     AnalyzedRelation rightRelation;
 
     HashJoin(LogicalPlan lhs,
              LogicalPlan rhs,
              Symbol joinCondition,
-             AnalyzedRelation leftRelation,
+             AnalyzedRelation topMostLeftRelation,
              AnalyzedRelation rightRelation) {
         super(lhs, rhs, new ArrayList<>());
-        this.leftRelation = leftRelation;
+        this.topMostLeftRelation = topMostLeftRelation;
         this.rightRelation = rightRelation;
         this.joinCondition = joinCondition;
         this.outputs.addAll(lhs.outputs());
@@ -112,8 +113,8 @@ class HashJoin extends TwoInputPlan {
             ExecutionPlan tmp = left;
             left = right;
             right = tmp;
-            AnalyzedRelation tmpRelation = leftRelation;
-            leftRelation = rightRelation;
+            AnalyzedRelation tmpRelation = topMostLeftRelation;
+            topMostLeftRelation = rightRelation;
             rightRelation = tmpRelation;
         }
         ResultDescription leftResultDesc = left.resultDescription();
@@ -142,15 +143,18 @@ class HashJoin extends TwoInputPlan {
 
         Symbol joinInput = InputColumns.create(joinCondition, Lists2.concat(lhs.outputs(), rhs.outputs()));
         Map<AnalyzedRelation, List<Symbol>> hashJoinSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        List<Symbol> leftHashJoinSymbols = hashJoinSymbols.get(leftRelation);
-        List<Symbol> leftHashInputs = new ArrayList<>(leftHashJoinSymbols.size());
-        for (Symbol symbol : leftHashJoinSymbols) {
-            leftHashInputs.add(InputColumns.create(symbol, lhs.outputs()));
-        }
-        List<Symbol> rightHashJoinSymbols = hashJoinSymbols.get(rightRelation);
+        List<Symbol> rightHashJoinSymbols = hashJoinSymbols.remove(rightRelation);
         List<Symbol> rightHashInputs = new ArrayList<>(rightHashJoinSymbols.size());
         for (Symbol symbol : rightHashJoinSymbols) {
             rightHashInputs.add(InputColumns.create(symbol, rhs.outputs()));
+        }
+        // All leftover extracted symbols belong to the left relation, the left relation might not be
+        // a concrete table  as the HashJoin can be nested further down a Join tree.
+        List<Symbol> leftHashJoinSymbols =
+            hashJoinSymbols.values().stream().flatMap(List::stream).collect(Collectors.toList());
+        List<Symbol> leftHashInputs = new ArrayList<>(leftHashJoinSymbols.size());
+        for (Symbol symbol : leftHashJoinSymbols) {
+            leftHashInputs.add(InputColumns.create(symbol, lhs.outputs()));
         }
 
         HashJoinPhase joinPhase = new HashJoinPhase(
@@ -183,7 +187,7 @@ class HashJoin extends TwoInputPlan {
 
     @Override
     protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new HashJoin(newLeftSource, newRightSource, joinCondition, leftRelation, rightRelation);
+        return new HashJoin(newLeftSource, newRightSource, joinCondition, topMostLeftRelation, rightRelation);
     }
 
     @Override
