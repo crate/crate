@@ -33,17 +33,17 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -57,7 +57,6 @@ import io.crate.planner.consumer.OptimizingRewriter;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -136,7 +135,7 @@ public class LogicalPlanner {
         QueriedRelation relation = optimizingRewriter.optimize(queriedRelation, plannerContext.transactionContext());
 
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true)
-            .build(tableStats, new HashSet<>(relation.outputs()));
+            .build(tableStats, new LinkedHashSet<>(relation.outputs()));
 
         LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
 

@@ -24,19 +24,20 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Row;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -62,7 +63,7 @@ public class RelationBoundary extends OneInputPlan {
                 reverseMapping.put(value, field);
             }
             Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(expressionMapping);
-            HashSet<Symbol> mappedUsedColumns = new HashSet<>();
+            HashSet<Symbol> mappedUsedColumns = new LinkedHashSet<>();
             for (Symbol beforeNextFetch : usedBeforeNextFetch) {
                 mappedUsedColumns.add(mapper.apply(beforeNextFetch));
             }

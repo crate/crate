@@ -23,30 +23,31 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.engine.pipeline.TopN;
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.Merge;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.GroupByConsumer;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +62,7 @@ public class GroupHashAggregate extends OneInputPlan {
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
         return (tableStats, parentUsedCols) -> {
-            HashSet<Symbol> usedCols = new HashSet<>();
+            HashSet<Symbol> usedCols = new LinkedHashSet<>();
             usedCols.addAll(groupKeys);
             usedCols.addAll(extractColumns(aggregates));
             return new GroupHashAggregate(source.build(tableStats, usedCols), groupKeys, aggregates);
