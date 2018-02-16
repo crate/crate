@@ -49,9 +49,6 @@ Changes
   seconds since Jan 1, 1970. For example:
   ``extract(epoch from '1970-01-01T00:00:01')`` returns ``1.0`` seconds.
 
-- Fixed and issue that could cause incorrect results for a ``join`` query with
-  order by due to the push down optimisation.
-
 - Add max_token_length parameter to whitespace tokenizer.
 
 - Statistics for jobs and operations are enabled by default.  If you don't need
