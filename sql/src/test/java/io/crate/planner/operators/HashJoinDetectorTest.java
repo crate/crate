@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
@@ -39,69 +38,48 @@ public class HashJoinDetectorTest extends CrateUnitTest {
     @Test
     public void testPossibleOnInnerContainingEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(true));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testPossibleOnInnerContainingEqAndAnyCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a = t2.b and not(t1.i = t2.i)");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(true));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testNotPossibleOnInnerWithoutAnyEqCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x > t2.y and t1.a > t2.b");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testPossibleOnInnerWithEqAndScalarOnOneRelation() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t1.i = 2");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(true));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(true));
     }
 
     @Test
     public void testNotPossibleOnInnerWithEqAndScalarOnMultipleRelations() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x + t2.y = 4");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleOnInnerContainingEqOrAnyCondition() {
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y and t1.a = t2.b or t1.i = t2.i");
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
-    }
-
-    @Test
-    public void testNotPossibleIfNullJoinPair() {
-        assertThat(HashJoinDetector.isHashJoinPossible(null), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition), is(false));
     }
 
     @Test
     public void testNotPossibleIfNotAnInnerJoin() {
-        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.CROSS, null);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.CROSS, null), is(false));
 
         Symbol joinCondition = SQL_EXPRESSIONS.asSymbol("t1.x = t2.y");
-        joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.LEFT, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
-
-        joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.RIGHT, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
-
-        joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.FULL, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
-
-        joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.ANTI, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
-
-        joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.SEMI, joinCondition);
-        assertThat(HashJoinDetector.isHashJoinPossible(joinPair), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.LEFT, joinCondition), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.RIGHT, joinCondition), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.FULL, joinCondition), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.ANTI, joinCondition), is(false));
+        assertThat(HashJoinDetector.isHashJoinPossible(JoinType.SEMI, joinCondition), is(false));
     }
 }

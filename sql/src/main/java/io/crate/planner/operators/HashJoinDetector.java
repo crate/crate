@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.symbol.Field;
@@ -31,7 +30,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -51,14 +49,13 @@ public class HashJoinDetector {
 
     private static final Visitor VISITOR = new Visitor();
 
-    public static boolean isHashJoinPossible(@Nullable JoinPair joinPair) {
-        if (joinPair == null || joinPair.joinType() != JoinType.INNER) {
+    public static boolean isHashJoinPossible(JoinType joinType, Symbol joinCondition) {
+        if (joinType != JoinType.INNER) {
             return false;
         }
-        Symbol joinCondition = joinPair.condition();
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
-        VISITOR.process(joinPair.condition(), context);
+        VISITOR.process(joinCondition, context);
         return context.isHashJoinPossible;
     }
 
