@@ -23,13 +23,14 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 
@@ -39,11 +40,30 @@ public class RetryOnFailureResultReceiverTest {
     public void testRetryOnNodeConnectionError() throws Exception {
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
-        RetryOnFailureResultReceiver retryOnFailureResultReceiver =
-            new RetryOnFailureResultReceiver(baseResultReceiver, UUID.randomUUID(), (newJobId, receiver) -> numRetries.incrementAndGet());
+        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+            indexName -> true,
+            baseResultReceiver,
+            UUID.randomUUID(),
+            (newJobId, receiver) -> numRetries.incrementAndGet());
 
         retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
 
-        assertThat(numRetries.get(), Matchers.is(1));
+        assertThat(numRetries.get(), is(1));
+    }
+
+    @Test
+    public void testRetryIsInvokedOnIndexNotFoundException() {
+        AtomicInteger numRetries = new AtomicInteger(0);
+        BaseResultReceiver resultReceiver = new BaseResultReceiver();
+
+        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+            indexName -> true,
+            resultReceiver,
+            UUID.randomUUID(),
+            (newJobId, receiver) -> numRetries.incrementAndGet());
+
+        retryOnFailureResultReceiver.fail(new IndexNotFoundException("t1"));
+
+        assertThat(numRetries.get(), is(1));
     }
 }

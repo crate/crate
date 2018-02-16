@@ -21,3 +21,5 @@ Changes
 Fixes
 =====
 
+- Read only queries should no longer fail with a ``TableUnknownException`` in
+  case of a shard relocation.

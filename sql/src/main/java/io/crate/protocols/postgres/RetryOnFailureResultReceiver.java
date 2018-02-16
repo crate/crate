@@ -28,23 +28,30 @@ import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public class RetryOnFailureResultReceiver implements ResultReceiver {
 
     private static final Logger LOGGER = Loggers.getLogger(RetryOnFailureResultReceiver.class);
 
+    private final Predicate<String> hasIndex;
     private final ResultReceiver delegate;
     private final UUID jobId;
     private final BiConsumer<UUID, ResultReceiver> retryAction;
     private int attempt = 1;
 
-    public RetryOnFailureResultReceiver(ResultReceiver delegate, UUID jobId, BiConsumer<UUID, ResultReceiver> retryAction) {
+    public RetryOnFailureResultReceiver(Predicate<String> hasIndex,
+                                        ResultReceiver delegate,
+                                        UUID jobId,
+                                        BiConsumer<UUID, ResultReceiver> retryAction) {
+        this.hasIndex = hasIndex;
         this.delegate = delegate;
         this.jobId = jobId;
         this.retryAction = retryAction;
@@ -69,12 +76,16 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     public void fail(@Nonnull Throwable t) {
         t = SQLExceptions.unwrap(t);
         if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES &&
-            (SQLExceptions.isShardFailure(t) || t instanceof ConnectTransportException)) {
+            (SQLExceptions.isShardFailure(t) || t instanceof ConnectTransportException || indexWasTemporaryUnavailable(t))) {
             attempt += 1;
             retry();
         } else {
             delegate.fail(t);
         }
+    }
+
+    private boolean indexWasTemporaryUnavailable(Throwable t) {
+        return t instanceof IndexNotFoundException && hasIndex.test(((IndexNotFoundException) t).getIndex().getName());
     }
 
     private void retry() {

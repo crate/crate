@@ -183,7 +183,13 @@ public class SimplePortal extends AbstractPortal {
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
-                resultReceiver, jobId, (newJobId, resultReceiver) -> retryQuery(planner, newJobId));
+                // not using planner.currentClusterState().metaData()::hasIndex to make sure the *current*
+                // clusterState at the time of the index check is used
+                indexName -> planner.currentClusterState().metaData().hasIndex(indexName),
+                resultReceiver,
+                jobId,
+                (newJobId, resultReceiver) -> retryQuery(planner, newJobId)
+            );
         }
 
         jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
