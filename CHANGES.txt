@@ -45,6 +45,9 @@ Breaking Changes
 Changes
 =======
 
+- Fixed and issue that could cause incorrect results for a ``join`` query with
+  order by due to the push down optimisation.
+
 - Add max_token_length parameter to whitespace tokenizer.
 
 - Statistics for jobs and operations are enabled by default.  If you don't need

@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -113,8 +114,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             joinCondition = joinLhsRhs.condition();
         }
 
-        Set<Symbol> usedFromLeft = new HashSet<>();
-        Set<Symbol> usedFromRight = new HashSet<>();
+        Set<Symbol> usedFromLeft = new LinkedHashSet<>();
+        Set<Symbol> usedFromRight = new LinkedHashSet<>();
         for (JoinPair joinPair : mss.joinPairs()) {
             addColumnsFrom(joinPair.condition(), usedFromLeft::add, lhs);
             addColumnsFrom(joinPair.condition(), usedFromRight::add, rhs);
@@ -185,7 +186,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             AnalyzedRelation leftRelation) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
-        Set<Symbol> usedFromNext = new HashSet<>();
+        Set<Symbol> usedFromNext = new LinkedHashSet<>();
         Consumer<Symbol> addToUsedColumns = usedFromNext::add;
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
         final JoinType type;

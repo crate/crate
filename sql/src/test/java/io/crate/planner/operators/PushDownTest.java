@@ -123,6 +123,22 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testOrderByOnJoinWithUncollectedColumnPushedDown() {
+        LogicalPlan plan = plan("select t2.y, t2.b, t1.i from t1 inner join t2 on t1.a = t2.b order by t1.x desc");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[y, b, i]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    Boundary[_fetchid, a, x]\n" +
+                                                         "    FetchOrEval[_fetchid, a, x]\n" +
+                                                         "    OrderBy['x' DESC]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
+                                                         "    --- INNER ---\n" +
+                                                         "    Boundary[_fetchid, b]\n" +
+                                                         "    FetchOrEval[_fetchid, b]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n]" +
+                                                         "\n"));
+    }
+
+    @Test
     public void testOrderByOnJoinOrderOnRightTableNotPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t2.b");
         assertThat(plan, isPlan(sqlExecutor.functions(),  "OrderBy['b' ASC]\n" +

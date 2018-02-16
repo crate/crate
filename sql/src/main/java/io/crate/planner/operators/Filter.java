@@ -25,19 +25,19 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.FilterProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Row;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.execution.dsl.projection.FilterProjection;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,7 +54,7 @@ class Filter extends OneInputPlan {
         if (queryClause.hasQuery()) {
             Set<Symbol> columnsInQuery = extractColumns(queryClause.query());
             return (tableStats, usedColumns) -> {
-                Set<Symbol> allUsedColumns = new HashSet<>();
+                Set<Symbol> allUsedColumns = new LinkedHashSet<>();
                 allUsedColumns.addAll(columnsInQuery);
                 allUsedColumns.addAll(usedColumns);
                 return new Filter(sourceBuilder.build(tableStats, allUsedColumns), queryClause);
