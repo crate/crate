@@ -948,12 +948,13 @@ a node. There are several pools, but the important ones include:
 
 **thread_pool.<name>.type**
   | *Runtime:*  ``no``
-  | *Allowed Values:* ``fixed | cache``
+  | *Allowed Values:* ``fixed | scaling``
 
   ``fixed`` holds a fixed size of threads to handle the requests. It also has a
   queue for pending requests if no threads are available.
 
-  ``cache`` will spawn a thread if there are pending requests (unbounded).
+  ``scaling`` ensures that a thread pool holds a dynamic number of threads that
+  are proportional to the workload.
 
 Settings for fixed thread pools
 ...............................
