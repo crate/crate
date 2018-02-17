@@ -63,4 +63,18 @@ public class RowAccountingTest extends CrateUnitTest {
         expectedException.expect(CircuitBreakingException.class);
         RowGenerator.range(0, 3).forEach(rowAccounting::accountForAndMaybeBreak);
     }
+
+    @Test
+    public void testCircuitBreakingWorksWithExtraSizePerRow() throws Exception {
+        RowAccounting rowAccounting = new RowAccounting(Collections.singletonList(DataTypes.INTEGER),
+            new RamAccountingContext(
+                "test",
+                new MemoryCircuitBreaker(
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, Loggers.getLogger(RowAccountingTest.class))
+            ),
+            2);
+
+        expectedException.expect(CircuitBreakingException.class);
+        RowGenerator.range(0, 2).forEach(rowAccounting::accountForAndMaybeBreak);
+    }
 }
