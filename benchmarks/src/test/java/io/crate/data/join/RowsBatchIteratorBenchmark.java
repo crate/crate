@@ -75,7 +75,7 @@ public class RowsBatchIteratorBenchmark {
     private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
 
     @Benchmark
-    public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeBatchIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         while (it.moveNext()) {
             blackhole.consume(it.currentElement().get(0));
@@ -83,7 +83,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         BatchIterator<Row> itCloseAsserting = new CloseAssertingBatchIterator<>(it);
         while (itCloseAsserting.moveNext()) {
@@ -92,7 +92,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeSkippingBatchIterator(Blackhole blackhole) {
         BatchIterator<Row> it = new InMemoryBatchIterator<>(rows, SENTINEL);
         BatchIterator<Row> skippingIt = new SkippingBatchIterator<>(it, 100);
         while (skippingIt.moveNext()) {
@@ -101,7 +101,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
+    public void measureConsumeNestedLoopJoin(Blackhole blackhole) {
         BatchIterator<Row> crossJoin = JoinBatchIterators.crossJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
@@ -113,7 +113,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
+    public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = JoinBatchIterators.leftJoin(
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
@@ -123,7 +123,6 @@ public class RowsBatchIteratorBenchmark {
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }
-        leftJoin.moveToStart();
     }
 
     @Benchmark
@@ -140,7 +139,6 @@ public class RowsBatchIteratorBenchmark {
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }
-        leftJoin.moveToStart();
     }
 
     @Benchmark
@@ -150,13 +148,17 @@ public class RowsBatchIteratorBenchmark {
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1),
             row -> Objects.equals(row.get(0), row.get(1)),
-            row -> (Integer) row.get(0) % 500,
+            row -> {
+                // For the 0-499 records no collisions
+                // For the 500-1000 records produce chains of length 5 but don't interfere with the 0-499
+                Integer value = (Integer) row.get(0);
+                return value < 500 ? value : (value % 100) + 500;
+            },
             row -> (Integer) row.get(0) % 500,
             1000
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }
-        leftJoin.moveToStart();
     }
 }
