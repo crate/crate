@@ -22,14 +22,14 @@
 
 package io.crate.data.join;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -70,7 +70,9 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
 
     private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
-    private final Multimap<Integer, Object[]> buffer;
+    private final com.carrotsearch.hppc.IntObjectHashMap<Object[]> buffer;
+    private final com.carrotsearch.hppc.IntObjectHashMap<List<Object[]>> bufferWithHashCollisions;
+
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
@@ -91,9 +93,11 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
         if (leftSize <= 0) {
-            this.buffer = LinkedListMultimap.create(DEFAULT_BUFFER_SIZE);
+            this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
+            this.bufferWithHashCollisions = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
         } else {
-            this.buffer = LinkedListMultimap.create(leftSize);
+            this.buffer = new IntObjectHashMap<>(leftSize);
+            this.bufferWithHashCollisions = new IntObjectHashMap<>(leftSize);
         }
         this.activeIt = left;
     }
@@ -109,6 +113,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         right.moveToStart();
         activeIt = left;
         buffer.clear();
+        bufferWithHashCollisions.clear();
         leftMatchingRowsIterator = null;
     }
 
@@ -118,7 +123,8 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         if (activeIt == left) {
             while (left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
-                buffer.put(hashBuilderForLeft.apply(left.currentElement()), currentRow);
+                int hash = hashBuilderForLeft.apply(left.currentElement());
+                addToBuffers(currentRow, hash);
             }
             if (left.allLoaded()) {
                 activeIt = right;
@@ -134,16 +140,42 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.apply(right.currentElement());
-            Collection<Object[]> leftMatchingRows = buffer.get(rightHash);
-            if (leftMatchingRows != null) {
-                leftMatchingRowsIterator = leftMatchingRows.iterator();
+            Object[] leftRowFromBuffer = buffer.get(rightHash);
+            if (leftRowFromBuffer != null) {
+                leftRow.cells(leftRowFromBuffer);
+                combiner.setLeft((L) leftRow);
                 combiner.setRight(right.currentElement());
-                if (findMatchingRows()) {
+                if (joinCondition.test(combiner.currentElement())) {
                     return true;
+                }
+            } else if (!bufferWithHashCollisions.isEmpty()) {
+                List<Object[]> leftMatchingRows = bufferWithHashCollisions.get(rightHash);
+                if (leftMatchingRows != null) {
+                    leftMatchingRowsIterator = leftMatchingRows.iterator();
+                    combiner.setRight(right.currentElement());
+                    if (findMatchingRows()) {
+                        return true;
+                    }
                 }
             }
         }
         return false;
+    }
+
+    private void addToBuffers(Object[] currentRow, int hash) {
+        Object[] existingRow = buffer.get(hash);
+        List<Object[]> existingRows = bufferWithHashCollisions.get(hash);
+        if (existingRows == null && existingRow == null) {
+            buffer.put(hash, currentRow);
+        } else if (existingRows == null) {
+            existingRows = new LinkedList<>();
+            existingRows.add(existingRow);
+            existingRows.add(currentRow);
+            bufferWithHashCollisions.put(hash, existingRows);
+            buffer.remove(hash);
+        } else {
+            existingRows.add(currentRow);
+        }
     }
 
     private boolean findMatchingRows() {
