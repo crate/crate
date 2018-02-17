@@ -23,6 +23,7 @@
 package io.crate.breaker;
 
 import io.crate.data.Row;
+import io.crate.data.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class RowAccounting {
 
     private final RamAccountingContext ramAccountingContext;
     private final ArrayList<SizeEstimator<Object>> estimators;
+    private int extraSizePerRow = 0;
 
     public RowAccounting(Collection<? extends DataType> columnTypes, RamAccountingContext ramAccountingContext) {
         this.estimators = new ArrayList<>(columnTypes.size());
@@ -39,6 +41,19 @@ public class RowAccounting {
             estimators.add(SizeEstimatorFactory.create(columnType));
         }
         this.ramAccountingContext = ramAccountingContext;
+    }
+
+    /**
+     * @param columnTypes           Column types are needed to use the correct {@link SizeEstimator} per column
+     * @param ramAccountingContext  {@link RamAccountingContext} implementing the CircuitBreaker logic
+     * @param extraSizePerRow       Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
+     *                              might instantiate an ArrayList per row used for the internal hash->row buffer
+     */
+    public RowAccounting(Collection<? extends DataType> columnTypes,
+                         RamAccountingContext ramAccountingContext,
+                         int extraSizePerRow) {
+        this(columnTypes, ramAccountingContext);
+        this.extraSizePerRow = extraSizePerRow;
     }
 
     /**
@@ -53,7 +68,7 @@ public class RowAccounting {
         // As size estimation is generally "best-effort" this should be good enough.
         long size = 0;
         for (int i = 0; i < row.numColumns(); i++) {
-            size += estimators.get(i).estimateSize(row.get(i));
+            size += (estimators.get(i).estimateSize(row.get(i)) + extraSizePerRow);
         }
         ramAccountingContext.addBytes(size);
     }
