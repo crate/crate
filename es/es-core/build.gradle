@@ -25,7 +25,7 @@ dependencies {
 
     // utilities
     compile "org.elasticsearch:elasticsearch-cli:${versions.elasticsearch}"
-    compile "com.carrotsearch:hppc:0.7.1"
+    compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
     // time handling
     compile "joda-time:joda-time:${versions.jodatime}"

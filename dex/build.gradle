@@ -11,6 +11,7 @@ dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
     compile "org.apache.lucene:lucene-core:${versions.lucene}"
+    compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     compile project(':shared')
 
     testCompile "junit:junit:${versions.junit}"

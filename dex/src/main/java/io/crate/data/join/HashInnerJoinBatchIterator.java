@@ -22,14 +22,14 @@
 
 package io.crate.data.join;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Multimap;
+import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -70,7 +70,8 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
 
     private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
-    private final Multimap<Integer, Object[]> buffer;
+    private final IntObjectHashMap<List<Object[]>> buffer;
+
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
@@ -91,9 +92,9 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
         if (leftSize <= 0) {
-            this.buffer = LinkedListMultimap.create(DEFAULT_BUFFER_SIZE);
+            this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
         } else {
-            this.buffer = LinkedListMultimap.create(leftSize);
+            this.buffer = new IntObjectHashMap<>(leftSize);
         }
         this.activeIt = left;
     }
@@ -118,7 +119,8 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         if (activeIt == left) {
             while (left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
-                buffer.put(hashBuilderForLeft.apply(left.currentElement()), currentRow);
+                int hash = hashBuilderForLeft.apply(left.currentElement());
+                addToBuffer(currentRow, hash);
             }
             if (left.allLoaded()) {
                 activeIt = right;
@@ -134,7 +136,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.apply(right.currentElement());
-            Collection<Object[]> leftMatchingRows = buffer.get(rightHash);
+            List<Object[]> leftMatchingRows = buffer.get(rightHash);
             if (leftMatchingRows != null) {
                 leftMatchingRowsIterator = leftMatchingRows.iterator();
                 combiner.setRight(right.currentElement());
@@ -146,6 +148,16 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         return false;
     }
 
+    private void addToBuffer(Object[] currentRow, int hash) {
+        List<Object[]> existingRows = buffer.get(hash);
+        if (existingRows == null) {
+            existingRows = new LinkedList<>();
+            buffer.put(hash, existingRows);
+        }
+        existingRows.add(currentRow);
+    }
+
+    @SuppressWarnings("unchecked")
     private boolean findMatchingRows() {
         while (leftMatchingRowsIterator.hasNext()) {
             leftRow.cells(leftMatchingRowsIterator.next());
