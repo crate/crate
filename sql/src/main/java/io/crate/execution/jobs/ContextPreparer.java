@@ -735,7 +735,11 @@ public class ContextPreparer extends AbstractComponent {
                 joinCondition,
                 phase.leftJoinConditionInputs(),
                 phase.rightJoinConditionInputs(),
-                new RowAccounting(phase.leftOutputTypes(), ramAccountingContext),
+                // 110 extra bytes per row =
+                //    96 bytes for each ArrayList +
+                //    7 bytes per key for the IntHashObjectHashMap  (should be 4 but the map pre-allocates more)
+                //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
+                new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
                 phase.leftNumRowsEstimate());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
