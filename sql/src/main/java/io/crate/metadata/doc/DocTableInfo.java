@@ -253,9 +253,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             indices = whereClause.partitions().toArray(new String[0]);
         }
         Map<String, Set<String>> routingMap = Collections.emptyMap();
-        if (whereClause.clusteredBy().isPresent()) {
+        if (whereClause.clusteredBy().isEmpty() == false) {
             routingMap = indexNameExpressionResolver.resolveSearchRouting(
                 state, whereClause.routingValues(), indices);
+        }
         }
         return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
     }

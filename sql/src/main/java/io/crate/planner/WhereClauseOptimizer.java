@@ -22,13 +22,13 @@
 
 package io.crate.planner;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnExpander;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
 import io.crate.collections.Lists2;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;

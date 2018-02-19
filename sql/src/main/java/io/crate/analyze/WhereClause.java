@@ -24,16 +24,16 @@ package io.crate.analyze;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.eval.NullEliminator;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.analyze.where.DocKeys;
-import io.crate.expression.eval.NullEliminator;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.expression.operator.AndOperator;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -41,6 +41,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +53,7 @@ public class WhereClause extends QueryClause implements Streamable {
     public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
-    private Optional<Set<Symbol>> clusteredBy = Optional.empty();
+    private Set<Symbol> clusteredBy = Collections.emptySet();
 
     private Optional<DocKeys> docKeys = Optional.empty();
 
@@ -66,10 +67,10 @@ public class WhereClause extends QueryClause implements Streamable {
     public WhereClause(@Nullable Symbol normalizedQuery,
                        @Nullable DocKeys docKeys,
                        @Nullable List<String> partitions,
-                       @Nullable Set<Symbol> clusteredBy) {
+                       Set<Symbol> clusteredBy) {
         super(normalizedQuery);
         this.docKeys = Optional.ofNullable(docKeys);
-        this.clusteredBy = Optional.ofNullable(clusteredBy);
+        this.clusteredBy = clusteredBy;
         if (partitions != null) {
             this.partitions = partitions;
         }
@@ -89,19 +90,19 @@ public class WhereClause extends QueryClause implements Streamable {
         if (nullReplacedQuery == query) {
             return this;
         }
-        return new WhereClause(nullReplacedQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
+        return new WhereClause(nullReplacedQuery, docKeys.orElse(null), partitions, clusteredBy);
     }
 
-    public Optional<Set<Symbol>> clusteredBy() {
+    public Set<Symbol> clusteredBy() {
         return clusteredBy;
     }
 
     @Nullable
     public Set<String> routingValues() {
-        if (clusteredBy.isPresent()) {
-            HashSet<String> result = new HashSet<>(clusteredBy.get().size());
+        if (clusteredBy.isEmpty() == false) {
+            HashSet<String> result = new HashSet<>(clusteredBy.size());
             Iterators.addAll(result, Iterators.transform(
-                clusteredBy.get().iterator(), ValueSymbolVisitor.STRING.function));
+                clusteredBy.iterator(), ValueSymbolVisitor.STRING.function));
             return result;
         } else {
             return null;
@@ -210,7 +211,7 @@ public class WhereClause extends QueryClause implements Streamable {
             return this;
         }
         Symbol newQuery = replaceFunction.apply(query);
-        return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy.orElse(null));
+        return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy);
     }
 
     public WhereClause mergeWhere(WhereClause where2) {

@@ -179,6 +179,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .addPrimaryKey("i2")
                 .addPrimaryKey("i3")
                 .addPrimaryKey("i4")
+                .clusteredBy("_id")
                 .build());
         builder.addDocTable(
             TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), twoNodeRouting)
@@ -278,7 +279,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from bystring where name = 'a,b,c'");
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("a,b,c")));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral("a,b,c")));
         assertThat(whereClause.docKeys().get().size(), is(1));
         assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("a,b,c"));
     }
@@ -286,14 +287,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from bystring where name = ''");
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("")));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral("")));
         assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey(""));
     }
 
     @Test
     public void testClusteredBy() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id=1");
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral("1")));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral("1")));
         assertThat(whereClause.docKeys().get().getOnlyKey(), isDocKey("1"));
 
         whereClause = analyzeSelectWhere("select name from users where id=1 or id=2");
@@ -301,7 +302,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.docKeys().get().size(), is(2));
         assertThat(whereClause.docKeys().get(), containsInAnyOrder(isDocKey("1"), isDocKey("2")));
 
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
+        assertThat(whereClause.clusteredBy(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
     }
 
 
@@ -309,42 +310,42 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testClusteredByOnly() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1");
         assertFalse(whereClause.docKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 or id=2");
         assertFalse(whereClause.docKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral(1L), isLiteral(2L)));
+        assertThat(whereClause.clusteredBy(), containsInAnyOrder(isLiteral(1L), isLiteral(2L)));
 
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id in (3,4,5)");
         assertFalse(whereClause.docKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
+        assertThat(whereClause.clusteredBy(), containsInAnyOrder(
             isLiteral(3L), isLiteral(4L), isLiteral(5L)));
 
 
         // TODO: optimize this case: there are two routing values here, which are currently not set
         whereClause = analyzeSelectWhere("select name from users_clustered_by_only where id=1 and id=2");
         assertFalse(whereClause.docKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
     }
 
     @Test
     public void testCompositePrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1");
         assertFalse(whereClause.docKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas'");
         assertThat(whereClause.docKeys().get(), contains(isDocKey(1L, "Douglas")));
-        assertThat(whereClause.clusteredBy().get(), contains(isLiteral(1L)));
+        assertThat(whereClause.clusteredBy(), contains(isLiteral(1L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
         assertFalse(whereClause.docKeys().isPresent());
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(
+        assertThat(whereClause.clusteredBy(), containsInAnyOrder(
             isLiteral(1L), isLiteral(2L)));
 
         whereClause = analyzeSelectWhere("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
         assertFalse(whereClause.docKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
     }
 
     @Test
@@ -359,7 +360,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeSelectWhere(
             "select name from users where id = 2 or id = 1");
         assertThat(whereClause.docKeys().get(), containsInAnyOrder(isDocKey("1"), isDocKey("2")));
-        assertThat(whereClause.clusteredBy().get(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
+        assertThat(whereClause.clusteredBy(), containsInAnyOrder(isLiteral("1"), isLiteral("2")));
     }
 
     @Test
@@ -373,7 +374,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id != 1");
         assertFalse(whereClause.docKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
     }
 
     @Test
@@ -385,13 +386,13 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.docKeys().get(), containsInAnyOrder(
             isDocKey(1, 2, 3, 4), isDocKey(1, 5, 6, 4)
         ));
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
 
         whereClause = analyzeSelectWhere(
             "select * from pk4 where (i1=1 and i2=2 and i3=3 and i4=4) " +
             "or (i1=1 and i2=5 and i3=6 and i4=4) or i1 = 3");
         assertFalse(whereClause.docKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
     }
 
     @Test
@@ -467,7 +468,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeSelectWhere("select name from users where id not in ('jalla', 'kelle')");
         assertFalse(whereClause.noMatch());
         assertFalse(whereClause.docKeys().isPresent());
-        assertFalse(whereClause.clusteredBy().isPresent());
+        assertTrue(whereClause.clusteredBy().isEmpty());
     }
 
     @Test
