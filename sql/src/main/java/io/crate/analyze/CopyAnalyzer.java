@@ -69,6 +69,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -288,7 +289,7 @@ class CopyAnalyzer {
         }
 
         if (whereClause == null) {
-            return new WhereClause(null, null, partitions, null);
+            return new WhereClause(null, null, partitions, Collections.emptySet());
         } else if (whereClause.noMatch()) {
             return whereClause;
         } else {
@@ -301,7 +302,7 @@ class CopyAnalyzer {
                 whereClause.query(),
                 whereClause.docKeys().orElse(null),
                 partitions.isEmpty() ? whereClause.partitions() : partitions,
-                whereClause.clusteredBy().orElse(null)
+                whereClause.clusteredBy()
             );
         }
     }

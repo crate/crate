@@ -22,19 +22,18 @@
 
 package io.crate.planner;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnExpander;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.EqualityExtractor;
 import io.crate.collections.Lists2;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -68,7 +67,7 @@ public final class WhereClauseOptimizer {
         DetailedQuery(Symbol query,
                       DocKeys docKeys,
                       List<List<Symbol>> partitionValues,
-                      @Nullable Set<Symbol> clusteredByValues) {
+                      Set<Symbol> clusteredByValues) {
             this.query = query;
             this.docKeys = docKeys;
             this.partitionValues = firstNonNull(partitionValues, Collections.emptyList());
@@ -94,7 +93,6 @@ public final class WhereClauseOptimizer {
             return query;
         }
 
-        @Nullable
         public Set<Symbol> clusteredBy() {
             return clusteredByValues;
         }
@@ -133,7 +131,7 @@ public final class WhereClauseOptimizer {
         if (table.isPartitioned()) {
             partitionValues = eqExtractor.extractExactMatches(table.partitionedBy(), query, txnCtx);
         }
-        Set<Symbol> clusteredBy = null;
+        Set<Symbol> clusteredBy = Collections.emptySet();
         if (table.clusteredBy() != null) {
             List<List<Symbol>> clusteredByValues = eqExtractor.extractParentMatches(
                 Collections.singletonList(table.clusteredBy()), query, txnCtx);

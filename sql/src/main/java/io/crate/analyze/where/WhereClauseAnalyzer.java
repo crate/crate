@@ -23,20 +23,20 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.SymbolToTrueVisitor;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -50,7 +50,6 @@ import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import org.elasticsearch.common.collect.Tuple;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -118,14 +117,14 @@ public class WhereClauseAnalyzer {
             pkCols = table.primaryKey();
         }
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, transactionContext);
-        Set<Symbol> clusteredBy = null;
+        Set<Symbol> clusteredBy = Collections.emptySet();
         DocKeys docKeys = null;
         if (!pkCols.isEmpty() && pkValues != null) {
             int clusterdIdx = -1;
             if (table.clusteredBy() != null) {
                 clusterdIdx = table.primaryKey().indexOf(table.clusteredBy());
-                clusteredBy = new HashSet<>(pkValues.size());
                 if (clusterdIdx >= 0) {
+                    clusteredBy = new HashSet<>(pkValues.size());
                     for (List<Symbol> row : pkValues) {
                         clusteredBy.add(row.get(clusterdIdx));
                     }
@@ -152,7 +151,6 @@ public class WhereClauseAnalyzer {
         return new WhereClause(query, docKeys, partitions, clusteredBy);
     }
 
-    @Nullable
     private Set<Symbol> getClusteredByLiterals(Symbol query, EqualityExtractor ee, TransactionContext transactionContext) {
         if (table.clusteredBy() != null) {
             List<List<Symbol>> clusteredValues = ee.extractParentMatches(
@@ -165,9 +163,8 @@ public class WhereClauseAnalyzer {
                 return clusteredBy;
             }
         }
-        return null;
+        return Collections.emptySet();
     }
-
 
     private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
