@@ -27,8 +27,8 @@ import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -151,7 +151,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private void addToBuffer(Object[] currentRow, int hash) {
         List<Object[]> existingRows = buffer.get(hash);
         if (existingRows == null) {
-            existingRows = new LinkedList<>();
+            existingRows = new ArrayList<>();
             buffer.put(hash, existingRows);
         }
         existingRows.add(currentRow);
