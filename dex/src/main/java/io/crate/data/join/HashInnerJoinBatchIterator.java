@@ -70,8 +70,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
 
     private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
-    private final com.carrotsearch.hppc.IntObjectHashMap<Object[]> buffer;
-    private final com.carrotsearch.hppc.IntObjectHashMap<List<Object[]>> bufferWithHashCollisions;
+    private final IntObjectHashMap<List<Object[]>> buffer;
 
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
@@ -94,10 +93,8 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         this.hashBuilderForRight = hashBuilderForRight;
         if (leftSize <= 0) {
             this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
-            this.bufferWithHashCollisions = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
         } else {
             this.buffer = new IntObjectHashMap<>(leftSize);
-            this.bufferWithHashCollisions = new IntObjectHashMap<>(leftSize);
         }
         this.activeIt = left;
     }
@@ -113,7 +110,6 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         right.moveToStart();
         activeIt = left;
         buffer.clear();
-        bufferWithHashCollisions.clear();
         leftMatchingRowsIterator = null;
     }
 
@@ -124,7 +120,7 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
             while (left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
                 int hash = hashBuilderForLeft.apply(left.currentElement());
-                addToBuffers(currentRow, hash);
+                addToBuffer(currentRow, hash);
             }
             if (left.allLoaded()) {
                 activeIt = right;
@@ -140,44 +136,28 @@ class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBa
         leftMatchingRowsIterator = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.apply(right.currentElement());
-            Object[] leftRowFromBuffer = buffer.get(rightHash);
-            if (leftRowFromBuffer != null) {
-                leftRow.cells(leftRowFromBuffer);
-                combiner.setLeft((L) leftRow);
+            List<Object[]> leftMatchingRows = buffer.get(rightHash);
+            if (leftMatchingRows != null) {
+                leftMatchingRowsIterator = leftMatchingRows.iterator();
                 combiner.setRight(right.currentElement());
-                if (joinCondition.test(combiner.currentElement())) {
+                if (findMatchingRows()) {
                     return true;
-                }
-            } else if (!bufferWithHashCollisions.isEmpty()) {
-                List<Object[]> leftMatchingRows = bufferWithHashCollisions.get(rightHash);
-                if (leftMatchingRows != null) {
-                    leftMatchingRowsIterator = leftMatchingRows.iterator();
-                    combiner.setRight(right.currentElement());
-                    if (findMatchingRows()) {
-                        return true;
-                    }
                 }
             }
         }
         return false;
     }
 
-    private void addToBuffers(Object[] currentRow, int hash) {
-        Object[] existingRow = buffer.get(hash);
-        List<Object[]> existingRows = bufferWithHashCollisions.get(hash);
-        if (existingRows == null && existingRow == null) {
-            buffer.put(hash, currentRow);
-        } else if (existingRows == null) {
+    private void addToBuffer(Object[] currentRow, int hash) {
+        List<Object[]> existingRows = buffer.get(hash);
+        if (existingRows == null) {
             existingRows = new LinkedList<>();
-            existingRows.add(existingRow);
-            existingRows.add(currentRow);
-            bufferWithHashCollisions.put(hash, existingRows);
-            buffer.remove(hash);
-        } else {
-            existingRows.add(currentRow);
+            buffer.put(hash, existingRows);
         }
+        existingRows.add(currentRow);
     }
 
+    @SuppressWarnings("unchecked")
     private boolean findMatchingRows() {
         while (leftMatchingRowsIterator.hasNext()) {
             leftRow.cells(leftMatchingRowsIterator.next());
