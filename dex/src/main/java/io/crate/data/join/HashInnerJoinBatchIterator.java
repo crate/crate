@@ -68,7 +68,6 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
-    private static int DEFAULT_BUFFER_SIZE = 10_000;
     private final Predicate<C> joinCondition;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
@@ -78,6 +77,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final ArrayRow leftRow = new ArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
+    private final int blockSize;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
     HashInnerJoinBatchIterator(BatchIterator<L> left,
@@ -86,16 +86,13 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                Predicate<C> joinCondition,
                                Function<L, Integer> hashBuilderForLeft,
                                Function<R, Integer> hashBuilderForRight,
-                               int leftSize) {
+                               int blockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        if (leftSize <= 0) {
-            this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
-        } else {
-            this.buffer = new IntObjectHashMap<>(leftSize);
-        }
+        this.buffer = new IntObjectHashMap<>(blockSize > 0 ? blockSize : 500_000);
+        this.blockSize = blockSize;
         this.activeIt = left;
     }
 
@@ -122,9 +119,10 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 int hash = hashBuilderForLeft.apply(left.currentElement());
                 addToBuffer(currentRow, hash);
             }
-            if (left.allLoaded()) {
+            if (buffer.size() == blockSize || left.allLoaded()) {
                 activeIt = right;
             } else {
+                // need to load the next batch of the left relation
                 return false;
             }
         }
@@ -145,7 +143,25 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 }
             }
         }
-        return false;
+
+        if (right.allLoaded()) {
+            if (left.allLoaded()) {
+                // both sides are fully loaded, we're done here
+                // TODO: clear the buffer?
+                return false;
+            } else {
+                // reset right and switch to the left side to either move next and re-build the buffer or
+                // maybe a new batch needs to be loaded
+                right.moveToStart();
+                activeIt = left;
+                buffer.clear();
+                // TODO eek recursion, fix it with separate method
+                return moveNext();
+            }
+        } else {
+            // right side is not loaded
+            return false;
+        }
     }
 
     private void addToBuffer(Object[] currentRow, int hash) {
