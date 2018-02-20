@@ -235,15 +235,25 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 **access_key**
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable.
+  | *Default:* Globally defined environmental variable ``AWS_ACCESS_KEY_ID``.
 
-  Access key used for authentication.
+  Access key used for authentication against AWS.
+
+  .. WARNING::
+
+     If the access key is set explicity (not via environment variable) it will
+     be visible in plain text when querying the ``sys.repositories`` table.
 
 **secret_key**
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable.
+  | *Default:* Globally defined environmental variable ``AWS_SECRET_KEY``.
 
-  Secret key used for authentication.
+  Secret key used for authentication against AWS.
+
+  .. WARNING::
+
+     If the secret key is set explicity (not via environment variable) it will
+     be visible in plain text when querying the ``sys.repositories`` table.
 
 **concurrent_streams**
   | *Type:*    ``integer``
