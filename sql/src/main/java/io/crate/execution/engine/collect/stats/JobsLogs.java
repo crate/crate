@@ -22,11 +22,11 @@
 
 package io.crate.execution.engine.collect.stats;
 
+import io.crate.auth.user.User;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.auth.user.User;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -136,8 +136,8 @@ public class JobsLogs {
         }
     }
 
-    public void operationFinished(@Nullable Integer operationId, @Nullable UUID jobId, @Nullable String errorMessage, long usedBytes) {
-        if (operationId == null || jobId == null || !isEnabled()) {
+    public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage, long usedBytes) {
+        if (!isEnabled()) {
             return;
         }
         OperationContext operationContext = operationsTable.remove(uniqueOperationId(operationId, jobId));
