@@ -252,11 +252,18 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         } else {
             indices = whereClause.partitions().toArray(new String[0]);
         }
-        Map<String, Set<String>> routingMap = Collections.emptyMap();
+        Map<String, Set<String>> routingMap = null;
         if (whereClause.clusteredBy().isEmpty() == false) {
+            Set<String> routing = whereClause.routingValues();
+            if (routing == null) {
+                routing = Collections.emptySet();
+            }
             routingMap = indexNameExpressionResolver.resolveSearchRouting(
-                state, whereClause.routingValues(), indices);
+                state, routing, indices);
         }
+
+        if (routingMap == null) {
+            routingMap = Collections.emptyMap();
         }
         return routingProvider.forIndices(state, indices, routingMap, isPartitioned, shardSelection);
     }
