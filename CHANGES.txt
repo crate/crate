@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- For HTTP authentication, support was dropped for the ``X-User`` header, used
+  to provide a username, which has been deprecated in ``2.3.0.`` in favour of
+  the standard HTTP ``Authorization`` header.
+
 - Dropped support for tables that have been created with CrateDB prior to
   version 2.0. Tables which require upgrading are indicated in the cluster
   checks, including visually shown in the Admin UI, if running the latest 2.2

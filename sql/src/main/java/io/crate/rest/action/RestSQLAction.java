@@ -159,11 +159,6 @@ public class RestSQLAction extends BaseRestHandler {
         String username = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(
             request.header(HttpHeaderNames.AUTHORIZATION.toString())).v1();
 
-        // Fallback to deprecated setting
-        if (username == null || username.isEmpty()) {
-            username = request.header(AuthSettings.HTTP_HEADER_USER);
-        }
-
         // Fallback to trusted user from configuration
         if (username == null || username.isEmpty()) {
             username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);

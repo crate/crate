@@ -48,7 +48,5 @@ public final class AuthSettings {
         "auth.trust.http_default_user", "crate", Function.identity(), Setting.Property.NodeScope),
         DataTypes.STRING);
 
-    @Deprecated //Scheduled to be removed as HTTP Basic Auth Header is introduced"
-    public static final String HTTP_HEADER_USER = "X-User";
     public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 }

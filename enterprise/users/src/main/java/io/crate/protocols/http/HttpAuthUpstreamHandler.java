@@ -159,9 +159,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             // Prefer Http Basic Auth
             return CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(
                 request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
-        } else if (request.headers().contains(AuthSettings.HTTP_HEADER_USER)) {
-            // Fallback to deprecated setting
-            username = request.headers().get(AuthSettings.HTTP_HEADER_USER);
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
             if (session != null) {
