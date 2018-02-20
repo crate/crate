@@ -23,8 +23,8 @@
 package io.crate.planner;
 
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
-import com.carrotsearch.hppc.ObjectLongMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
+import com.carrotsearch.hppc.ObjectObjectMap;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -57,8 +57,8 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
         DataTypes.STRING);
 
-    static final String STMT =
-        "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
+    static final String STMT = "select cast(sum(num_docs) as long), cast(sum(size) as long), schema_name, table_name " +
+                               "from sys.shards group by 2, 3";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;
@@ -115,23 +115,23 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
         private static final Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
 
-        private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
-        private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
+        private final Consumer<ObjectObjectMap<TableIdent, TableStats.Stats>> tableStatsConsumer;
+        private ObjectObjectMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
 
-        TableStatsResultReceiver(Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer) {
+        TableStatsResultReceiver(Consumer<ObjectObjectMap<TableIdent, TableStats.Stats>> tableStatsConsumer) {
             this.tableStatsConsumer = tableStatsConsumer;
         }
 
         @Override
         public void setNextRow(Row row) {
-            TableIdent tableIdent = new TableIdent(BytesRefs.toString(row.get(1)), BytesRefs.toString(row.get(2)));
-            newStats.put(tableIdent, ((long) row.get(0)));
+            TableIdent tableIdent = new TableIdent(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
+            newStats.put(tableIdent, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
         }
 
         @Override
         public void allFinished(boolean interrupted) {
             tableStatsConsumer.accept(newStats);
-            newStats = new ObjectLongHashMap<>();
+            newStats = new ObjectObjectHashMap<>();
             super.allFinished(interrupted);
         }
 

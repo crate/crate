@@ -22,7 +22,7 @@
 
 package io.crate.planner.operators;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.TableDefinitions;
@@ -60,7 +60,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
 
     @Before
-    public void setUpExecutor() throws Exception {
+    public void setUpExecutor() {
         e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
@@ -71,13 +71,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testTablesAreSwitchedIfLeftIsSmallerThanRight() throws Exception {
+    public void testTablesAreSwitchedIfLeftIsSmallerThanRight() {
         MultiSourceSelect mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 10);
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10_000);
+        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_000, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -92,8 +92,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             is(DistributionType.BROADCAST)
         );
 
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 10_000);
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10_000, 0));
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, SessionContext.create())
@@ -112,9 +112,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                           "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 10);
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 100);
+        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(100, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -140,9 +140,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                           "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectLongHashMap<TableIdent> rowCountByTable = new ObjectLongHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, 100);
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, 10);
+        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(100, 0));
+        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());

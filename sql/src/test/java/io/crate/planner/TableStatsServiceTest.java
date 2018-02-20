@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.ObjectLongMap;
+import com.carrotsearch.hppc.ObjectObjectMap;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.RowN;
@@ -117,22 +117,31 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRowsToTableStatConversion() throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<ObjectLongMap<TableIdent>> statsFuture = new CompletableFuture<>();
+        CompletableFuture<ObjectObjectMap<TableIdent, TableStats.Stats>> statsFuture = new CompletableFuture<>();
         TableStatsService.TableStatsResultReceiver receiver =
             new TableStatsService.TableStatsResultReceiver(statsFuture::complete);
 
-        receiver.setNextRow(new RowN(new Object[]{1L, "custom", "foo"}));
-        receiver.setNextRow(new RowN(new Object[]{2L, "doc", "foo"}));
-        receiver.setNextRow(new RowN(new Object[]{3L, "bar", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{0L, 10L, "empty", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{1L, 10L, "custom", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{2L, 20L, "doc", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{3L, 30L, "bar", "foo"}));
         receiver.allFinished(false);
 
-        ObjectLongMap<TableIdent> stats = statsFuture.get(10, TimeUnit.SECONDS);
-        assertThat(stats.size(), is(3));
-        assertThat(stats.get(new TableIdent("bar", "foo")), is(3L));
+        ObjectObjectMap<TableIdent, TableStats.Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
+        assertThat(stats.size(), is(4));
+        TableStats.Stats statValues = stats.get(new TableIdent("bar", "foo"));
+        assertThat(statValues.numDocs, is(3L));
+        assertThat(statValues.sizeInBytes, is(30L));
+
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(stats);
+        assertThat(tableStats.estimatedSizePerRow(new TableIdent("bar", "foo")), is(10L));
+        assertThat(tableStats.estimatedSizePerRow(new TableIdent("empty", "foo")), is(0L));
+        assertThat(tableStats.estimatedSizePerRow(new TableIdent("notInCache", "foo")), is(-1L));
     }
 
     @Test
-    public void testStatsQueriesCorrectly() throws Throwable {
+    public void testStatsQueriesCorrectly() {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         Session session = mock(Session.class);
         when(sqlOperations.newSystemSession()).thenReturn(session);
@@ -150,7 +159,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
+    public void testNoUpdateIfLocalNodeNotAvailable() {
         final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(null);
         when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());

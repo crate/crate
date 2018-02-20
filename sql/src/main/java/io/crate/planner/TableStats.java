@@ -22,15 +22,18 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.ObjectLongHashMap;
-import com.carrotsearch.hppc.ObjectLongMap;
+import com.carrotsearch.hppc.ObjectObjectHashMap;
+import com.carrotsearch.hppc.ObjectObjectMap;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.TableIdent;
 
 public class TableStats {
 
-    private volatile ObjectLongMap<TableIdent> tableStats = new ObjectLongHashMap<>(0);
+    private static final Stats EMPTY_STATS = new Stats();
 
-    public void updateTableStats(ObjectLongMap<TableIdent> tableStats) {
+    private volatile ObjectObjectMap<TableIdent, Stats> tableStats = new ObjectObjectHashMap<>(0);
+
+    public void updateTableStats(ObjectObjectMap<TableIdent, Stats> tableStats) {
         this.tableStats = tableStats;
     }
 
@@ -43,6 +46,54 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(TableIdent tableIdent) {
-        return tableStats.getOrDefault(tableIdent, -1);
+        return tableStats.getOrDefault(tableIdent, EMPTY_STATS).numDocs;
+    }
+
+    /**
+     * Returns the size of the table in bytes.
+     * <p>
+     * <p>
+     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
+     * </p>
+     * Returns 0 if the table isn't in the cache
+     */
+    private long sizeInBytes(TableIdent tableIdent) {
+        return tableStats.getOrDefault(tableIdent, EMPTY_STATS).sizeInBytes;
+    }
+
+    /**
+     * Returns an estimation (avg) size of each row of the table in bytes.
+     * <p>
+     * <p>
+     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
+     * </p>
+     * Returns -1 if the table isn't in the cache
+     */
+    public long estimatedSizePerRow(TableIdent tableIdent) {
+        long numDocs = numDocs(tableIdent);
+        if (numDocs <= 0) {
+            return numDocs;
+        }
+        return sizeInBytes(tableIdent) / numDocs(tableIdent);
+    }
+
+    @VisibleForTesting
+    public static class Stats {
+
+        @VisibleForTesting
+        final long numDocs;
+        @VisibleForTesting
+        final long sizeInBytes;
+
+        private Stats() {
+            numDocs = -1;
+            sizeInBytes = -1;
+        }
+
+        @VisibleForTesting
+        public Stats(long numDocs, long sizeInBytes) {
+            this.numDocs = numDocs;
+            this.sizeInBytes = sizeInBytes;
+        }
     }
 }
