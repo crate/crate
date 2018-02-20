@@ -12,15 +12,11 @@ task bootstrap(type: Exec) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
-task unpackDistTar(dependsOn: [project(':app').distTar]) {
+task unpackDistTar(dependsOn: [project(':app').installDist]) {
     doLast {
         copy {
-            includeEmptyDirs = false
-            from(tarTree(project(':app').distTar.archivePath)) {
-                eachFile { details ->
-                    details.path =
-                            details.path.substring(details.relativePath.segments[0].length())
-                }
+            from(project(':app').installDist.destinationDir) {
+                includeEmptyDirs = true
             }
             into crateDist
         }
@@ -70,12 +66,12 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 }
 
 
-hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold,
+hdfsTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold,
         project(':es:es-repository-hdfs').blackBoxTestJar)
-monitoringTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
-itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
-gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
-logicTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
+monitoringTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
+itest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
+gtest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
+logicTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
 
 task cleanDocs {
     doLast {

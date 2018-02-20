@@ -53,24 +53,31 @@ JAVA_OPTS="$JAVA_OPTS -XX:CMSInitiatingOccupancyFraction=75"
 JAVA_OPTS="$JAVA_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
 
 # GC logging options
-if [ "x$CRATE_USE_GC_LOGGING" != "x" ]; then
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCTimeStamps"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDateStamps"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintClassHistogram"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
-
-  GC_LOG_DIR="$CRATE_HOME/logs";
-  JAVA_OPTS="$JAVA_OPTS -Xloggc:$GC_LOG_DIR/gc.log"
+# Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
+if [ "x$CRATE_DISABLE_GC_LOGGING" = "x" ]; then
+  # GC log directory needs to be set explicitly by packages
+  GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
+  GC_LOG_SIZE=${CRATE_GC_LOG_SIZE:-"64m"}
+  GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
 
   # Ensure that the directory for the log file exists: the JVM will not create it.
-  if [[ ! -d "$GC_LOG_DIR" ||  ! -x "$GC_LOG_DIR" ]]; then
+  if (! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"); then
     cat >&2 << EOF
-Error: GC log directory '$GC_LOG_DIR' does not exist or is not accessible.
+ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not accessible.
 EOF
     exit 1
   fi
+
+  JAVA_OPTS="$JAVA_OPTS -Xloggc:$GC_LOG_DIR/gc.log"
+  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
+  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDateStamps"
+  JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
+  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
+  # GC logging requires 16x64mb = 1g of free disk space
+  JAVA_OPTS="$JAVA_OPTS -XX:+UseGCLogFileRotation"
+  JAVA_OPTS="$JAVA_OPTS -XX:NumberOfGCLogFiles=$GC_LOG_FILES"
+  JAVA_OPTS="$JAVA_OPTS -XX:GCLogFileSize=$GC_LOG_SIZE"
+
 fi
 
 # Disables explicit GC

@@ -49,13 +49,17 @@ Breaking Changes
 Changes
 =======
 
+- Enable logging of JVM garbage collection times that help to debug memory
+  pressure and garbage collection issues. GC log files are stored separately to
+  the standard CrateDB logs and the files are log-rotated.
+
 - Added 'epoch' argument to the extract function which returns the number of
   seconds since Jan 1, 1970. For example:
   ``extract(epoch from '1970-01-01T00:00:01')`` returns ``1.0`` seconds.
 
 - Add max_token_length parameter to whitespace tokenizer.
 
-- Statistics for jobs and operations are enabled by default.  If you don't need
+- Statistics for jobs and operations are enabled by default. If you don't need
   any statistics, please set ``stats.enabled`` to ``false``.
 
 - ``ALTER TABLE <name> OPEN`` will now wait for all shards to become active

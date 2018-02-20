@@ -1,4 +1,4 @@
-@echo off
+@ECHO OFF
 
 SETLOCAL
 
@@ -45,13 +45,27 @@ set JAVA_OPTS=%JAVA_OPTS% -XX:+UseConcMarkSweepGC
 set JAVA_OPTS=%JAVA_OPTS% -XX:CMSInitiatingOccupancyFraction=75
 set JAVA_OPTS=%JAVA_OPTS% -XX:+UseCMSInitiatingOccupancyOnly
 
-REM GC logging options -- uncomment to enable
-REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCDetails
-REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCTimeStamps
-REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintClassHistogram
-REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintTenuringDistribution
-REM JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCApplicationStoppedTime
-REM JAVA_OPTS=%JAVA_OPTS% -Xloggc:/var/log/crate/gc.log
+REM GC logging default values
+SET GC_LOG_DIR=%CRATE_HOME%\logs
+SET GC_LOG_SIZE=64m
+SET GC_LOG_FILES=16
+REM Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
+if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
+
+  IF DEFINED %CRATE_GC_LOG_DIR% (SET GC_LOG_DIR=%CRATE_GC_LOG_DIR%)
+  IF DEFINED %CRATE_GC_LOG_SIZE% (SET GC_LOG_SIZE=%CRATE_GC_LOG_SIZE%)
+  IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=%CRATE_GC_LOG_FILES%)
+
+  SET JAVA_OPTS=%JAVA_OPTS% -Xloggc:%GC_LOG_DIR%\gc.log
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCDetails
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCDateStamps
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintTenuringDistribution
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCApplicationStoppedTime
+  REM GC logging requires 16x64mb = 1g of free disk space
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:+UseGCLogFileRotation
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:NumberOfGCLogFiles=%GC_LOG_FILES%
+  SET JAVA_OPTS=%JAVA_OPTS% -XX:GCLogFileSize=%GC_LOG_SIZE%
+)
 
 REM Disables explicit GC
 set JAVA_OPTS=%JAVA_OPTS% -XX:+DisableExplicitGC

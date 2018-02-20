@@ -352,6 +352,13 @@ distributions {
                 from(project.buildDir.path + "/releaseNotes") {
                     include 'CHANGES.txt'
                 }
+                File.createTempDir().with {
+                    def tmpLogs = new File(absolutePath, 'logs')
+                    tmpLogs.mkdirs()
+                    from (absolutePath) {
+                        includeEmptyDirs = true
+                    }
+                }
             }
             into("lib") {
                 from libs
