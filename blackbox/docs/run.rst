@@ -9,11 +9,11 @@ This document covers the basics of running CrateDB from the command line.
 
 .. NOTE::
 
-   For help installing CrateDB, check out `Getting Started with CrateDB`_.
+   For help installing CrateDB, check out `Getting Started With CrateDB`_.
 
    For help deploying CrateDB, check out the `CrateDB Guide`_.
 
-.. _Getting Started with CrateDB: https://crate.io/docs/crate/getting-started/en/latest/install/index.html
+.. _Getting Started With CrateDB: https://crate.io/docs/crate/getting-started/en/latest/install/index.html
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/deployment/index.html
 
 .. rubric:: Table of Contents
