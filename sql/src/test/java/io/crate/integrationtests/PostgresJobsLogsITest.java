@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -44,7 +44,7 @@ import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc(1)
-@UseRandomizedSession(schema = false) // Avoid set session stmt to interfere with tests
+@UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseSemiJoins(0) // Avoid set session stmt to interfere with tests
 @UseHashJoins(0) // Avoid set session stmt to interfere with tests
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {

@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.is;
 public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testInformationSchemaTablesReturnCorrectTablesIfCustomSchemaIsSimilarToTableName() throws Exception {
         // regression test.. this caused foobar to be detected as a table in the foo schema and caused a NPE
         execute("create table foobar (id int primary key) with (number_of_replicas = 0)");

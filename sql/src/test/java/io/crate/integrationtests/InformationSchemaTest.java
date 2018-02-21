@@ -27,7 +27,7 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -1048,7 +1048,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testRegexpMatch() throws Exception {
         execute("create blob table blob_t1");
         execute("create table t(id String)");
@@ -1061,7 +1061,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testSelectSchemata() throws Exception {
         execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response.rowCount(), is(5L));

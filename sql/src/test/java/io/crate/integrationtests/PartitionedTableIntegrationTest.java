@@ -32,7 +32,7 @@ import io.crate.metadata.Schemas;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -1680,7 +1680,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testAlterTableAddColumnOnPartitionedTableWithoutPartitions() throws Exception {
         execute("create table t (id int primary key, date timestamp primary key) " +
                 "partitioned by (date) " +
@@ -1707,7 +1707,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
         execute("create table t (id int primary key, date timestamp primary key) " +
                 "partitioned by (date) " +

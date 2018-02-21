@@ -28,7 +28,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope()
-@UseRandomizedSession(schema = false)
+@UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

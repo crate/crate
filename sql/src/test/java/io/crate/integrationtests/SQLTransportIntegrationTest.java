@@ -71,7 +71,7 @@ import io.crate.testing.TestExecutionConfig;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -136,7 +136,7 @@ import static org.hamcrest.Matchers.nullValue;
 @UseJdbc
 @UseSemiJoins
 @UseHashJoins
-@UseRandomizedSession
+@UseRandomizedSchema
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
@@ -213,7 +213,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     public String getFqn(String schema, String tableName) {
         if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
-           return tableName;
+            return tableName;
         }
         return String.format(Locale.ENGLISH, "%s.%s", schema, tableName);
     }
@@ -706,6 +706,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     /**
      * Checks if the current test method or test class is annotated with the provided {@param annotationClass}
+     *
      * @return the annotation if one is present or null otherwise
      */
     @Nullable
@@ -744,38 +745,26 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
 
     /**
-     * If the Test class or method contains a @UseRandomizedSession annotation then,
+     * If the Test class or method contains a @UseRandomizedSchema annotation then,
      * based on the schema argument, a random (unquoted) schema name is returned. The schema name consists
      * of a 1-20 character long ASCII string.
-     * For more details on the schema parameter see {@link io.crate.testing.UseRandomizedSession}
+     * For more details on the schema parameter see {@link UseRandomizedSchema}
      * <p>
      * Method annotations have higher priority than class annotations.
      */
     private String RandomizedSchema() {
-        try {
-            Class<?> clazz = this.getClass();
-            Method method = clazz.getMethod(testName.getMethodName());
-            UseRandomizedSession annotation = method.getAnnotation(UseRandomizedSession.class);
-            if (annotation == null) {
-                annotation = clazz.getAnnotation(UseRandomizedSession.class);
-                if (annotation == null) {
-                    return Schemas.DOC_SCHEMA_NAME;
-                }
-            }
-            boolean randomize_schema = annotation.schema();
-            if (randomize_schema == false) {
-                return Schemas.DOC_SCHEMA_NAME;
-            }
-
-            Random random = RandomizedContext.current().getRandom();
-            while (true) {
-                String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
-                if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName) && !Identifiers.isKeyWord(schemaName)) {
-                    return schemaName;
-                }
-            }
-        } catch (NoSuchMethodException ignored) {
+        UseRandomizedSchema annotation = getTestAnnotation(UseRandomizedSchema.class);
+        if (annotation == null || annotation.random() == false) {
             return Schemas.DOC_SCHEMA_NAME;
+        }
+
+        Random random = RandomizedContext.current().getRandom();
+        while (true) {
+            String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
+            if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName) &&
+                !Identifiers.isKeyWord(schemaName)) {
+                return schemaName;
+            }
         }
     }
 }

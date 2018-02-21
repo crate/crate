@@ -47,7 +47,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Randomness;
@@ -75,7 +75,7 @@ import static org.mockito.Mockito.mock;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
-@UseRandomizedSession(schema = false)
+@UseRandomizedSchema(random = false)
 public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";

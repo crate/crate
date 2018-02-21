@@ -29,7 +29,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSession;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -1574,7 +1574,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseRandomizedSession(schema = false)
+    @UseRandomizedSchema(random = false)
     public void testUnknownTableJobGetsRemoved() throws Exception {
         String uniqueId = UUID.randomUUID().toString();
         String stmtStr = "select '" + uniqueId + "' from foobar";

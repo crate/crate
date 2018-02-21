@@ -29,14 +29,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark a test to use a Randomized Session Context.
+ * Mark a test to use a random schema .
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Inherited
-public @interface UseRandomizedSession {
+public @interface UseRandomizedSchema {
 
     // true (default): randomize default schema
     // false:          use DOC-Schema as default
-    boolean schema() default true;
+    boolean random() default true;
 }
