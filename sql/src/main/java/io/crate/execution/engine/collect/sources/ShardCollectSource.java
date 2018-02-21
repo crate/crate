@@ -23,9 +23,7 @@ package io.crate.execution.engine.collect.sources;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
@@ -52,13 +50,15 @@ import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
 import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.expression.reference.sys.node.local.NodeSysExpression;
-import io.crate.expression.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.node.local.NodeSysExpression;
+import io.crate.expression.reference.sys.node.local.NodeSysReferenceResolver;
+import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -462,6 +462,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         shardId, collectPhase, jobCollectContext, shardCollectorProviderFactory));
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
+                } catch (IndexNotFoundException e) {
+                    // Prevent wrapping this to not break retry-detection
+                    throw e;
                 } catch (Exception e) {
                     throw new UnhandledServerException(e);
                 }
