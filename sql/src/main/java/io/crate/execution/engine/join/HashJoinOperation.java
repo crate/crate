@@ -54,7 +54,7 @@ public class HashJoinOperation implements CompletionListenable {
                              List<Symbol> joinRightInputs,
                              RowAccounting rowAccounting,
                              InputFactory inputFactory,
-                             int leftSize) {
+                             int blockSize) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -68,7 +68,7 @@ public class HashJoinOperation implements CompletionListenable {
                         getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
                         getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                         rowAccounting,
-                        leftSize
+                        blockSize
                     ), completionFuture);
                     nlResultConsumer.accept(joinIterator, null);
                 } else {
@@ -113,11 +113,11 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Function<Row, Integer> hashBuilderForLeft,
                                                              Function<Row, Integer> hashBuilderForRight,
                                                              RowAccounting rowAccounting,
-                                                             int leftSize) {
+                                                             int blockSize) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return JoinBatchIterators.hashInnerJoin(
             new RamAccountingBatchIterator<>(left, rowAccounting),
-        right, combiner, joinCondition, hashBuilderForLeft, hashBuilderForRight, leftSize);
+        right, combiner, joinCondition, hashBuilderForLeft, hashBuilderForRight, blockSize);
 
     }
 }
