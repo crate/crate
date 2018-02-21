@@ -69,7 +69,7 @@ import io.crate.execution.engine.join.NestedLoopOperation;
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.execution.support.Paging;
+import io.crate.data.Paging;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;

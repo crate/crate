@@ -20,12 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.support;
-
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+package io.crate.data;
 
 import javax.annotation.Nullable;
 
@@ -83,13 +78,4 @@ public class Paging {
         return maxRowsPerNode == -1 || maxRowsPerNode > PAGE_SIZE;
     }
 
-    public static void updateNodePageSizeHint(ExecutionPlan subExecutionPlan, int nodePageSize) {
-        if (!(subExecutionPlan instanceof Collect) || nodePageSize == -1) {
-            return;
-        }
-        CollectPhase collectPhase = ((Collect) subExecutionPlan).collectPhase();
-        if (collectPhase instanceof RoutedCollectPhase) {
-            ((RoutedCollectPhase) collectPhase).pageSizeHint(nodePageSize);
-        }
-    }
 }
