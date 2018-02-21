@@ -25,6 +25,7 @@ package io.crate.data.join;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 
 import java.util.ArrayList;
@@ -37,12 +38,11 @@ import java.util.function.Predicate;
  * <pre>
  *     Build Phase:
  *     for (leftRow in left) {
- *         calculate hash and put in Buffer (HashMap)
+ *         calculate hash and put in Buffer (HashMap) until the blockSize is reached
  *     }
- *     // All rows from left processed and inserted in the Buffer
  *
  *     Probe Phase:
- *     // From now on we only iterate on the right
+ *     // We iterate on the right until we find a matching row or the right side needs to be loaded a next batch of data
  *     for (rightRow in right) {
  *         if (hash(rightRow) found in Buffer {
  *            for (row in matchedInBuffer) { // Handle duplicate values from left and hash collisions
@@ -57,9 +57,15 @@ import java.util.function.Predicate;
  *            }
  *         }
  *     }
+ *
+ *     When the right side is all loaded, we reset the right iterator to start, clear the buffer and switch back to
+ *     iterate the next elements in the left side and re-build the buffer based on the next items in the left until we
+ *     reach the blockSize again.
+ *
+ *     Repeat until both sides are all loaded and processed.
  * </pre>
  * <p>
- * The caller of the ctor needs to pass two functions {@link #hashBuilderForLeft} and {@link #hashBuilderForRight}.
+ * The caller of the constructor needs to pass two functions {@link #hashBuilderForLeft} and {@link #hashBuilderForRight}.
  * Those functions are called on each row of the left and right side respectively and they return the hash value of
  * the relevant columns of the row.
  * <p>
@@ -68,7 +74,8 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
-    private static int DEFAULT_BUFFER_SIZE = 10_000;
+    private static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
+
     private final Predicate<C> joinCondition;
     private final IntObjectHashMap<List<Object[]>> buffer;
 
@@ -78,6 +85,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final ArrayRow leftRow = new ArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
+    private final int blockSize;
+    private int numberOfRowsInBuffer = 0;
+    private boolean leftBatchHasItems = false;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
     HashInnerJoinBatchIterator(BatchIterator<L> left,
@@ -86,16 +96,17 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                Predicate<C> joinCondition,
                                Function<L, Integer> hashBuilderForLeft,
                                Function<R, Integer> hashBuilderForRight,
-                               int leftSize) {
+                               int blockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        if (leftSize <= 0) {
-            this.buffer = new IntObjectHashMap<>(DEFAULT_BUFFER_SIZE);
+        if (blockSize > 0) {
+            this.blockSize = blockSize;
         } else {
-            this.buffer = new IntObjectHashMap<>(leftSize);
+            this.blockSize = DEFAULT_BLOCK_SIZE;
         }
+        this.buffer = new IntObjectHashMap<>(this.blockSize);
         this.activeIt = left;
     }
 
@@ -115,17 +126,45 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
     @Override
     public boolean moveNext() {
-        // Build HashMap from left relation
+        while (buildBufferAndMatchRight() == false) {
+            if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
+                // both sides are fully loaded, we're done here
+                return false;
+            } else if (activeIt == left) {
+                // left needs the next batch loaded
+                return false;
+            } else if (right.allLoaded()) {
+                right.moveToStart();
+                activeIt = left;
+                buffer.clear();
+                numberOfRowsInBuffer = 0;
+            } else {
+                return false;
+            }
+        }
+
+        // match found
+        return true;
+    }
+
+    private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
-            while (left.moveNext()) {
+            while (leftBatchHasItems = left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
                 int hash = hashBuilderForLeft.apply(left.currentElement());
                 addToBuffer(currentRow, hash);
+                if (numberOfRowsInBuffer == blockSize) {
+                    break;
+                }
             }
-            if (left.allLoaded()) {
-                activeIt = right;
-            } else {
+
+            if (leftBatchHasItems == false && numberOfRowsInBuffer < blockSize && left.allLoaded() == false) {
+                // we should load the left side
                 return false;
+            }
+
+            if (numberOfRowsInBuffer == blockSize || leftBatchHasItems == false) {
+                activeIt = right;
             }
         }
 
@@ -145,6 +184,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 }
             }
         }
+
+        // need to load the next batch of the right relation
         return false;
     }
 
@@ -155,6 +196,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             buffer.put(hash, existingRows);
         }
         existingRows.add(currentRow);
+        numberOfRowsInBuffer++;
     }
 
     @SuppressWarnings("unchecked")

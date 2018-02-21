@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -163,7 +164,7 @@ class HashJoin extends TwoInputPlan {
             leftHashInputs,
             rightHashInputs,
             Symbols.typeView(lhs.outputs()),
-            lhs.numExpectedRows());
+            Paging.PAGE_SIZE);
         return new Join(
             joinPhase,
             left,
