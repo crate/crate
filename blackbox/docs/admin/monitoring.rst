@@ -149,6 +149,15 @@ Metrics can be accessed using the JMX MBean object name
 
    Defines if the node is able to process SQL statements.
 
+Exposing JMX via HTTP
+=====================
+
+The JMX metrics and a readiness endpoint can be exposed via HTTP by using
+the `Crate JMX HTTP Exporter`_ Java agent. See the `README`_ in the `Crate JMX
+HTTP Exporter`_ repository for more information.
+
+.. _README: https://github.com/crate/jmx_exporter/blob/master/README.rst
+.. _Crate JMX HTTP Exporter: https://github.com/crate/jmx_exporter
 .. _JMX: http://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
 .. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum

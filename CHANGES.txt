@@ -49,6 +49,9 @@ Breaking Changes
 Changes
 =======
 
+- Added note about the newly available `JMX HTTP Exporter` to the monitoring
+  documentation section.
+
 - Enable logging of JVM garbage collection times that help to debug memory
   pressure and garbage collection issues. GC log files are stored separately to
   the standard CrateDB logs and the files are log-rotated.
