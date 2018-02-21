@@ -118,3 +118,11 @@ one CrateDB instance on that machine with each one having a heap size of around
 In this case consider adding: ``cluster.routing.allocation.same_shard.host:
 true`` to your config. This will prevent allocating primary and replica of the
 same shard on the same machine even if more than one instances running on it.
+
+``CRATE_GC_*``
+==============
+
+There are various environment variables to control garbage collection logging
+for CrateDB.
+
+See :ref:`conf-logging-gc`.
