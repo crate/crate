@@ -30,7 +30,7 @@ public class Constants {
     public static final String HTTP_PORT_RANGE = "4200-4300";
     public static final String TRANSPORT_PORT_RANGE = "4300-4400";
 
-    public static final int MAX_SHARD_MISSING_RETRIES = 3;
+    public static final int MAX_SHARD_MISSING_RETRIES = 10;
 
     public static final String KEYSTORE_DEFAULT_TYPE = "jks";
 }
