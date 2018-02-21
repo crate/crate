@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.support;
+package io.crate.data;
 
 import org.junit.Test;
 

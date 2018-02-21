@@ -30,7 +30,7 @@ import io.crate.data.RowConsumer;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.execution.support.Paging;
+import io.crate.data.Paging;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
