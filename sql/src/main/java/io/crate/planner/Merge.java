@@ -22,13 +22,16 @@
 
 package io.crate.planner;
 
-import io.crate.execution.support.Paging;
-import io.crate.execution.engine.pipeline.TopN;
-import io.crate.planner.distribution.DistributionInfo;
+import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.data.Paging;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.dql.Collect;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -100,7 +103,17 @@ public class Merge implements ExecutionPlan, ResultDescription {
 
     private static void maybeUpdatePageSizeHint(ExecutionPlan subExecutionPlan, int maxRowsPerNode) {
         if (Paging.shouldPage(maxRowsPerNode)) {
-            Paging.updateNodePageSizeHint(subExecutionPlan, maxRowsPerNode);
+            updateNodePageSizeHint(subExecutionPlan, maxRowsPerNode);
+        }
+    }
+
+    private static void updateNodePageSizeHint(ExecutionPlan subExecutionPlan, int nodePageSize) {
+        if (!(subExecutionPlan instanceof Collect) || nodePageSize == -1) {
+            return;
+        }
+        CollectPhase collectPhase = ((Collect) subExecutionPlan).collectPhase();
+        if (collectPhase instanceof RoutedCollectPhase) {
+            ((RoutedCollectPhase) collectPhase).pageSizeHint(nodePageSize);
         }
     }
 

@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
-import io.crate.execution.support.Paging;
+import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;

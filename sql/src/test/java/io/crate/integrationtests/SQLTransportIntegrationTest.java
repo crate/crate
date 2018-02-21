@@ -42,7 +42,7 @@ import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.kill.KillableCallable;
-import io.crate.execution.support.Paging;
+import io.crate.data.Paging;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
