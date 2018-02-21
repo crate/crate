@@ -22,7 +22,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -44,7 +43,7 @@ public class HashJoinPhase extends JoinPhase {
     private final List<Symbol> rightJoinConditionInputs;
 
     private final Collection<DataType> leftOutputTypes;
-    private final int leftNumRowsEstimate;
+    private final int blockSize;
 
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
@@ -59,7 +58,7 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> leftJoinConditionInputs,
                          List<Symbol> rightJoinConditionInputs,
                          Collection<DataType> leftOutputTypes,
-                         long leftNumRowsEstimate) {
+                         int blockSize) {
         super(
             jobId,
             executionNodeId,
@@ -76,10 +75,7 @@ public class HashJoinPhase extends JoinPhase {
         this.leftJoinConditionInputs = leftJoinConditionInputs;
         this.rightJoinConditionInputs = rightJoinConditionInputs;
         this.leftOutputTypes = leftOutputTypes;
-        if (leftNumRowsEstimate > Integer.MAX_VALUE) {
-            throw new UnsupportedFeatureException("number of rows for the smaller table must be <= max integer value");
-        }
-        this.leftNumRowsEstimate = (int) leftNumRowsEstimate;
+        this.blockSize = blockSize;
     }
 
     public HashJoinPhase(StreamInput in) throws IOException {
@@ -89,7 +85,7 @@ public class HashJoinPhase extends JoinPhase {
         rightJoinConditionInputs = Symbols.listFromStream(in);
         leftOutputTypes = DataTypes.listFromStream(in);
 
-        leftNumRowsEstimate = in.readVInt();
+        blockSize = in.readVInt();
     }
 
     @Override
@@ -100,7 +96,7 @@ public class HashJoinPhase extends JoinPhase {
         Symbols.toStream(rightJoinConditionInputs, out);
         DataTypes.toStream(leftOutputTypes, out);
 
-        out.writeVInt(leftNumRowsEstimate);
+        out.writeVInt(blockSize);
     }
 
     @Override
@@ -125,7 +121,7 @@ public class HashJoinPhase extends JoinPhase {
         return leftOutputTypes;
     }
 
-    public int leftNumRowsEstimate() {
-        return leftNumRowsEstimate;
+    public int blockSize() {
+        return blockSize;
     }
 }

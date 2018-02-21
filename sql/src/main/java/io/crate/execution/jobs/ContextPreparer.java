@@ -741,7 +741,7 @@ public class ContextPreparer extends AbstractComponent {
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
                 new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
-                phase.leftNumRowsEstimate());
+                phase.blockSize());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,

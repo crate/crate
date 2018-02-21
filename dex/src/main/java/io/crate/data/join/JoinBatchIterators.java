@@ -113,7 +113,7 @@ public final class JoinBatchIterators {
                                                                                    Predicate<C> joinCondition,
                                                                                    Function<L, Integer> hashForLeft,
                                                                                    Function<R, Integer> hashForRight,
-                                                                                   int leftSize) {
+                                                                                   int blockSize) {
         return new HashInnerJoinBatchIterator<>(
             left,
             right,
@@ -121,6 +121,6 @@ public final class JoinBatchIterators {
             joinCondition,
             hashForLeft,
             hashForRight,
-            leftSize);
+            blockSize);
     }
 }

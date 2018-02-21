@@ -157,6 +157,6 @@ public class JoinPhaseTest extends CrateUnitTest {
         assertThat(node.numLeftOutputs(), is(node2.numLeftOutputs()));
         assertThat(node.numRightOutputs(), is(node2.numRightOutputs()));
         assertThat(node.leftOutputTypes(), is(node2.leftOutputTypes()));
-        assertThat(node.leftNumRowsEstimate(), is(node2.leftNumRowsEstimate()));
+        assertThat(node.blockSize(), is(node2.blockSize()));
     }
 }
