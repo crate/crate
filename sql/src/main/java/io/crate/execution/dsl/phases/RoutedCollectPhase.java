@@ -33,7 +33,7 @@ import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.support.Paging;
+import io.crate.data.Paging;
 import io.crate.auth.user.User;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.projection.Projection;
