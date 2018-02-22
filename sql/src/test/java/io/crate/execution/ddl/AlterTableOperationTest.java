@@ -23,6 +23,7 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
@@ -74,6 +75,7 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .put(unsupportedSetting, false)
             .build();
         IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder("t1")
+            .template(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "t1"))
             .settings(unsupportedSettings)
             .build();
 

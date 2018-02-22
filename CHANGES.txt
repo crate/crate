@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+ - Updated Elasticsearch to v5.6.8
+
 Fixes
 =====
 
