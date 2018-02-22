@@ -20,9 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.engine.fetch;
-
-import io.crate.data.Row;
+package io.crate.data;
 
 /**
  * An array backed row, which returns the inner array upon materialize.
@@ -31,9 +29,17 @@ import io.crate.data.Row;
  * {@link #materialize()} (to optimize performance) therefore should be used
  * in special cases, since not copying the array returned can lead to data errors.
  */
-class UnsafeArrayRow implements Row {
+public class UnsafeArrayRow implements Row {
 
     Object[] cells;
+
+    public void cells(Object[] cells) {
+        this.cells = cells;
+    }
+
+    public Object[] cells() {
+        return cells;
+    }
 
     @Override
     public int numColumns() {
