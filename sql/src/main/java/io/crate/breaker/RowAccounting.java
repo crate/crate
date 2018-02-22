@@ -79,4 +79,8 @@ public class RowAccounting {
     public void close() {
         ramAccountingContext.close();
     }
+
+    public void release() {
+        ramAccountingContext.release();
+    }
 }
