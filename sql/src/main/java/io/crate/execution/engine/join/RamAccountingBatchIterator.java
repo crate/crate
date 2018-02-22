@@ -34,7 +34,7 @@ import javax.annotation.Nonnull;
  * to apply the circuit breaking logic by calculating memory occupied for all rows of the iterator.
  * <p>
  * This wrapper can be typically used when the BatchIterator consumer "reads" all
- * elements of the iterator and keeps them in memory. e.g.: {@link io.crate.data.join.HashInnerJoinBatchIterator}
+ * elements of the iterator and keeps them in memory. e.g.: {@link HashInnerJoinBatchIterator}
  * keeps in memory all elements of the left side to build the HashMap used for the Hash-Join execution.
  */
 public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIterator<T> {

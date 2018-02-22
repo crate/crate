@@ -20,13 +20,15 @@
  * agreement.
  */
 
-package io.crate.data.join;
+package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.data.join.ElementCombiner;
+import io.crate.data.join.JoinBatchIterator;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -90,13 +92,13 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private boolean leftBatchHasItems = false;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
-    HashInnerJoinBatchIterator(BatchIterator<L> left,
-                               BatchIterator<R> right,
-                               ElementCombiner<L, R, C> combiner,
-                               Predicate<C> joinCondition,
-                               Function<L, Integer> hashBuilderForLeft,
-                               Function<R, Integer> hashBuilderForRight,
-                               int blockSize) {
+    public HashInnerJoinBatchIterator(BatchIterator<L> left,
+                                      BatchIterator<R> right,
+                                      ElementCombiner<L, R, C> combiner,
+                                      Predicate<C> joinCondition,
+                                      Function<L, Integer> hashBuilderForLeft,
+                                      Function<R, Integer> hashBuilderForRight,
+                                      int blockSize) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;

@@ -23,9 +23,7 @@
 package io.crate.data.join;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Row;
 
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -37,7 +35,6 @@ import java.util.function.Predicate;
  * <li>{@link #fullOuterJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #semiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
  * <li>{@link #antiJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate)}</li>
- * <li>{@link #hashInnerJoin(BatchIterator, BatchIterator, ElementCombiner, Predicate, int)}</li>
  * </ul>
  */
 public final class JoinBatchIterators {
@@ -102,25 +99,5 @@ public final class JoinBatchIterators {
                                                       ElementCombiner<L, R, C> combiner,
                                                       Predicate<C> joinCondition) {
         return new AntiJoinNLBatchIterator<>(left, right, combiner, joinCondition);
-    }
-
-    /**
-     * Create a HashJoin BatchIterator that creates the inner equi-join result of {@code left} and {@code right}.
-     */
-    public static <L extends Row, R extends Row, C> BatchIterator<C> hashInnerJoin(BatchIterator<L> left,
-                                                                                   BatchIterator<R> right,
-                                                                                   ElementCombiner<L, R, C> combiner,
-                                                                                   Predicate<C> joinCondition,
-                                                                                   Function<L, Integer> hashForLeft,
-                                                                                   Function<R, Integer> hashForRight,
-                                                                                   int blockSize) {
-        return new HashInnerJoinBatchIterator<>(
-            left,
-            right,
-            combiner,
-            joinCondition,
-            hashForLeft,
-            hashForRight,
-            blockSize);
     }
 }

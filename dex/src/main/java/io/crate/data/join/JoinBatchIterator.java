@@ -45,16 +45,16 @@ import java.util.concurrent.CompletionStage;
  */
 public abstract class JoinBatchIterator<L, R, C> implements BatchIterator<C> {
 
-    final ElementCombiner<L, R, C> combiner;
-    final BatchIterator<L> left;
-    final BatchIterator<R> right;
+    protected final ElementCombiner<L, R, C> combiner;
+    protected final BatchIterator<L> left;
+    protected final BatchIterator<R> right;
 
     /**
      * points to the batchIterator which will be used on the next {@link #moveNext()} call
      */
-    BatchIterator activeIt;
+    protected BatchIterator activeIt;
 
-    JoinBatchIterator(BatchIterator<L> left, BatchIterator<R> right, ElementCombiner<L, R, C> combiner) {
+    protected JoinBatchIterator(BatchIterator<L> left, BatchIterator<R> right, ElementCombiner<L, R, C> combiner) {
         this.left = left;
         this.right = right;
         this.activeIt = left;

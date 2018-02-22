@@ -23,7 +23,7 @@
 package io.crate.breaker;
 
 import io.crate.data.Row;
-import io.crate.data.join.HashInnerJoinBatchIterator;
+import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 
 import java.util.ArrayList;
