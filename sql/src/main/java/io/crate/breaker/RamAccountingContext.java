@@ -164,6 +164,24 @@ public class RamAccountingContext {
     }
 
     /**
+     * Release all the bytes that have been flushed to the breaker so far, and the bytes that are in the buffer "to be
+     * flushed" are not accounted for in the breaker anymore.
+     * <p>
+     * The purpose of this method is to substract everything that this context added to the breaker so far in order
+     * to be reused in a multi-phase operation where a subsequent phase needs to make decisions based on the available
+     * memory after the previous phase completed (and needs to be unloaded/released from the breaker)
+     */
+    public void release() {
+        if (totalBytes.get() != 0) {
+            if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
+                logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
+            }
+            breaker.addWithoutBreaking(-totalBytes.getAndSet(0));
+        }
+        flushBuffer.getAndSet(0);
+    }
+
+    /**
      * Returns true if the limit of the breaker was already reached
      */
     public boolean trippedBreaker() {
