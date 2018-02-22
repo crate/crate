@@ -23,10 +23,10 @@
 package io.crate.data.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
-import io.crate.data.ArrayRow;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
+import io.crate.data.UnsafeArrayRow;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -82,7 +82,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
-    private final ArrayRow leftRow = new ArrayRow();
+    private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
     private final int blockSize;
