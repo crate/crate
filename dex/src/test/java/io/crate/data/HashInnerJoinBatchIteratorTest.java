@@ -106,6 +106,11 @@ public class HashInnerJoinBatchIteratorTest {
                 TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
               (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
                 TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
+              resultForDuplicateValues),
+            $("DuplicateValues-leftLoadedRightBatched",
+              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
+              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+              TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
               resultForDuplicateValues));
     }
 
@@ -134,6 +139,36 @@ public class HashInnerJoinBatchIteratorTest {
             getHashWithCollisions(),
             getHashWithCollisions(),
             5
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+            leftIterator.get(),
+            rightIterator.get(),
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashForLeft(),
+            getHashForRight(),
+            1
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+            leftIterator.get(),
+            rightIterator.get(),
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashForLeft(),
+            getHashForRight(),
+            3
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
