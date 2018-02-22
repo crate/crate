@@ -20,12 +20,14 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.execution.engine.join;
 
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterators;
 import io.crate.testing.BatchIteratorTester;
@@ -118,7 +120,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoin() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -133,7 +135,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithHashCollisions() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -148,7 +150,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),
@@ -163,7 +165,7 @@ public class HashInnerJoinBatchIteratorTest {
 
     @Test
     public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
-        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashInnerJoinBatchIterator<>(
             leftIterator.get(),
             rightIterator.get(),
             new CombinedRow(1, 1),

@@ -29,7 +29,6 @@ import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.join.CombinedRow;
-import io.crate.data.join.JoinBatchIterators;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
@@ -115,9 +114,7 @@ public class HashJoinOperation implements CompletionListenable {
                                                              RowAccounting rowAccounting,
                                                              int blockSize) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
-        return JoinBatchIterators.hashInnerJoin(
-            new RamAccountingBatchIterator<>(left, rowAccounting),
-        right, combiner, joinCondition, hashBuilderForLeft, hashBuilderForRight, blockSize);
-
+        return new HashInnerJoinBatchIterator<>(new RamAccountingBatchIterator<>(left, rowAccounting),
+            right, combiner, joinCondition, hashBuilderForLeft, hashBuilderForRight, blockSize);
     }
 }
