@@ -31,6 +31,7 @@ import io.crate.data.join.JoinBatchIterators;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -134,6 +135,36 @@ public class HashInnerJoinBatchIteratorTest {
             getHashWithCollisions(),
             getHashWithCollisions(),
             5
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+            leftIterator.get(),
+            rightIterator.get(),
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashForLeft(),
+            getHashForRight(),
+            1
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
+        Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> JoinBatchIterators.hashInnerJoin(
+            leftIterator.get(),
+            rightIterator.get(),
+            new CombinedRow(1, 1),
+            getCol0EqCol1JoinCondition(),
+            getHashForLeft(),
+            getHashForRight(),
+            3
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
