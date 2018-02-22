@@ -53,6 +53,10 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), greaterThan(0L));
 
+        // clear the logs; the next statements could all hit the same node
+        // which would mean that "select name from sys.cluster" or "select * from sys.jobs_log" would still be present in sys.jobs
+        // (Each node has its own local <jobs_log_size> entries)
+        execute("set global transient stats.jobs_log_size=0");
         execute("set global transient stats.jobs_log_size=1");
 
         execute("select id from sys.cluster");
