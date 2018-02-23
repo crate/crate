@@ -27,6 +27,9 @@ import com.carrotsearch.hppc.ObjectObjectMap;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.TableIdent;
 
+/**
+ * Holds table statistics that are updated periodically by {@link TableStatsService}.
+ */
 public class TableStats {
 
     private static final Stats EMPTY_STATS = new Stats();

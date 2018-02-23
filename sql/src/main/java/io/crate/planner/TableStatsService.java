@@ -50,6 +50,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
+/**
+ * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
+ */
 @Singleton
 public class TableStatsService extends AbstractComponent implements Runnable {
 
@@ -67,7 +70,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
     private final Session session;
 
     @VisibleForTesting
-    ThreadPool.Cancellable refreshScheduledTask = null;
+    ThreadPool.Cancellable refreshScheduledTask;
     @VisibleForTesting
     TimeValue refreshInterval;
 
