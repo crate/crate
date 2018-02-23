@@ -58,7 +58,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         DataTypes.STRING);
 
     static final String STMT = "select cast(sum(num_docs) as long), cast(sum(size) as long), schema_name, table_name " +
-                               "from sys.shards group by 2, 3";
+                               "from sys.shards where primary=true group by 3, 4";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;
