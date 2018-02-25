@@ -21,16 +21,18 @@
 
 package io.crate.sql.tree;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import java.util.Locale;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Immutable
 public class Extract
     extends Expression {
     private final Expression expression;
-    private final Expression field;
+    private final Field field;
 
     public enum Field {
         CENTURY,
@@ -52,21 +54,19 @@ public class Extract
         EPOCH
     }
 
-    public Extract(Expression expression, Expression field) {
+    public Extract(@Nullable Expression expression, StringLiteral field) {
         checkNotNull(expression, "expression is null");
-        checkNotNull(field, "field is null");
-        checkArgument(field instanceof StringLiteral || field instanceof ParameterExpression,
-            // (ident is converted to StringLiteral in StatementBuilder.g
-            "field must be an ident, a string literal or a parameter expression");
+        // field: ident is converted to StringLiteral in SqlBase.g
         this.expression = expression;
-        this.field = field;
+        this.field = Field.valueOf(field.getValue().toUpperCase(Locale.ENGLISH));
     }
 
+    @Nullable
     public Expression getExpression() {
         return expression;
     }
 
-    public Expression getField() {
+    public Field getField() {
         return field;
     }
 

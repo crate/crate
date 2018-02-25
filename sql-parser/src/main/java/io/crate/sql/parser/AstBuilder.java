@@ -1216,7 +1216,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
-        return new Extract((Expression) visit(context.expr()), (Expression) visit(context.identExpr()));
+        return new Extract((Expression) visit(context.expr()),
+            (StringLiteral) visit(context.stringLiteralOrIdentifier()));
     }
 
     @Override

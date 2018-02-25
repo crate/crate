@@ -49,6 +49,9 @@ Breaking Changes
 Changes
 =======
 
+- The first argument (``field``) of the ``EXTRACT`` function has been limited
+  to string literals and identifiers, as it was documented.
+
 - Added note about the newly available `JMX HTTP Exporter` to the monitoring
   documentation section.
 

@@ -1590,14 +1590,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testExtractFunctionWithLiteral() throws Exception {
-        QueriedRelation relation = analyze("select extract(? from '2012-03-24') from users", $("day"));
+    public void testExtractFunctionWithLiteral() {
+        QueriedRelation relation = analyze("select extract('day' from '2012-03-24') from users");
         Symbol symbol = relation.querySpec().outputs().get(0);
         assertThat(symbol, isLiteral(24));
     }
 
     @Test
-    public void testExtractFunctionWithWrongType() throws Exception {
+    public void testExtractFunctionWithWrongType() {
         QueriedRelation relation = analyze("select extract(day from name::timestamp) from users");
         Symbol symbol = relation.querySpec().outputs().get(0);
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
@@ -1607,7 +1607,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testExtractFunctionWithCorrectType() throws Exception {
+    public void testExtractFunctionWithCorrectType() {
         QueriedRelation relation = analyze("select extract(day from timestamp) from transactions");
 
         Symbol symbol = relation.querySpec().outputs().get(0);

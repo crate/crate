@@ -54,10 +54,10 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testNullNotAllowedAsArgToExtractField() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("field must be an ident, a string literal or a parameter expression");
-        printStatement("select extract(null from x) from y");
+    public void testNullNotAllowedAsArgToExtractField() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("viable alternative at input 'select extract(null'");
+        printStatement("select extract(null from x)");
     }
 
     @Test
@@ -568,8 +568,7 @@ public class TestStatementBuilder {
         printStatement("select * from foo a (x, y, z)");
         printStatement("select *, 123, * from foo");
         printStatement("select show from foo");
-        printStatement("select extract(day from x), extract(dow from x) from y");
-        printStatement("select extract('day' from x), extract(? from x) from y");
+        printStatement("select extract(day from x), extract('day' from x) from y");
 
         printStatement("select 1 + 13 || '15' from foo");
         printStatement("select \"test\" from foo");

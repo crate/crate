@@ -24,36 +24,23 @@ package io.crate.expression.scalar;
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.params.FuncParams;
-import io.crate.metadata.functions.params.Param;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.joda.Joda;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
-import java.util.List;
 import java.util.Locale;
 
 public class ExtractFunctions {
 
     private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.of(DataTypes.TIMESTAMP);
-    public static final String GENERIC_NAME = "_extract";
-    public static final FunctionInfo GENERIC_INFO = new FunctionInfo(
-        new FunctionIdent(GENERIC_NAME, ImmutableList.of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
     private static final String NAME_PREFIX = "extract_";
 
     private static final String EXTRACT_EPOCH_PREFIX = "extract(epoch from ";
@@ -82,11 +69,9 @@ public class ExtractFunctions {
         scalarFunctionModule.register(ExtractMinute.INSTANCE);
         scalarFunctionModule.register(ExtractSecond.INSTANCE);
         scalarFunctionModule.register(ExtractEpoch.INSTANCE);
-        // The resolver translates to a specialized version of extract
-        scalarFunctionModule.register(GENERIC_NAME, new ExtractFunctionResolver());
     }
 
-    static Scalar<Number, Long> getScalar(Extract.Field field) {
+    public static Scalar<Number, Long> getScalar(Extract.Field field) {
         switch (field) {
             case CENTURY:
                 return ExtractCentury.INSTANCE;
@@ -121,73 +106,6 @@ public class ExtractFunctions {
             default:
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
-        }
-    }
-
-    private static class ExtractFunctionResolver extends BaseFunctionResolver {
-
-        public static final FunctionImplementation INSTANCE = new ExtractFunction();
-
-        public ExtractFunctionResolver() {
-            super(FuncParams.builder(Param.STRING, Param.of(DataTypes.TIMESTAMP)).build());
-        }
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> symbols) throws IllegalArgumentException {
-            return INSTANCE;
-        }
-    }
-
-    /**
-     * This is a generic ExtractFunction variant: _extract(field from ts).
-     * Where the field doesn't yet have a value (either because it is a parameter or because of lazy evaluation)
-     *
-     * As soon as the field has an actual value it will be re-written to one of the concrete extract_ variants.
-     */
-    private static class ExtractFunction extends Scalar<Object, Object> implements FunctionFormatSpec {
-
-
-        private ExtractFunction() {
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return GENERIC_INFO;
-        }
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
-            Symbol arg1 = symbol.arguments().get(0);
-            if (arg1.symbolType().isValueSymbol()) {
-                String field = ValueSymbolVisitor.STRING.process(arg1);
-
-                Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
-                Function function = new Function(scalar.info(), ImmutableList.of(symbol.arguments().get(1)));
-                return scalar.normalizeSymbol(function, transactionContext);
-            }
-            return super.normalizeSymbol(symbol, transactionContext);
-        }
-
-        @Override
-        public final Object evaluate(Input[] args) {
-            String field = BytesRefs.toString(args[0].value());
-            Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
-            return scalar.evaluate(args[1]);
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return SymbolFormatter.format("extract(%s from %s", function.arguments().toArray(new Symbol[0]));
-        }
-
-        @Override
-        public String afterArgs(Function function) {
-            return SymbolPrinter.Strings.PAREN_CLOSE;
-        }
-
-        @Override
-        public boolean formatArgs(Function function) {
-            return false;
         }
     }
 

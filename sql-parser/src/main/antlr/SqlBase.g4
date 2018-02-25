@@ -235,7 +235,7 @@ primaryExpression
     | (CURRENT_USER | USER)                                                          #currentUser
     | SESSION_USER                                                                   #sessionUser
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
-    | EXTRACT '(' identExpr FROM expr ')'                                            #extract
+    | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
     | CAST '(' expr AS dataType ')'                                                  #cast
     | TRY_CAST '(' expr AS dataType ')'                                              #cast
     | CASE valueExpression whenClause+ (ELSE elseExpr=expr)? END                     #simpleCase
@@ -342,6 +342,11 @@ ident
 
 quotedIdentifier
     : QUOTED_IDENTIFIER
+    ;
+
+stringLiteralOrIdentifier
+    : ident
+    | stringLiteral
     ;
 
 numericLiteral

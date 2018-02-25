@@ -339,8 +339,8 @@ Synopsis
     EXTRACT( field FROM expression )
 
 :field:
-  An identifier which identifies the part of the timestamp that should
-  be extracted.
+  An identifier or string literal which identifies the part of the timestamp
+  that should be extracted.
 
 :expression:
   An expression that resolves to a timestamp or is castable to timestamp.
@@ -348,11 +348,11 @@ Synopsis
 ::
 
     cr> select extract(day from '2014-08-23') from sys.cluster;
-    +----------------------------------+
-    | EXTRACT('day' FROM '2014-08-23') |
-    +----------------------------------+
-    |                               23 |
-    +----------------------------------+
+    +--------------------------------+
+    | EXTRACT(DAY FROM '2014-08-23') |
+    +--------------------------------+
+    |                             23 |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 ``source`` must be an expression that returns a timestamp. In case the

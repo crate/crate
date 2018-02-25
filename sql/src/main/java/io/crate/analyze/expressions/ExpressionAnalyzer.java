@@ -50,6 +50,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
@@ -491,10 +492,11 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitExtract(Extract node, ExpressionAnalysisContext context) {
             Symbol expression = process(node.getExpression(), context);
-            Symbol field = process(node.getField(), context);
+            Scalar<Number, Long> scalar = ExtractFunctions.getScalar(node.getField());
+            FunctionInfo functionInfo = scalar.info();
             return allocateFunction(
-                ExtractFunctions.GENERIC_NAME,
-                ImmutableList.of(field, expression),
+                functionInfo.ident().name(),
+                ImmutableList.of(expression),
                 context);
         }
 

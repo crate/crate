@@ -226,9 +226,9 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testExtract() throws Exception {
+    public void testExtract() {
         assertPrintIsParseable("to_long(extract(century from '1970-01-01'))");
-        assertPrintIsParseable("to_long(extract(day_of_week from 0))");
+        assertPrintIsParseable("to_long(extract(day_of_week from current_timestamp))");
     }
 
     @Test
