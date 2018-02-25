@@ -24,8 +24,8 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
@@ -34,13 +34,14 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class SysOperationsTableInfo extends StaticTableInfo {
 
@@ -52,9 +53,12 @@ public class SysOperationsTableInfo extends StaticTableInfo {
         public static final ColumnIdent NAME = new ColumnIdent("name");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
         static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+        static final ColumnIdent NODE = new ColumnIdent("_node");
+        static final ColumnIdent NODE_ID = new ColumnIdent("_node", "id");
+        static final ColumnIdent NODE_NAME = new ColumnIdent("_node", "name");
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions() {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
             .put(SysOperationsTableInfo.Columns.ID,
                 () -> RowContextCollectorExpression.objToBytesRef(OperationContext::id))
@@ -70,32 +74,26 @@ public class SysOperationsTableInfo extends StaticTableInfo {
                 }
                 return r.usedBytes;
             }))
+            .put(Columns.NODE, () -> RowContextCollectorExpression.forFunction(ignored -> ImmutableMap.of(
+                "id", new BytesRef(localNode.get().getId()),
+                "name", new BytesRef(localNode.get().getName())
+            )))
+            .put(Columns.NODE_ID, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getId())))
+            .put(Columns.NODE_NAME, () -> RowContextCollectorExpression.forFunction(ignored -> new BytesRef(localNode.get().getName())))
             .build();
     }
 
-    private final TableColumn nodesTableColumn;
-
-    SysOperationsTableInfo(SysNodesTableInfo sysNodesTableInfo) {
+    SysOperationsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register(Columns.ID, DataTypes.STRING)
                 .register(Columns.JOB_ID, DataTypes.STRING)
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.STARTED, DataTypes.TIMESTAMP)
                 .register(Columns.USED_BYTES, DataTypes.LONG)
-                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+                .register(Columns.NODE, DataTypes.OBJECT)
+                .register(Columns.NODE_ID, DataTypes.STRING)
+                .register(Columns.NODE_NAME, DataTypes.STRING),
             Collections.emptyList());
-        nodesTableColumn = sysNodesTableInfo.tableColumn();
-    }
-
-
-    @Nullable
-    @Override
-    public Reference getReference(ColumnIdent columnIdent) {
-        Reference info = super.getReference(columnIdent);
-        if (info == null) {
-            return nodesTableColumn.getReference(this.ident(), columnIdent);
-        }
-        return info;
     }
 
     @Override

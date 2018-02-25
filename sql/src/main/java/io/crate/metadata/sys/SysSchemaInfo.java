@@ -48,7 +48,7 @@ public class SysSchemaInfo implements SchemaInfo {
         tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(sysNodesTableInfo));
         tableInfos.put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo());
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo());
-        tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(sysNodesTableInfo));
+        tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo());
         tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo());
         tableInfos.put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo());
         tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), new SysNodeChecksTableInfo());

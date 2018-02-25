@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
-import io.crate.metadata.TableIdent;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -34,6 +33,8 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
+import io.crate.metadata.TableIdent;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
@@ -51,6 +52,7 @@ public class SysTableDefinitions {
 
     @Inject
     public SysTableDefinitions(JobsLogs jobsLogs,
+                               ClusterService clusterService,
                                Set<SysCheck> sysChecks,
                                SysNodeChecks sysNodeChecks,
                                RepositoriesService repositoriesService,
@@ -66,7 +68,7 @@ public class SysTableDefinitions {
         ));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),
-            SysOperationsTableInfo.expressions()
+            SysOperationsTableInfo.expressions(clusterService::localNode)
         ));
         tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.operationsLog()),
