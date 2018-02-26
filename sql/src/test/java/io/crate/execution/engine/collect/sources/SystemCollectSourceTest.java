@@ -28,6 +28,10 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.snapshot.SysSnapshot;
+import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -37,11 +41,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
-import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.expression.reference.sys.snapshot.SysSnapshot;
-import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -68,9 +68,6 @@ import static org.mockito.Mockito.mock;
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
-    private static final StaticTableReferenceResolver<UnassignedShard> REFERENCE_RESOLVER =
-        new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
-
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
         SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
@@ -92,14 +89,22 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         );
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
 
-        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, false)
-            .apply(Collections.singletonList(new UnassignedShard(
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
+            collectPhase,
+            unassignedShardRefResolver(),
+            false
+        ).apply(Collections.singletonList(new UnassignedShard(
                 new ShardId("foo", UUIDs.randomBase64UUID(),1),
                 mock(ClusterService.class),
                 true,
                 ShardRoutingState.UNASSIGNED)));
         Row next = rows.iterator().next();
         assertThat(next.numColumns(), is(1));
+    }
+
+    private StaticTableReferenceResolver<UnassignedShard> unassignedShardRefResolver() {
+        return new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions(
+            internalCluster().getDataNodeInstance(ClusterService.class)::localNode));
     }
 
     @Test
@@ -122,7 +127,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         noReadIsolationIterable.add("a");
         noReadIsolationIterable.add("b");
 
-        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, false)
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
+            collectPhase, unassignedShardRefResolver(), false)
             .apply(noReadIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
@@ -134,7 +140,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         readIsolationIterable.add("a");
         readIsolationIterable.add("b");
 
-        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, true)
+        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, unassignedShardRefResolver(), true)
             .apply(readIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 

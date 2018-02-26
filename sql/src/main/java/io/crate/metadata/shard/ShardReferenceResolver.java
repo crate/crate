@@ -24,18 +24,9 @@ package io.crate.metadata.shard;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.MapBackedRefResolver;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.LiteralNestableInput;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
 import io.crate.expression.reference.sys.shard.ShardNumDocsExpression;
 import io.crate.expression.reference.sys.shard.ShardPartitionIdentExpression;
@@ -47,6 +38,15 @@ import io.crate.expression.reference.sys.shard.ShardRelocatingNodeExpression;
 import io.crate.expression.reference.sys.shard.ShardRoutingStateExpression;
 import io.crate.expression.reference.sys.shard.ShardSizeExpression;
 import io.crate.expression.reference.sys.shard.ShardStateExpression;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -94,7 +94,7 @@ public class ShardReferenceResolver {
         builder.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
         builder.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
-
+        builder.put(SysShardsTableInfo.ReferenceIdents.NODE, new NodeNestableInput(clusterService.localNode()));
         return new MapBackedRefResolver(builder.build());
     }
 

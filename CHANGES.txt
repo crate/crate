@@ -46,6 +46,11 @@ Breaking Changes
   removed. Nodes will recover their unassigned local primary shards
   immediatelly after restart.
 
+- The `_node` column on `sys.shards` and `sys.operations` is now visible by
+  default, but have been trimmed to only include `_node['id']` and
+  `_node['name']`. In order to get all information a join query can be used
+  with `sys.nodes`.
+
 Changes
 =======
 

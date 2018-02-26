@@ -23,18 +23,18 @@
 package io.crate.execution.engine.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.execution.jobs.SharedShardContext;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
-import io.crate.metadata.Functions;
-import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
-import io.crate.expression.InputFactory;
-import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.BlobOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
+import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.jobs.SharedShardContext;
+import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.blob.BlobReferenceResolver;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.metadata.Functions;
+import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -55,7 +55,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       Settings settings,
                                       TransportActionProvider transportActionProvider,
                                       BigArrays bigArrays) {
-        super(clusterService, nodeJobsCounter, BlobShardReferenceResolver.create(blobShard), functions,
+        super(clusterService, nodeJobsCounter, BlobShardReferenceResolver.create(blobShard, clusterService.localNode()),
+            functions,
             threadPool, settings, transportActionProvider, blobShard.indexShard(), bigArrays);
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;

@@ -22,13 +22,9 @@
 package io.crate.metadata.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.MapBackedRefResolver;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.LiteralNestableInput;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardMinLuceneVersionExpression;
 import io.crate.expression.reference.sys.shard.ShardPathExpression;
 import io.crate.expression.reference.sys.shard.ShardPrimaryExpression;
@@ -40,7 +36,13 @@ import io.crate.expression.reference.sys.shard.blob.BlobShardBlobPathExpression;
 import io.crate.expression.reference.sys.shard.blob.BlobShardNumDocsExpression;
 import io.crate.expression.reference.sys.shard.blob.BlobShardSizeExpression;
 import io.crate.expression.reference.sys.shard.blob.BlobShardTableNameExpression;
+import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.shard.NodeNestableInput;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -48,7 +50,7 @@ import java.util.HashMap;
 
 public class BlobShardReferenceResolver {
 
-    public static ReferenceResolver<NestableInput<?>> create(BlobShard blobShard) {
+    public static ReferenceResolver<NestableInput<?>> create(BlobShard blobShard, DiscoveryNode localNode) {
         IndexShard indexShard = blobShard.indexShard();
         ShardId shardId = indexShard.shardId();
         HashMap<ReferenceIdent, NestableInput> implementations = new HashMap<>(15);
@@ -72,6 +74,8 @@ public class BlobShardReferenceResolver {
         implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.NODE, new NodeNestableInput(localNode));
         return new MapBackedRefResolver(implementations);
     }
+
 }

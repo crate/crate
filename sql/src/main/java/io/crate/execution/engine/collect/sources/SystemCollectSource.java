@@ -24,14 +24,23 @@ package io.crate.execution.engine.collect.sources;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.data.RowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
+import io.crate.execution.engine.collect.CrateCollector;
+import io.crate.execution.engine.collect.JobCollectContext;
+import io.crate.execution.engine.collect.RowsTransformer;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.StaticTableDefinition;
+import io.crate.expression.reference.sys.SysRowUpdater;
+import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.InformationSchemaTableDefinitions;
@@ -40,19 +49,6 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
-import io.crate.expression.InputFactory;
-import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
-import io.crate.execution.engine.collect.CrateCollector;
-import io.crate.execution.engine.collect.JobCollectContext;
-import io.crate.execution.engine.collect.RowsTransformer;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.StaticTableDefinition;
-import io.crate.expression.reference.sys.SysRowUpdater;
-import io.crate.expression.reference.sys.check.node.SysNodeChecks;
-import io.crate.expression.reference.sys.node.local.NodeSysExpression;
-import io.crate.expression.reference.sys.node.local.NodeSysReferenceResolver;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
@@ -69,8 +65,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
  */
 public class SystemCollectSource implements CollectSource {
 
-    private final Functions functions;
-    private final NodeSysExpression nodeSysExpression;
     private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
@@ -82,15 +76,12 @@ public class SystemCollectSource implements CollectSource {
     @Inject
     public SystemCollectSource(ClusterService clusterService,
                                Functions functions,
-                               NodeSysExpression nodeSysExpression,
                                InformationSchemaTableDefinitions informationSchemaTables,
                                SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
                                PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
         inputFactory = new InputFactory(functions);
-        this.functions = functions;
-        this.nodeSysExpression = nodeSysExpression;
         this.informationSchemaTables = informationSchemaTables;
         this.sysTables = sysTableDefinitions;
         this.pgCatalogTables = pgCatalogTables;
@@ -123,10 +114,6 @@ public class SystemCollectSource implements CollectSource {
                                        RowConsumer consumer,
                                        JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        // sys.operations can contain a _node column - these refs need to be normalized into literals
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, new NodeSysReferenceResolver(nodeSysExpression), null);
-        final RoutedCollectPhase routedCollectPhase = collectPhase.normalize(normalizer, null);
 
         boolean requiresScroll = consumer.requiresScroll();
 
@@ -136,9 +123,9 @@ public class SystemCollectSource implements CollectSource {
         StaticTableDefinition<?> tableDefinition = tableDefinition(tableIdent);
 
         return BatchIteratorCollectorBridge.newInstance(
-            () -> tableDefinition.getIterable(routedCollectPhase.user()).get().thenApply(dataIterable ->
+            () -> tableDefinition.getIterable(collectPhase.user()).get().thenApply(dataIterable ->
                 InMemoryBatchIterator.of(
-                    dataIterableToRowsIterable(routedCollectPhase,
+                    dataIterableToRowsIterable(collectPhase,
                         tableDefinition.getReferenceResolver(),
                         requiresScroll, dataIterable),
                     SENTINEL

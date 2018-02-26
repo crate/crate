@@ -40,12 +40,10 @@ public class SysSchemaInfo implements SchemaInfo {
 
     @Inject
     public SysSchemaInfo() {
-        SysNodesTableInfo sysNodesTableInfo = new SysNodesTableInfo();
-
         tableInfos = new HashMap<>();
         tableInfos.put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo());
-        tableInfos.put(SysNodesTableInfo.IDENT.name(), sysNodesTableInfo);
-        tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo(sysNodesTableInfo));
+        tableInfos.put(SysNodesTableInfo.IDENT.name(), new SysNodesTableInfo());
+        tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo());
         tableInfos.put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo());
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), new SysJobsLogTableInfo());
         tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo());

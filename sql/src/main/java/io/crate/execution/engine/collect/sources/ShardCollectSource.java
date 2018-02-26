@@ -56,12 +56,11 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.expression.reference.sys.node.local.NodeSysExpression;
-import io.crate.expression.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
@@ -93,6 +92,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,9 +152,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
 @Singleton
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
 
-    private static final StaticTableReferenceResolver<UnassignedShard> UNASSIGNED_SHARD_SREFERENCE_RESOLVER =
-        new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
-
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final RemoteCollectorFactory remoteCollectorFactory;
@@ -165,6 +162,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
     private final ShardCollectorProviderFactory shardCollectorProviderFactory;
+    private final StaticTableReferenceResolver<UnassignedShard> unassignedShardReferenceResolver;
 
     @Inject
     public ShardCollectSource(Settings settings,
@@ -178,11 +176,12 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               TransportActionProvider transportActionProvider,
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
-                              NodeSysExpression nodeSysExpression,
                               IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService,
                               BigArrays bigArrays) {
         super(settings);
+        this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
+            SysShardsTableInfo.unassignedShardsExpressions(clusterService::localNode));
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;
@@ -199,11 +198,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             luceneQueryBuilder,
             nodeJobsCounter,
             bigArrays);
-        NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         nodeNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
-            referenceResolver,
+            new MapBackedRefResolver(Collections.emptyMap()),
             null);
 
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
@@ -521,7 +519,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
             for (Row row :
-                systemCollectSource.toRowsIterableTransformation(collectPhase, UNASSIGNED_SHARD_SREFERENCE_RESOLVER, false)
+                systemCollectSource.toRowsIterableTransformation(collectPhase, unassignedShardReferenceResolver, false)
                     .apply(unassignedShards)) {
                 rows.add(row.materialize());
             }

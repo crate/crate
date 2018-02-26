@@ -20,29 +20,50 @@
  * agreement.
  */
 
-package io.crate.expression.reference.sys.node.local;
+package io.crate.metadata.shard;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.expression.NestableInput;
+import io.crate.expression.reference.LiteralNestableInput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
 
-class NodeIdExpression implements NestableInput<BytesRef> {
+import javax.annotation.Nullable;
+import java.util.Map;
 
-    private final ClusterService clusterService;
-    private BytesRef value;
+public class NodeNestableInput implements NestableInput<Map<String, BytesRef>> {
 
-    NodeIdExpression(ClusterService clusterService) {
-        this.clusterService = clusterService;
+    private final LiteralNestableInput<BytesRef> nodeIdInput;
+    private final LiteralNestableInput<BytesRef> nodeNameInput;
+    private final ImmutableMap<String, BytesRef> value;
+
+    public NodeNestableInput(DiscoveryNode localNode) {
+        BytesRef nodeId = new BytesRef(localNode.getId());
+        BytesRef nodeName = new BytesRef(localNode.getName());
+        this.nodeIdInput = new LiteralNestableInput<>(nodeId);
+        this.nodeNameInput = new LiteralNestableInput<>(nodeName);
+        this.value = ImmutableMap.of(
+            "id", nodeId,
+            "name", nodeName
+        );
+    }
+
+    @Nullable
+    @Override
+    public NestableInput<?> getChild(String name) {
+        switch (name) {
+            case "id":
+                return nodeIdInput;
+            case "name":
+                return nodeNameInput;
+
+            default:
+                return null;
+        }
     }
 
     @Override
-    public BytesRef value() {
-        DiscoveryNode localNode = clusterService.localNode();
-        // value could not be ready on node start-up, but is static once set
-        if (value == null && localNode != null) {
-            value = new BytesRef(localNode.getId());
-        }
+    public Map<String, BytesRef> value() {
         return value;
     }
 }

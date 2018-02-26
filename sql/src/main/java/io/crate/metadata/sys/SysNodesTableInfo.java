@@ -25,20 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowContextCollectorExpression;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.metadata.table.StaticTableInfo;
-import io.crate.monitor.FsInfoHelpers;
-import io.crate.monitor.ThreadPools;
 import io.crate.expression.reference.sys.node.NodeHeapStatsExpression;
 import io.crate.expression.reference.sys.node.NodeLoadStatsExpression;
 import io.crate.expression.reference.sys.node.NodeMemoryStatsExpression;
@@ -56,10 +42,20 @@ import io.crate.expression.reference.sys.node.fs.NodeFsTotalStatsExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsArrayExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsDataExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsDisksExpression;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.table.StaticTableInfo;
+import io.crate.monitor.FsInfoHelpers;
+import io.crate.monitor.ThreadPools;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
@@ -368,8 +364,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
             .build();
     }
 
-    private final TableColumn tableColumn;
-
     public SysNodesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.ID, DataTypes.STRING)
@@ -499,22 +493,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.FS_DATA_DEV, DataTypes.STRING)
                 .register(Columns.FS_DATA_PATH, DataTypes.STRING),
             PRIMARY_KEY);
-        this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
-    }
-
-    static Reference tableColumnInfo(TableIdent tableIdent) {
-        return new Reference(
-            new ReferenceIdent(tableIdent, SYS_COL_IDENT),
-            RowGranularity.NODE,
-            ObjectType.INSTANCE,
-            ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED,
-            true
-        );
-    }
-
-    TableColumn tableColumn() {
-        return tableColumn;
     }
 
     @Override

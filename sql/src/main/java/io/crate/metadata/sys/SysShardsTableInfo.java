@@ -26,10 +26,10 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.user.Privilege;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.auth.user.User;
 import io.crate.expression.NestableInput;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
@@ -39,7 +39,6 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.auth.user.User;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
@@ -48,6 +47,7 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -57,6 +57,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 public class SysShardsTableInfo extends StaticTableInfo {
 
@@ -106,6 +107,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
         static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
 
         static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
+        static final ColumnIdent NODE = new ColumnIdent("_node");
+        static final ColumnIdent NODE_ID = new ColumnIdent("_node", "id");
+        static final ColumnIdent NODE_NAME = new ColumnIdent("_node", "name");
     }
 
     public static class ReferenceIdents {
@@ -114,7 +118,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
          * Implementations have to be registered in
          *  - {@link io.crate.metadata.shard.ShardReferenceResolver}
          *  - {@link io.crate.metadata.shard.blob.BlobShardReferenceResolver}
-         *  - {@link #unassignedShardsExpressions()}
+         *  - {@link #unassignedShardsExpressions(Supplier)}
          */
 
         public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
@@ -132,33 +136,36 @@ public class SysShardsTableInfo extends StaticTableInfo {
         public static final ReferenceIdent PATH = new ReferenceIdent(IDENT, Columns.PATH);
         public static final ReferenceIdent BLOB_PATH = new ReferenceIdent(IDENT, Columns.BLOB_PATH);
         public static final ReferenceIdent MIN_LUCENE_VERSION = new ReferenceIdent(IDENT, Columns.MIN_LUCENE_VERSION);
+        public static final ReferenceIdent NODE = new ReferenceIdent(IDENT, Columns.NODE);
+        public static final ReferenceIdent NODE_ID = new ReferenceIdent(IDENT, Columns.NODE_ID);
+        public static final ReferenceIdent NODE_NAME = new ReferenceIdent(IDENT, Columns.NODE_NAME);
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions(Supplier<DiscoveryNode> localNode) {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
-            .put(SysShardsTableInfo.Columns.SCHEMA_NAME,
+            .put(Columns.SCHEMA_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::schemaName))
-            .put(SysShardsTableInfo.Columns.TABLE_NAME,
+            .put(Columns.TABLE_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::tableName))
-            .put(SysShardsTableInfo.Columns.PARTITION_IDENT,
+            .put(Columns.PARTITION_IDENT,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::partitionIdent))
-            .put(SysShardsTableInfo.Columns.ID,
+            .put(Columns.ID,
                 () -> RowContextCollectorExpression.forFunction(UnassignedShard::id))
-            .put(SysShardsTableInfo.Columns.NUM_DOCS,
+            .put(Columns.NUM_DOCS,
                 () -> RowContextCollectorExpression.forFunction(r -> 0L))
-            .put(SysShardsTableInfo.Columns.PRIMARY,
+            .put(Columns.PRIMARY,
                 () -> RowContextCollectorExpression.forFunction(UnassignedShard::primary))
-            .put(SysShardsTableInfo.Columns.RELOCATING_NODE,
+            .put(Columns.RELOCATING_NODE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(SysShardsTableInfo.Columns.SIZE,
+            .put(Columns.SIZE,
                 () -> RowContextCollectorExpression.forFunction(r -> 0L))
-            .put(SysShardsTableInfo.Columns.STATE,
+            .put(Columns.STATE,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
-            .put(SysShardsTableInfo.Columns.ROUTING_STATE,
+            .put(Columns.ROUTING_STATE,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
-            .put(SysShardsTableInfo.Columns.ORPHAN_PARTITION,
+            .put(Columns.ORPHAN_PARTITION,
                 () -> RowContextCollectorExpression.forFunction(UnassignedShard::orphanedPartition))
-            .put(SysShardsTableInfo.Columns.RECOVERY, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+            .put(Columns.RECOVERY, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
                 @Override
                 public Object value() {
                     return null;
@@ -169,23 +176,23 @@ public class SysShardsTableInfo extends StaticTableInfo {
                     return this;
                 }
             })
-            .put(SysNodesTableInfo.SYS_COL_IDENT, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+            .put(Columns.PATH,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(Columns.BLOB_PATH,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(Columns.MIN_LUCENE_VERSION,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(Columns.NODE, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
                 @Override
                 public Object value() {
-                    return null;
+                    return null; // unassigned shards are on *no* node.
                 }
 
                 @Override
-                public NestableInput getChild(String name) {
+                public NestableInput<?> getChild(String name) {
                     return this;
                 }
             })
-            .put(SysShardsTableInfo.Columns.PATH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(SysShardsTableInfo.Columns.BLOB_PATH,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(SysShardsTableInfo.Columns.MIN_LUCENE_VERSION,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
             .build();
     }
 
@@ -196,9 +203,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
         Columns.PARTITION_IDENT
     );
 
-    private final TableColumn nodesTableColumn;
-
-    SysShardsTableInfo(SysNodesTableInfo sysNodesTableInfo) {
+    SysShardsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
                 .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
                 .register(Columns.TABLE_NAME, StringType.INSTANCE)
@@ -232,18 +237,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.BLOB_PATH, DataTypes.STRING)
 
                 .register(Columns.MIN_LUCENE_VERSION, StringType.INSTANCE)
-                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+                .register(Columns.NODE, DataTypes.OBJECT)
+                .register(Columns.NODE_ID, DataTypes.STRING)
+                .register(Columns.NODE_NAME, DataTypes.STRING),
             PRIMARY_KEY);
-        nodesTableColumn = sysNodesTableInfo.tableColumn();
-    }
-
-    @Override
-    public Reference getReference(ColumnIdent columnIdent) {
-        Reference info = super.getReference(columnIdent);
-        if (info == null) {
-            return nodesTableColumn.getReference(this.ident(), columnIdent);
-        }
-        return info;
     }
 
     private void processShardRouting(String localNodeId,
