@@ -159,7 +159,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             rhs,
             query,
             hasOuterJoins,
-            sessionContext);
+            sessionContext,
+            tableStats);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -192,14 +193,16 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                               QueriedRelation rhs,
                                               Symbol query,
                                               boolean hasOuterJoins,
-                                              SessionContext sessionContext) {
+                                              SessionContext sessionContext,
+                                              TableStats tableStats) {
         if (isHashJoinPossible(joinType, joinCondition, sessionContext)) {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
                 joinCondition,
                 lhs,
-                rhs);
+                rhs,
+                tableStats);
         } else {
             return new NestedLoopJoin(
                 lhsPlan,
@@ -280,7 +283,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 nextRel,
                 query,
                 hasOuterJoins,
-                sessionContext),
+                sessionContext,
+                tableStats),
             query
         );
     }

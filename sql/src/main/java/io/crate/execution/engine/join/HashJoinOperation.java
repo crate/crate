@@ -32,6 +32,7 @@ import io.crate.data.join.CombinedRow;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.List;
 import java.util.Objects;
@@ -53,7 +54,9 @@ public class HashJoinOperation implements CompletionListenable {
                              List<Symbol> joinRightInputs,
                              RowAccounting rowAccounting,
                              InputFactory inputFactory,
-                             int blockSize) {
+                             CircuitBreaker circuitBreaker,
+                             long estimatedRowSizeForLeft,
+                             long numberOfRowsForLeft) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -67,7 +70,9 @@ public class HashJoinOperation implements CompletionListenable {
                         getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
                         getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                         rowAccounting,
-                        blockSize
+                        circuitBreaker,
+                        estimatedRowSizeForLeft,
+                        numberOfRowsForLeft
                     ), completionFuture);
                     nlResultConsumer.accept(joinIterator, null);
                 } else {
@@ -112,9 +117,19 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Function<Row, Integer> hashBuilderForLeft,
                                                              Function<Row, Integer> hashBuilderForRight,
                                                              RowAccounting rowAccounting,
-                                                             int blockSize) {
+                                                             CircuitBreaker circuitBreaker,
+                                                             long estimatedRowSizeForLeft,
+                                                             long numberOfRowsForLeft) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
-        return new HashInnerJoinBatchIterator<>(new RamAccountingBatchIterator<>(left, rowAccounting),
-            right, combiner, joinCondition, hashBuilderForLeft, hashBuilderForRight, blockSize);
+        return new HashInnerJoinBatchIterator<>(
+            new RamAccountingBatchIterator<>(left, rowAccounting),
+            right,
+            combiner,
+            joinCondition,
+            hashBuilderForLeft,
+            hashBuilderForRight,
+            circuitBreaker,
+            estimatedRowSizeForLeft,
+            numberOfRowsForLeft);
     }
 }

@@ -31,13 +31,6 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
@@ -46,14 +39,21 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.predicate.MatchPredicate;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
@@ -93,26 +93,37 @@ class Collect extends ZeroInputPlan {
 
     final TableInfo tableInfo;
     private final long numExpectedRows;
+    private final long estimatedRowSize;
 
-    public static LogicalPlan.Builder create(QueriedTableRelation relation, List<Symbol> toCollect, WhereClause where) {
+    public static LogicalPlan.Builder create(QueriedTableRelation relation,
+                                             List<Symbol> toCollect,
+                                             WhereClause where) {
         if (where.docKeys().isPresent() && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
             DocKeys docKeys = where.docKeys().get();
-            return ((tableStats, usedBeforeNextFetch) -> new Get(((QueriedDocTable) relation), docKeys, toCollect));
+            return ((tableStats, usedBeforeNextFetch) ->
+                        new Get(((QueriedDocTable) relation), docKeys, toCollect, tableStats));
         }
         return (tableStats, usedColumns) -> new Collect(
-            relation, toCollect, where, usedColumns, tableStats.numDocs(relation.tableRelation().tableInfo().ident()));
+            relation,
+            toCollect,
+            where,
+            usedColumns,
+            tableStats.numDocs(relation.tableRelation().tableInfo().ident()),
+            tableStats.estimatedSizePerRow(relation.tableRelation().tableInfo().ident()));
     }
 
     private Collect(QueriedTableRelation relation,
                     List<Symbol> toCollect,
                     WhereClause where,
                     Set<Symbol> usedBeforeNextFetch,
-                    long numExpectedRows) {
+                    long numExpectedRows,
+                    long estimatedRowSize) {
         super(
             generateOutputs(toCollect, relation.tableRelation(), usedBeforeNextFetch, where),
             Collections.singletonList(relation.tableRelation()));
 
         this.numExpectedRows = numExpectedRows;
+        this.estimatedRowSize = estimatedRowSize;
         if (where.hasVersions()) {
             throw new VersionInvalidException();
         }
@@ -280,6 +291,11 @@ class Collect extends ZeroInputPlan {
     @Override
     public long numExpectedRows() {
         return numExpectedRows;
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return estimatedRowSize;
     }
 
     @Override

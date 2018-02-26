@@ -81,6 +81,11 @@ abstract class OneInputPlan extends LogicalPlanBase {
         return source.numExpectedRows();
     }
 
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
+    }
+
     /**
      * Creates a new LogicalPlan with an updated source. This is necessary
      * when we collapse plans during plan building or "push down" plans

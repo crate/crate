@@ -198,6 +198,11 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
+    public long estimatedRowSize() {
+        return Math.max(lhs.estimatedRowSize(), rhs.estimatedRowSize());
+    }
+
+    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitUnion(this, context);
     }

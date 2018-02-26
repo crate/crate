@@ -23,12 +23,14 @@
 package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.join.ElementCombiner;
 import io.crate.data.join.JoinBatchIterator;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -76,10 +78,10 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
-    private static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
+    @VisibleForTesting
+    static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
 
     private final Predicate<C> joinCondition;
-    private final IntObjectHashMap<List<Object[]>> buffer;
 
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
@@ -87,28 +89,33 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
-    private final int blockSize;
+    private final CircuitBreaker circuitBreaker;
+    private final long estimatedRowSizeForLeft;
+    private final long numberOfRowsForLeft;
+
+    private IntObjectHashMap<List<Object[]>> buffer;
+    private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
-    public HashInnerJoinBatchIterator(BatchIterator<L> left,
+    public HashInnerJoinBatchIterator(RamAccountingBatchIterator<L> left,
                                       BatchIterator<R> right,
                                       ElementCombiner<L, R, C> combiner,
                                       Predicate<C> joinCondition,
                                       Function<L, Integer> hashBuilderForLeft,
                                       Function<R, Integer> hashBuilderForRight,
-                                      int blockSize) {
+                                      CircuitBreaker cicuitBreaker,
+                                      long estimatedRowSizeForLeft,
+                                      long numberOfRowsForLeft) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        if (blockSize > 0) {
-            this.blockSize = blockSize;
-        } else {
-            this.blockSize = DEFAULT_BLOCK_SIZE;
-        }
-        this.buffer = new IntObjectHashMap<>(this.blockSize);
+        this.circuitBreaker = cicuitBreaker;
+        this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
+        this.numberOfRowsForLeft = numberOfRowsForLeft;
+        recreateBuffer();
         this.activeIt = left;
     }
 
@@ -122,7 +129,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         left.moveToStart();
         right.moveToStart();
         activeIt = left;
-        buffer.clear();
+        recreateBuffer();
+        ((RamAccountingBatchIterator) left).releaseAccountedRows();
         leftMatchingRowsIterator = null;
     }
 
@@ -138,8 +146,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             } else if (right.allLoaded()) {
                 right.moveToStart();
                 activeIt = left;
-                buffer.clear();
-                numberOfRowsInBuffer = 0;
+                recreateBuffer();
+                ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
                 return false;
             }
@@ -147,6 +155,35 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
         // match found
         return true;
+    }
+
+    private void recreateBuffer() {
+        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft);
+        this.buffer = new IntObjectHashMap<>(this.blockSize);
+        numberOfRowsInBuffer = 0;
+    }
+
+    @VisibleForTesting
+    static int calculateBlockSize(CircuitBreaker circuitBreaker,
+                                  long estimatedRowSizeForLeft,
+                                  long numberOfRowsForLeft) {
+        if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
+            return DEFAULT_BLOCK_SIZE;
+        }
+
+        int blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
+        blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
+
+        // In case no mem available from circuit breaker then still allocate a small blockSize,
+        // so that at least some rows (min 1) from the left side could be processed and
+        // a CircuitBreakerException can be triggered.
+        return blockSize == 0 ? 10 : blockSize;
+    }
+
+    private static boolean statisticsUnavailable(CircuitBreaker circuitBreaker,
+                                          long estimatedRowSizeForLeft,
+                                          long numberOfRowsForLeft) {
+        return estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1;
     }
 
     private boolean buildBufferAndMatchRight() {

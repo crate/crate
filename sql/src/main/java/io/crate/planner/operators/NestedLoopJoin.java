@@ -244,6 +244,11 @@ class NestedLoopJoin extends TwoInputPlan {
     }
 
     @Override
+    public long estimatedRowSize() {
+        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
+    }
+
+    @Override
     public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
         if (pushDown instanceof Order) {
             /* Move the orderBy expression to the sub-relation if possible.
