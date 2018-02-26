@@ -41,7 +41,6 @@ import org.elasticsearch.common.util.set.Sets;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -85,12 +84,15 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     @Override
     public LogicalPlan build(TableStats tableStats, Set<Symbol> usedBeforeNextFetch) {
-        LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
+        LinkedHashMap<LinkedHashSet<QualifiedName>, JoinPair> joinPairs = new LinkedHashMap<>();
         for (JoinPair joinPair : mss.joinPairs()) {
             if (joinPair.condition() == null) {
                 continue;
             }
-            JoinPair prevPair = joinPairs.put(Sets.newHashSet(joinPair.left(), joinPair.right()), joinPair);
+            LinkedHashSet<QualifiedName> joinPairParts = new LinkedHashSet<>(2);
+            joinPairParts.add(joinPair.left());
+            joinPairParts.add(joinPair.right());
+            JoinPair prevPair = joinPairs.put(joinPairParts, joinPair);
             if (prevPair != null) {
                 throw new IllegalStateException("joinPairs contains duplicate: " + joinPair + " matches " + prevPair);
             }
@@ -115,7 +117,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         final QualifiedName rhsName = it.next();
         QueriedRelation lhs = (QueriedRelation) mss.sources().get(lhsName);
         QueriedRelation rhs = (QueriedRelation) mss.sources().get(rhsName);
-        Set<QualifiedName> joinNames = new HashSet<>();
+        LinkedHashSet<QualifiedName> joinNames = new LinkedHashSet<>(2);
         joinNames.add(lhsName);
         joinNames.add(rhsName);
 
@@ -232,7 +234,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             QueriedRelation nextRel,
                                             Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
-                                            Map<Set<QualifiedName>, JoinPair> joinPairs,
+                                            Map<? extends Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
                                             SubqueryPlanner subqueryPlanner,
                                             boolean hasOuterJoins,
@@ -296,7 +298,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     @Nullable
-    private static <V> V removeMatch(Map<Set<QualifiedName>, V> valuesByNames, Set<QualifiedName> names, QualifiedName nextName) {
+    private static <V> V removeMatch(Map<? extends Set<QualifiedName>, V> valuesByNames, Set<QualifiedName> names, QualifiedName nextName) {
         for (QualifiedName name : names) {
             V v = valuesByNames.remove(Sets.newHashSet(name, nextName));
             if (v != null) {
