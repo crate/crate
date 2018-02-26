@@ -38,6 +38,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.TableStats;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
@@ -195,6 +196,11 @@ public class Union extends TwoInputPlan {
     @Override
     public long numExpectedRows() {
         return lhs.numExpectedRows() + rhs.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return Math.max(lhs.estimatedRowSize(tableStats), rhs.estimatedRowSize(tableStats));
     }
 
     @Override

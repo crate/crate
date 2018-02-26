@@ -72,4 +72,11 @@ public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIt
         rowAccounting.close();
         super.kill(throwable);
     }
+
+    /**
+     * Release the accounted rows since the last #{@link RamAccountingBatchIterator#releaseAccountedRows()} call.
+     */
+    public void releaseAccountedRows() {
+        rowAccounting.release();
+    }
 }

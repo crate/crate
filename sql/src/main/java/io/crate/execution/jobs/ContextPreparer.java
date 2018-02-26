@@ -39,6 +39,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Bucket;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.TransportActionProvider;
@@ -69,7 +70,6 @@ import io.crate.execution.engine.join.NestedLoopOperation;
 import io.crate.execution.engine.pipeline.ProjectingRowConsumer;
 import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
 import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.data.Paging;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -741,7 +741,8 @@ public class ContextPreparer extends AbstractComponent {
                 //    7 bytes perv value (pointer from the map to the list) (should be 4 but the map pre-allocates more)
                 new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
-                phase.blockSize());
+                circuitBreaker,
+                phase.estimatedRowSizeForLeft());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,

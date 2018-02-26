@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.join.ElementCombiner;
 import io.crate.data.join.JoinBatchIterator;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -87,25 +88,26 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
-    private final int blockSize;
+    private final CircuitBreaker circuitBreaker;
+    private final long estimatedRowSizeForLeft;
+    private int blockSize;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
-    HashInnerJoinBatchIterator(BatchIterator<L> left,
-                               BatchIterator<R> right,
-                               ElementCombiner<L, R, C> combiner,
-                               Predicate<C> joinCondition,
-                               Function<L, Integer> hashBuilderForLeft,
-                               Function<R, Integer> hashBuilderForRight,
-                               int blockSize) {
+    public HashInnerJoinBatchIterator(RamAccountingBatchIterator<L> left,
+                                      BatchIterator<R> right,
+                                      ElementCombiner<L, R, C> combiner,
+                                      Predicate<C> joinCondition,
+                                      Function<L, Integer> hashBuilderForLeft,
+                                      Function<R, Integer> hashBuilderForRight,
+                                      CircuitBreaker cicuitBreaker,
+                                      long estimatedRowSizeForLeft) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        if (blockSize > 0) {
-            this.blockSize = blockSize;
-        } else {
-            this.blockSize = DEFAULT_BLOCK_SIZE;
-        }
+        this.circuitBreaker = cicuitBreaker;
+        this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
+        updateBlockSize();
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         this.activeIt = left;
     }
@@ -134,6 +136,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 right.moveToStart();
                 activeIt = left;
                 buffer.clear();
+                updateBlockSize();
+                ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
                 // activeIt needs the next batch loaded
                 return false;
@@ -142,6 +146,18 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
         // match found
         return true;
+    }
+
+    private void updateBlockSize() {
+        // In case statistics are not yet available
+        if (estimatedRowSizeForLeft <= 0 || circuitBreaker.getLimit() == -1) {
+            blockSize = DEFAULT_BLOCK_SIZE;
+        } else {
+            blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
+            // If the blockSize is to big, it can lead to GC issues
+            // because of the internal allocations of a huge buffer
+            blockSize = Math.min(blockSize, 20 * DEFAULT_BLOCK_SIZE);
+        }
     }
 
     private boolean buildBufferAndMatchRight() {

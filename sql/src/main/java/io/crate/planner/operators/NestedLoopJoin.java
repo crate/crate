@@ -43,6 +43,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 
@@ -241,6 +242,11 @@ class NestedLoopJoin extends TwoInputPlan {
             // We don't have any cardinality estimates, so just take the bigger table
             return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
         }
+    }
+
+    @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return lhs.estimatedRowSize(tableStats) + rhs.estimatedRowSize(tableStats);
     }
 
     @Override

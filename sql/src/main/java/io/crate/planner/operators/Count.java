@@ -37,6 +37,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.types.DataTypes;
@@ -109,6 +110,11 @@ public class Count extends ZeroInputPlan {
     @Override
     public long numExpectedRows() {
         return 1L;
+    }
+
+    @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return Long.BYTES;
     }
 
     @Override

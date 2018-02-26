@@ -43,7 +43,7 @@ public class HashJoinPhase extends JoinPhase {
     private final List<Symbol> rightJoinConditionInputs;
 
     private final Collection<DataType> leftOutputTypes;
-    private final int blockSize;
+    private final long estimatedRowSizeForLeft;
 
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
@@ -58,7 +58,7 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> leftJoinConditionInputs,
                          List<Symbol> rightJoinConditionInputs,
                          Collection<DataType> leftOutputTypes,
-                         int blockSize) {
+                         long estimatedRowSizeForLeft) {
         super(
             jobId,
             executionNodeId,
@@ -75,7 +75,7 @@ public class HashJoinPhase extends JoinPhase {
         this.leftJoinConditionInputs = leftJoinConditionInputs;
         this.rightJoinConditionInputs = rightJoinConditionInputs;
         this.leftOutputTypes = leftOutputTypes;
-        this.blockSize = blockSize;
+        this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
     }
 
     public HashJoinPhase(StreamInput in) throws IOException {
@@ -85,7 +85,7 @@ public class HashJoinPhase extends JoinPhase {
         rightJoinConditionInputs = Symbols.listFromStream(in);
         leftOutputTypes = DataTypes.listFromStream(in);
 
-        blockSize = in.readVInt();
+        estimatedRowSizeForLeft = in.readVLong();
     }
 
     @Override
@@ -96,7 +96,7 @@ public class HashJoinPhase extends JoinPhase {
         Symbols.toStream(rightJoinConditionInputs, out);
         DataTypes.toStream(leftOutputTypes, out);
 
-        out.writeVInt(blockSize);
+        out.writeVLong(estimatedRowSizeForLeft);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class HashJoinPhase extends JoinPhase {
         return leftOutputTypes;
     }
 
-    public int blockSize() {
-        return blockSize;
+    public long estimatedRowSizeForLeft() {
+        return estimatedRowSizeForLeft;
     }
 }

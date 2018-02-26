@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
-import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -43,6 +42,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
@@ -61,6 +61,7 @@ import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 class HashJoin extends TwoInputPlan {
 
     private final Symbol joinCondition;
+    private final TableStats tableStats;
     @VisibleForTesting
     AnalyzedRelation topMostLeftRelation;
     @VisibleForTesting
@@ -70,13 +71,15 @@ class HashJoin extends TwoInputPlan {
              LogicalPlan rhs,
              Symbol joinCondition,
              AnalyzedRelation topMostLeftRelation,
-             AnalyzedRelation rightRelation) {
+             AnalyzedRelation rightRelation,
+             TableStats tableStats) {
         super(lhs, rhs, new ArrayList<>());
         this.topMostLeftRelation = topMostLeftRelation;
         this.rightRelation = rightRelation;
         this.joinCondition = joinCondition;
         this.outputs.addAll(lhs.outputs());
         this.outputs.addAll(rhs.outputs());
+        this.tableStats = tableStats;
     }
 
     public JoinType joinType() {
@@ -164,7 +167,7 @@ class HashJoin extends TwoInputPlan {
             leftHashInputs,
             rightHashInputs,
             Symbols.typeView(lhs.outputs()),
-            Paging.PAGE_SIZE);
+            lhs.estimatedRowSize(tableStats));
         return new Join(
             joinPhase,
             left,
@@ -179,13 +182,18 @@ class HashJoin extends TwoInputPlan {
 
     @Override
     protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new HashJoin(newLeftSource, newRightSource, joinCondition, topMostLeftRelation, rightRelation);
+        return new HashJoin(newLeftSource, newRightSource, joinCondition, topMostLeftRelation, rightRelation, tableStats);
     }
 
     @Override
     public long numExpectedRows() {
         // We don't have any cardinality estimates, so just take the bigger table
         return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
+    }
+
+    @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return lhs.estimatedRowSize(tableStats) + rhs.estimatedRowSize(tableStats);
     }
 
     @Override

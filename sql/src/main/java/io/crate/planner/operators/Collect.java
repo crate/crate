@@ -283,6 +283,11 @@ class Collect extends ZeroInputPlan {
     }
 
     @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return tableStats.estimatedSizePerRow(relation.tableRelation().tableInfo().ident());
+    }
+
+    @Override
     public String toString() {
         return "Collect{" +
                tableInfo.ident() +

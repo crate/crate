@@ -34,6 +34,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.Collect;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -129,6 +130,11 @@ public class Get extends ZeroInputPlan {
             docKeys.size(),
             null
         );
+    }
+
+    @Override
+    public long estimatedRowSize(TableStats tableStats) {
+        return tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
     }
 
     @Override

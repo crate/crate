@@ -208,6 +208,12 @@ public interface LogicalPlan extends Plan {
 
     long numExpectedRows();
 
+    /**
+     * Returns an estimation of the size (in bytes) of each row returned by the plan
+     * @param tableStats is needed to retrieve the stats for the concrete tables
+     */
+    long estimatedRowSize(TableStats tableStats);
+
     @Override
     default void execute(DependencyCarrier executor,
                          PlannerContext plannerContext,
