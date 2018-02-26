@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -815,5 +818,57 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                "1| 1\n" +
                "4| 4\n" +
                "4| 4\n"));
+    }
+
+    @Test
+    public void testJoinWithLargerRightBranch() throws Exception {
+        execute("create table t1 (a integer)");
+        execute("create table t2 (x integer)");
+        ensureYellow();
+        execute("insert into t1 (a) values (0), (1), (1), (2)");
+        execute("insert into t2 (x) values (1), (3), (4), (4), (5), (6)");
+        execute("refresh table t1, t2");
+
+        TableStats tableStats = internalCluster().getInstance(TableStats.class);
+        ObjectObjectHashMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+        newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(4L, 16L));
+        newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(6L, 24L));
+        tableStats.updateTableStats(newStats);
+
+        execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1| 1\n" +
+               "1| 1\n"));
+    }
+
+    /**
+     * some implementations will apply the branch reordering optimisation, whilst others might not.
+     * either way, all join implementations should yield the same results
+     */
+    @Test
+    public void testJoinBranchReorderingOnMultipleTables() throws Exception {
+        execute("create table t1 (a integer)");
+        execute("create table t2 (x integer)");
+        execute("create table t3 (y integer)");
+        ensureYellow();
+        execute("insert into t1 (a) values (0), (1)");
+        execute("insert into t2 (x) values (0), (1), (2)");
+        execute("insert into t3 (y) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
+        execute("refresh table t1, t2, t3");
+
+        Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
+        for (TableStats tableStats : tableStatsOnAllNodes) {
+            ObjectObjectHashMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+            newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(2L, 8L));
+            newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(3L, 12L));
+            newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t3"), new TableStats.Stats(10L, 40L));
+            tableStats.updateTableStats(newStats);
+        }
+
+        execute("select a, x, y from t1 join t2 on t1.a = t2.x join t3 on t3.y = t2.x where t1.a < t2.x + 1 " +
+                "and t2.x < t3.y + 1 order by a, x, y");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("0| 0| 0\n" +
+               "1| 1| 1\n"));
     }
 }

@@ -134,35 +134,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHashJoinTablesSwitchRightSmallerThanLeft() {
-        MultiSourceSelect mss = e.analyze("select users.name, locations.id " +
-                                          "from users " +
-                                          "join locations on users.id = locations.id");
-
-        TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(100, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
-        tableStats.updateTableStats(rowCountByTable);
-
-        PlannerContext context = e.getPlannerContext(clusterService.state());
-        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
-        SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        SessionContext sessionContext = SessionContext.create();
-        sessionContext.setHashJoinEnabled(true);
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner,  sessionContext)
-            .build(tableStats, Collections.emptySet());
-        assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).topMostLeftRelation.toString(), is("QueriedTable{DocTableRelation{doc.users}}"));
-        assertThat(((HashJoin) operator).rightRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
-
-        Join join = (Join) operator.build(context, projectionBuilder, -1, 0, null, null, Row.EMPTY, emptyMap());
-        // Plans must be switched (left<->right)
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-    }
-
-    @Test
     public void testMultipleHashJoins() {
         MultiSourceSelect mss = e.analyze("select * " +
                                           "from t1 inner join t2 on t1.a = t2.b " +

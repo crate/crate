@@ -108,15 +108,6 @@ class HashJoin extends TwoInputPlan {
         ExecutionPlan right = rhs.build(
             plannerContext, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryValues);
 
-        // Move smaller table to the left side
-        if (rhs.numExpectedRows() < lhs.numExpectedRows()) {
-            ExecutionPlan tmp = left;
-            left = right;
-            right = tmp;
-            AnalyzedRelation tmpRelation = topMostLeftRelation;
-            topMostLeftRelation = rightRelation;
-            rightRelation = tmpRelation;
-        }
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
         Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
