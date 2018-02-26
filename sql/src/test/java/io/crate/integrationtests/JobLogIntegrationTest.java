@@ -21,15 +21,19 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.data.Row;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -53,20 +57,18 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), greaterThan(0L));
 
-        // clear the logs; the next statements could all hit the same node
-        // which would mean that "select name from sys.cluster" or "select * from sys.jobs_log" would still be present in sys.jobs
-        // (Each node has its own local <jobs_log_size> entries)
-        execute("set global transient stats.jobs_log_size=0");
         execute("set global transient stats.jobs_log_size=1");
 
-        execute("select id from sys.cluster");
-        execute("select id from sys.cluster");
-        execute("select id from sys.cluster");
+        // Make sure we hit both notes with this query so that the jobs_logs entry are what we expect
+        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+            BaseResultReceiver resultReceiver = new BaseResultReceiver();
+            sqlOperations.newSystemSession().quickExec("select id from sys.cluster", resultReceiver, Row.EMPTY);
+            resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
+        }
+
         execute("select stmt from sys.jobs_log order by ended desc");
 
-        // there are 2 nodes so depending on whether both nodes were hit this should be either 1 or 2
-        // but never 3 because the queue size is only 1
-        assertThat(response.rowCount(), Matchers.lessThanOrEqualTo(2L));
+        assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is("select id from sys.cluster"));
 
         execute("set global transient stats.enabled = false");
