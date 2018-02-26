@@ -148,6 +148,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 Object[] currentRow = left.currentElement().materialize();
                 int hash = hashBuilderForLeft.apply(left.currentElement());
                 addToBuffer(currentRow, hash);
+                if (buffer.size() == blockSize) {
+                    break;
+                }
             }
             if (buffer.size() == blockSize || left.allLoaded()) {
                 activeIt = right;

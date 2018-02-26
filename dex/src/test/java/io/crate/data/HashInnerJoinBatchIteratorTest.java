@@ -31,7 +31,6 @@ import io.crate.data.join.JoinBatchIterators;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -55,12 +54,15 @@ public class HashInnerJoinBatchIteratorTest {
     private static Predicate<Row> getCol0EqCol1JoinCondition() {
         return row -> Objects.equals(row.get(0), row.get(1));
     }
+
     private static Function<Row, Integer> getHashForLeft() {
         return row -> Objects.hash(row.get(0));
     }
+
     private static Function<Row, Integer> getHashForRight() {
         return row -> Objects.hash(row.get(0));
     }
+
     private static Function<Row, Integer> getHashWithCollisions() {
         return row -> (Integer) row.get(0) % 3;
     }
@@ -77,36 +79,40 @@ public class HashInnerJoinBatchIteratorTest {
     @ParametersFactory
     public static Iterable<Object[]> testParameters() {
         List<Object[]> resultForUniqueValues = Arrays.asList(
-            new Object[] { 2, 2 }, new Object[] { 3, 3 }, new Object[] { 4, 4 });
+            new Object[]{2, 2}, new Object[]{3, 3}, new Object[]{4, 4});
         List<Object[]> resultForDuplicateValues = Arrays.asList(
-            new Object[] { 1, 1 }, new Object[] { 1, 1 },
-            new Object[] { 2, 2 }, new Object[] { 2, 2 },
-            new Object[] { 3, 3 },
-            new Object[] { 4, 4 }, new Object[] { 4, 4 }, new Object[] { 4, 4 }, new Object[] { 4, 4 }
+            new Object[]{1, 1}, new Object[]{1, 1},
+            new Object[]{2, 2}, new Object[]{2, 2},
+            new Object[]{3, 3},
+            new Object[]{4, 4}, new Object[]{4, 4}, new Object[]{4, 4}, new Object[]{4, 4}
         );
 
+        // BatchSimulatingIterators are used also for "plain" cases because the
+        // TestingBatchIterators.range() always return allLoaded() == true
         return Arrays.asList(
             $("UniqueValues-plain",
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(0, 5),
-              (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(2, 6),
+              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                    TestingBatchIterators.range(0, 5), 5, 1, null),
+              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                    TestingBatchIterators.range(2, 6), 4, 1, null),
               resultForUniqueValues),
             $("UniqueValues-batchedSource",
               (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
               (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
               resultForUniqueValues),
             $("DuplicateValues-plain",
-              (Supplier<BatchIterator<Row>>) () ->
-                  TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
-              (Supplier<BatchIterator<Row>>) () ->
-                  TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)),
+              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                    TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 8, 1, null),
+              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                    TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 9, 1, null),
               resultForDuplicateValues),
             $("DuplicateValues-batchedSource",
               (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-                TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
+                    TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
               (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-                TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
+                    TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
               resultForDuplicateValues));
     }
 
