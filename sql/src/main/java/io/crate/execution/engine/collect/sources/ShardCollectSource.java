@@ -181,7 +181,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               BigArrays bigArrays) {
         super(settings);
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
-            SysShardsTableInfo.unassignedShardsExpressions(clusterService::localNode));
+            SysShardsTableInfo.unassignedShardsExpressions());
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;

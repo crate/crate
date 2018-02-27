@@ -47,7 +47,6 @@ import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -57,7 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Supplier;
 
 public class SysShardsTableInfo extends StaticTableInfo {
 
@@ -107,9 +105,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
         static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
 
         static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
-        static final ColumnIdent NODE = new ColumnIdent("_node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("_node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("_node", "name");
+        static final ColumnIdent NODE = new ColumnIdent("node");
+        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
+        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
     }
 
     public static class ReferenceIdents {
@@ -118,7 +116,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
          * Implementations have to be registered in
          *  - {@link io.crate.metadata.shard.ShardReferenceResolver}
          *  - {@link io.crate.metadata.shard.blob.BlobShardReferenceResolver}
-         *  - {@link #unassignedShardsExpressions(Supplier)}
+         *  - {@link #unassignedShardsExpressions()}
          */
 
         public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
@@ -137,11 +135,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
         public static final ReferenceIdent BLOB_PATH = new ReferenceIdent(IDENT, Columns.BLOB_PATH);
         public static final ReferenceIdent MIN_LUCENE_VERSION = new ReferenceIdent(IDENT, Columns.MIN_LUCENE_VERSION);
         public static final ReferenceIdent NODE = new ReferenceIdent(IDENT, Columns.NODE);
-        public static final ReferenceIdent NODE_ID = new ReferenceIdent(IDENT, Columns.NODE_ID);
-        public static final ReferenceIdent NODE_NAME = new ReferenceIdent(IDENT, Columns.NODE_NAME);
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions(Supplier<DiscoveryNode> localNode) {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
             .put(Columns.SCHEMA_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::schemaName))

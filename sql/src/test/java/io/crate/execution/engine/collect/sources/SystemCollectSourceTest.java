@@ -103,8 +103,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
     }
 
     private StaticTableReferenceResolver<UnassignedShard> unassignedShardRefResolver() {
-        return new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions(
-            internalCluster().getDataNodeInstance(ClusterService.class)::localNode));
+        return new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
     }
 
     @Test

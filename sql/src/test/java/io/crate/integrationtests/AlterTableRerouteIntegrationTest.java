@@ -45,7 +45,7 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
             ") clustered into 1 shards " +
             "with (number_of_replicas=0)");
         ensureGreen();
-        execute("select _node['id'] from sys.shards where id = ? and table_name = ?", new Object[]{shardId, tableName});
+        execute("select node['id'] from sys.shards where id = ? and table_name = ?", new Object[]{shardId, tableName});
         String fromNode = (String) response.rows()[0][0];
         execute("select id from sys.nodes where id != ?", new Object[]{fromNode});
         String toNode = (String) response.rows()[0][0];
@@ -53,9 +53,9 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
         execute("ALTER TABLE my_table REROUTE MOVE SHARD ? FROM ? TO ?", new Object[]{shardId, fromNode, toNode});
         assertThat(response.rowCount(), is(1L));
         ensureGreen();
-        execute("select * from sys.shards where id = ? and _node['id'] = ? and table_name = ?", new Object[]{shardId, toNode, tableName});
+        execute("select * from sys.shards where id = ? and node['id'] = ? and table_name = ?", new Object[]{shardId, toNode, tableName});
         assertBusy(() -> assertThat(response.rowCount(), is(1L)));
-        execute("select * from sys.shards where id = ? and _node['id'] = ? and table_name = ?", new Object[]{shardId, fromNode, tableName});
+        execute("select * from sys.shards where id = ? and node['id'] = ? and table_name = ?", new Object[]{shardId, fromNode, tableName});
         assertBusy(() -> assertThat(response.rowCount(), is(0L)));
     }
 }

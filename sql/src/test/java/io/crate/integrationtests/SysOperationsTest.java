@@ -23,8 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -63,7 +61,7 @@ public class SysOperationsTest extends SQLTransportIntegrationTest {
     @Test
     public void testNodeExpressionOnSysOperations() throws Exception {
         execute("select * from sys.nodes");
-        SQLResponse response = execute("select _node['name'], id from sys.operations limit 1");
+        SQLResponse response = execute("select node['name'], id from sys.operations limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0].toString(), startsWith("node_s"));
     }

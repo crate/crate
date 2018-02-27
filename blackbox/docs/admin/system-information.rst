@@ -1002,13 +1002,13 @@ Operations
 The ``sys.operations`` table is a constantly updated view of all operations
 that are currently being executed in the cluster::
 
-    cr> select _node['name'], job_id, name, used_bytes from sys.operations
+    cr> select node['name'], job_id, name, used_bytes from sys.operations
     ... order by name limit 1;
-    +---------------+--------...-+-----...-+------------+
-    | _node['name'] | job_id     | name    | used_bytes |
-    +---------------+--------...-+-----...-+------------+
-    | crate         | ...        | ...     | ...        |
-    +---------------+--------...-+-----...-+------------+
+    +--------------+--------...-+-----...-+------------+
+    | node['name'] | job_id     | name    | used_bytes |
+    +--------------+--------...-+-----...-+------------+
+    | crate        | ...        | ...     | ...        |
+    +--------------+--------...-+-----...-+------------+
     SELECT 1 row in set (... sec)
 
 An operation is a node-specific sub-component of a job (for when a job involves
@@ -1037,7 +1037,7 @@ the corresponding log table::
     +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
     | id | stmt                                             | username | started | ended | error |
     +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
-    | ...| select _node['name'], ...                        | crate    | ...     | ...   |  NULL |
+    | ...| select node['name'], ...                         | crate    | ...     | ...   |  NULL |
     | ...| select stmt, username, started from sys.jobs ... | crate    | ...     | ...   |  NULL |
     +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)

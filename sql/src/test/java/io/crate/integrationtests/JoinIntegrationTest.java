@@ -245,7 +245,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             is("strict| blob_path\n" +
                "strict| id\n" +
                "strict| min_lucene_version\n" +
-               "strict| num_docs\n"));
+               "strict| node\n"));
     }
 
     @Test

@@ -165,10 +165,10 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertEquals(26L, response.rowCount());
         assertEquals(16, response.cols().length);
         assertThat(response.cols(), arrayContaining(
-            "_node",
             "blob_path",
             "id",
             "min_lucene_version",
+            "node",
             "num_docs",
             "orphan_partition",
             "partition_ident",
@@ -328,7 +328,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectNodeSysExpression() throws Exception {
         SQLResponse response = execute(
-            "select _node, _node['name'], id from sys.shards order by _node['name'], id  limit 1");
+            "select node, node['name'], id from sys.shards order by node['name'], id  limit 1");
         assertEquals(1L, response.rowCount());
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
@@ -370,7 +370,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
                     "clustered into 5 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
             ensureYellow();
             SQLResponse response = execute(
-                "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
+                "select node['name'], id from sys.shards where table_name = 'users' order by node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
             assertEquals("node_s0", nodeName);

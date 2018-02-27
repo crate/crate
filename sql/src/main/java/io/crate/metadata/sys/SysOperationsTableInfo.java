@@ -53,9 +53,9 @@ public class SysOperationsTableInfo extends StaticTableInfo {
         public static final ColumnIdent NAME = new ColumnIdent("name");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
         static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
-        static final ColumnIdent NODE = new ColumnIdent("_node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("_node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("_node", "name");
+        static final ColumnIdent NODE = new ColumnIdent("node");
+        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
+        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
