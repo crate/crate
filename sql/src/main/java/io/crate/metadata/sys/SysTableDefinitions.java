@@ -57,7 +57,8 @@ public class SysTableDefinitions {
                                SysNodeChecks sysNodeChecks,
                                RepositoriesService repositoriesService,
                                SysSnapshots sysSnapshots,
-                               SysAllocations sysAllocations) {
+                               SysAllocations sysAllocations,
+                               TableHealthService tableHealthService) {
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
             SysJobsTableInfo.expressions()
@@ -104,6 +105,12 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysSummitsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(summits),
             SysSummitsTableInfo.expressions()
+        ));
+
+        tableDefinitions.put(SysHealthTableInfo.IDENT, new StaticTableDefinition<>(
+            tableHealthService::computeResults,
+            SysHealthTableInfo.expressions(),
+            (user, tableHealth) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableHealth.fqn())
         ));
     }
 

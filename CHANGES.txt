@@ -54,6 +54,9 @@ Breaking Changes
 Changes
 =======
 
+- Added new `sys.health` system information table to expose the health of all
+  tables and table partitions.
+
 - The first argument (``field``) of the ``EXTRACT`` function has been limited
   to string literals and identifiers, as it was documented.
 

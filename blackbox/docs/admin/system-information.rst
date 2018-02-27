@@ -1227,6 +1227,69 @@ procedure, this cluster check should disappear.
    with future versions of CrateDB. For this reason, you should create a new
    snapshot for each of your tables. (See :ref:`snapshot-restore`.)
 
+.. _sys-health:
+
+Health
+======
+
+The ``sys.health`` table lists the `health` of each table and table
+partition. The `health` is computed by checking the states of the shard of each
+table/partition.
+
++----------------------------+-----------------------------------+-------------+
+| Column Name                | Description                       | Return Type |
++============================+===================================+=============+
+| ``table_name``             | The table name.                   | ``STRING``  |
++----------------------------+-----------------------------------+-------------+
+| ``table_schema``           | The schema of the table.          | ``STRING``  |
++----------------------------+-----------------------------------+-------------+
+| ``partition_ident``        | The `ident` of the partition.     | ``STRING``  |
+|                            | NULL for non-partitioned tables.  |             |
++----------------------------+-----------------------------------+-------------+
+| ``health``                 | The health label.                 | ``STRING``  |
+|                            | Can be RED, YELLOW or GREEN.      |             |
++----------------------------+-----------------------------------+-------------+
+| ``severity``               | The health as a short value.      | ``SHORT``   |
+|                            | Useful when ordering on health.   |             |
++----------------------------+-----------------------------------+-------------+
+| ``missing_shards``         | The number of not assigned or     | ``INTEGER`` |
+|                            | started shards.                   |             |
++----------------------------+-----------------------------------+-------------+
+| ``underreplicated_shards`` | The number of shards which are    | ``INTEGER`` |
+|                            | not fully replicated.             |             |
++----------------------------+-----------------------------------+-------------+
+
+::
+
+    cr> select * from sys.health order by severity desc, table_name;
+    +--------+----------------+-----------------+----------+------------+--------------+------------------------+
+    | health | missing_shards | partition_ident | severity | table_name | table_schema | underreplicated_shards |
+    +--------+----------------+-----------------+----------+------------+--------------+------------------------+
+    | GREEN  |              0 |                 |        1 | locations  | doc          |                      0 |
+    | GREEN  |              0 |                 |        1 | quotes     | doc          |                      0 |
+    +--------+----------------+-----------------+----------+------------+--------------+------------------------+
+    SELECT 2 rows in set (... sec)
+
+The `health` with the highest `severity` will always define the `health` of the
+query scope.
+
+Example of getting a `cluster health` (`health` of all tables):
+
+::
+
+    cr> select health from sys.health order by severity desc limit 1;
+    +--------+
+    | health |
+    +--------+
+    | GREEN  |
+    +--------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+   The ``sys.health`` table is subject to :ref:`shard_table_permissions` as it
+   will expose a summary of table shard states.
+
 .. _sys-repositories:
 
 Repositories

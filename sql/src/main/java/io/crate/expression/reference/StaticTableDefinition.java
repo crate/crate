@@ -22,9 +22,9 @@
 
 package io.crate.expression.reference;
 
+import io.crate.auth.user.User;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.auth.user.User;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
@@ -52,6 +53,16 @@ public class StaticTableDefinition<T> {
                                  Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
         this.iterable = (User u) -> completedFuture(() -> StreamSupport.stream(iterable.get().spliterator(), false)
             .filter(t -> u == null || predicate.test(u, t)).iterator());
+        this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
+    }
+
+    public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> iterable,
+                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
+                                 BiPredicate<User, T> predicate) {
+        this.iterable = (User u) -> iterable.get().thenApply(
+            (i) -> StreamSupport.stream(i.spliterator(), false)
+                .filter(t -> u == null || predicate.test(u, t))
+                .collect(Collectors.toList()));
         this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
