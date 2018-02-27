@@ -99,31 +99,32 @@ public class HashInnerJoinBatchIteratorTest {
         // TestingBatchIterators.range() always return allLoaded() == true
         return Arrays.asList(
             $("UniqueValues-plain",
-              (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 5, 1, null)),
-              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-                    TestingBatchIterators.range(2, 6), 4, 1, null),
-              resultForUniqueValues),
+                (Supplier<RamAccountingBatchIterator<Row>>) () -> of(TestingBatchIterators.range(0, 5)),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.range(2, 6),
+                resultForUniqueValues),
             $("UniqueValues-batchedSource",
-              (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
+                (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null)),
-              (Supplier<BatchIterator<Row>>) () ->
+                (Supplier<BatchIterator<Row>>) () ->
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
-              resultForUniqueValues),
+                resultForUniqueValues),
             $("DuplicateValues-plain",
-              (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
-                  new BatchSimulatingIterator<>(
-                      TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 8, 1, null)),
-              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
-                    TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 9, 1, null),
-              resultForDuplicateValues),
+                (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
+                    TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4))),
+                (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)),
+                resultForDuplicateValues),
             $("DuplicateValues-batchedSource",
-              (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
-                  new BatchSimulatingIterator<>(
-                    TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null)),
-              (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                (Supplier<RamAccountingBatchIterator<Row>>) () -> of(
+                    new BatchSimulatingIterator<>(
+                        TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null)),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
                     TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
-              resultForDuplicateValues));
+                resultForDuplicateValues),
+            $("DuplicateValues-leftLoadedRightBatched",
+                (Supplier<RamAccountingBatchIterator<Row>>) () -> of(TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4))),
+                (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
+                    TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
+                resultForDuplicateValues));
     }
 
     private static RamAccountingBatchIterator<Row> of(BatchIterator<Row> batchIterator) {
