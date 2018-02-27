@@ -113,7 +113,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.circuitBreaker = cicuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
-        resetBuffer();
+        recreateBuffer();
         this.activeIt = left;
     }
 
@@ -127,7 +127,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         left.moveToStart();
         right.moveToStart();
         activeIt = left;
-        resetBuffer();
+        recreateBuffer();
         ((RamAccountingBatchIterator) left).releaseAccountedRows();
         leftMatchingRowsIterator = null;
     }
@@ -144,7 +144,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             } else if (right.allLoaded()) {
                 right.moveToStart();
                 activeIt = left;
-                resetBuffer();
+                recreateBuffer();
                 ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
                 return false;
@@ -155,21 +155,20 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         return true;
     }
 
-    private void resetBuffer() {
-        calculateBlockSize();
+    private void recreateBuffer() {
+        blockSize = calculateBlockSize();
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
-
     }
 
-    private void calculateBlockSize() {
+    private int calculateBlockSize() {
         // In case statistics are not yet available
         if (estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1) {
-            blockSize = DEFAULT_BLOCK_SIZE;
-        } else {
-            blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
-            blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
+            return DEFAULT_BLOCK_SIZE;
         }
+
+        int blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
+        return (int) Math.min(numberOfRowsForLeft, blockSize);
     }
 
     private boolean buildBufferAndMatchRight() {
