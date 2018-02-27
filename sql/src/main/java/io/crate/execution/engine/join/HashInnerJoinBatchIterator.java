@@ -80,7 +80,6 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
 
     private final Predicate<C> joinCondition;
-    private final IntObjectHashMap<List<Object[]>> buffer;
 
     /**
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
@@ -91,6 +90,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
+
+    private IntObjectHashMap<List<Object[]>> buffer;
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
@@ -112,8 +113,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.circuitBreaker = cicuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
-        updateBlockSize();
-        this.buffer = new IntObjectHashMap<>(this.blockSize);
+        resetBuffer();
         this.activeIt = left;
     }
 
@@ -127,7 +127,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         left.moveToStart();
         right.moveToStart();
         activeIt = left;
-        buffer.clear();
+        resetBuffer();
+        ((RamAccountingBatchIterator) left).releaseAccountedRows();
         leftMatchingRowsIterator = null;
     }
 
@@ -143,9 +144,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             } else if (right.allLoaded()) {
                 right.moveToStart();
                 activeIt = left;
-                buffer.clear();
-                numberOfRowsInBuffer = 0;
-                updateBlockSize();
+                resetBuffer();
                 ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
                 return false;
@@ -156,7 +155,14 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         return true;
     }
 
-    private void updateBlockSize() {
+    private void resetBuffer() {
+        calculateBlockSize();
+        this.buffer = new IntObjectHashMap<>(this.blockSize);
+        numberOfRowsInBuffer = 0;
+
+    }
+
+    private void calculateBlockSize() {
         // In case statistics are not yet available
         if (estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1) {
             blockSize = DEFAULT_BLOCK_SIZE;
