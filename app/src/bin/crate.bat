@@ -94,6 +94,12 @@ set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx
 REM Disable netty recycler
 set JAVA_OPTS=%JAVA_OPTS% -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0
 
+REM Dump heap on OOM
+set JAVA_OPTS=%JAVA_OPTS% -XX:+HeapDumpOnOutOfMemoryError
+if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
+    set JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=%CRATE_HEAP_DUMP_PATH%
+)
+
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/enterprise/*
 ) else (

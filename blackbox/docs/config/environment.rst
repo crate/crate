@@ -126,3 +126,20 @@ There are various environment variables to control garbage collection logging
 for CrateDB.
 
 See :ref:`conf-logging-gc`.
+
+``CRATE_HEAP_DUMP_PATH``
+========================
+
+CrateDB will create a heap dump in case of a crash caused by an out of memory
+error. It is necessary to make sure that there is enough disk space available
+so that this heap dump could be created. The location of this heap dump can be
+set via the ``CRATE_HEAP_DUMP_PATH`` environment variable.
+
+:CRATE_HEAP_DUMP_PATH:
+  | Path to a directory or file where the heap dump will be created. If a
+    directory is specified, each time a heap dump is generated a new file will be
+    created. If a path to a file is specified it will overwrite that each time.
+  | *Default for .tar.gz:* The working directory
+  | *Default for .rpm:*  /var/lib/crate
+  | *Default for .deb:* /var/lib/crate
+  | *Default for Docker:* /data/data

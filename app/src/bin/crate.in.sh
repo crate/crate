@@ -100,3 +100,9 @@ JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=tru
 
 # Disable netty recycler
 JAVA_OPTS="$JAVA_OPTS -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0"
+
+# Dump heap on OOM
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
+if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
+fi
