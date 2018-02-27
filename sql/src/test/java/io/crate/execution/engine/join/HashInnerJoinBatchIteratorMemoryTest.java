@@ -62,7 +62,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         TestRamAccountingBatchIterator leftIterator = new TestRamAccountingBatchIterator(
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 12), 3, 4, null),
             mock(RowAccounting.class));
-        BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 5, null);
+        BatchIterator<Row> rightIterator = TestingBatchIterators.range(0, 10);
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);

@@ -132,6 +132,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             if (right.allLoaded() && left.allLoaded()) {
                 // both sides are fully loaded, we're done here
                 return false;
+            } else if (activeIt == left) {
+                // left needs the next batch loaded
+                return false;
             } else if (right.allLoaded()) {
                 right.moveToStart();
                 activeIt = left;
@@ -139,7 +142,6 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 updateBlockSize();
                 ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
-                // activeIt needs the next batch loaded
                 return false;
             }
         }
