@@ -92,6 +92,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
     private int blockSize;
+    private int numberOfRowsInBuffer = 0;
+    private boolean leftBatchHasItems = false;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
     public HashInnerJoinBatchIterator(RamAccountingBatchIterator<L> left,
@@ -132,7 +134,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     @Override
     public boolean moveNext() {
         while (buildBufferAndMatchRight() == false) {
-            if (right.allLoaded() && left.allLoaded()) {
+            if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded, we're done here
                 return false;
             } else if (activeIt == left) {
@@ -142,6 +144,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 right.moveToStart();
                 activeIt = left;
                 buffer.clear();
+                numberOfRowsInBuffer = 0;
                 updateBlockSize();
                 ((RamAccountingBatchIterator) left).releaseAccountedRows();
             } else {
@@ -165,19 +168,22 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
     private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
-            while (left.moveNext()) {
+            while (leftBatchHasItems = left.moveNext()) {
                 Object[] currentRow = left.currentElement().materialize();
                 int hash = hashBuilderForLeft.apply(left.currentElement());
                 addToBuffer(currentRow, hash);
-                if (buffer.size() == blockSize) {
+                if (numberOfRowsInBuffer == blockSize) {
                     break;
                 }
             }
-            if (buffer.size() == blockSize || left.allLoaded()) {
-                activeIt = right;
-            } else {
-                // need to load the next batch of the left relation
+
+            if (leftBatchHasItems == false && numberOfRowsInBuffer < blockSize && left.allLoaded() == false) {
+                // we should load the left side
                 return false;
+            }
+
+            if (numberOfRowsInBuffer == blockSize || leftBatchHasItems == false) {
+                activeIt = right;
             }
         }
 
@@ -209,6 +215,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             buffer.put(hash, existingRows);
         }
         existingRows.add(currentRow);
+        numberOfRowsInBuffer++;
     }
 
     @SuppressWarnings("unchecked")
