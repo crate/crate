@@ -1,12 +1,16 @@
 @ECHO OFF
 
-SETLOCAL
+SETLOCAL EnableDelayedExpansion
 
 if NOT DEFINED JAVA_HOME goto err
 
+PATH %PATH%;%JAVA_HOME%\bin\
+for /f tokens^=2-5^ delims^=.-_^" %%j in ('java -fullversion 2^>^&1') do set "JAVA_VERSION=%%k%%l%%m"
+REM Convert to number so we can compare it later
+SET /a JAVA_VERSION=%JAVA_VERSION% + 0
+
 set SCRIPT_DIR=%~dp0
 for %%I in ("%SCRIPT_DIR%..") do set CRATE_HOME=%%~dpfI
-
 
 REM ***** JAVA options *****
 
@@ -49,22 +53,30 @@ REM GC logging default values
 SET GC_LOG_DIR=%CRATE_HOME%\logs
 SET GC_LOG_SIZE=64m
 SET GC_LOG_FILES=16
+
 REM Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
 if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
 
-  IF DEFINED %CRATE_GC_LOG_DIR% (SET GC_LOG_DIR=%CRATE_GC_LOG_DIR%)
-  IF DEFINED %CRATE_GC_LOG_SIZE% (SET GC_LOG_SIZE=%CRATE_GC_LOG_SIZE%)
-  IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=%CRATE_GC_LOG_FILES%)
-
-  SET JAVA_OPTS=%JAVA_OPTS% -Xloggc:%GC_LOG_DIR%\gc.log
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCDetails
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCDateStamps
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintTenuringDistribution
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:+PrintGCApplicationStoppedTime
   REM GC logging requires 16x64mb = 1g of free disk space
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:+UseGCLogFileRotation
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:NumberOfGCLogFiles=%GC_LOG_FILES%
-  SET JAVA_OPTS=%JAVA_OPTS% -XX:GCLogFileSize=%GC_LOG_SIZE%
+  IF DEFINED %CRATE_GC_LOG_DIR% (SET GC_LOG_DIR=!CRATE_GC_LOG_DIR!)
+  IF DEFINED %CRATE_GC_LOG_SIZE% (SET GC_LOG_SIZE=!CRATE_GC_LOG_SIZE!)
+  IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=!CRATE_GC_LOG_FILES!)
+
+  SET LOGGC=!GC_LOG_DIR!\gc.log
+
+  IF %JAVA_VERSION% GEQ 90000 (
+    SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=!LOGGC!:utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
+  )
+  IF %JAVA_VERSION% LSS 90000 (
+    SET JAVA_OPTS=!JAVA_OPTS! -Xloggc:!LOGGC!
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDetails
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDateStamps
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintTenuringDistribution
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCApplicationStoppedTime
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:+UseGCLogFileRotation
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:NumberOfGCLogFiles=!GC_LOG_FILES!
+    SET JAVA_OPTS=!JAVA_OPTS! -XX:GCLogFileSize=!GC_LOG_SIZE!
+  )
 )
 
 REM Disables explicit GC

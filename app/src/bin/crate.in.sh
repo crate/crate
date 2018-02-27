@@ -56,6 +56,7 @@ JAVA_OPTS="$JAVA_OPTS -XX:+UseCMSInitiatingOccupancyOnly"
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
 if [ "x$CRATE_DISABLE_GC_LOGGING" = "x" ]; then
   # GC log directory needs to be set explicitly by packages
+  # GC logging requires 16x64mb = 1g of free disk space
   GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
   GC_LOG_SIZE=${CRATE_GC_LOG_SIZE:-"64m"}
   GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
@@ -67,17 +68,22 @@ ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not a
 EOF
     exit 1
   fi
+  LOGGC="$GC_LOG_DIR/gc.log"
 
-  JAVA_OPTS="$JAVA_OPTS -Xloggc:$GC_LOG_DIR/gc.log"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDateStamps"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
-  JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
-  # GC logging requires 16x64mb = 1g of free disk space
-  JAVA_OPTS="$JAVA_OPTS -XX:+UseGCLogFileRotation"
-  JAVA_OPTS="$JAVA_OPTS -XX:NumberOfGCLogFiles=$GC_LOG_FILES"
-  JAVA_OPTS="$JAVA_OPTS -XX:GCLogFileSize=$GC_LOG_SIZE"
-
+  JAVA_VERSION=`java -version 2>&1 | awk '/version/ {split($3, array, ".")} END {print array[2]}'`
+  if [ $JAVA_VERSION -ge 9 ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=${LOGGC}:utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
+  fi
+  if [ $JAVA_VERSION -le 8 ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xloggc:$LOGGC"
+    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
+    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDateStamps"
+    JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
+    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
+    JAVA_OPTS="$JAVA_OPTS -XX:+UseGCLogFileRotation"
+    JAVA_OPTS="$JAVA_OPTS -XX:NumberOfGCLogFiles=$GC_LOG_FILES"
+    JAVA_OPTS="$JAVA_OPTS -XX:GCLogFileSize=$GC_LOG_SIZE"
+  fi
 fi
 
 # Disables explicit GC
