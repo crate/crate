@@ -43,7 +43,6 @@ public class RamAccountingContext {
 
     private final AtomicLong totalBytes = new AtomicLong(0);
     private final AtomicLong flushBuffer = new AtomicLong(0);
-    private final AtomicLong releasedBytes = new AtomicLong(0);
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
@@ -147,6 +146,7 @@ public class RamAccountingContext {
 
     /**
      * Close the context and adjust the breaker.
+     * A remaining flush buffer will not be flushed to avoid breaking on close.
      * (all ram operations expected to be finished at this point)
      */
     public void close() {
@@ -154,13 +154,19 @@ public class RamAccountingContext {
             return;
         }
         closed = true;
-        release();
+        if (totalBytes.get() != 0) {
+            if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
+                logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
+            }
+            breaker.addWithoutBreaking(-totalBytes.get());
+        }
+        totalBytes.addAndGet(flushBuffer.getAndSet(0));
     }
 
     /**
      * Release all the bytes that have been flushed to the breaker so far, and the bytes that are in the buffer "to be
-     * flushed" are not accounted for in the breaker anymore, but only in the #{@link RamAccountingContext#totalBytes}.
-     *
+     * flushed" are not accounted for in the breaker anymore.
+     * <p>
      * The purpose of this method is to substract everything that this context added to the breaker so far in order
      * to be reused in a multi-phase operation where a subsequent phase needs to make decisions based on the available
      * memory after the previous phase completed (and needs to be unloaded/released from the breaker)
@@ -170,13 +176,9 @@ public class RamAccountingContext {
             if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
                 logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
             }
-            long bytesToRelease = totalBytes.get() - releasedBytes.get();
-            breaker.addWithoutBreaking(-bytesToRelease);
-            releasedBytes.addAndGet(bytesToRelease);
+            breaker.addWithoutBreaking(-totalBytes.getAndSet(0));
         }
-        long bytesInFlushBuffer = flushBuffer.getAndSet(0);
-        totalBytes.addAndGet(bytesInFlushBuffer);
-        releasedBytes.addAndGet(bytesInFlushBuffer);
+        flushBuffer.getAndSet(0);
     }
 
     /**

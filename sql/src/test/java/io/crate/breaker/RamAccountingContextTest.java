@@ -70,7 +70,7 @@ public class RamAccountingContextTest extends CrateUnitTest {
         ramAccountingContext.addBytesWithoutBreaking(10);
         ramAccountingContext.release();
 
-        assertThat(ramAccountingContext.totalBytes(), is(30L));
+        assertThat(ramAccountingContext.totalBytes(), is(0L));
         assertThat(breaker.getUsed(), is(0L));
     }
 
@@ -82,7 +82,7 @@ public class RamAccountingContextTest extends CrateUnitTest {
 
         ramAccountingContext.addBytes(20);
 
-        assertThat(ramAccountingContext.totalBytes(), is(50L));
+        assertThat(ramAccountingContext.totalBytes(), is(20L));
         assertThat(breaker.getUsed(), is(20L));
     }
 
@@ -94,7 +94,7 @@ public class RamAccountingContextTest extends CrateUnitTest {
         ramAccountingContext.addBytes(10);
         ramAccountingContext.release();
 
-        assertThat(ramAccountingContext.totalBytes(), is(30L));
+        assertThat(ramAccountingContext.totalBytes(), is(0L));
         assertThat(breaker.getUsed(), is(0L));
     }
 }
