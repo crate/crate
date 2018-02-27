@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static io.crate.execution.engine.join.HashInnerJoinBatchIterator.calculateBlockSize;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -82,6 +83,32 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         consumer.accept(it, null);
         consumer.getResult();
         assertThat(leftIterator.countCallsForReleaseMem, is(6));
+    }
+
+    @Test
+    public void testCalculationOfBlockSize() {
+        when(circuitBreaker.getLimit()).thenReturn(110L);
+        when(circuitBreaker.getUsed()).thenReturn(10L);
+        assertThat(calculateBlockSize(circuitBreaker, 5, 100), is(20));
+        assertThat(calculateBlockSize(circuitBreaker, 5, 10), is(10));
+    }
+
+    @Test
+    public void testCalculationOfBlockSizeWithMissingStats() {
+        when(circuitBreaker.getLimit()).thenReturn(-1L);
+        assertThat(calculateBlockSize(circuitBreaker, 10, 10), is(HashInnerJoinBatchIterator.DEFAULT_BLOCK_SIZE));
+
+        when(circuitBreaker.getLimit()).thenReturn(110L);
+        when(circuitBreaker.getUsed()).thenReturn(10L);
+        assertThat(calculateBlockSize(circuitBreaker, 10, -1), is(HashInnerJoinBatchIterator.DEFAULT_BLOCK_SIZE));
+        assertThat(calculateBlockSize(circuitBreaker, -1, 10), is(HashInnerJoinBatchIterator.DEFAULT_BLOCK_SIZE));
+    }
+
+    @Test
+    public void testCalculationOfBlockSizeWithNoMemLeft() {
+        when(circuitBreaker.getLimit()).thenReturn(110L);
+        when(circuitBreaker.getUsed()).thenReturn(110L);
+        assertThat(calculateBlockSize(circuitBreaker, 10, 10), is(10));
     }
 
     private class TestRamAccountingBatchIterator extends RamAccountingBatchIterator<Row> {

@@ -23,6 +23,7 @@
 package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -77,7 +78,8 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
-    private static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
+    @VisibleForTesting
+    static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
 
     private final Predicate<C> joinCondition;
 
@@ -156,19 +158,26 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = calculateBlockSize();
+        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft);
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
     }
 
-    private int calculateBlockSize() {
+    @VisibleForTesting
+    static int calculateBlockSize(CircuitBreaker circuitBreaker,
+                                  long estimatedRowSizeForLeft,
+                                  long numberOfRowsForLeft) {
         // In case statistics are not yet available
         if (estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1) {
             return DEFAULT_BLOCK_SIZE;
         }
 
         int blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
-        return (int) Math.min(numberOfRowsForLeft, blockSize);
+        blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
+
+        // In case no mem available from circuit breaker then still allocate for 10 rows
+        // as a CircuitBreakerException will be thrown anyway during processing.
+        return blockSize == 0 ? 10 : blockSize;
     }
 
     private boolean buildBufferAndMatchRight() {
