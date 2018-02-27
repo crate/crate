@@ -42,20 +42,21 @@ public class SessionSettingRegistryTest {
     public void testSemiJoinSessionSetting() {
         SessionContext sessionContext = new SessionContext(null, null, x -> {}, x -> {});
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.SEMI_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier);
+        assertBooleanNonEmptySetting(sessionContext, sessionContext::getSemiJoinsRewriteEnabled, applier, false);
     }
 
     @Test
     public void testHashJoinSessionSetting() {
         SessionContext sessionContext = new SessionContext(null, null, x -> {}, x -> {});
         SessionSettingApplier applier = SessionSettingRegistry.getApplier(SessionSettingRegistry.HASH_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier);
+        assertBooleanNonEmptySetting(sessionContext, sessionContext::isHashJoinEnabled, applier, true);
     }
 
     private void assertBooleanNonEmptySetting(SessionContext sessionContext,
                                               Supplier<Boolean> contextBooleanSupplier,
-                                              SessionSettingApplier applier) {
-        assertThat(contextBooleanSupplier.get(), is(false));
+                                              SessionSettingApplier applier,
+                                              boolean defaultValue) {
+        assertThat(contextBooleanSupplier.get(), is(defaultValue));
         applier.apply(Row.EMPTY, generateInput("true"), sessionContext);
         assertThat(contextBooleanSupplier.get(), is(true));
         applier.apply(Row.EMPTY, generateInput("false"), sessionContext);

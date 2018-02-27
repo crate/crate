@@ -157,9 +157,9 @@ public class SQLTransportExecutor {
             LOGGER.trace("Executing with enable_semijoin=true: {}", stmt);
         }
 
-        if (config.isHashJoinEnabled()) {
-            sessionList.add("set enable_hashjoin=true");
-            LOGGER.trace("Executing with enable_hashjoin=true: {}", stmt);
+        if (!config.isHashJoinEnabled()) {
+            sessionList.add("set enable_hashjoin=false");
+            LOGGER.trace("Executing with enable_hashjoin=false: {}", stmt);
         }
 
         if (pgUrl != null && config.isJdbcEnabled()) {

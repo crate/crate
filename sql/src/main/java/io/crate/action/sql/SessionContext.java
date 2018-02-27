@@ -44,7 +44,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     private String defaultSchema;
     private boolean semiJoinsRewriteEnabled;
-    private boolean hashJoinEnabled;
+    private boolean hashJoinEnabled = true;
 
     public SessionContext(@Nullable String defaultSchema,
                           @Nullable User user,

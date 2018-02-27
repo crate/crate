@@ -158,14 +158,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSelectCountStarIsOptimizedInsideRelations() throws Exception {
+    public void testSelectCountStarIsOptimizedInsideRelations() {
         LogicalPlan plan = plan("select t2.i, cnt from " +
                                " (select count(*) as cnt from t1) t1 " +
                                "join" +
                                " (select i from t2 limit 1) t2 " +
                                "on t1.cnt = t2.i::long ");
         assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
-                                "NestedLoopJoin[\n" +
+                                "HashJoin[\n" +
                                 "    Boundary[cnt]\n" +
                                 "    Count[doc.t1 | All]\n" +
                                 "    --- INNER ---\n" +
@@ -176,7 +176,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testJoinTwoTables() throws Exception {
+    public void testJoinTwoTables() {
         LogicalPlan plan = plan("select " +
                                 "   t1.x, t1.a, t2.y " +
                                 "from " +
@@ -186,10 +186,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "limit 10");
         assertThat(plan, isPlan("FetchOrEval[x, a, y]\n" +
                                 "Limit[10;0]\n" +
-                                "NestedLoopJoin[\n" +
+                                "OrderBy['x' ASC]\n" +
+                                "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    FetchOrEval[_fetchid, x]\n" +
-                                "    OrderBy['x' ASC]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[y]\n" +

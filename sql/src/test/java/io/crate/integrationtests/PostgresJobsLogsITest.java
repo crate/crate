@@ -46,7 +46,7 @@ import static org.hamcrest.core.Is.is;
 @UseJdbc(1)
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseSemiJoins(0) // Avoid set session stmt to interfere with tests
-@UseHashJoins(0) // Avoid set session stmt to interfere with tests
+@UseHashJoins(1) // Avoid set session stmt to interfere with tests
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Override

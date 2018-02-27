@@ -182,7 +182,7 @@ tuples for all other records from *right* that don't match any record on the
     SELECT 19 rows in set (... sec)
 
 Join Conditions
-...............
+---------------
 
 CrateDB supports all operators and scalar functions as join conditions in the
 ``WHERE`` clause.
@@ -201,17 +201,55 @@ Example with ``within`` scalar function::
     +--------------+---------+
     SELECT 2 rows in set (... sec)
 
-However, there are no specific optimisations for certain join conditions such
-as ``=`` (equals) yet. The JOIN operation is implemented as a generic nested
-loop that invokes the operation on every record of the left table with every
-record of the right table. However, these filters are applied in a distributed
-way for each shard of the used tables.
+Available Join Algorithms
+-------------------------
+
+Nested Loop Join Algorithm
+..........................
+
+The nested loop algorithm evaluates the join conditions on every record of the
+left table with every record of the right table in a distributed manner (for
+each shard of the used tables). The right table is scanned once for every row
+in the left table.
+
+This is the default algorithm used for all types of joins.
+
+Block Hash Join Algorithm
+.........................
+
+The performance of `Equi-Joins`_  is substantially improved by using the
+`Hash Join`_ algorithm. At first one relation is scanned and loaded into a hash
+table using the attributes of the join conditions as hash keys. Once the hash
+table is build, the second relation is scanned and the join condition values of
+every row are hashed and matched against the hash table.
+
+In order to built a hash table even if the first relation wouldn't fit into the
+available memory, only a certain block size of a relation is loaded at once. The
+whole operation will be repeated with the next block of the first relation once
+scanning the second relation has finished.
+
+This optimisation cannot be applied unless the join is an  **INNER** join and
+the `join condition` obeys the following rules:
+
+  - contains at least one ``EQUAL`` operator
+  - contains no ``OR`` operator
+  - every argument of a ``EQUAL`` operator can only references fields from one
+    relation
+
+The `Hash Join`_ algorithm is faster but has a bigger memory footprint. As such
+it can explicitly be disabled on demand when memory is scarce using the session
+setting ``enable_hashjoin``::
+
+  SET enable_hashjoin=false
 
 Limitations
-...........
+-----------
 
  - Joining more than 2 tables can result in execution plans which perform
    poorly as there is no query optimizer in place yet.
 
+
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
+.. _`Equi-Joins`: https://en.wikipedia.org/wiki/Join_(SQL)#Equi-join
+.. _`Hash Join`: https://en.wikipedia.org/wiki/Hash_join
