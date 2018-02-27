@@ -96,7 +96,7 @@ import java.util.function.Function;
  * <p>
  * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
  */
-public class Session {
+public class Session implements AutoCloseable {
 
     // Logger name should be SQLOperations here
     private static final Logger LOGGER = Loggers.getLogger(SQLOperations.class);
@@ -385,7 +385,10 @@ public class Session {
     }
 
     public void clearState() {
-        portals.remove(UNNAMED);
+        Portal portal = portals.remove(UNNAMED);
+        if (portal != null) {
+            portal.close();
+        }
         preparedStatements.remove(UNNAMED);
     }
 
@@ -450,10 +453,12 @@ public class Session {
         }
     }
 
+    @Override
     public void close() {
         for (Portal portal : portals.values()) {
             portal.close();
         }
+        portals.clear();
     }
 
     static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {

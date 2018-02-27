@@ -30,6 +30,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.auth.AuthSettings;
@@ -172,6 +173,7 @@ public class RestSQLAction extends BaseRestHandler {
             userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
+        SessionContext sessionContext = session.sessionContext();
         try {
             final long startTime = System.nanoTime();
             session.parse(UNNAMED, context.stmt(), Collections.emptyList());
@@ -183,12 +185,12 @@ public class RestSQLAction extends BaseRestHandler {
                 return channel -> {
                     try {
                         ResultReceiver resultReceiver = new RestRowCountReceiver(
-                            channel, session.sessionContext(), startTime,
+                            channel, sessionContext, startTime,
                             request.paramAsBoolean("types", false));
                         session.execute(UNNAMED, 0, resultReceiver);
-                        session.sync();
+                        session.sync().thenAccept(ignored -> session.close());
                     } catch (Throwable t) {
-                        errorResponse(channel, t, session.sessionContext());
+                        errorResponse(channel, t, sessionContext);
                     }
                 };
             }
@@ -196,7 +198,7 @@ public class RestSQLAction extends BaseRestHandler {
                 try {
                     ResultReceiver resultReceiver = new RestResultSetReceiver(
                         channel,
-                        session.sessionContext(),
+                        sessionContext,
                         outputFields,
                         startTime,
                         new RowAccounting(
@@ -204,13 +206,16 @@ public class RestSQLAction extends BaseRestHandler {
                             new RamAccountingContext("http-result", circuitBreaker)),
                         request.paramAsBoolean("types", false));
                     session.execute(UNNAMED, 0, resultReceiver);
-                    session.sync();
+                    session.sync().thenAccept(ignored -> session.close());
                 } catch (Throwable t) {
-                    errorResponse(channel, t, session.sessionContext());
+                    errorResponse(channel, t, sessionContext);
                 }
             };
         } catch (Throwable t) {
-            return channel -> errorResponse(channel, t, session.sessionContext());
+            return channel -> {
+                errorResponse(channel, t, sessionContext);
+                session.close();
+            };
         }
     }
 
@@ -220,6 +225,7 @@ public class RestSQLAction extends BaseRestHandler {
             userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
+        SessionContext sessionContext = session.sessionContext();
         try {
             final long startTime = System.nanoTime();
             session.parse(UNNAMED, context.stmt(), Collections.emptyList());
@@ -251,15 +257,19 @@ public class RestSQLAction extends BaseRestHandler {
                                 .bulkRows(results).build();
                             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                         } catch (Throwable e) {
-                            errorResponse(channel, e, session.sessionContext());
+                            errorResponse(channel, e, sessionContext);
                         }
                     } else {
-                        errorResponse(channel, t, session.sessionContext());
+                        errorResponse(channel, t, sessionContext);
                     }
+                    session.close();
                 });
             };
         } catch (Throwable t) {
-            return channel -> errorResponse(channel, t, session.sessionContext());
+            return channel -> {
+                errorResponse(channel, t, sessionContext);
+                session.close();
+            };
         }
     }
 
