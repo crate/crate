@@ -167,7 +167,7 @@ class HashJoin extends TwoInputPlan {
             leftHashInputs,
             rightHashInputs,
             Symbols.typeView(lhs.outputs()),
-            lhs.estimatedRowSize(tableStats),
+            lhs.estimatedRowSize(),
             lhs.numExpectedRows());
         return new Join(
             joinPhase,
@@ -193,8 +193,8 @@ class HashJoin extends TwoInputPlan {
     }
 
     @Override
-    public long estimatedRowSize(TableStats tableStats) {
-        return lhs.estimatedRowSize(tableStats) + rhs.estimatedRowSize(tableStats);
+    public long estimatedRowSize() {
+        return lhs.estimatedRowSize() + rhs.estimatedRowSize();
     }
 
     @Override

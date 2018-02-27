@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -83,8 +82,8 @@ abstract class OneInputPlan extends LogicalPlanBase {
     }
 
     @Override
-    public long estimatedRowSize(TableStats tableStats) {
-        return source.estimatedRowSize(tableStats);
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     /**

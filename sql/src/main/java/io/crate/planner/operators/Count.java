@@ -25,19 +25,18 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.types.DataTypes;
@@ -113,7 +112,7 @@ public class Count extends ZeroInputPlan {
     }
 
     @Override
-    public long estimatedRowSize(TableStats tableStats) {
+    public long estimatedRowSize() {
         return Long.BYTES;
     }
 

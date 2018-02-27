@@ -25,19 +25,19 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
+import io.crate.execution.dsl.phases.PKLookupPhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.Collect;
-import io.crate.execution.dsl.phases.PKLookupPhase;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -56,11 +56,13 @@ public class Get extends ZeroInputPlan {
 
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
+    final long estimatedSizePerRow;
 
-    Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs) {
+    Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
         super(outputs, Collections.singletonList(table.tableRelation()));
         this.tableRelation = table.tableRelation();
         this.docKeys = docKeys;
+        this.estimatedSizePerRow = tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
     }
 
     @Override
@@ -133,8 +135,8 @@ public class Get extends ZeroInputPlan {
     }
 
     @Override
-    public long estimatedRowSize(TableStats tableStats) {
-        return tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
+    public long estimatedRowSize() {
+        return estimatedSizePerRow;
     }
 
     @Override

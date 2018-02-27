@@ -24,11 +24,11 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
@@ -210,9 +210,8 @@ public interface LogicalPlan extends Plan {
 
     /**
      * Returns an estimation of the size (in bytes) of each row returned by the plan
-     * @param tableStats is needed to retrieve the stats for the concrete tables
      */
-    long estimatedRowSize(TableStats tableStats);
+    long estimatedRowSize();
 
     @Override
     default void execute(DependencyCarrier executor,
