@@ -75,7 +75,8 @@ public class HashInnerJoinBatchIteratorMemoryTest {
             getHashForLeft(),
             getHashForRight(),
             circuitBreaker,
-            50 // blockSize = 100/50 = 2
+            50, // blockSize = 100/50 = 2
+            100
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);

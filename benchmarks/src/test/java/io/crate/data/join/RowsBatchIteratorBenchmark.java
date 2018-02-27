@@ -136,6 +136,7 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             NOOP_CIRCUIT_BREAKER,
+            1000,
             1000
         );
         while (leftJoin.moveNext()) {
@@ -158,6 +159,7 @@ public class RowsBatchIteratorBenchmark {
             },
             row -> (Integer) row.get(0) % 500,
             NOOP_CIRCUIT_BREAKER,
+            1000,
             1000
         );
         while (leftJoin.moveNext()) {

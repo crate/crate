@@ -140,7 +140,8 @@ public class HashInnerJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             circuitBreaker,
-            20 // blockSize = 100/20 = 5
+            20, // blockSize = 100/20 = 5
+            100
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -156,7 +157,8 @@ public class HashInnerJoinBatchIteratorTest {
             getHashWithCollisions(),
             getHashWithCollisions(),
             circuitBreaker,
-            20 // blockSize = 100/20 = 5
+            20, // blockSize = 100/20 = 5
+            100
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -172,7 +174,8 @@ public class HashInnerJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             circuitBreaker,
-            100 // blockSize = 100/100 = 1
+            100, // blockSize = 100/100 = 1
+            100
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
@@ -188,7 +191,8 @@ public class HashInnerJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             circuitBreaker,
-            33 // blockSize = 100 / 33 = 3
+            33, // blockSize = 100 / 33 = 3
+            100
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);

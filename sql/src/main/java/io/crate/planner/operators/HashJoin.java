@@ -167,7 +167,8 @@ class HashJoin extends TwoInputPlan {
             leftHashInputs,
             rightHashInputs,
             Symbols.typeView(lhs.outputs()),
-            lhs.estimatedRowSize(tableStats));
+            lhs.estimatedRowSize(tableStats),
+            lhs.numExpectedRows());
         return new Join(
             joinPhase,
             left,

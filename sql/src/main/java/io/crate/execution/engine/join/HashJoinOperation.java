@@ -55,7 +55,8 @@ public class HashJoinOperation implements CompletionListenable {
                              RowAccounting rowAccounting,
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
-                             long estimatedRowSizeForLeft) {
+                             long estimatedRowSizeForLeft,
+                             long numberOfRowsForLeft) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -70,7 +71,8 @@ public class HashJoinOperation implements CompletionListenable {
                         getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                         rowAccounting,
                         circuitBreaker,
-                        estimatedRowSizeForLeft
+                        estimatedRowSizeForLeft,
+                        numberOfRowsForLeft
                     ), completionFuture);
                     nlResultConsumer.accept(joinIterator, null);
                 } else {
@@ -116,7 +118,8 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Function<Row, Integer> hashBuilderForRight,
                                                              RowAccounting rowAccounting,
                                                              CircuitBreaker circuitBreaker,
-                                                             long estimatedRowSizeForLeft) {
+                                                             long estimatedRowSizeForLeft,
+                                                             long numberOfRowsForLeft) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator<>(
             new RamAccountingBatchIterator<>(left, rowAccounting),
@@ -126,6 +129,7 @@ public class HashJoinOperation implements CompletionListenable {
             hashBuilderForLeft,
             hashBuilderForRight,
             circuitBreaker,
-            estimatedRowSizeForLeft);
+            estimatedRowSizeForLeft,
+            numberOfRowsForLeft);
     }
 }

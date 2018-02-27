@@ -90,6 +90,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final Function<R, Integer> hashBuilderForRight;
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
+    private final long numberOfRowsForLeft;
     private int blockSize;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
@@ -100,13 +101,15 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       Function<L, Integer> hashBuilderForLeft,
                                       Function<R, Integer> hashBuilderForRight,
                                       CircuitBreaker cicuitBreaker,
-                                      long estimatedRowSizeForLeft) {
+                                      long estimatedRowSizeForLeft,
+                                      long numberOfRowsForLeft) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
         this.circuitBreaker = cicuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
+        this.numberOfRowsForLeft = numberOfRowsForLeft;
         updateBlockSize();
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         this.activeIt = left;
@@ -152,13 +155,11 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
 
     private void updateBlockSize() {
         // In case statistics are not yet available
-        if (estimatedRowSizeForLeft <= 0 || circuitBreaker.getLimit() == -1) {
+        if (estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1) {
             blockSize = DEFAULT_BLOCK_SIZE;
         } else {
             blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
-            // If the blockSize is to big, it can lead to GC issues
-            // because of the internal allocations of a huge buffer
-            blockSize = Math.min(blockSize, 20 * DEFAULT_BLOCK_SIZE);
+            blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
         }
     }
 

@@ -742,7 +742,8 @@ public class ContextPreparer extends AbstractComponent {
                 new RowAccounting(phase.leftOutputTypes(), ramAccountingContext, 110),
                 inputFactory,
                 circuitBreaker,
-                phase.estimatedRowSizeForLeft());
+                phase.estimatedRowSizeForLeft(),
+                phase.numberOfRowsForLeft());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,
