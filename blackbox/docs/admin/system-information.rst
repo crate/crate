@@ -1285,6 +1285,21 @@ Example of getting a `cluster health` (`health` of all tables):
     +--------+
     SELECT 1 row in set (... sec)
 
+Health Definition
+-----------------
+
++------------+---------------------------------------------------+
+| Health     | Description                                       |
++============+===================================================+
+| ``RED``    | At least one primary shard is missing (primary    |
+|            | shard not started or unassigned).                 |
++------------+---------------------------------------------------+
+| ``YELLOW`` | At least one shard is underreplicated (replica    |
+|            | shard not started or unassigned).                 |
++------------+---------------------------------------------------+
+| ``GREEN``  | All primary and replica shards have been started. |
++------------+---------------------------------------------------+
+
 .. NOTE::
 
    The ``sys.health`` table is subject to :ref:`shard_table_permissions` as it
