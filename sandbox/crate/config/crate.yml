@@ -12,3 +12,6 @@ ssl.keystore_password: keystorePassword
 ssl.keystore_key_password: serverKeyPassword
 
 path.repo: ./sandbox/crate/repo
+
+http.cors.enabled: true
+http.cors.allow-origin: "*"
