@@ -268,7 +268,7 @@ class TestGracefulStopNone(GracefulStopTest):
         self.set_settings({"cluster.graceful_stop.min_availability": "none"})
         decommission(self.crates[0].process)
 
-        stmt = "select _node['id'] as node_id, id, state \
+        stmt = "select node['id'] as node_id, id, state \
             from sys.shards where state='UNASSIGNED'"
         resp = retry_sql(client2, stmt)
 

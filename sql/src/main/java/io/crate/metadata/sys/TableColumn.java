@@ -34,7 +34,6 @@ import java.util.Map;
  * E.g.
  * _doc['foo'] is pointing to 'foo'
  * <p>
- * _node['name'] is pointing to 'name' of the sys.nodes table
  */
 public class TableColumn {
 
