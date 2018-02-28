@@ -108,6 +108,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where a null pointer exception would be thrown when trying to
+  move reroute shards to/from non-data nodes using ``ALTER TABLE REROUTE``.
+
 - Fixed an issue that causes ``JOINS`` with certain ``ORDER BY`` constructs to
   fail.
 
