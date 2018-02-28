@@ -152,10 +152,11 @@ Metrics can be accessed using the JMX MBean object name
 Exposing JMX via HTTP
 =====================
 
-The JMX metrics and a readiness endpoint can be exposed via HTTP by using
-the `Crate JMX HTTP Exporter`_ Java agent. See the `README`_ in the `Crate JMX
-HTTP Exporter`_ repository for more information.
+The JMX metrics and a readiness endpoint can be exposed via HTTP (e.g. to be
+used by `Prometheus`_) by using the `Crate JMX HTTP Exporter`_ Java agent. See
+the `README`_ in the `Crate JMX HTTP Exporter`_ repository for more information.
 
+.. _Prometheus: https://prometheus.io/
 .. _README: https://github.com/crate/jmx_exporter/blob/master/README.rst
 .. _Crate JMX HTTP Exporter: https://github.com/crate/jmx_exporter
 .. _JMX: http://docs.oracle.com/javase/8/docs/technotes/guides/jmx/
