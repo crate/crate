@@ -829,11 +829,13 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t2 (x) values (1), (3), (4), (4), (5), (6)");
         execute("refresh table t1, t2");
 
-        TableStats tableStats = internalCluster().getInstance(TableStats.class);
-        ObjectObjectHashMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
-        newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(4L, 16L));
-        newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(6L, 24L));
-        tableStats.updateTableStats(newStats);
+        Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
+        for (TableStats tableStats : tableStatsOnAllNodes) {
+            ObjectObjectHashMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+            newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t1"), new TableStats.Stats(4L, 16L));
+            newStats.put(new TableIdent(sqlExecutor.getDefaultSchema(), "t2"), new TableStats.Stats(6L, 24L));
+            tableStats.updateTableStats(newStats);
+        }
 
         execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
         assertThat(TestingHelpers.printedTable(response.rows()),
