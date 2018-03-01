@@ -70,7 +70,8 @@ EOF
   fi
   LOGGC="$GC_LOG_DIR/gc.log"
 
-  JAVA_VERSION=`java -version 2>&1 | awk '/version/ {split($3, array, ".")} END {print array[2]}'`
+  JAVA_VERSION=`java -version 2>&1 | awk '/version/ {gsub(/"/, "", $3); split($3, parts, ".")} END {print (parts[1] == 1 ? parts[2] : parts[1])}'
+
   if [ $JAVA_VERSION -ge 9 ]; then
     JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=${LOGGC}:utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
   fi
