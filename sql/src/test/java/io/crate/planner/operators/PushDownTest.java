@@ -27,6 +27,7 @@ import io.crate.planner.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -185,5 +186,44 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "    Boundary[a]\n" +
                                                           "    Collect[doc.t1 | [a] | All]\n" +
                                                           "]\n"));
+    }
+
+    @Test
+    public void testOrderByIsPushedDownToLeftSide() {
+        // differs from testOrderByOnJoinPushedDown in that here the ORDER BY expression is not part of the outputs
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
+
+        assertThat(
+            plan,
+            Matchers.anyOf(
+                LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                    "RootBoundary[i, i]\n" +
+                    "FetchOrEval[i, i]\n" +
+                    "Join[\n" +
+                    "    Boundary[_fetchid, y, b]\n" +
+                    "    FetchOrEval[_fetchid, y, b]\n" +
+                    "    OrderBy['lower(b)' ASC]\n" +
+                    "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
+                    "    --- INNER ---\n" +
+                    "    Boundary[_fetchid, x]\n" +
+                    "    FetchOrEval[_fetchid, x]\n" +
+                    "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                    "]\n"),
+                LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                    "RootBoundary[i, i]\n" +
+                    "FetchOrEval[i, i]\n" +
+                    "Join[\n" +
+                    "    Boundary[_fetchid, b, y]\n" +
+                    "    FetchOrEval[_fetchid, b, y]\n" +
+                    "    OrderBy['lower(b)' ASC]\n" +
+                    "    Collect[doc.t2 | [_fetchid, b, y] | All]\n" +
+                    "    --- INNER ---\n" +
+                    "    Boundary[_fetchid, x]\n" +
+                    "    FetchOrEval[_fetchid, x]\n" +
+                    "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                    "]\n")
+            )
+        );
     }
 }

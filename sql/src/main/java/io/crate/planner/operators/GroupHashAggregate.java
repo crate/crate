@@ -182,7 +182,7 @@ public class GroupHashAggregate extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new GroupHashAggregate(newSource, groupKeys, aggregates);
     }
 

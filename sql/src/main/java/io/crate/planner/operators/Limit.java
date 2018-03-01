@@ -23,19 +23,19 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.data.Row;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
-import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -104,7 +104,7 @@ class Limit extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new Limit(newSource, limit, offset);
     }
 

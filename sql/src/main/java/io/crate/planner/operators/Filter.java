@@ -105,7 +105,7 @@ class Filter extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new Filter(newSource, queryClause);
     }
 

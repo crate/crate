@@ -92,4 +92,5 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             is(DistributionType.SAME_NODE)
         );
     }
+
 }

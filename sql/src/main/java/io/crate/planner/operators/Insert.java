@@ -25,15 +25,15 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.Merge;
-import io.crate.planner.PlannerContext;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
+import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -72,7 +72,7 @@ public class Insert extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new Insert(newSource, relation, projection);
     }
 

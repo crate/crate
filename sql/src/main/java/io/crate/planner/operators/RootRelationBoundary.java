@@ -23,12 +23,12 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -64,7 +64,7 @@ public class RootRelationBoundary extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new RootRelationBoundary(newSource);
     }
 

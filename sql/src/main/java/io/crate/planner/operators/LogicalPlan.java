@@ -122,6 +122,7 @@ public interface LogicalPlan extends Plan {
      *
      * For example, pushing down an *Order*:
      *
+     * <pre>
      *       *Order*                   Union
      *          |                     /     \
      *          |                    /       \
@@ -132,9 +133,11 @@ public interface LogicalPlan extends Plan {
      *               |                       |
      *               |                       |
      *            Collect                 Collect
+     * </pre>
      *
      * Then combining two Order(s):
      *
+     * <pre>
      *        Union                  Union
      *       /     \                /     \
      *      /       \              /       \
@@ -145,13 +148,19 @@ public interface LogicalPlan extends Plan {
      *              |
      *              |
      *           Collect
+     * </pre>
      *
      * @param pushDown The LogicalPlan which gets "pushed down". {@code null} if currently
      *                 no plan gets pushed. If null, recurses to find other push down candidates.
+     * @param mapper a function used to map symbols from the previous source to the new source.
+     *               For example in a Join:
+     *               If the OrderBy that is above of a join is moved beneath the join on one side
+     *               the orderBySymbols must be changed to be based on the new outputs (For example, from Field[t2.x] to Reference[x].
+     *               To accomplish that, the Join operator can pass on an appropriate SymbolMapper when calling tryOptimize on its sources.
      * @return A new LogicalPlan or null if rewriting/optimizing is not possible.
      */
     @Nullable
-    LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown);
+    LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper);
 
     /**
      * Uses the current shard allocation information to create a physical execution plan.

@@ -28,6 +28,13 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
@@ -37,8 +44,6 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
-import io.crate.data.Row;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -51,12 +56,7 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.FetchProjection;
-import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -431,18 +431,18 @@ class FetchOrEval extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
-            LogicalPlan newPlan = source.tryOptimize(pushDown);
+            LogicalPlan newPlan = source.tryOptimize(pushDown, mapper);
             if (newPlan != null && newPlan != source) {
-                return updateSource(newPlan);
+                return updateSource(newPlan, mapper);
             }
         }
-        return super.tryOptimize(pushDown);
+        return super.tryOptimize(pushDown, mapper);
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new FetchOrEval(newSource, outputs, fetchMode, doFetch);
     }
 

@@ -798,4 +798,34 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "        unnest([2]) tt2");
         assertThat(printedTable(response.rows()), is("1| 1| 2\n"));
     }
+
+    @Test
+    public void testInnerJoinWithPushDownOptimizations() {
+        execute("CREATE TABLE t1 (id INTEGER)");
+        execute("CREATE TABLE t2 (id INTEGER, name STRING, id_t1 INTEGER)");
+
+        execute("INSERT INTO t1 (id) VALUES (1), (2)");
+        execute("INSERT INTO t2 (id, name, id_t1) VALUES (1, 'A', 1), (2, 'B', 2), (3, 'C', 2)");
+        execute("REFRESH TABLE t1, t2");
+
+        assertThat(printedTable(execute(
+            "SELECT t1.id, t2.id FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
+            is("1| 1\n" +
+               "2| 2\n" +
+               "2| 3\n")
+        );
+
+        assertThat(printedTable(execute(
+            "SELECT t1.id, t2.id, t2.name FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
+            is("1| 1| A\n" +
+               "2| 2| B\n" +
+               "2| 3| C\n"));
+
+        assertThat(printedTable(execute(
+            "SELECT t1.id, t2.id, lower(t2.name) FROM t2 INNER JOIN t1 ON t1.id = t2.id_t1 ORDER BY lower(t2.name)").rows()),
+            is("1| 1| a\n" +
+               "2| 2| b\n" +
+               "2| 3| c\n")
+        );
+    }
 }
