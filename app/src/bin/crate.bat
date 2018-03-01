@@ -4,10 +4,7 @@ SETLOCAL EnableDelayedExpansion
 
 if NOT DEFINED JAVA_HOME goto err
 
-PATH %PATH%;%JAVA_HOME%\bin\
-for /f tokens^=2-5^ delims^=.-_^" %%j in ('java -fullversion 2^>^&1') do set "JAVA_VERSION=%%k%%l%%m"
-REM Convert to number so we can compare it later
-SET /a JAVA_VERSION=%JAVA_VERSION% + 0
+for /f tokens^=2-5^ delims^=.-_^" %%j in ('"%JAVA_HOME%\bin\java" -fullversion 2^>^&1') do set "JAVA_VERSION=%%j.%%k"
 
 set SCRIPT_DIR=%~dp0
 for %%I in ("%SCRIPT_DIR%..") do set CRATE_HOME=%%~dpfI
@@ -63,11 +60,12 @@ if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
   IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=!CRATE_GC_LOG_FILES!)
 
   SET LOGGC=!GC_LOG_DIR!\gc.log
+  ECHO %JAVA_VERSION%
 
-  IF %JAVA_VERSION% GEQ 90000 (
-    SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=!LOGGC!:utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
+  IF "%JAVA_VERSION%" == "9.0" (
+    SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=\"!LOGGC!\":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
   )
-  IF %JAVA_VERSION% LSS 90000 (
+  IF "%JAVA_VERSION%" == "1.8" (
     SET JAVA_OPTS=!JAVA_OPTS! -Xloggc:!LOGGC!
     SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDetails
     SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDateStamps
@@ -109,7 +107,6 @@ if "%CRATE_CLASSPATH%" == "" (
 )
 set CRATE_PARAMS=-Cpath.home="%CRATE_HOME%"
 
-setlocal enabledelayedexpansion
 set params='%*'
 
 for /F "usebackq tokens=* delims= " %%A in (!params!) do (
