@@ -153,7 +153,7 @@ public class LogicalPlanner {
      * @return The optimized plan or the original if optimizing is not possible
      */
     private static LogicalPlan tryOptimize(LogicalPlan plan) {
-        LogicalPlan optimizedPlan = plan.tryOptimize(null);
+        LogicalPlan optimizedPlan = plan.tryOptimize(null, SymbolMapper.identity());
         if (optimizedPlan == null) {
             return plan;
         }

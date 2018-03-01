@@ -39,7 +39,7 @@ public class PositionalOrderBy {
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
 
-    private PositionalOrderBy(int[] indices, boolean[] reverseFlags, Boolean[] nullsFirst) {
+    public PositionalOrderBy(int[] indices, boolean[] reverseFlags, Boolean[] nullsFirst) {
         assert indices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length
             : "all parameters to OrderByPositions must have the same length";
         // PositionalOrderBy should be null if there is no order by

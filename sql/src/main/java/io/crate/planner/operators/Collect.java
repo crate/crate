@@ -59,6 +59,7 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
+import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 
 import javax.annotation.Nullable;
@@ -188,7 +189,24 @@ class Collect extends ZeroInputPlan {
                                Map<SelectSymbol, Object> subQueryValues) {
         RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryValues);
         relation.tableRelation().validateOrderBy(order);
-        collectPhase.orderBy(order);
+
+        // The order by symbols may contain additional scalars that are not in the outputs. If that is the
+        // case it is not possible to put the OrderBy on the CollectPhase, because we cannot create the PositionalOrderBy.
+        // PositionalOrderBy does not support scalar evaluation. We don't set the orderBy here - which causes the Order operator
+        // to add itself as projection.
+        // TODO: Could we support this by extending the outputs of the collectPhase?
+        final PositionalOrderBy positionalOrderBy;
+        if (order == null) {
+            positionalOrderBy = null;
+        } else {
+            int[] positions = OrderByPositionVisitor.orderByPositionsOrNull(order.orderBySymbols(), outputs);
+            if (positions == null) {
+                positionalOrderBy = null;
+            } else {
+                collectPhase.orderBy(order);
+                positionalOrderBy = new PositionalOrderBy(positions, order.reverseFlags(), order.nullsFirst());
+            }
+        }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
         return new io.crate.planner.node.dql.Collect(
@@ -197,7 +215,7 @@ class Collect extends ZeroInputPlan {
             0,
             outputs.size(),
             limitAndOffset,
-            PositionalOrderBy.of(order, outputs)
+            positionalOrderBy
         );
     }
 
@@ -273,11 +291,11 @@ class Collect extends ZeroInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
-            return ((Order) pushDown).updateSource(this);
+            return ((Order) pushDown).updateSource(this, mapper);
         }
-        return super.tryOptimize(pushDown);
+        return super.tryOptimize(pushDown, mapper);
     }
 
     @Override

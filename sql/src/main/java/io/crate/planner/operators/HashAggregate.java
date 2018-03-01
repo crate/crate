@@ -23,26 +23,26 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.phases.MergePhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.data.Row;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.projection.AggregationProjection;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -128,12 +128,12 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown != null) {
             // can't push down anything
             return null;
         }
-        LogicalPlan collapsed = source.tryOptimize(null);
+        LogicalPlan collapsed = source.tryOptimize(null, mapper);
         if (collapsed instanceof Collect &&
             ((Collect) collapsed).tableInfo instanceof DocTableInfo &&
             aggregates.size() == 1 &&
@@ -145,7 +145,7 @@ public class HashAggregate extends OneInputPlan {
         if (collapsed == source) {
             return this;
         }
-        return updateSource(collapsed);
+        return updateSource(collapsed, mapper);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new HashAggregate(newSource, aggregates);
     }
 

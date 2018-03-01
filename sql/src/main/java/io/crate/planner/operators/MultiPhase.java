@@ -24,9 +24,9 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
@@ -70,7 +70,7 @@ public class MultiPhase extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new MultiPhase(newSource, dependencies);
     }
 

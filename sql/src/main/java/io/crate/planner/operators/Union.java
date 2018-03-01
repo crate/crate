@@ -165,15 +165,23 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
-            LogicalPlan newLhs = lhs.tryOptimize(pushDown);
-            LogicalPlan newRhs = rhs.tryOptimize(pushDown);
+            SymbolMapper symbolMapper = (newOutputs, x) -> {
+                x = mapper.apply(outputs, x);
+                int idx = outputs.indexOf(x);
+                if (idx < 0) {
+                    throw new IllegalArgumentException("Symbol " + x + " wasn't found in " + outputs);
+                }
+                return newOutputs.get(idx);
+            };
+            LogicalPlan newLhs = lhs.tryOptimize(pushDown, symbolMapper);
+            LogicalPlan newRhs = rhs.tryOptimize(pushDown, symbolMapper);
             if (newLhs != null && newRhs != null) {
                 return updateSources(newLhs, newRhs);
             }
         }
-        return super.tryOptimize(pushDown);
+        return super.tryOptimize(pushDown, mapper);
     }
 
     @Override

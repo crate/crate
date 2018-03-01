@@ -249,7 +249,7 @@ class NestedLoopJoin extends TwoInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
             /* Move the orderBy expression to the sub-relation if possible.
              *
@@ -271,7 +271,7 @@ class NestedLoopJoin extends TwoInputPlan {
                 if (relationsInOrderBy.size() == 1) {
                     AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
                     if (relationInOrderBy == topMostLeftRelation) {
-                        LogicalPlan newLhs = lhs.tryOptimize(pushDown);
+                        LogicalPlan newLhs = lhs.tryOptimize(pushDown, SymbolMapper.fromMap(expressionMapping));
                         if (newLhs != null) {
                             return updateSources(newLhs, rhs);
                         }
@@ -279,7 +279,7 @@ class NestedLoopJoin extends TwoInputPlan {
                 }
             }
         }
-        return super.tryOptimize(pushDown);
+        return super.tryOptimize(pushDown, mapper);
     }
 
     @Override

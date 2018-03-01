@@ -22,28 +22,27 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Symbol;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
- * A {@link LogicalPlan} with two no other LogicalPlans as input.
+ * Used to map one symbol to another
+ * The first argument of the function are the new outputs that the symbol will be "based on"
+ *
+ * See the usages ({@link LogicalPlan#tryOptimize(LogicalPlan, SymbolMapper)}).
  */
-abstract class ZeroInputPlan extends LogicalPlanBase {
+interface SymbolMapper extends BiFunction<List<Symbol>, Symbol, Symbol> {
 
-    public ZeroInputPlan(List<Symbol> outputs, List<AbstractTableRelation> baseTables) {
-        super(outputs, Collections.emptyMap(), baseTables, Collections.emptyMap());
+    static SymbolMapper identity() {
+        return (newOutputs, x) -> x;
     }
 
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
-        if (pushDown != null) {
-            return null;
-        }
-        // We don't have any sources, so just return this instance
-        return this;
+    static SymbolMapper fromMap(Map<Symbol, Symbol> mapping) {
+        Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(mapping);
+        return (newOutputs, x) -> mapper.apply(x);
     }
 }

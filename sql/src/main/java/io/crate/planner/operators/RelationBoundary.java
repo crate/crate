@@ -96,14 +96,14 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
-            LogicalPlan newSource = source.tryOptimize(pushDown);
+            LogicalPlan newSource = source.tryOptimize(pushDown, mapper);
             if (newSource != null && newSource != source) {
-                return updateSource(newSource);
+                return updateSource(newSource, mapper);
             }
         }
-        return super.tryOptimize(pushDown);
+        return super.tryOptimize(pushDown, mapper);
     }
 
     @Override
@@ -130,7 +130,7 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new RelationBoundary(newSource, relation, outputs, expressionMapping, dependencies);
     }
 

@@ -60,14 +60,14 @@ abstract class OneInputPlan extends LogicalPlanBase {
 
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown != null) {
             // can't push down
             return null;
         }
-        LogicalPlan newPlan = source.tryOptimize(null);
+        LogicalPlan newPlan = source.tryOptimize(null, mapper);
         if (newPlan != source) {
-            return updateSource(newPlan);
+            return updateSource(newPlan, mapper);
         }
         return this;
     }
@@ -98,6 +98,6 @@ abstract class OneInputPlan extends LogicalPlanBase {
      * @param newSource A new {@link LogicalPlan} as a source.
      * @return A new copy of this {@link OneInputPlan} with the new source.
      */
-    protected abstract LogicalPlan updateSource(LogicalPlan newSource);
+    protected abstract LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper);
 
 }

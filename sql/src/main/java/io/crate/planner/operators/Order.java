@@ -37,7 +37,6 @@ import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -103,45 +102,28 @@ class Order extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown) {
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
             // We can overwrite this Order with the Order being pushed down
             // because the order of the results will be changed anyway further
             // downstream.
-            return source.tryOptimize(pushDown);
+            return source.tryOptimize(pushDown, mapper);
         }
         if (pushDown != null) {
             // already pushing down something else
             return null;
         }
         // try pushing down this Order (if possible)
-        LogicalPlan optimize = source.tryOptimize(this);
+        LogicalPlan optimize = source.tryOptimize(this, mapper);
         if (optimize == null) {
-            return super.tryOptimize(null);
+            return super.tryOptimize(null, mapper);
         }
         return optimize;
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource) {
-        // Replaces any Symbols which were part of the old orderBy
-        // with the Symbols of the new orderBy at the same position.
-        // This ensures that the orderBy is performed performed
-        // correctly when it's sources have changed.
-        // See tryOptimize of Union
-        List<Symbol> oldOutputs = source.outputs();
-        List<Symbol> newOutputs = newSource.outputs();
-        OrderBy newOrderBy = this.orderBy.copyAndReplace(
-            (symbol) -> {
-                int idx = oldOutputs.indexOf(symbol);
-                if (idx != -1) {
-                    return newOutputs.get(idx);
-                }
-                throw new IllegalStateException("All symbols of this OrderBy should be replaceable " +
-                                                "with Symbols of the new source.");
-            }
-        );
-        return new Order(newSource, newOrderBy);
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
+        return new Order(newSource, orderBy.copyAndReplace(x -> mapper.apply(newSource.outputs(), x)));
     }
 
     @Override

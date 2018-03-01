@@ -108,6 +108,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that causes ``JOINS`` with certain ``ORDER BY`` constructs to
+  fail.
+
 - Fixed an issue that would cause queries and data manipulation statements with
   explicit ``WHERE`` conditions to throw ``NullPointerException`` when running
   against a table with a composite primary key.

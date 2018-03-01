@@ -207,4 +207,30 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "    Collect[doc.t2 | [b] | All]\n" +
                                                           "]\n"));
     }
+
+
+    @Test
+    public void testOrderByIsPushedDownToLeftSide() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        // differs from testOrderByOnJoinPushedDown in that here the ORDER BY expression is not part of the outputs
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
+
+        assertThat(
+            plan,
+            LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                "RootBoundary[i, i]\n" +
+                "FetchOrEval[i, i]\n" +
+                "NestedLoopJoin[\n" +
+                "    Boundary[_fetchid, y, b]\n" +
+                "    FetchOrEval[_fetchid, y, b]\n" +
+                "    OrderBy['lower(b)' ASC]\n" +
+                "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
+                "    --- INNER ---\n" +
+                "    Boundary[_fetchid, x]\n" +
+                "    FetchOrEval[_fetchid, x]\n" +
+                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                "]\n")
+        );
+    }
 }

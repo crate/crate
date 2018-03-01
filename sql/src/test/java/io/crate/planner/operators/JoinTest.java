@@ -180,4 +180,5 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.left(), instanceOf(Join.class));
         assertThat(((Join)join.left()).joinPhase(), instanceOf(HashJoinPhase.class));
     }
+
 }
