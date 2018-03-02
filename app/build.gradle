@@ -1,5 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
+import java.nio.file.Paths
+
 buildscript {
     repositories {
         jcenter()
@@ -311,7 +313,7 @@ ext {
 }
 
 def rootDir = project.parent.projectDir
-def libs = project.configurations.runtime.filter{ !it.path.startsWith("$rootDir/enterprise/") }
+def libs = project.configurations.runtime.filter { !it.toPath().startsWith(Paths.get(rootDir.toString(), "enterprise")) }
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
@@ -421,7 +423,10 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task collectEnterpriseModules(dependsOn: [':enterprise:users:jar', ':enterprise:ssl-impl:jar', ':enterprise:mqtt:jar']) {
+task collectEnterpriseModules(
+        dependsOn: [':enterprise:users:jar',
+                    ':enterprise:ssl-impl:jar',
+                    ':enterprise:mqtt:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
