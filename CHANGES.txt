@@ -23,6 +23,10 @@ Changes
 Fixes
 =====
 
+- Re-enable implicit casting for columns whenever columns are used on both 
+  sides of an operator or function. The implicit cast will obey the type 
+  precedence (eg. long > integer)
+
 - Fixed an issue that caused incorrect results to be returned when ``WHERE``
   clause filters on a partitioned and an non-partitioned column. E.g.::
 
