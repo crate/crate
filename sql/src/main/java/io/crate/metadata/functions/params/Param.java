@@ -23,8 +23,8 @@
 package io.crate.metadata.functions.params;
 
 import com.google.common.base.Preconditions;
-import io.crate.expression.symbol.FuncArg;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
@@ -267,6 +267,7 @@ public final class Param {
      * @param arg2 The second type given
      * @return Either arg1 or arg2 depending on precedence and convertibility.
      */
+    @Nullable
     private FuncArg convertTypes(FuncArg arg1, FuncArg arg2) {
         final FuncArg target;
         final FuncArg source;
@@ -278,13 +279,27 @@ public final class Param {
             source = arg1;
         }
         if (source.canBeCasted() && source.valueType().isConvertableTo(target.valueType()) &&
-                   (validTypes.isEmpty() || validTypes.contains(target.valueType()))) {
+            isTypeValid(target.valueType())) {
             return target;
         } else if (target.canBeCasted() && target.valueType().isConvertableTo(source.valueType()) &&
-                   (validTypes.isEmpty() || validTypes.contains(source.valueType()))) {
+                   isTypeValid(source.valueType())) {
             return source;
         }
+
+        // if neither the source, nor the target can be casted, yet either one *IS* convertible to the other, we will
+        // try to do the conversion (comparing two columns will never utilize the index anyway)
+        if (source.canBeCasted() == false && target.canBeCasted() == false) {
+            if (source.valueType().isConvertableTo(target.valueType())) {
+                return target;
+            } else if (target.valueType().isConvertableTo(source.valueType())) {
+                return source;
+            }
+        }
         return null;
+    }
+
+    private boolean isTypeValid(DataType dataType) {
+        return validTypes.isEmpty() || validTypes.contains(dataType);
     }
 
     void unbind() {

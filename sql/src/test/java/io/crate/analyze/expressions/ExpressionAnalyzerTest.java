@@ -31,6 +31,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.LtOperator;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -307,7 +309,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testColumnsCannotBeCasted() {
+    public void testColumnsCannotBeCastedToLiteralType() {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Function symbol = (Function) expressions.asSymbol("doc.t2.i = 1.1");
         assertThat(symbol.arguments().get(0), isField("i"));
@@ -322,6 +324,26 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(symbol2.arguments().get(0), isFunction("to_long"));
         assertThat(symbol2.arguments().get(0).valueType(), is(DataTypes.LONG));
         assertThat(symbol2.arguments().get(1), isLiteral(1L));
+    }
+
+    @Test
+    public void testColumnsCanBeCastedWhenOnBothSidesOfOperator() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function symbol = (Function) expressions.asSymbol("doc.t5.i < doc.t5.w");
+        assertThat(symbol, isFunction(LtOperator.NAME));
+        assertThat(symbol.arguments().get(0), isFunction("to_long"));
+        assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.LONG));
+        assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));
+    }
+
+    @Test
+    public void testLiteralIsCastedToColumnValue() {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Function symbol = (Function) expressions.asSymbol("5::long < doc.t1.i");
+        assertThat(symbol, isFunction(GtOperator.NAME));
+        assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
+        assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.INTEGER));
+        assertThat(symbol.arguments().get(1), isLiteral(5));
     }
 
     @Test

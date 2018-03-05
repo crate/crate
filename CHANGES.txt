@@ -108,6 +108,10 @@ Changes
 Fixes
 =====
 
+- Re-enable implicit casting for columns whenever columns are used on both 
+  sides of an operator or function. The implicit cast will obey the type 
+  precedence (eg. long > integer)
+
 - Fixed an issue where a null pointer exception would be thrown when trying to
   move reroute shards to/from non-data nodes using ``ALTER TABLE REROUTE``.
 

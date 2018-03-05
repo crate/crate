@@ -59,6 +59,10 @@ public class T3 {
         ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t4", Collections.singletonList(0))));
 
+    private static final Routing t5Routing = new Routing(
+        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
+            ImmutableMap.of("t5", Collections.singletonList(0))));
+
     public static final DocTableInfo T1_INFO =
         new TestingTableInfo.Builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)
         .add("a", DataTypes.STRING)
@@ -90,18 +94,26 @@ public class T3 {
         .add("obj_array", new ArrayType(DataTypes.OBJECT))
         .add("obj_array", DataTypes.INTEGER, ImmutableList.of("i"))
         .build();
-
     public static final TableRelation TR_4 = new TableRelation(T4_INFO);
+
+    public static final DocTableInfo T5_INFO =
+        new TestingTableInfo.Builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t5"), t5Routing)
+            .add("i", DataTypes.INTEGER)
+            .add("w", DataTypes.LONG)
+            .build();
+    public static final DocTableRelation TR_5 = new DocTableRelation(T5_INFO);
 
     public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t1"));
     public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t2"));
     public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t3"));
     public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t4"));
+    public static final QualifiedName T5 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t5"));
 
-    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3, TR_4);
+    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3, TR_4, TR_5);
     public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.of(
         T1, TR_1,
         T2, TR_2,
         T3, TR_3,
-        T4, TR_4);
+        T4, TR_4,
+        T5, TR_5);
 }
