@@ -2146,4 +2146,17 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             is("1| 1\n")
         );
     }
+
+    @Test
+    public void test_partition_filter_and_column_filter_are_both_applied() {
+        execute("create table t (p string primary key, v string) " +
+                "partitioned by (p) " +
+                "with (number_of_replicas = 0)");
+        execute("insert into t (p, v) values ('a', 'Marvin')");
+        execute("insert into t (p, v) values ('b', 'Marvin')");
+        execute("refresh table t");
+
+        execute("select * from t where p='a' and v='Marvin'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("a| Marvin\n"));
+    }
 }
