@@ -23,6 +23,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused incorrect results to be returned when ``WHERE``
+  clause filters on a partitioned and an non-partitioned column. E.g.::
+
+    SELECT * FROM t WHERE parted_col='value' AND other_col='some_value'
+
 - Fixed an issue that causes ``JOINS`` with certain ``ORDER BY`` constructs to
   fail.
 

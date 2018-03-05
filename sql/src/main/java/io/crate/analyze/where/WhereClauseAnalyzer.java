@@ -73,7 +73,7 @@ public class WhereClauseAnalyzer {
             Symbol query = SubQueryAndParamBinder.convert(where.query(), params, subQueryValues);
             if (tableRelation instanceof DocTableRelation) {
                 WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, (DocTableRelation) tableRelation);
-                return whereClauseAnalyzer.analyze(query, transactionContext);
+                return whereClauseAnalyzer.analyze(query, transactionContext, where.partitions());
             } else {
                 return new WhereClause(query);
             }
@@ -94,6 +94,10 @@ public class WhereClauseAnalyzer {
     }
 
     public WhereClause analyze(Symbol query, TransactionContext transactionContext) {
+        return analyze(query, transactionContext, Collections.emptyList());
+    }
+
+    private WhereClause analyze(Symbol query, TransactionContext transactionContext, List<String> partitions) {
         if (query.equals(Literal.BOOLEAN_TRUE)) {
             return WhereClause.MATCH_ALL;
         }
@@ -139,14 +143,15 @@ public class WhereClauseAnalyzer {
             clusteredBy = getClusteredByLiterals(query, eqExtractor, transactionContext);
         }
 
-        List<String> partitions = null;
-        if (table.isPartitioned() && docKeys == null) {
-            if (table.partitions().isEmpty()) {
-                return WhereClause.NO_MATCH;
+        if (partitions.isEmpty()) {
+            if (table.isPartitioned() && docKeys == null) {
+                if (table.partitions().isEmpty()) {
+                    return WhereClause.NO_MATCH;
+                }
+                PartitionResult partitionResult = resolvePartitions(query, table, functions, transactionContext);
+                partitions = partitionResult.partitions;
+                query = partitionResult.query;
             }
-            PartitionResult partitionResult = resolvePartitions(query, table, functions, transactionContext);
-            partitions = partitionResult.partitions;
-            query = partitionResult.query;
         }
         return new WhereClause(query, docKeys, partitions, clusteredBy);
     }
