@@ -188,7 +188,12 @@ public class CrateRestMainAction implements RestHandler {
                 channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, ExceptionsHelper.stackTrace(e)));
             }
         };
-        client.executeLocally(ClusterStateAction.INSTANCE, new ClusterStateRequest(), listener);
+        ClusterStateRequest stateReq = new ClusterStateRequest()
+            .blocks(true)
+            .metaData(false)
+            .nodes(false)
+            .local(true);
+        client.executeLocally(ClusterStateAction.INSTANCE, stateReq, listener);
     }
 
     private BytesRestResponse buildResponse(RestRequest.Method method, XContentBuilder builder, RestStatus status) {
