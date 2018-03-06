@@ -23,6 +23,15 @@ Changes
 Fixes
 =====
 
+- Fixed the URL linking to stats collection documentation in the monitoring
+  tab of the Admin UI.
+
+- Updated the table list search field to filter tables only by table name and
+  table schema in the Admin UI.
+
+- Fixed an issue in the Admin UI that caused the table list to display wrong
+  results.
+
 - Re-enable implicit casting for columns whenever columns are used on both 
   sides of an operator or function. The implicit cast will obey the type 
   precedence (eg. long > integer)
