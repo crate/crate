@@ -94,12 +94,14 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         } catch (Throwable t) {
             result.completeExceptionally(t);
         }
-        return result.whenComplete((tableNames, throwable) -> {
+        return result.handle((tableNames, throwable) -> {
             if (throwable == null) {
                 tablesNeedUpgrade = tableNames;
             } else {
                 logger.error("error while checking for tables that need upgrade", throwable);
             }
+            // `select * from sys.checks` should not fail if an error occurred here, so swallow exception
+            return null;
         });
     }
 
