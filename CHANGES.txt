@@ -18,41 +18,5 @@ Breaking Changes
 Changes
 =======
 
- - Updated Elasticsearch to v5.6.8
-
 Fixes
 =====
-
-- Fixed the URL linking to stats collection documentation in the monitoring
-  tab of the Admin UI.
-
-- Updated the table list search field to filter tables only by table name and
-  table schema in the Admin UI.
-
-- Fixed an issue in the Admin UI that caused the table list to display wrong
-  results.
-
-- Re-enable implicit casting for columns whenever columns are used on both 
-  sides of an operator or function. The implicit cast will obey the type 
-  precedence (eg. long > integer)
-
-- Fixed an issue that caused incorrect results to be returned when ``WHERE``
-  clause filters on a partitioned and an non-partitioned column. E.g.::
-
-    SELECT * FROM t WHERE parted_col='value' AND other_col='some_value'
-
-- Fixed an issue that causes ``JOINS`` with certain ``ORDER BY`` constructs to
-  fail.
-
-- Fixed an issue where a null pointer exception would be thrown when trying to
-  move reroute shards to/from non-data nodes using ``ALTER TABLE REROUTE``.
-
-- Fixed an issue that would cause queries and data manipulation statements with
-  explicit ``WHERE`` conditions to throw ``NullPointerException`` when running
-  against a table with a composite primary key.
-
-- Fixed a race condition that could cause the decommissioning of nodes using
-  the graceful shutdown procedure to interrupt the execution of active queries.
-
-- Read only queries should no longer fail with a ``TableUnknownException`` or
-  ``IndexNotFoundException`` in case of a shard relocation.
