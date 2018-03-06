@@ -21,10 +21,10 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.data.Row;
+import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
@@ -32,8 +32,6 @@ import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
@@ -58,18 +56,25 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), greaterThan(0L));
 
         execute("set global transient stats.jobs_log_size=1");
+        waitNoPendingTasksOnAll();
 
-        // Make sure we hit both notes with this query so that the jobs_logs entry are what we expect
+        // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
+        // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
+        // only the latest queries are found in the log.
         for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
-            BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            sqlOperations.newSystemSession().quickExec("select id from sys.cluster", resultReceiver, Row.EMPTY);
-            resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
+            Session session = sqlOperations.newSystemSession();
+            execute("select name from sys.cluster", null, session);
+        }
+        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+            Session session = sqlOperations.newSystemSession();
+            execute("select id from sys.cluster", null, session);
         }
 
         execute("select stmt from sys.jobs_log order by ended desc");
-
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("select id from sys.cluster"));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("select id from sys.cluster\n" +
+               "select id from sys.cluster\n"));
 
         execute("set global transient stats.enabled = false");
         waitNoPendingTasksOnAll();
