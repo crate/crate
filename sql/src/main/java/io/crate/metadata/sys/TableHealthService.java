@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.Row;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -43,6 +44,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.rest.RestStatus;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,8 +55,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 @Singleton
@@ -90,7 +93,9 @@ public class TableHealthService extends AbstractComponent {
             logger.debug("Could not retrieve tables health information. localNode is not fully available yet.");
             return completedFuture(Collections.emptyList());
         }
-
+        if (clusterService.state().getBlocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
+            return completedFuture(allAsUnavailable());
+        }
         try {
             CompletableFuture<Map<TablePartitionIdent, ShardsInfo>> future = new CompletableFuture<>();
             HealthResultReceiver resultReceiver = new HealthResultReceiver(future);
@@ -98,8 +103,29 @@ public class TableHealthService extends AbstractComponent {
             return future.thenApply(this::buildTablesHealth);
         } catch (Throwable t) {
             logger.error("error retrieving tables health information", t);
-            return failedFuture(t);
+            return completedFuture(allAsUnavailable());
         }
+    }
+
+    private Iterable<TableHealth> allAsUnavailable() {
+        return StreamSupport.stream(schemas.spliterator(), false)
+            .flatMap(schemaInfo -> StreamSupport.stream(schemaInfo.spliterator(), false))
+            .flatMap(tableInfo -> {
+                if (tableInfo instanceof DocTableInfo) {
+                    return healthFromPartitions(tableInfo.ident(), ((DocTableInfo) tableInfo).partitions().stream());
+                }
+                TableIdent ident = tableInfo.ident();
+                TableHealth tableHealth = new TableHealth(
+                    new BytesRef(ident.name()), new BytesRef(ident.schema()), null, TableHealth.Health.RED, -1, -1);
+                return Stream.of(tableHealth);
+            })::iterator;
+    }
+
+    private static Stream<TableHealth> healthFromPartitions(TableIdent table, Stream<PartitionName> partitions) {
+        BytesRef tableName = new BytesRef(table.name());
+        BytesRef tableSchema = new BytesRef(table.schema());
+        return partitions
+            .map(pn -> new TableHealth(tableName, tableSchema, new BytesRef(pn.ident()), TableHealth.Health.RED, -1, -1));
     }
 
     private Session session() {

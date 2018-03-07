@@ -34,6 +34,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -63,6 +64,11 @@ public class BelowMinNumberOfNodesITest extends SQLTransportIntegrationTest {
             Object[][] rows = execute("select port['http'] from sys.nodes order by 1").rows();
             assertThat(rows[0][0], notNullValue());
             assertThat(rows[1][0], nullValue());
+
+            assertThat(
+                printedTable(execute("select health from sys.health order by severity limit 1").rows()),
+                is("RED\n")
+            );
 
             assertThat(getRestStatus(), is(RestStatus.SERVICE_UNAVAILABLE.getStatus()));
         } finally {

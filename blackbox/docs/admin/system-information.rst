@@ -1259,6 +1259,11 @@ table/partition.
 |                            | not fully replicated.             |             |
 +----------------------------+-----------------------------------+-------------+
 
+Both ``missing_shards`` and ``underreplicated_shards`` might return ``-1`` if
+the cluster is in an unhealthy state that prevents the exact number from being
+calculated. This could be the case when the cluster can't elect a master,
+because there are not enough eligible nodes available.
+
 ::
 
     cr> select * from sys.health order by severity desc, table_name;
