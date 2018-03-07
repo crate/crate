@@ -146,8 +146,8 @@ Collecting Stats
 
 .. _stats.breaker.log:
 
-Settings that control the behaviour of the the stats circuit breaker. There are
-two breakers in place, one for the jobs log and one for the operations log. For
+Settings that control the behaviour of the stats circuit breaker. There are two
+breakers in place, one for the jobs log and one for the operations log. For
 each of them the breaker limit can be set.
 
 .. _stats.breaker.log.jobs.limit:
@@ -249,7 +249,7 @@ nodes of the cluster:
   ``none``: No minimum data availability is required. The node may shut down
   even if records are missing after shutdown.
 
-  ``primaries``: At least all primary shards need to be availabe after the node
+  ``primaries``: At least all primary shards need to be available after the node
   has shut down. Replicas may be missing.
 
   ``full``: All records and all replicas need to be available after the node
@@ -500,7 +500,7 @@ Following settings control the discovery:
   | *Runtime:*  ``no``
 
   If you have your own compatible implementation of the EC2 API service you can
-  set the enpoint that should be used.
+  set the endpoint that should be used.
 
 .. _conf_azure_discovery:
 
@@ -882,7 +882,7 @@ keeps working.
   | *Runtime:*   ``yes``
 
   Specifies the limit for the query breaker. Provided values can either be
-  absolute values (intepreted as a number of bytes), byte sizes (eg. 1mb) or
+  absolute values (interpreted as a number of bytes), byte sizes (eg. 1mb) or
   percentage of the heap size (eg. 12%). A value of ``-1`` disables breaking
   the circuit while still accounting memory usage.
 
