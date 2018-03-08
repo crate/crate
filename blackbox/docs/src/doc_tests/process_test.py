@@ -314,15 +314,25 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             "cluster.graceful_stop.force": "false"
         })
 
-        concurrency = 8
+        concurrency = 4
         client = self.clients[0]
         run_queries = [True]
         errors = []
-        threads_finished_b = threading.Barrier(concurrency + 1)
+        threads_finished_b = threading.Barrier((concurrency * 3) + 1)
         func_args = (client, run_queries, errors, threads_finished_b)
         for i in range(concurrency):
             t = threading.Thread(
-                target=TestGracefulStopDuringQueryExecution.exec_queries,
+                target=TestGracefulStopDuringQueryExecution.exec_select_queries,
+                args=func_args
+            )
+            t.start()
+            t = threading.Thread(
+                target=TestGracefulStopDuringQueryExecution.exec_insert_queries,
+                args=func_args
+            )
+            t.start()
+            t = threading.Thread(
+                target=TestGracefulStopDuringQueryExecution.exec_delete_queries,
                 args=func_args
             )
             t.start()
@@ -337,7 +347,35 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
         self.clients[0].sql('DROP TABLE t1')
 
     @staticmethod
-    def exec_queries(client, is_active, errors, finished):
+    def exec_insert_queries(client, is_active, errors, finished):
+        while is_active[0]:
+            try:
+                chars = list(string.ascii_lowercase[:14])
+                random.shuffle(chars)
+                client.sql(
+                    'insert into t1 (id, name) values ($1, $2) on duplicate key update name = $2',
+                    (random.randint(0, 2147483647), ''.join(chars))
+                )
+            except Exception as e:
+                errors.append(e)
+        finished.wait()
+
+    @staticmethod
+    def exec_delete_queries(client, is_active, errors, finished):
+        while is_active[0]:
+            try:
+                chars = list(string.ascii_lowercase[:14])
+                random.shuffle(chars)
+                pattern = ''.join(chars[:3]) + '%'
+                client.sql(
+                    'delete from t1 where name like ?', (pattern,))
+            except Exception as e:
+                if 'TableUnknownException' not in str(e):
+                    errors.append(e)
+        finished.wait()
+
+    @staticmethod
+    def exec_select_queries(client, is_active, errors, finished):
         while is_active[0]:
             try:
                 client.sql('select name, count(*) from t1 group by name')
