@@ -23,12 +23,12 @@
 package io.crate.planner;
 
 import io.crate.action.sql.DCLStatementDispatcher;
-import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.TransportActionProvider;
+import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.TransportDropTableAction;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.metadata.Functions;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -118,5 +118,9 @@ public class DependencyCarrier {
 
     public PhasesTaskFactory phasesTaskFactory() {
         return phasesTaskFactory;
+    }
+
+    public ThreadPool threadPool() {
+        return threadPool;
     }
 }

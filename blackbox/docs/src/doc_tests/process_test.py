@@ -380,10 +380,5 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             try:
                 client.sql('select name, count(*) from t1 group by name')
             except Exception as e:
-                # For now we make sure that queries are not killed, but a
-                # TableUnknownException can happen if the queries still target
-                # the node that is being decommissioned and the cluster state
-                # update is too slow (and the internal 3 retries all happen before)
-                if 'TableUnknownException' not in str(e):
-                    errors.append(e)
+                errors.append(e)
         finished.wait()

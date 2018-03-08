@@ -50,6 +50,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -158,8 +159,9 @@ public class Session implements AutoCloseable {
             : "quickExec can only be used with statements supporting unbound planning";
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         UUID jobId = UUID.randomUUID();
+        ClusterState clusterState = planner.currentClusterState();
         PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+            clusterState,
             routingProvider,
             jobId,
             planner.functions(),
@@ -179,9 +181,12 @@ public class Session implements AutoCloseable {
 
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
+                executor.clusterService(),
+                clusterState,
+                executor.threadPool().getThreadContext(),
                 // not using planner.currentClusterState().metaData()::hasIndex to make sure the *current*
                 // clusterState at the time of the index check is used
-                indexName -> planner.currentClusterState().metaData().hasIndex(indexName),
+                indexName -> clusterState.metaData().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, retryResultReceiver) -> retryQuery(

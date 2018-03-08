@@ -23,28 +23,40 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.sameInstance;
 
 
-public class RetryOnFailureResultReceiverTest {
+public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRetryOnNodeConnectionError() throws Exception {
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
+        ClusterState initialState = clusterService.state();
         RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+            clusterService,
+            initialState,
+            THREAD_POOL.getThreadContext(),
             indexName -> true,
             baseResultReceiver,
             UUID.randomUUID(),
             (newJobId, receiver) -> numRetries.incrementAndGet());
+
+        // Must have a different cluster state then the initial state to trigger a retry
+        clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
+        assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
 
         retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
 
@@ -52,18 +64,37 @@ public class RetryOnFailureResultReceiverTest {
     }
 
     @Test
-    public void testRetryIsInvokedOnIndexNotFoundException() {
+    public void testRetryIsInvokedOnIndexNotFoundException() throws Exception {
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
 
+        ClusterState initialState = clusterService.state();
         RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+            clusterService,
+            initialState,
+            THREAD_POOL.getThreadContext(),
             indexName -> true,
             resultReceiver,
             UUID.randomUUID(),
             (newJobId, receiver) -> numRetries.incrementAndGet());
 
+        // Must have a different cluster state then the initial state to trigger a retry
+        clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
+        assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
+
         retryOnFailureResultReceiver.fail(new IndexNotFoundException("t1"));
 
         assertThat(numRetries.get(), is(1));
+    }
+
+    private static class DummyUpdate extends ClusterStateUpdateTask {
+        @Override
+        public ClusterState execute(ClusterState currentState) {
+            return ClusterState.builder(currentState).build();
+        }
+
+        @Override
+        public void onFailure(String source, Exception e) {
+        }
     }
 }
