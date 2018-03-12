@@ -56,7 +56,9 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), greaterThan(0L));
 
         execute("set global transient stats.jobs_log_size=1");
-        waitNoPendingTasksOnAll();
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.jobsLogSize(), is(1)));
+        }
 
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
@@ -77,7 +79,9 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
                "select id from sys.cluster\n"));
 
         execute("set global transient stats.enabled = false");
-        waitNoPendingTasksOnAll();
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.isEnabled(), is(false)));
+        }
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
     }

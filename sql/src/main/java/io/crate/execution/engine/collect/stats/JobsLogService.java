@@ -236,4 +236,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     public JobsLogs get() {
         return statsTables();
     }
+
+    @VisibleForTesting
+    public int jobsLogSize() {
+        return jobsLogSize;
+    }
 }
