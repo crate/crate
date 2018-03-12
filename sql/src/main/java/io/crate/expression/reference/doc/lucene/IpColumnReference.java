@@ -23,6 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
@@ -62,5 +63,8 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         values = context.reader().getSortedSetDocValues(columnName);
+        if (values == null) {
+            values = DocValues.emptySortedSet();
+        }
     }
 }

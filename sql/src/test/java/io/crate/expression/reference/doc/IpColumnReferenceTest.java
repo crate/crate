@@ -36,6 +36,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -129,5 +130,15 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         expectedException.expectMessage("Column \"ia\" has a value that is an array. Group by doesn't work on Arrays");
 
         columnReference.setNextDocId(doc.doc);
+    }
+
+    @Test
+    public void testNullDocValuesDoNotResultInNPE() throws IOException {
+        IpColumnReference ref = new IpColumnReference("missing_column");
+        ref.startCollect(ctx);
+        ref.setNextReader(readerContext);
+        ref.setNextDocId(0);
+
+        assertThat(ref.value(), Matchers.nullValue());
     }
 }
