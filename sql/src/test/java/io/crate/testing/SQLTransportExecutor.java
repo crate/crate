@@ -179,7 +179,7 @@ public class SQLTransportExecutor {
             }
             return execute(stmt, args).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
+            LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
             throw e;
         }
     }
