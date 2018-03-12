@@ -22,35 +22,37 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
 
-    private String nodeEnterpriseEnabled;
-    private String nodeEnterpriseDisabled;
-
-    @Before
-    public void setUpNodesUsersAndPrivileges() throws Exception {
-        nodeEnterpriseEnabled = internalCluster().startNode(Settings.builder()
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true));
-        nodeEnterpriseDisabled = internalCluster().startNode(Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true));
-        super.createSessions();
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        Settings settings = super.nodeSettings(nodeOrdinal);
+        if (nodeOrdinal == 0) { // Enterprise enabled
+            return Settings.builder().put(settings)
+                .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build();
+        }
+        // Enterprise disabled
+        return Settings.builder().put(settings)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false).build();
     }
 
     @Test
     public void testSystemExecutorUsesSuperuserSession() {
-        systemExecute("select username from sys.jobs", "sys", nodeEnterpriseEnabled);
+        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(true));
         assertThat(response.rows()[0][0], is("crate"));
     }
 
     @Test
     public void testSystemExecutorNullUser() {
-        systemExecute("select username from sys.jobs", "sys", nodeEnterpriseDisabled);
+        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(false));
         assertNull(response.rows()[0][0]);
     }
 
@@ -58,6 +60,13 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
     public void testQueryWithNullUserAndEnabledUserManagement() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("MissingPrivilegeException: Missing privilege for user 'User `null` is not authorized to execute statement'");
-        execute("select username from sys.jobs", null, createNullUserSession(nodeEnterpriseEnabled));
+        execute("select username from sys.jobs", null, createNullUserSession(getNodeByEnterpriseNode(true)));
+    }
+
+    private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {
+        if (enterpriseEnabled) {
+            return internalCluster().getNodeNames()[0];
+        }
+        return internalCluster().getNodeNames()[1];
     }
 }
