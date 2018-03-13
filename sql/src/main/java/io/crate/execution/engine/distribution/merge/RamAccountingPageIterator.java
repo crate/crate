@@ -28,20 +28,20 @@ import io.crate.data.Row;
 /**
  * Wraps a PagingIterator and uses {@link io.crate.breaker.RamAccountingContext} to apply the circuit breaking logic
  */
-class RamAccountingPageIterator implements PagingIterator<Integer, Row> {
+public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row> {
 
     @VisibleForTesting
-    final PagingIterator<Integer, Row> delegatePagingIterator;
+    final PagingIterator<TKey, Row> delegatePagingIterator;
     private final RowAccounting rowAccounting;
 
-    RamAccountingPageIterator(PagingIterator<Integer, Row> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingPageIterator(PagingIterator<TKey, Row> delegatePagingIterator, RowAccounting rowAccounting) {
         this.delegatePagingIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }
 
     @Override
-    public void merge(Iterable<? extends KeyIterable<Integer, Row>> keyIterables) {
-        for (KeyIterable<Integer, Row> iterable : keyIterables) {
+    public void merge(Iterable<? extends KeyIterable<TKey, Row>> keyIterables) {
+        for (KeyIterable<TKey, Row> iterable : keyIterables) {
             for (Row row : iterable) {
                 rowAccounting.accountForAndMaybeBreak(row);
             }
@@ -56,7 +56,7 @@ class RamAccountingPageIterator implements PagingIterator<Integer, Row> {
     }
 
     @Override
-    public Integer exhaustedIterable() {
+    public TKey exhaustedIterable() {
         return delegatePagingIterator.exhaustedIterable();
     }
 
