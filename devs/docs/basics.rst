@@ -11,7 +11,7 @@ develop on CrateDB you'll need:
  - Java_ (>= 8)
  - Python_ (>= 3.6)
 
-On OS X, we recommend using `Oracle's Java`_. If you're using Linux, we
+On macOS, we recommend using `Oracle's Java`_. If you're using Linux, we
 recommend OpenJDK_.
 
 Set Up
