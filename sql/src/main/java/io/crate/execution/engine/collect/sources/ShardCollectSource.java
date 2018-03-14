@@ -25,6 +25,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
@@ -68,6 +69,7 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.plugin.IndexEventListenerProxy;
+import io.crate.types.DataType;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -385,6 +387,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             }
         }
 
+        List<DataType> columnTypes = Symbols.typeView(collectPhase.toCollect());
+
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "orderBy must not be null";
         return BatchIteratorCollectorBridge.newInstance(
@@ -395,6 +399,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderBy.reverseFlags(),
                     orderBy.nullsFirst()
                 ),
+                new RowAccounting(columnTypes, jobCollectContext.queryPhaseRamAccountingContext()),
                 executor,
                 consumer.requiresScroll()
             ),

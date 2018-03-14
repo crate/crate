@@ -24,6 +24,8 @@ package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
@@ -36,6 +38,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.types.DataTypes;
+import io.crate.types.LongType;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -49,6 +52,8 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -67,6 +72,10 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
 public class OrderedLuceneBatchIteratorBenchmark {
+
+    private static final RowAccounting ROW_ACCOUNTING = new RowAccounting(Collections.singleton(LongType.INSTANCE),
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA))
+    );
 
     private String columnName;
     private IndexSearcher indexSearcher;
@@ -110,7 +119,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         BatchIterator<Row> it = OrderedLuceneBatchIteratorFactory.newInstance(
             Collections.singletonList(createOrderedCollector(indexSearcher, columnName)),
             OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
-            MoreExecutors.directExecutor(),
+            ROW_ACCOUNTING, MoreExecutors.directExecutor(),
             false
         );
         while (!it.allLoaded()) {

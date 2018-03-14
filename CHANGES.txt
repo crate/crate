@@ -108,6 +108,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused nodes to crash with ``OutOfMemoryException`` when
+  executing queries with ``ORDER BY`` on large data sets. Instead, the query
+  circuit breaker is tripped, the query is killed and the node’s health is
+  unaffected.
+
 - Improved the error handling for a race condition to make sure it doesn't
   cause queries to get stuck.
 
