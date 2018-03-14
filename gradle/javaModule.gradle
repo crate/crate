@@ -109,6 +109,10 @@ test {
         }
     }
 
+    jacoco {
+        enabled = JavaVersion.current() <= JavaVersion.VERSION_1_9
+    }
+
     // ES testing framework adds the resources target build paths to the classpath of the tests,
     // but if the src/[main|test]/resources directories of a project are empty, then these dirs
     // are missing from the target build directory which causes all tests to fail.
