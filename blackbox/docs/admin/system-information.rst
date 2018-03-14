@@ -537,7 +537,7 @@ Uptime Limitations
 |                                     | of cores of the CPU.                         |             |
 +-------------------------------------+----------------------------------------------+-------------+
 | ``os_info['name']``                 | Name of the operating system (ex: Linux,     | ``STRING``  |
-|                                     | Windows, Mac OS X)                           |             |
+|                                     | Windows, macOS)                              |             |
 +-------------------------------------+----------------------------------------------+-------------+
 | ``os_info['arch']``                 | Name of the JVM architecture (ex: amd64,     | ``STRING``  |
 |                                     | x86)                                         |             |
