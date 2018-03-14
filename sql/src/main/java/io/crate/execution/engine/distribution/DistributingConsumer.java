@@ -233,6 +233,12 @@ public class DistributingConsumer implements RowConsumer {
                     forwardFailure(it, failure);
                 }
             } else {
+                // If we've a failure we either communicated it to the other downstreams already,
+                // or were able to send results to all downstreams. In either case, *this* operation succeeded and the
+                // downstreams need to deal with failures.
+
+                // The NodeDisconnectJobMonitorService takes care of node disconnects, so we don't have to manage
+                // that scenario.
                 it.close();
             }
         }

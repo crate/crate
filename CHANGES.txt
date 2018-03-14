@@ -108,6 +108,9 @@ Changes
 Fixes
 =====
 
+- Improved the error handling for a race condition to make sure it doesn't
+  cause queries to get stuck.
+
 - Improved the behaviour in case the cluster drops below the number of minimum
   nodes. The root REST endpoint will no longer timeout and ``sys.checks`` can
   still be queried, similar to how ``sys.nodes`` can still be queried.

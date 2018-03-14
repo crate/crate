@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.distribution;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.execution.jobs.DownstreamExecutionSubContext;
@@ -29,12 +30,15 @@ import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
+import io.crate.execution.jobs.kill.KillJobsRequest;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -44,7 +48,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -57,11 +63,13 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
     private static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
-    private static final BackoffPolicy RETRY_BACK_OFF = BackoffPolicy.exponentialBackoff();
 
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ScheduledExecutorService scheduler;
+    private final ClusterService clusterService;
+    private final TransportKillJobsNodeAction killJobsAction;
+    private final BackoffPolicy backoffPolicy;
     private final Executor executor;
 
     @Inject
@@ -69,12 +77,36 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                                             JobContextService jobContextService,
                                             ThreadPool threadPool,
                                             TransportService transportService,
+                                            ClusterService clusterService,
+                                            TransportKillJobsNodeAction killJobsAction,
                                             Settings settings) {
+        this(transports,
+            jobContextService,
+            threadPool,
+            transportService,
+            clusterService,
+            killJobsAction,
+            settings,
+            BackoffPolicy.exponentialBackoff());
+    }
+
+    @VisibleForTesting
+    TransportDistributedResultAction(Transports transports,
+                                     JobContextService jobContextService,
+                                     ThreadPool threadPool,
+                                     TransportService transportService,
+                                     ClusterService clusterService,
+                                     TransportKillJobsNodeAction killJobsAction,
+                                     Settings settings,
+                                     BackoffPolicy backoffPolicy) {
         super(settings);
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.executor = threadPool.executor(EXECUTOR_NAME);
         scheduler = threadPool.scheduler();
+        this.clusterService = clusterService;
+        this.killJobsAction = killJobsAction;
+        this.backoffPolicy = backoffPolicy;
 
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
             DistributedResultRequest::new,
@@ -145,7 +177,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                                                                                 @Nullable Iterator<TimeValue> retryDelay) {
 
         if (retryDelay == null) {
-            retryDelay = RETRY_BACK_OFF.iterator();
+            retryDelay = backoffPolicy.iterator();
         }
         if (retryDelay.hasNext()) {
             TimeValue delay = retryDelay.next();
@@ -157,6 +189,23 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
             return operationRunnable;
         } else {
+            List<String> excludedNodeIds = Collections.singletonList(clusterService.localNode().getId());
+            /* The upstream (DistributingConsumer) forwards failures to other downstreams and eventually considers its job done.
+             * But it cannot inform the handler-merge about a failure because the JobResponse is sent eagerly.
+             *
+             * The handler local-merge would get stuck if not all its upstreams send their requests, so we need to invoke
+             * a kill to make sure that doesn't happen.
+             */
+            killJobsAction.broadcast(new KillJobsRequest(Collections.singletonList(request.jobId())), new ActionListener<Long>() {
+                @Override
+                public void onResponse(Long numKilled) {
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    logger.debug("Could not kill " + request.jobId(), e);
+                }
+            }, excludedNodeIds);
             return CompletableFutures.failedFuture(
                 new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
         }
