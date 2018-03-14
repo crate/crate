@@ -24,12 +24,12 @@ package io.crate.execution.engine.distribution.merge;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingTest;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
@@ -49,8 +49,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RamAccountingPageIteratorTest extends CrateUnitTest {
 
@@ -74,7 +72,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testNoWrappingApplied() {
+    public void testNoRamAccountingWrappingAppliedForNullOrderByAndNonRepeat() {
         PagingIterator<Integer, Row> pagingIterator1 = PagingIterator.create(
             2,
             false,
@@ -82,39 +80,44 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
             () -> null);
 
         assertThat(pagingIterator1, instanceOf(PassThroughPagingIterator.class));
-
-        PositionalOrderBy positionalOrderBy = mock(PositionalOrderBy.class);
-        when(positionalOrderBy.indices()).thenReturn(new int[]{});
-        PagingIterator<Integer, Row> pagingIterator2 = PagingIterator.create(
-            2,
-            false,
-            positionalOrderBy,
-            () -> null);
-        assertThat(pagingIterator2, instanceOf(SortedPagingIterator.class));
     }
 
     @Test
-    public void testWrappingApplied() {
-        PagingIterator<Integer, Row> pagingIterator1 = PagingIterator.create(
+    public void testRamAccountingWrappingAppliedForRepeatableIterator() {
+        PagingIterator<Integer, Row> repeatableIterator = PagingIterator.create(
             2,
             true,
             null,
             () -> null);
-        assertThat(pagingIterator1, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) pagingIterator1).delegatePagingIterator,
-                   instanceOf(PassThroughPagingIterator.class));
+        assertThat(repeatableIterator, instanceOf(RamAccountingPageIterator.class));
+        assertThat(((RamAccountingPageIterator) repeatableIterator).delegatePagingIterator,
+            instanceOf(PassThroughPagingIterator.class));
+    }
 
-        PagingIterator<Integer, Row> pagingIterator2 = PagingIterator.create(
+    @Test
+    public void testRamAccountingWrappingAppliedForOrderedIterators() {
+        PositionalOrderBy orderBy = PositionalOrderBy.of(
+            new OrderBy(Collections.singletonList(Literal.of(1)), new boolean[]{false}, new Boolean[]{false}),
+            Collections.singletonList(Literal.of(1)));
+
+        PagingIterator<Integer, Row> repeatingSortedPagingIterator = PagingIterator.create(
             2,
             true,
-            PositionalOrderBy.of(
-                new OrderBy(Collections.singletonList(Literal.of(1)), new boolean[] {false}, new Boolean[] {false}),
-                Collections.singletonList(Literal.of(1))),
+            orderBy,
             () -> null);
 
-        assertThat(pagingIterator2, instanceOf(RamAccountingPageIterator.class));
-        assertThat(((RamAccountingPageIterator) pagingIterator2).delegatePagingIterator,
-                   instanceOf(SortedPagingIterator.class));
+        assertThat(repeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
+        assertThat(((RamAccountingPageIterator) repeatingSortedPagingIterator).delegatePagingIterator,
+            instanceOf(SortedPagingIterator.class));
+
+        PagingIterator<Integer, Row> nonRepeatingSortedPagingIterator = PagingIterator.create(
+            2,
+            false,
+            orderBy,
+            () -> null);
+        assertThat(nonRepeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
+        assertThat(((RamAccountingPageIterator) nonRepeatingSortedPagingIterator).delegatePagingIterator,
+            instanceOf(SortedPagingIterator.class));
     }
 
     @Test

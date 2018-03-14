@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -29,6 +30,7 @@ import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -52,10 +54,11 @@ public class OrderedLuceneBatchIteratorFactory {
 
     public static BatchIterator<Row> newInstance(List<OrderedDocCollector> orderedDocCollectors,
                                                  Comparator<Row> rowComparator,
+                                                 RowAccounting rowAccounting,
                                                  Executor executor,
                                                  boolean requiresScroll) {
         return new Factory(
-            orderedDocCollectors, rowComparator, executor, requiresScroll).create();
+            orderedDocCollectors, rowComparator, rowAccounting, executor, requiresScroll).create();
     }
 
     private static class Factory {
@@ -69,17 +72,22 @@ public class OrderedLuceneBatchIteratorFactory {
 
         Factory(List<OrderedDocCollector> orderedDocCollectors,
                 Comparator<Row> rowComparator,
+                RowAccounting rowAccounting,
                 Executor executor,
                 boolean requiresScroll) {
             this.orderedDocCollectors = orderedDocCollectors;
             this.executor = executor;
             if (orderedDocCollectors.size() == 1) {
                 pagingIterator = requiresScroll ?
-                    PassThroughPagingIterator.repeatable() : PassThroughPagingIterator.oneShot();
+                    new RamAccountingPageIterator<>(PassThroughPagingIterator.repeatable(), rowAccounting)
+                    : PassThroughPagingIterator.oneShot();
                 collectorsByShardId = null;
             } else {
                 collectorsByShardId = toMapByShardId(orderedDocCollectors);
-                pagingIterator = new SortedPagingIterator<>(rowComparator, requiresScroll);
+                pagingIterator = new RamAccountingPageIterator<>(
+                    new SortedPagingIterator<>(rowComparator, requiresScroll),
+                    rowAccounting
+                );
             }
         }
 
@@ -126,7 +134,12 @@ public class OrderedLuceneBatchIteratorFactory {
         }
 
         private void mergeAndMaybeFinish(List<KeyIterable<ShardId, Row>> rowsList) {
-            pagingIterator.merge(rowsList);
+            try {
+                pagingIterator.merge(rowsList);
+            } catch (Throwable t) {
+                batchPagingIterator.kill(t);
+                batchPagingIterator.close();
+            }
             if (allExhausted()) {
                 pagingIterator.finish();
             }

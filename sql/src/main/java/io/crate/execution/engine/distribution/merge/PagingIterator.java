@@ -55,8 +55,8 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
     /**
      * Returns the suitable {@link PagingIterator} according to the use case.
-     * If requiresRepeat is true then the PagingIterator is wrapped with {@link RamAccountingPageIterator}
-     * which calculates the memory usage and applies CircuitBreaker logic.
+     * If requiresRepeat is true or we're looking to create and ordered iterator then the PagingIterator is wrapped with
+     * {@link RamAccountingPageIterator} which calculates the memory usage and applies CircuitBreaker logic.
      */
     static <TKey> PagingIterator<TKey, Row> create(int numUpstreams,
                                                    boolean requiresRepeat,
@@ -65,17 +65,19 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
         PagingIterator<TKey, Row> pagingIterator;
         if (numUpstreams == 1 || orderBy == null) {
             if (requiresRepeat) {
-                pagingIterator = PassThroughPagingIterator.repeatable();
+                pagingIterator = new RamAccountingPageIterator<>(
+                    PassThroughPagingIterator.repeatable(),
+                    rowAccountingSupplier.get()
+                );
             } else {
                 pagingIterator = PassThroughPagingIterator.oneShot();
             }
         } else {
-            pagingIterator = new SortedPagingIterator<>(OrderingByPosition.rowOrdering(orderBy), requiresRepeat);
+            pagingIterator = new RamAccountingPageIterator<>(
+                new SortedPagingIterator<>(OrderingByPosition.rowOrdering(orderBy), requiresRepeat), rowAccountingSupplier.get()
+            );
         }
 
-        if (requiresRepeat) {
-            return new RamAccountingPageIterator<>(pagingIterator, rowAccountingSupplier.get());
-        }
         return pagingIterator;
     }
 }
