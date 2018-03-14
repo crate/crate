@@ -24,23 +24,27 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.execution.support.NodeAction;
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.support.Transports;
 import io.crate.execution.jobs.DownstreamExecutionSubContext;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
+import io.crate.execution.support.NodeAction;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.Transports;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -53,6 +57,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
     private static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+    private static final BackoffPolicy RETRY_BACK_OFF = BackoffPolicy.exponentialBackoff();
 
     private final Transports transports;
     private final JobContextService jobContextService;
@@ -84,13 +89,14 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     @Override
     public CompletableFuture<DistributedResultResponse> nodeOperation(DistributedResultRequest request) {
-        return nodeOperation(request, 0);
+        return nodeOperation(request, null);
     }
 
-    private CompletableFuture<DistributedResultResponse> nodeOperation(final DistributedResultRequest request, int retry) {
+    private CompletableFuture<DistributedResultResponse> nodeOperation(final DistributedResultRequest request,
+                                                                       @Nullable Iterator<TimeValue> retryDelay) {
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
         if (context == null) {
-            return retryOrFailureResponse(request, retry);
+            return retryOrFailureResponse(request, retryDelay);
         }
 
         DownstreamExecutionSubContext executionContext;
@@ -136,20 +142,23 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
     }
 
     private CompletableFuture<DistributedResultResponse> retryOrFailureResponse(DistributedResultRequest request,
-                                                                                int retry) {
+                                                                                @Nullable Iterator<TimeValue> retryDelay) {
 
-        if (retry > 20) {
+        if (retryDelay == null) {
+            retryDelay = RETRY_BACK_OFF.iterator();
+        }
+        if (retryDelay.hasNext()) {
+            TimeValue delay = retryDelay.next();
+            if (logger.isTraceEnabled()) {
+                logger.trace("scheduling retry to start node operation for jobId: {} in {}ms",
+                    request.jobId(), delay.getMillis());
+            }
+            NodeOperationRunnable operationRunnable = new NodeOperationRunnable(request, retryDelay);
+            scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
+            return operationRunnable;
+        } else {
             return CompletableFutures.failedFuture(
                 new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
-        } else {
-            int delay = (retry + 1) * 2;
-            if (logger.isTraceEnabled()) {
-                logger.trace("scheduling retry #{} to start node operation for jobId: {} in {}ms",
-                    retry, request.jobId(), delay);
-            }
-            NodeOperationRunnable operationRunnable = new NodeOperationRunnable(request, retry);
-            scheduler.schedule(operationRunnable::run, delay, TimeUnit.MILLISECONDS);
-            return operationRunnable;
         }
     }
 
@@ -165,15 +174,15 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     private class NodeOperationRunnable extends CompletableFuture<DistributedResultResponse> {
         private final DistributedResultRequest request;
-        private final int retry;
+        private final Iterator<TimeValue> retryDelay;
 
-        NodeOperationRunnable(DistributedResultRequest request, int retry) {
+        NodeOperationRunnable(DistributedResultRequest request, Iterator<TimeValue> retryDelay) {
             this.request = request;
-            this.retry = retry;
+            this.retryDelay = retryDelay;
         }
 
         public CompletableFuture<DistributedResultResponse> run() {
-            return nodeOperation(request, retry + 1).whenComplete((r, f) -> {
+            return nodeOperation(request, retryDelay).whenComplete((r, f) -> {
                 if (f == null) {
                     complete(r);
                 } else {
