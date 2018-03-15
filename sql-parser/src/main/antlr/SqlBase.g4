@@ -419,6 +419,7 @@ createStmt
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
+    | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
     | CREATE INGEST RULE rule_name=ident
         ON source_ident=ident
         (where)?
