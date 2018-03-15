@@ -54,6 +54,10 @@ Breaking Changes
 Changes
 =======
 
+- Implemented ``constraint_schema`` and ``table_schema`` in
+  ``information_schema.key_column_usage`` correctly and documented the full
+  table schema.
+
 - Implemented the ``Block Hash Join`` algorithm which is now used for
   ``Equi-Joins``.
 

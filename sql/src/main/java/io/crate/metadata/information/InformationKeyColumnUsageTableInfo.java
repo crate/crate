@@ -74,13 +74,13 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
             .put(Columns.CONSTRAINT_CATALOG,
                 () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.CONSTRAINT_SCHEMA,
-                () -> objToBytesRef(k -> "public"))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.CONSTRAINT_NAME,
                 () -> objToBytesRef(k -> k.getTableName() + PK_SUFFIX))
             .put(Columns.TABLE_CATALOG,
                 () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_SCHEMA,
-                () -> objToBytesRef(k -> "public"))
+                () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getSchema))
             .put(Columns.TABLE_NAME,
                 () -> objToBytesRef(InformationSchemaIterables.KeyColumnUsage::getTableName))
             .put(Columns.COLUMN_NAME,

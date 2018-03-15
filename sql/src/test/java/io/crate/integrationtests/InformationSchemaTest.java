@@ -31,6 +31,7 @@ import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -48,7 +49,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testDefaultTables() throws Exception {
+    public void testDefaultTables() {
         execute("select * from information_schema.tables order by table_schema, table_name");
         assertEquals(25L, response.rowCount());
 
@@ -82,7 +83,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromInformationSchema() throws Exception {
+    public void testSelectFromInformationSchema() {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
@@ -115,7 +116,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSearchInformationSchemaTablesRefresh() throws Exception {
+    public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
         assertEquals(25L, response.rowCount());
 
@@ -127,7 +128,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
+    public void testSelectStarFromInformationSchemaTableWithOrderBy() {
         String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, " +
@@ -161,7 +162,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
@@ -176,7 +177,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {
+    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() {
         execute("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         execute("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
@@ -191,7 +192,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() {
         String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test (col1 integer primary key, col2 string) clustered into 5 shards");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
@@ -212,7 +213,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromInformationSchemaTable() throws Exception {
+    public void testSelectFromInformationSchemaTable() {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='doc'");
         assertEquals(0L, response.rowCount());
 
@@ -230,7 +231,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectBlobTablesFromInformationSchemaTable() throws Exception {
+    public void testSelectBlobTablesFromInformationSchemaTable() {
         execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where table_schema='blob'");
         assertEquals(0L, response.rowCount());
 
@@ -255,7 +256,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectPartitionedTablesFromInformationSchemaTable() throws Exception {
+    public void testSelectPartitionedTablesFromInformationSchemaTable() {
         execute("create table test (id int primary key, name string) partitioned by (id)");
         execute("insert into test (id, name) values (1, 'Youri'), (2, 'Ruben')");
         ensureGreen();
@@ -272,7 +273,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectStarFromInformationSchemaTable() throws Exception {
+    public void testSelectStarFromInformationSchemaTable() {
         execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema = ?", new Object[]{sqlExecutor.getDefaultSchema()});
@@ -344,7 +345,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testRefreshTableConstraints() throws Exception {
+    public void testRefreshTableConstraints() {
         execute("CREATE TABLE test (col1 INTEGER PRIMARY KEY, col2 STRING)");
         ensureGreen();
         execute("SELECT table_name, constraint_name FROM Information_schema" +
@@ -367,7 +368,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromRoutines() throws Exception {
+    public void testSelectFromRoutines() {
         String stmt1 = "CREATE ANALYZER myAnalyzer WITH (" +
                        "  TOKENIZER whitespace," +
                        "  TOKEN_FILTERS (" +
@@ -411,7 +412,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectAnalyzersFromRoutines() throws Exception {
+    public void testSelectAnalyzersFromRoutines() {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='ANALYZER' order by " +
                 "routine_name desc limit 5");
@@ -427,7 +428,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectTokenizersFromRoutines() throws Exception {
+    public void testSelectTokenizersFromRoutines() {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKENIZER' order by " +
                 "routine_name asc limit 5");
@@ -443,7 +444,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectTokenFiltersFromRoutines() throws Exception {
+    public void testSelectTokenFiltersFromRoutines() {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKEN_FILTER' order by " +
                 "routine_name asc limit 5");
@@ -459,7 +460,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectCharFiltersFromRoutines() throws Exception {
+    public void testSelectCharFiltersFromRoutines() {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='CHAR_FILTER' order by " +
                 "routine_name asc");
@@ -475,7 +476,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTableConstraintsWithOrderBy() throws Exception {
+    public void testTableConstraintsWithOrderBy() {
         execute("create table test1 (col11 integer primary key, col12 float)");
         execute("create table test2 (col21 double primary key, col22 string)");
         execute("create table abc (col31 integer primary key, col32 string)");
@@ -492,13 +493,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDefaultColumns() throws Exception {
+    public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
         assertEquals(486, response.rowCount());
     }
 
     @Test
-    public void testColumnsColumns() throws Exception {
+    public void testColumnsColumns() {
         execute("select * from information_schema.columns where table_schema='information_schema' and table_name='columns' order by ordinal_position asc");
         assertThat(response.rowCount(), is(32L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
@@ -538,7 +539,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromTableColumns() throws Exception {
+    public void testSelectFromTableColumns() {
         String defaultSchema = sqlExecutor.getDefaultSchema();
         execute("create table test ( " +
                 "col1 integer primary key, " +
@@ -596,7 +597,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromTableColumnsRefresh() throws Exception {
+    public void testSelectFromTableColumnsRefresh() {
         execute("create table test (col1 integer, col2 string, age integer)");
         ensureGreen();
         execute("select table_name, column_name, " +
@@ -618,7 +619,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromTableColumnsMultiField() throws Exception {
+    public void testSelectFromTableColumnsMultiField() {
         execute("create table test (col1 string, col2 string," +
                 "index col1_col2_ft using fulltext(col1, col2))");
         ensureGreen();
@@ -641,7 +642,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalAggregation() throws Exception {
+    public void testGlobalAggregation() {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
@@ -659,7 +660,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalAggregationMany() throws Exception {
+    public void testGlobalAggregationMany() {
         execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
@@ -675,7 +676,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalAggregationWithWhere() throws Exception {
+    public void testGlobalAggregationWithWhere() {
         execute("create table t1 (id integer, col1 string) clustered into 1 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 2 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
@@ -692,7 +693,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalAggregationWithAlias() throws Exception {
+    public void testGlobalAggregationWithAlias() {
         execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
@@ -704,7 +705,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalCount() throws Exception {
+    public void testGlobalCount() {
         execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=0)");
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=0)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
@@ -715,7 +716,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGlobalCountDistinct() throws Exception {
+    public void testGlobalCountDistinct() {
         execute("create table t3 (TableInfoid integer, col1 string)");
         ensureGreen();
         execute("select count(distinct table_schema) from information_schema.tables order by count(distinct table_schema)");
@@ -751,7 +752,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAddColumnToIgnoredObject() throws Exception {
+    public void testAddColumnToIgnoredObject() {
         execute("create table t4 (" +
                 "  title string," +
                 "  stuff object(ignored) as (" +
@@ -776,7 +777,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testPartitionedBy() throws Exception {
+    public void testPartitionedBy() {
         execute("create table my_table (id integer, name string) partitioned by (name)");
         execute("create table my_other_table (id integer, name string, content string) " +
                 "partitioned by (name, content)");
@@ -791,7 +792,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTablePartitions() throws Exception {
+    public void testTablePartitions() {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");
@@ -817,7 +818,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDisableWriteOnSinglePartition() throws Exception {
+    public void testDisableWriteOnSinglePartition() {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");
@@ -847,7 +848,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testMultipleWritesWhenOnePartitionIsReadOnly() throws Exception {
+    public void testMultipleWritesWhenOnePartitionIsReadOnly() {
         execute("create table my_table (par int, content string) " +
                 "clustered into 5 shards " +
                 "partitioned by (par)");
@@ -983,7 +984,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testPartitionsNestedCol() throws Exception {
+    public void testPartitionsNestedCol() {
         execute("create table my_table (id int, metadata object as (date timestamp)) " +
                 "clustered into 5 shards " +
                 "partitioned by (metadata['date'])");
@@ -1004,7 +1005,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAnyInformationSchema() throws Exception {
+    public void testAnyInformationSchema() {
         execute("create table any1 (id integer, date timestamp, names array(string)) partitioned by (date)");
         execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
         ensureGreen();
@@ -1050,7 +1051,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     @UseRandomizedSchema(random = false)
-    public void testRegexpMatch() throws Exception {
+    public void testRegexpMatch() {
         execute("create blob table blob_t1");
         execute("create table t(id String)");
         ensureYellow();
@@ -1084,7 +1085,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectGeneratedColumnFromInformationSchemaColumns() throws Exception {
+    public void testSelectGeneratedColumnFromInformationSchemaColumns() {
         execute("create table t (lastname string, firstname string, name as (lastname || '_' || firstname)) " +
                 "with (number_of_replicas = 0)");
         execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = true");
@@ -1093,7 +1094,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectSqlFeatures() throws Exception {
+    public void testSelectSqlFeatures() {
         execute("select * from information_schema.sql_features order by feature_id asc");
         assertThat(response.rowCount(), is(672L));
 
@@ -1103,14 +1104,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testScalarEvaluatesInErrorOnInformationSchema() throws Exception {
+    public void testScalarEvaluatesInErrorOnInformationSchema() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(" / by zero");
         execute("select 1/0 from information_schema.tables");
     }
 
     @Test
-    public void testInformationRoutinesColumns() throws Exception {
+    public void testInformationRoutinesColumns() {
         execute("select column_name from information_schema.columns where table_name='routines' order by ordinal_position");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is(
@@ -1126,7 +1127,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOpenCloseTableInformation() throws Exception {
+    public void testOpenCloseTableInformation() {
         execute("create table t (i int)");
         ensureYellow();
 
@@ -1142,7 +1143,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOpenClosePartitionInformation() throws Exception {
+    public void testOpenClosePartitionInformation() {
         execute("create table t (i int) partitioned by (i)");
         ensureYellow();
 
@@ -1180,7 +1181,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectFromKeyColumnUsage() throws Exception {
+    public void testSelectFromKeyColumnUsage() {
         execute("create table table1 (id1 integer)");
         execute("create table table2 (id2 integer primary key)");
         execute("create table table3 (id3 integer, name string, other double, primary key (id3, name))");
@@ -1200,26 +1201,23 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ));
 
         final String defaultSchema = sqlExecutor.getDefaultSchema();
-        assertThat(response.rows(), arrayContaining(
-            new Object[] {"id2",  defaultSchema, "table2_pk",  "public", 1, defaultSchema, "table2", "public"},
-            new Object[] {"id3",  defaultSchema, "table3_pk",  "public", 1, defaultSchema, "table3", "public"},
-            new Object[] {"name", defaultSchema, "table3_pk",  "public", 2, defaultSchema, "table3", "public"}
-        ));
+        Matcher<Object[][]> resultMatcher = arrayContaining(
+            new Object[]{"id2", defaultSchema, "table2_pk", defaultSchema, 1, defaultSchema, "table2", defaultSchema},
+            new Object[]{"id3", defaultSchema, "table3_pk", defaultSchema, 1, defaultSchema, "table3", defaultSchema},
+            new Object[]{"name", defaultSchema, "table3_pk", defaultSchema, 2, defaultSchema, "table3", defaultSchema}
+        );
+        assertThat(response.rows(), resultMatcher);
 
         // check that the constraint name is the same as in table_constraints by joining the two tables
         execute("select t1.* from information_schema.key_column_usage t1 " +
                 "join information_schema.table_constraints t2 " +
                 "on t1.constraint_name = t2.constraint_name " +
                 "order by t1.table_name, t1.ordinal_position asc");
-        assertThat(response.rows(), arrayContaining(
-            new Object[] {"id2",  defaultSchema, "table2_pk",  "public", 1, defaultSchema, "table2", "public"},
-            new Object[] {"id3",  defaultSchema, "table3_pk",  "public", 1, defaultSchema, "table3", "public"},
-            new Object[] {"name", defaultSchema, "table3_pk",  "public", 2, defaultSchema, "table3", "public"}
-        ));
+        assertThat(response.rows(), resultMatcher);
     }
 
     @Test
-    public void testSelectFromReferentialConstraints() throws Exception {
+    public void testSelectFromReferentialConstraints() {
         execute("select * from information_schema.referential_constraints");
         assertEquals(0L, response.rowCount());
         assertThat(response.cols(),
