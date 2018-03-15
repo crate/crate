@@ -1266,6 +1266,12 @@ public class TestStatementBuilder {
                        "order by 1");
     }
 
+    @Test
+    public void testCreateViewParsing() {
+        printStatement("CREATE VIEW myView AS SELECT * FROM foobar");
+        printStatement("CREATE OR REPLACE VIEW myView AS SELECT * FROM foobar");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
