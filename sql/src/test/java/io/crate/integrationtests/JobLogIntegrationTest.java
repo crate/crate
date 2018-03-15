@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
@@ -50,6 +53,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     @UseJdbc(0) // SET extra_float_digits = 3 gets added to the jobs_log
+    @Seed("C146595B0B127E12")
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
         execute("select name from sys.cluster");
         execute("select * from sys.jobs_log");
@@ -63,13 +67,28 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
         // only the latest queries are found in the log.
+        for (JobsLogs jobsLogs : internalCluster().getDataNodeInstances(JobsLogs.class)) {
+            for (JobContextLog log : jobsLogs.jobsLog()) {
+                System.err.println("Before: " + jobsLogs + ": " + log.id() + "|" + log.statement());
+            }
+        }
         for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
             Session session = sqlOperations.newSystemSession();
             execute("select name from sys.cluster", null, session);
         }
+        for (JobsLogs jobsLogs : internalCluster().getDataNodeInstances(JobsLogs.class)) {
+            for (JobContextLog log : jobsLogs.jobsLog()) {
+                System.err.println("After 1st stmt: " + jobsLogs + ": " + log.id() + "|" + log.statement());
+            }
+        }
         for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
             Session session = sqlOperations.newSystemSession();
             execute("select id from sys.cluster", null, session);
+        }
+        for (JobsLogs jobsLogs : internalCluster().getDataNodeInstances(JobsLogs.class)) {
+            for (JobContextLog log : jobsLogs.jobsLog()) {
+                System.err.println("After 2ns stmt: " + jobsLogs + ": " + log.id() + "|" + log.statement());
+            }
         }
 
         execute("select stmt from sys.jobs_log order by ended desc");
