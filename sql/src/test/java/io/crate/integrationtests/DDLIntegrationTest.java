@@ -135,7 +135,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The table 'doc.test' already exists.");
+        expectedException.expectMessage("Relation 'doc.test' already exists.");
         execute("create table test (col1 integer primary key, col2 string)");
     }
 

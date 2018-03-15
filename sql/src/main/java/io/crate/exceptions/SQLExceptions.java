@@ -188,11 +188,11 @@ public class SQLExceptions {
                 ((EngineException) e).getIndex().getName(),
                 "A document with the same primary key exists already", e);
         } else if (e instanceof ResourceAlreadyExistsException) {
-            return new TableAlreadyExistsException(((ResourceAlreadyExistsException) e).getIndex().getName(), e);
+            return new RelationAlreadyExists(((ResourceAlreadyExistsException) e).getIndex().getName(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex().getName(),
+                return new RelationAlreadyExists(((InvalidIndexNameException) e).getIndex().getName(),
                     e);
             }
             return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex().getName(), e);

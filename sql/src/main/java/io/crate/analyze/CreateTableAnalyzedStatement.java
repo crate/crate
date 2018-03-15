@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
@@ -50,7 +50,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         if (ifNotExists) {
             noOp = schemas.tableExists(tableIdent);
         } else if (schemas.tableExists(tableIdent)) {
-            throw new TableAlreadyExistsException(tableIdent);
+            throw new RelationAlreadyExists(tableIdent);
         }
         this.ifNotExists = ifNotExists;
         this.tableIdent = tableIdent;
