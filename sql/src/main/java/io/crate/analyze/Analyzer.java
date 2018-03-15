@@ -50,6 +50,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropBlobTable;
@@ -124,6 +125,7 @@ public class Analyzer {
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
     private final AlterUserAnalyzer alterUserAnalyzer;
+    private final CreateViewAnalyzer createViewAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -144,6 +146,7 @@ public class Analyzer {
             functions,
             numberOfShards
         );
+        this.createViewAnalyzer = new CreateViewAnalyzer(relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
@@ -454,5 +457,10 @@ public class Analyzer {
             return createIngestionRuleAnalyzer.analyze(node, context);
         }
 
+        @Override
+        public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
+            return createViewAnalyzer.analyze(
+                createView, analysis.transactionContext(), analysis.sessionContext().defaultSchema());
+        }
     }
 }

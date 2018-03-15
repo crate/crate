@@ -26,6 +26,7 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.TransportDropTableAction;
+import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.metadata.Functions;
@@ -53,6 +54,7 @@ public class DependencyCarrier {
     private final DCLStatementDispatcher dclStatementDispatcher;
     private final TransportDropTableAction transportDropTableAction;
     private final ProjectionBuilder projectionBuilder;
+    private final TransportCreateViewAction createViewAction;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -63,7 +65,8 @@ public class DependencyCarrier {
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
                              DCLStatementDispatcher dclStatementDispatcher,
-                             TransportDropTableAction transportDropTableAction) {
+                             TransportDropTableAction transportDropTableAction,
+                             TransportCreateViewAction createViewAction) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -74,6 +77,7 @@ public class DependencyCarrier {
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(functions);
+        this.createViewAction = createViewAction;
     }
 
     public DDLStatementDispatcher ddlAction() {
@@ -122,5 +126,9 @@ public class DependencyCarrier {
 
     public ThreadPool threadPool() {
         return threadPool;
+    }
+
+    public TransportCreateViewAction createViewAction() {
+        return createViewAction;
     }
 }
