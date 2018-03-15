@@ -359,7 +359,7 @@ Code   Error
 4092   A VersionConflict. Might be thrown if an attempt was made to update
        the same document concurrently.
 ------ ---------------------------------------------------------------------
-4093   A table with the same name exists already.
+4093   A relation with the same name exists already.
 ------ ---------------------------------------------------------------------
 4094   The used table alias contains tables with different schema.
 ------ ---------------------------------------------------------------------

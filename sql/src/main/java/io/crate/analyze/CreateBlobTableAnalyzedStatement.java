@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 
@@ -45,7 +45,7 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
     public void table(TableIdent tableIdent, Schemas schemas) {
         tableIdent.validate();
         if (schemas.tableExists(tableIdent)) {
-            throw new TableAlreadyExistsException(tableIdent);
+            throw new RelationAlreadyExists(tableIdent);
         }
         this.tableIdent = tableIdent;
     }

@@ -157,7 +157,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "The table '%s.mytablealias' already exists.", sqlExecutor.getDefaultSchema()));
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.mytablealias' already exists.", sqlExecutor.getDefaultSchema()));
 
         execute(String.format(Locale.ENGLISH, "create table %s (content string index off)", tableAlias));
     }

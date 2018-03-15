@@ -153,7 +153,7 @@ listing all tables restores the whole snapshot.
 It's not possible to restore tables that exist in the current cluster::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
-    SQLActionException[TableAlreadyExistsException: The table 'doc.quotes' already exists.]
+    SQLActionException[RelationAlreadyExists: Relation 'doc.quotes' already exists.]
 
 Single partitions can be either imported into an existing partitioned table the
 partition belongs to.

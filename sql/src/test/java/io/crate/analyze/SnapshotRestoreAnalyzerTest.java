@@ -27,7 +27,7 @@ import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.RepositoryUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -258,8 +258,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testRestoreExistingTable() throws Exception {
-        expectedException.expect(TableAlreadyExistsException.class);
-        expectedException.expectMessage("The table 'doc.users' already exists.");
+        expectedException.expect(RelationAlreadyExists.class);
+        expectedException.expectMessage("Relation 'doc.users' already exists.");
         analyze("RESTORE SNAPSHOT my_repo.my_snapshot TABLE users");
     }
 

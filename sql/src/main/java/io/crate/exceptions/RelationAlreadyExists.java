@@ -26,18 +26,18 @@ import io.crate.metadata.TableIdent;
 import java.util.Collections;
 import java.util.Locale;
 
-public class TableAlreadyExistsException extends ConflictException implements TableScopeException {
+public final class RelationAlreadyExists extends ConflictException implements TableScopeException {
 
     private TableIdent tableIdent;
 
-    private static final String MESSAGE_TMPL = "The table '%s' already exists.";
+    private static final String MESSAGE_TMPL = "Relation '%s' already exists.";
 
-    public TableAlreadyExistsException(TableIdent tableIdent) {
+    public RelationAlreadyExists(TableIdent tableIdent) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableIdent));
         this.tableIdent = tableIdent;
     }
 
-    TableAlreadyExistsException(String tableName, Throwable e) {
+    RelationAlreadyExists(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
         this.tableIdent = TableIdent.fromIndexName(tableName);
     }

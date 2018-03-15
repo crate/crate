@@ -30,7 +30,7 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.TableIdent;
@@ -736,7 +736,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableShouldRaiseErrorIfItExists() throws Exception {
-        expectedException.expect(TableAlreadyExistsException.class);
+        expectedException.expect(RelationAlreadyExists.class);
         e.analyze("create table users (\"'test\" string)");
     }
 
