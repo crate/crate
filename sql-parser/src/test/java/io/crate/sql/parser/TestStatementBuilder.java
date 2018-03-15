@@ -26,7 +26,39 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.ArrayLikePredicate;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.ComparisonExpression;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateIngestRule;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropIngestRule;
+import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.MatchPredicate;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubqueryExpression;
+import io.crate.sql.tree.SubscriptExpression;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -41,7 +73,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class TestStatementBuilder {
 
@@ -1186,6 +1221,12 @@ public class TestStatementBuilder {
                        "select 5 union distinct " +
                        "select 6 " +
                        "order by 1");
+    }
+
+    @Test
+    public void testCreateViewParsing() {
+        printStatement("CREATE VIEW myView AS SELECT * FROM foobar");
+        printStatement("CREATE OR REPLACE VIEW myView AS SELECT * FROM foobar");
     }
 
     private static void printStatement(String sql) {

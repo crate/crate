@@ -68,6 +68,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.Delete;
@@ -220,6 +221,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitCollection(context.crateTableOption(), CrateTableOption.class),
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    @Override
+    public Node visitCreateView(SqlBaseParser.CreateViewContext ctx) {
+        return new CreateView(
+            getQualifiedName(ctx.qname()),
+            (Query) visit(ctx.query()),
+            ctx.REPLACE() != null
+        );
     }
 
     @Override
