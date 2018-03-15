@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -143,4 +144,21 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return Objects.hash(queryByName);
     }
 
+    public boolean contains(String name) {
+        return queryByName.containsKey(name);
+    }
+
+    /**
+     * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
+     */
+    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, String name, String query) {
+        HashMap<String, String> queryByName;
+        if (prevViews == null) {
+            queryByName = new HashMap<>();
+        } else {
+            queryByName = new HashMap<>(prevViews.queryByName);
+        }
+        queryByName.put(name, query);
+        return new ViewsMetaData(queryByName);
+    }
 }

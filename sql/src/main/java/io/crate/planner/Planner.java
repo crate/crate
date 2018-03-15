@@ -32,6 +32,7 @@ import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
@@ -288,6 +289,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
         return new ExplainPlan(process(explainAnalyzedStatement.statement(), context));
+    }
+
+    @Override
+    public Plan visitCreateViewStmt(CreateViewStmt createViewStmt, PlannerContext context) {
+        return new CreateViewPlan(createViewStmt);
     }
 
     private LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {
