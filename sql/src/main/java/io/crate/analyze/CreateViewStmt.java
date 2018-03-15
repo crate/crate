@@ -20,25 +20,28 @@
  * agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.analyze;
 
-public final class CreateView extends Statement {
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.metadata.TableIdent;
 
-    private final QualifiedName name;
-    private final Query query;
+public final class CreateViewStmt implements AnalyzedStatement {
+
+    private final TableIdent name;
+    private final QueriedRelation query;
     private final boolean replaceExisting;
 
-    public CreateView(QualifiedName name, Query query, boolean replaceExisting) {
+    CreateViewStmt(TableIdent name, QueriedRelation query, boolean replaceExisting) {
         this.name = name;
         this.query = query;
         this.replaceExisting = replaceExisting;
     }
 
-    public QualifiedName name() {
+    public TableIdent name() {
         return name;
     }
 
-    public Query query() {
+    public QueriedRelation query() {
         return query;
     }
 
@@ -47,36 +50,12 @@ public final class CreateView extends Statement {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CreateView that = (CreateView) o;
-
-        if (replaceExisting != that.replaceExisting) return false;
-        if (!name.equals(that.name)) return false;
-        return query.equals(that.query);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitCreateViewStmt(this, context);
     }
 
     @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + query.hashCode();
-        result = 31 * result + (replaceExisting ? 1 : 0);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "CreateView{" +
-               "name=" + name +
-               ", query=" + query +
-               ", replaceExisting=" + replaceExisting +
-               '}';
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCreateView(this, context);
+    public boolean isWriteOperation() {
+        return true;
     }
 }

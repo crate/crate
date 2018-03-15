@@ -22,23 +22,48 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void setUpExecutor() {
-        e = SQLExecutor.builder(clusterService).build();
+    public void setUpExecutor() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .build();
     }
 
     @Test
-    public void testCreateViewIsNotSupported() {
-        expectedException.expect(UnsupportedOperationException.class);
-        e.analyze("create view v1 as select * from t1");
+    public void testCreateViewCreatesStatementWithNameAndAnalyzedRelation() {
+        CreateViewStmt createView = e.analyze("create view v1 as select * from t1");
+
+        assertThat(createView.name(), is(new TableIdent(e.getSessionContext().defaultSchema(), "v1")));
+        assertThat(createView.query(), isSQL("QueriedTable{DocTableRelation{doc.t1}}"));
+    }
+
+    @Test
+    public void testDuplicateColumnNamesMustNotBeAllowedInQuery() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Query in CREATE VIEW must not have duplicate column names");
+        e.analyze("create view v1 as select x, x from t1");
+    }
+
+    @Test
+    public void testAliasCanBeUsedToAvoidDuplicateColumnNamesInQuery() {
+        CreateViewStmt createView = e.analyze("create view v1 as select x, x as y from t1");
+        assertThat(createView.query().fields(), contains(isField("x"), isField("y")));
     }
 }
