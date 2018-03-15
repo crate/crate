@@ -22,18 +22,19 @@
 
 package io.crate.execution;
 
-import io.crate.execution.dml.delete.TransportShardDeleteAction;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
-import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
-import io.crate.execution.jobs.ContextPreparer;
-import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.execution.engine.fetch.TransportFetchNodeAction;
 import io.crate.execution.ddl.TransportDropTableAction;
 import io.crate.execution.ddl.TransportOpenCloseTableOrPartitionAction;
 import io.crate.execution.ddl.TransportRenameTableAction;
+import io.crate.execution.ddl.views.TransportCreateViewAction;
+import io.crate.execution.dml.delete.TransportShardDeleteAction;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.execution.engine.distribution.TransportDistributedResultAction;
+import io.crate.execution.engine.fetch.TransportFetchNodeAction;
+import io.crate.execution.jobs.ContextPreparer;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
+import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.lucene.LuceneQueryBuilder;
 import org.elasticsearch.common.inject.AbstractModule;
 
@@ -56,5 +57,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportRenameTableAction.class).asEagerSingleton();
         bind(TransportOpenCloseTableOrPartitionAction.class).asEagerSingleton();
         bind(TransportDropTableAction.class).asEagerSingleton();
+        bind(TransportCreateViewAction.class).asEagerSingleton();
     }
 }
