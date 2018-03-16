@@ -65,23 +65,11 @@ public final class SymbolPrinter {
     };
 
     public enum Style {
-        SIMPLE(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
-        PARSEABLE(100, true, true),
-        FULL_QUALIFIED(SymbolPrinterContext.DEFAULT_MAX_DEPTH, true, false),
-        PARSEABLE_NOT_QUALIFIED(100, false, true);
-
-        private final int maxDepth;
-        private final boolean fullQualified;
-        private final boolean failIfMaxDepthReached;
-
-        Style(int maxDepth, boolean fullQualified, boolean failIfMaxDepthReached) {
-            this.maxDepth = maxDepth;
-            this.fullQualified = fullQualified;
-            this.failIfMaxDepthReached = failIfMaxDepthReached;
-        }
+        NOT_QUALIFIED,
+        FULL_QUALIFIED;
 
         SymbolPrinterContext context() {
-            return new SymbolPrinterContext(maxDepth, fullQualified, failIfMaxDepthReached);
+            return new SymbolPrinterContext(this);
         }
     }
 
@@ -93,24 +81,11 @@ public final class SymbolPrinter {
     }
 
     public String printSimple(Symbol symbol) {
-        return print(symbol, Style.SIMPLE);
+        return print(symbol, Style.NOT_QUALIFIED);
     }
 
     public String printFullQualified(Symbol symbol) {
         return print(symbol, Style.FULL_QUALIFIED);
-    }
-
-    /**
-     * format the given symbol
-     *
-     * @param symbol        the symbol to format
-     * @param maxDepth      the max depth to print, if maxDepth is reached, "..." is printed for the rest
-     * @param fullQualified if references should be fully qualified (contain schema and table name)
-     */
-    public String print(Symbol symbol, int maxDepth, boolean fullQualified, boolean failIfMaxDepthReached) {
-        SymbolPrinterContext context = new SymbolPrinterContext(maxDepth, fullQualified, failIfMaxDepthReached);
-        symbolPrintVisitor.process(symbol, context);
-        return context.formatted();
     }
 
     /**
@@ -133,18 +108,12 @@ public final class SymbolPrinter {
 
         @Override
         protected Void visitSymbol(Symbol symbol, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
             context.builder.append(symbol.toString());
             return null;
         }
 
         @Override
         public Void visitAggregation(Aggregation symbol, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
 
             context.builder.append(symbol.functionIdent().name()).append(PAREN_OPEN);
             printArgs(symbol.inputs(), context);
@@ -154,11 +123,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitFunction(Function function, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
-            // handle special functions
             String functionName = function.info().ident().name();
             if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                 printAnyOperator(function, context);
@@ -198,9 +162,7 @@ public final class SymbolPrinter {
             List<Symbol> args = function.arguments();
             assert args.size() == 2 : "function's number of arguments must be 2";
             context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
-            context.down();
             process(args.get(0), context);
-            context.up();
 
             // print operator
             String operatorName = anyOperatorName(function.info().ident().name());
@@ -210,9 +172,7 @@ public final class SymbolPrinter {
                 .append(WS);
 
             context.builder.append(ANY).append(PAREN_OPEN);
-            context.down();
             process(args.get(1), context);
-            context.up();
             context.builder.append(PAREN_CLOSE)
                 .append(PAREN_CLOSE);
         }
@@ -224,10 +184,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitReference(Reference symbol, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
             if (context.isFullQualified()) {
                 context.builder.append(symbol.ident().tableIdent().sqlFqn())
                     .append(DOT);
@@ -243,10 +199,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitField(Field field, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
             if (context.isFullQualified()) {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                     .append(DOT);
@@ -261,9 +213,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitInputColumn(InputColumn inputColumn, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
             context.builder.append("INPUT(")
                 .append(inputColumn.index())
                 .append(")");
@@ -272,10 +221,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitFetchReference(FetchReference fetchReference, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
             context.builder.append("FETCH(");
             process(fetchReference.fetchId(), context);
             context.builder.append(", ");
@@ -286,10 +231,6 @@ public final class SymbolPrinter {
 
         @Override
         public Void visitLiteral(Literal symbol, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
             LiteralValueFormatter.INSTANCE.format(symbol.value(), context.builder);
             return null;
         }
@@ -301,20 +242,14 @@ public final class SymbolPrinter {
                 case 1:
                     context.builder.append(formatter.operator(function))
                         .append(" ");
-                    context.down();
                     function.arguments().get(0).accept(this, context);
-                    context.up();
                     break;
                 case 2:
-                    context.down();
                     function.arguments().get(0).accept(this, context);
-                    context.up();
                     context.builder.append(WS)
                         .append(formatter.operator(function))
                         .append(WS);
-                    context.down();
                     function.arguments().get(1).accept(this, context);
-                    context.up();
                     break;
                 default:
                     throw new UnsupportedOperationException("cannot format operators with more than 2 operands");
@@ -332,16 +267,11 @@ public final class SymbolPrinter {
         }
 
         private void printArgs(List<Symbol> args, SymbolPrinterContext context) {
-            context.down();
-            try {
-                for (int i = 0, size = args.size(); i < size; i++) {
-                    args.get(i).accept(this, context);
-                    if (i < size - 1) {
-                        context.builder.append(COMMA).append(WS);
-                    }
+            for (int i = 0, size = args.size(); i < size; i++) {
+                args.get(i).accept(this, context);
+                if (i < size - 1) {
+                    context.builder.append(COMMA).append(WS);
                 }
-            } finally {
-                context.up();
             }
         }
     }
@@ -350,7 +280,6 @@ public final class SymbolPrinter {
         public static final String PAREN_OPEN = "(";
         public static final String PAREN_CLOSE = ")";
         public static final String COMMA = ",";
-        public static final String ELLIPSIS = "...";
         public static final String NULL_LOWER = "null";
         public static final String WS = " ";
         public static final String DOT = ".";

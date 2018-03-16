@@ -92,7 +92,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     private void assertPrintIsParseable(String sql) {
-        assertPrintIsParseable(sql, SymbolPrinter.Style.SIMPLE);
+        assertPrintIsParseable(sql, SymbolPrinter.Style.NOT_QUALIFIED);
     }
 
     private void assertPrintIsParseable(String sql, SymbolPrinter.Style style) {
@@ -272,32 +272,23 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testFormatQualified() throws Exception {
         Symbol ref = sqlExpressions.asSymbol("doc.formatter.\"CraZy\"");
-        assertThat(printer.print(ref, 10, true, false), is("doc.formatter.\"CraZy\""));
-        assertThat(printer.print(ref, 10, false, false), is("\"CraZy\""));
+        assertThat(printer.printFullQualified(ref), is("doc.formatter.\"CraZy\""));
+        assertThat(printer.printSimple(ref), is("\"CraZy\""));
     }
 
     @Test
     public void testMaxDepthEllipsis() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
-        assertThat(printer.print(nestedFn, 5, true, false), is("1.442026886600883"));
-    }
-
-    @Test
-    public void testMaxDepthFail() throws Exception {
-        expectedException.expect(MaxDepthReachedException.class);
-        expectedException.expectMessage("max depth of 5 reached while traversing symbol");
-
-        Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+(current_timestamp(3)::long)+1+1+1+1)))");
-        printer.print(nestedFn, 5, true, true);
+        assertThat(printer.printSimple(nestedFn), is("1.442026886600883"));
     }
 
     @Test
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.FULL_QUALIFIED), is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.SIMPLE), is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE), is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED), is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.FULL_QUALIFIED),
+            is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+        assertThat(printer.print(nestedFn, SymbolPrinter.Style.NOT_QUALIFIED),
+            is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
     }
 
     @Test
