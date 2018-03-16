@@ -24,6 +24,9 @@ package io.crate.expression.symbol.format;
 
 import io.crate.expression.symbol.Function;
 
+import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
+import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
+
 /**
  * knows about how to formatSymbol a function, even special ones
  */
@@ -42,4 +45,22 @@ public interface FunctionFormatSpec {
      * whether or not to formatSymbol the arguments
      */
     boolean formatArgs(Function function);
+
+
+    FunctionFormatSpec NAME_PARENTHESISED_ARGS = new FunctionFormatSpec() {
+        @Override
+        public String beforeArgs(Function function) {
+            return function.info().ident().name() + PAREN_OPEN;
+        }
+
+        @Override
+        public String afterArgs(Function function) {
+            return PAREN_CLOSE;
+        }
+
+        @Override
+        public boolean formatArgs(Function function) {
+            return true;
+        }
+    };
 }

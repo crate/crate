@@ -24,7 +24,7 @@ package io.crate.expression.symbol.format;
 
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.ELLIPSIS;
 
-class SymbolPrinterContext {
+final class SymbolPrinterContext {
 
     static final int DEFAULT_MAX_DEPTH = 50;
     static final boolean DEFAULT_FAIL_IF_MAX_DEPTH_REACHED = false;

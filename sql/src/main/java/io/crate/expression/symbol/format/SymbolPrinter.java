@@ -54,34 +54,14 @@ import static io.crate.expression.symbol.format.SymbolPrinter.Strings.PAREN_OPEN
 import static io.crate.expression.symbol.format.SymbolPrinter.Strings.WS;
 
 @Singleton
-public class SymbolPrinter {
+public final class SymbolPrinter {
 
     public static final SymbolPrinter INSTANCE = new SymbolPrinter(null);
 
-    private static final FunctionFormatSpec SIMPLE_FUNCTION_FORMAT_SPEC = new FunctionFormatSpec() {
-        @Override
-        public boolean formatArgs(Function function) {
-            return true;
-        }
-
-        @Override
-        public String beforeArgs(Function function) {
-            return function.info().ident().name() + PAREN_OPEN;
-        }
-
-        @Override
-        public String afterArgs(Function function) {
-            return PAREN_CLOSE;
-        }
-    };
-
-    private static final OperatorFormatSpec SIMPLE_OPERATOR_FORMAT_SPEC = new OperatorFormatSpec() {
-        @Override
-        public String operator(Function function) {
-            assert function.info().ident().name().startsWith("op_") :
-                "function.info().ident().name() must start with 'op_'";
-            return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
-        }
+    private static final OperatorFormatSpec SIMPLE_OPERATOR_FORMAT_SPEC = function -> {
+        assert function.info().ident().name().startsWith("op_") :
+            "function.info().ident().name() must start with 'op_'";
+        return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
     };
 
     public enum Style {
@@ -207,7 +187,7 @@ public class SymbolPrinter {
                 printOperator(function, operatorFormatSpec, context);
             } else {
                 if (functionFormatSpec == null) {
-                    functionFormatSpec = SIMPLE_FUNCTION_FORMAT_SPEC;
+                    functionFormatSpec = FunctionFormatSpec.NAME_PARENTHESISED_ARGS;
                 }
                 printFunction(function, functionFormatSpec, context);
             }
