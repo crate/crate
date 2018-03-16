@@ -36,6 +36,6 @@ final class SymbolPrinterContext {
     }
 
     boolean isFullQualified() {
-        return style == SymbolPrinter.Style.FULL_QUALIFIED;
+        return style == SymbolPrinter.Style.QUALIFIED;
     }
 }

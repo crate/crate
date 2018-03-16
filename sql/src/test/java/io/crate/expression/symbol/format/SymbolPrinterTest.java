@@ -84,20 +84,16 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     private void assertPrint(Symbol s, String formatted) {
-        assertThat(printer.printFullQualified(s), is(formatted));
+        assertThat(printer.printQualified(s), is(formatted));
     }
 
     private void assertPrintStatic(Symbol s, String formatted) {
-        assertThat(SymbolPrinter.INSTANCE.printFullQualified(s), is(formatted));
+        assertThat(SymbolPrinter.INSTANCE.printQualified(s), is(formatted));
     }
 
     private void assertPrintIsParseable(String sql) {
-        assertPrintIsParseable(sql, SymbolPrinter.Style.NOT_QUALIFIED);
-    }
-
-    private void assertPrintIsParseable(String sql, SymbolPrinter.Style style) {
         Symbol symbol = sqlExpressions.asSymbol(sql);
-        String formatted = printer.print(symbol, style);
+        String formatted = printer.printUnqualified(symbol);
         Symbol formattedSymbol = sqlExpressions.asSymbol(formatted);
         assertThat(symbol, is(formattedSymbol));
     }
@@ -272,29 +268,29 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testFormatQualified() throws Exception {
         Symbol ref = sqlExpressions.asSymbol("doc.formatter.\"CraZy\"");
-        assertThat(printer.printFullQualified(ref), is("doc.formatter.\"CraZy\""));
-        assertThat(printer.printSimple(ref), is("\"CraZy\""));
+        assertThat(printer.printQualified(ref), is("doc.formatter.\"CraZy\""));
+        assertThat(printer.printUnqualified(ref), is("\"CraZy\""));
     }
 
     @Test
     public void testMaxDepthEllipsis() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
-        assertThat(printer.printSimple(nestedFn), is("1.442026886600883"));
+        assertThat(printer.printUnqualified(nestedFn), is("1.442026886600883"));
     }
 
     @Test
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.FULL_QUALIFIED),
+        assertThat(printer.printQualified(nestedFn),
             is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
-        assertThat(printer.print(nestedFn, SymbolPrinter.Style.NOT_QUALIFIED),
+        assertThat(printer.printUnqualified(nestedFn),
             is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
     }
 
     @Test
     public void testFormatOperatorWithStaticInstance() throws Exception {
         Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = 2");
-        String printed = SymbolPrinter.INSTANCE.printFullQualified(comparisonOperator);
+        String printed = SymbolPrinter.INSTANCE.printQualified(comparisonOperator);
         assertThat(
             printed,
             is("((doc.formatter.bar = 1) AND (doc.formatter.foo = '2'))")

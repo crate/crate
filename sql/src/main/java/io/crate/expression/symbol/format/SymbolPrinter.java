@@ -65,8 +65,8 @@ public final class SymbolPrinter {
     };
 
     public enum Style {
-        NOT_QUALIFIED,
-        FULL_QUALIFIED;
+        UNQUALIFIED,
+        QUALIFIED;
 
         SymbolPrinterContext context() {
             return new SymbolPrinterContext(this);
@@ -80,19 +80,19 @@ public final class SymbolPrinter {
         this.symbolPrintVisitor = new SymbolPrintVisitor(functions);
     }
 
-    public String printSimple(Symbol symbol) {
-        return print(symbol, Style.NOT_QUALIFIED);
+    public String printUnqualified(Symbol symbol) {
+        return print(symbol, Style.UNQUALIFIED);
     }
 
-    public String printFullQualified(Symbol symbol) {
-        return print(symbol, Style.FULL_QUALIFIED);
+    public String printQualified(Symbol symbol) {
+        return print(symbol, Style.QUALIFIED);
     }
 
     /**
      * format a symbol with the given style
      */
-    public String print(Symbol symbol, Style formatStyle) {
-        SymbolPrinterContext context = formatStyle.context();
+    private String print(Symbol symbol, Style style) {
+        SymbolPrinterContext context = style.context();
         symbolPrintVisitor.process(symbol, context);
         return context.formatted();
     }

@@ -48,7 +48,7 @@ public class GroupBySymbolValidator {
         if (!DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, errorMesage,
-                    SymbolPrinter.INSTANCE.printSimple(symbol),
+                    SymbolPrinter.INSTANCE.printUnqualified(symbol),
                     symbol.valueType()));
         }
     }

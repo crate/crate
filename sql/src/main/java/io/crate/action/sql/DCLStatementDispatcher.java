@@ -76,7 +76,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
             String formattedExpression = null;
             Symbol symbol = parameterContext.apply(node);
             if (symbol != null) {
-                formattedExpression = symbolPrinter.printSimple(symbol);
+                formattedExpression = symbolPrinter.printUnqualified(symbol);
             }
             return formattedExpression;
         }

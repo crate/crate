@@ -327,9 +327,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Limit) {
                 Limit limit = (Limit) plan;
                 startLine("Limit[");
-                sb.append(symbolPrinter.printSimple(limit.limit));
+                sb.append(symbolPrinter.printUnqualified(limit.limit));
                 sb.append(';');
-                sb.append(symbolPrinter.printSimple(limit.offset));
+                sb.append(symbolPrinter.printUnqualified(limit.offset));
                 sb.append("]\n");
                 plan = limit.source;
             }
@@ -339,7 +339,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 OrderBy.explainRepresentation(
                     sb,
                     order.orderBy.orderBySymbols()
-                        .stream().map(s -> Literal.of(symbolPrinter.printSimple(s))).collect(Collectors.toList()),
+                        .stream().map(s -> Literal.of(symbolPrinter.printUnqualified(s))).collect(Collectors.toList()),
                     order.orderBy.reverseFlags(),
                     order.orderBy.nullsFirst());
                 sb.append("]\n");
@@ -430,7 +430,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         private void addSymbolsList(Iterable<? extends Symbol> symbols) {
             StringJoiner commaJoiner = new StringJoiner(", ");
             for (Symbol symbol : symbols) {
-                commaJoiner.add(symbolPrinter.printSimple(symbol));
+                commaJoiner.add(symbolPrinter.printUnqualified(symbol));
             }
             sb.append(commaJoiner.toString());
         }
@@ -438,7 +438,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private static String printQueryClause(SymbolPrinter printer, QueryClause queryClause) {
         if (queryClause.hasQuery()) {
-            return printer.printSimple(queryClause.query());
+            return printer.printUnqualified(queryClause.query());
         } else if (queryClause.noMatch()) {
             return "None";
         } else {

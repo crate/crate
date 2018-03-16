@@ -208,7 +208,7 @@ class InsertFromSubQueryAnalyzer {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
                 targetColumns.stream().map(r -> r.column().sqlFqn()).collect(commaJoiner),
-                querySpec.outputs().stream().map(SymbolPrinter.INSTANCE::printSimple).collect(commaJoiner)));
+                querySpec.outputs().stream().map(SymbolPrinter.INSTANCE::printUnqualified).collect(commaJoiner)));
         }
 
         int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbol::valueType));
