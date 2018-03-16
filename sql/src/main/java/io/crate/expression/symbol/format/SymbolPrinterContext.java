@@ -22,52 +22,13 @@
 
 package io.crate.expression.symbol.format;
 
-import static io.crate.expression.symbol.format.SymbolPrinter.Strings.ELLIPSIS;
-
 final class SymbolPrinterContext {
 
-    static final int DEFAULT_MAX_DEPTH = 50;
-    static final boolean DEFAULT_FAIL_IF_MAX_DEPTH_REACHED = false;
-    static final boolean DEFAULT_FULL_QUALIFIED = false;
-
     final StringBuilder builder = new StringBuilder();
+    private final SymbolPrinter.Style style;
 
-    private final int maxDepth;
-    private final boolean fullQualified;
-    private final boolean failIfMaxDepthReached;
-
-    private int depth = 0;
-
-    SymbolPrinterContext(int maxDepth, boolean fullQualified, boolean failIfMaxDepthReached) {
-        this.maxDepth = maxDepth;
-        this.fullQualified = fullQualified;
-        this.failIfMaxDepthReached = failIfMaxDepthReached;
-    }
-
-    public SymbolPrinterContext down() {
-        depth++;
-        return this;
-    }
-
-    public SymbolPrinterContext up() {
-        depth--;
-        return this;
-    }
-
-    boolean verifyMaxDepthReached() {
-        if (maxDepthReached()) {
-            if (failIfMaxDepthReached) {
-                throw new MaxDepthReachedException(maxDepth);
-            } else {
-                builder.append(ELLIPSIS);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean maxDepthReached() {
-        return depth >= maxDepth;
+    SymbolPrinterContext(SymbolPrinter.Style style) {
+        this.style = style;
     }
 
     String formatted() {
@@ -75,6 +36,6 @@ final class SymbolPrinterContext {
     }
 
     boolean isFullQualified() {
-        return fullQualified;
+        return style == SymbolPrinter.Style.FULL_QUALIFIED;
     }
 }

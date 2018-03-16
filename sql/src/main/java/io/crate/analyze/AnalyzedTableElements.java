@@ -291,7 +291,7 @@ public class AnalyzedTableElements {
                 "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType, false);
-            formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
+            formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.NOT_QUALIFIED);
         } else {
             if (valueType instanceof ArrayType) {
                 columnDefinition.collectionType("array");
@@ -301,7 +301,7 @@ public class AnalyzedTableElements {
             } else {
                 columnDefinition.dataType(valueType.getName());
             }
-            formattedExpression = symbolPrinter.print(function, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
+            formattedExpression = symbolPrinter.print(function, SymbolPrinter.Style.NOT_QUALIFIED);
         }
 
         columnDefinition.formattedGeneratedExpression(formattedExpression);
