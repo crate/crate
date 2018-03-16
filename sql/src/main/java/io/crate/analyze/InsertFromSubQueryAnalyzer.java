@@ -30,6 +30,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Field;
@@ -37,7 +38,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -208,7 +208,7 @@ class InsertFromSubQueryAnalyzer {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
                 targetColumns.stream().map(r -> r.column().sqlFqn()).collect(commaJoiner),
-                querySpec.outputs().stream().map(SymbolPrinter.FUNCTION).collect(commaJoiner)));
+                querySpec.outputs().stream().map(SymbolPrinter.INSTANCE::printSimple).collect(commaJoiner)));
         }
 
         int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbol::valueType));

@@ -23,6 +23,7 @@
 package io.crate.expression.symbol.format;
 
 import io.crate.analyze.relations.RelationPrinter;
+import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
@@ -38,7 +39,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.expression.operator.any.AnyOperator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -81,14 +81,6 @@ public class SymbolPrinter {
             assert function.info().ident().name().startsWith("op_") :
                 "function.info().ident().name() must start with 'op_'";
             return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
-        }
-    };
-
-    public static final com.google.common.base.Function<? super Symbol, String> FUNCTION = new com.google.common.base.Function<Symbol, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable Symbol input) {
-            return input == null ? null : INSTANCE.printSimple(input);
         }
     };
 
