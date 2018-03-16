@@ -209,7 +209,7 @@ class CopyAnalyzer {
             for (Expression expression : node.columns()) {
                 Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
                 symbol = normalizer.normalize(symbol, analysis.transactionContext());
-                outputNames.add(SymbolPrinter.INSTANCE.printSimple(symbol));
+                outputNames.add(SymbolPrinter.INSTANCE.printUnqualified(symbol));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

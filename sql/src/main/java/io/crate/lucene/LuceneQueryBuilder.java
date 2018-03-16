@@ -179,7 +179,7 @@ public class LuceneQueryBuilder {
         }
         if (LOGGER.isTraceEnabled()) {
             if (whereClause.hasQuery()) {
-                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printSimple(whereClause.query()), ctx.query);
+                LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(whereClause.query()), ctx.query);
             }
         }
         return ctx;

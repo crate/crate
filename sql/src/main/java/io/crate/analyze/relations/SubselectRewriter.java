@@ -173,7 +173,7 @@ public final class SubselectRewriter {
                 if (output instanceof Path) {
                     outputNames.add((Path) output);
                 } else {
-                    outputNames.add(new OutputName(SymbolPrinter.INSTANCE.printSimple(output)));
+                    outputNames.add(new OutputName(SymbolPrinter.INSTANCE.printUnqualified(output)));
                 }
             } else {
                 outputNames.add(field);

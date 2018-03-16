@@ -585,12 +585,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
-                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
             }
             if (longLiteral.value() == null) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
-                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
         }
@@ -618,12 +618,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 } catch (ClassCastException | IllegalArgumentException e) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
-                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
                 }
                 if (longLiteral.value() == null) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
-                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printUnqualified(symbol), clause));
                 }
                 symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
             }

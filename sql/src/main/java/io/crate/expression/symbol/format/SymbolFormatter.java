@@ -41,7 +41,7 @@ public class SymbolFormatter {
             if (s == null) {
                 formattedSymbols[i] = NULL_LOWER;
             } else {
-                formattedSymbols[i] = SymbolPrinter.INSTANCE.printSimple(s);
+                formattedSymbols[i] = SymbolPrinter.INSTANCE.printUnqualified(s);
             }
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);

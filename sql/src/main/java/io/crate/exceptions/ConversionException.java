@@ -52,14 +52,14 @@ public class ConversionException extends IllegalArgumentException {
             dataTypes.iterator().next().toString();
         if (arg instanceof Symbol) {
             return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                SymbolPrinter.INSTANCE.printSimple((Symbol) arg), dataTypeString);
+                SymbolPrinter.INSTANCE.printUnqualified((Symbol) arg), dataTypeString);
         }
         return String.format(Locale.ENGLISH, ERROR_MESSAGE, arg, dataTypeString);
     }
 
     private static String generateMessage(Symbol value, DataType type) {
         return String.format(Locale.ENGLISH, ERROR_MESSAGE,
-            SymbolPrinter.INSTANCE.printSimple(value), type.toString());
+            SymbolPrinter.INSTANCE.printUnqualified(value), type.toString());
     }
 
     private static String generateMessage(Object value, DataType type) {

@@ -110,7 +110,7 @@ public class SQLPrinter {
     }
 
     /**
-     * produces same results as with {@link SymbolPrinter#printFullQualified(Symbol)} but is
+     * produces same results as with {@link SymbolPrinter#printQualified(Symbol)} but is
      * able to format other symbols that {@link SymbolPrinter} is not able to.
      */
     private static class TestingSymbolPrinter {
@@ -127,7 +127,7 @@ public class SQLPrinter {
         }
 
         public void process(Symbol symbol, StringBuilder sb) {
-            sb.append(SymbolPrinter.INSTANCE.printFullQualified(symbol));
+            sb.append(SymbolPrinter.INSTANCE.printQualified(symbol));
         }
 
         public void process(OrderBy orderBy, StringBuilder sb) {

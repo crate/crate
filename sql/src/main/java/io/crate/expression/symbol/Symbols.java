@@ -119,7 +119,7 @@ public class Symbols {
         } else if (symbol instanceof Reference) {
             return ((Reference) symbol).column();
         }
-        return new OutputName(SymbolPrinter.INSTANCE.printSimple(symbol));
+        return new OutputName(SymbolPrinter.INSTANCE.printUnqualified(symbol));
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<Path, Boolean> {
