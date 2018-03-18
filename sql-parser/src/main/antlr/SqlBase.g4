@@ -86,6 +86,7 @@ statement
       (ON clazz   ( qname (',' qname)* ))?
       FROM userNames                                                                 #revokePrivilege
     | createStmt                                                                     #create
+    | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrParameterOrIdentifier)    #deallocate
     ;
 
 query:
@@ -349,6 +350,11 @@ stringLiteralOrIdentifier
     | stringLiteral
     ;
 
+stringLiteralOrParameterOrIdentifier
+    : stringLiteral
+    | parameterOrIdent
+    ;
+
 numericLiteral
     : decimalLiteral
     | integerLiteral
@@ -584,7 +590,7 @@ clazz
 
 nonReserved
     : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
-    | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
+    | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
@@ -593,7 +599,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
-    | PRIVILEGES | SCHEMA | INGEST | RULE
+    | PRIVILEGES | SCHEMA | INGEST | RULE | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     ;
 
@@ -604,6 +610,7 @@ AS: 'AS';
 ALL: 'ALL';
 ANY: 'ANY';
 SOME: 'SOME';
+DEALLOCATE: 'DEALLOCATE';
 DIRECTORY: 'DIRECTORY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
@@ -796,6 +803,7 @@ TOKEN_FILTERS: 'TOKEN_FILTERS';
 CHAR_FILTERS: 'CHAR_FILTERS';
 
 PARTITIONED: 'PARTITIONED';
+PREPARE: 'PREPARE';
 
 TRANSIENT: 'TRANSIENT';
 PERSISTENT: 'PERSISTENT';

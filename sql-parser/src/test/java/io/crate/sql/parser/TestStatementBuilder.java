@@ -38,6 +38,7 @@ import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -195,6 +196,35 @@ public class TestStatementBuilder {
     public void testKillAll() throws Exception {
         Statement stmt = SqlParser.createStatement("KILL ALL");
         assertTrue(stmt.equals(new KillStatement()));
+    }
+
+    @Test
+    public void testDeallocateStmtBuilder() {
+        printStatement("deallocate all");
+        printStatement("deallocate prepare all");
+        printStatement("deallocate 'myStmt'");
+        printStatement("deallocate myStmt");
+        printStatement("deallocate ?");
+        printStatement("deallocate $1");
+    }
+
+    @Test
+    public void testDeallocateWithoutParamThrowsParsingException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:12: no viable alternative at input '<EOF>'");
+        printStatement("deallocate ");
+    }
+
+    @Test
+    public void testDeallocate() {
+        DeallocateStatement stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE $1");
+        assertThat(stmt.preparedStmt(), notNullValue());
+    }
+
+    @Test
+    public void testDeallocateAll() {
+        Statement stmt = SqlParser.createStatement("DEALLOCATE ALL");
+        assertTrue(stmt.equals(new DeallocateStatement()));
     }
 
     @Test
