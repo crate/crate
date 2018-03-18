@@ -70,6 +70,7 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DateLiteral;
+import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DoubleLiteral;
@@ -492,6 +493,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             return new KillStatement();
         }
         return new KillStatement((Expression) visit(context.jobId));
+    }
+
+    @Override
+    public Node visitDeallocate(SqlBaseParser.DeallocateContext context) {
+        if (context.ALL() != null) {
+            return new DeallocateStatement();
+        }
+        return new DeallocateStatement((Expression) visit(context.prepStmt));
     }
 
     @Override
