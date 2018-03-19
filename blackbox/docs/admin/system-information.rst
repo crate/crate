@@ -341,9 +341,7 @@ The table schema is as follows:
 +================================+===============================================+=============+
 | ``cluster_state_version``      | The current version of the cluster state. The | ``LONG``    |
 |                                | cluster state is an immutable structure and   |             |
-|                                | that is recreated when a change is published  |             |
-|                                | eg. nodes joining the cluster, shards         |             |
-|                                | relocating                                    |             |
+|                                | that is recreated when a change is published. |             |
 +--------------------------------+-----------------------------------------------+-------------+
 
 ``fs``
@@ -1038,7 +1036,7 @@ One option is to configure the maximum number of records which should be kept.
 Once the configured table size is reached, the older log records are deleted as
 newer records are added. This is configurable using :ref:`stats.jobs_log_size
 <stats.jobs_log_size>` and :ref:`stats.operations_log_size
-<stats.operations_log_size>`. 
+<stats.operations_log_size>`.
 
 Another option is to configure an expiration time for the records. In this
 case, the records in the logs tables are periodically cleared if they are older
@@ -1573,6 +1571,8 @@ Example of getting a `cluster health` (`health` of all tables):
     | GREEN  |
     +--------+
     SELECT 1 row in set (... sec)
+
+.. _sys-health-def:
 
 Health Definition
 -----------------
