@@ -50,6 +50,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropBlobTable;
@@ -353,6 +354,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
             return KillAnalyzer.analyze(node, context.parameterContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitDeallocateStatement(DeallocateStatement node, Analysis context) {
+            return DeallocateAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
