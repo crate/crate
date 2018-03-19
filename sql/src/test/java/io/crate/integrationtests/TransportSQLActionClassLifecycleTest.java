@@ -142,81 +142,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    public void testSelectOrderByNullSortingASC() throws Exception {
-        execute("select age from characters order by age");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "NULL\n"));
-    }
-
-    @Test
-    public void testSelectOrderByNullSortingDESC() throws Exception {
-        execute("select age from characters order by age desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
-    }
-
-    @Test
-    public void testSelectOrderByNullSortingASCWithFunction() throws Exception {
-        execute("select abs(age) from characters order by 1 asc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "NULL\n"));
-    }
-
-    @Test
-    public void testSelectOrderByNullSortingDESCWithFunction() throws Exception {
-        execute("select abs(age) from characters order by 1 desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
-    }
-
-
-    @Test
-    public void testSelectGroupByOrderByNullSortingASC() throws Exception {
-        execute("select age from characters group by age order by age");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n"));
-    }
-
-    @Test
-    public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
-        execute("select age from characters group by age order by age desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
-    }
-
-    @Test
     public void testGlobalAggregateSimple() throws Exception {
         SQLResponse response = execute("select max(age) from characters");
 
@@ -414,30 +339,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testDateRange() throws Exception {
         SQLResponse response = execute("select * from characters where birthdate > '1970-01-01'");
         assertThat(response.rowCount(), Matchers.is(2L));
-    }
-
-    @Test
-    public void testOrderByNullsFirstAndLast() throws Exception {
-        SQLResponse response = execute(
-            "select details['job'] from characters order by details['job'] nulls first limit 1");
-        assertNull(response.rows()[0][0]);
-
-        response = execute(
-            "select details['job'] from characters order by details['job'] desc nulls first limit 1");
-        assertNull(response.rows()[0][0]);
-
-        response = execute(
-            "select details['job'] from characters order by details['job'] nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
-
-        response = execute(
-            "select details['job'] from characters order by details['job'] desc nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
-
-
-        response = execute(
-            "select distinct details['job'] from characters order by details['job'] desc nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
     }
 
     @Test
