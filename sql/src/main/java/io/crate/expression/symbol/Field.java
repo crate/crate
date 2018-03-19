@@ -58,9 +58,9 @@ import java.util.Objects;
  */
 public class Field extends Symbol implements Path {
 
-    private AnalyzedRelation relation;
-    private Path path;
-    private DataType valueType;
+    private final AnalyzedRelation relation;
+    private final Path path;
+    private final DataType valueType;
 
     public Field(AnalyzedRelation relation, Path path, DataType valueType) {
         assert path != null : "path must not be null";
