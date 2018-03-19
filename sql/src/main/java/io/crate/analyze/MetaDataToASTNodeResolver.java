@@ -207,9 +207,8 @@ public class MetaDataToASTNodeResolver {
                         }
                         elements.add(new IndexDefinition(name, "fulltext", columns, properties));
                     } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {
-                        elements.add(new IndexDefinition(name, "plain", columns, null));
+                        elements.add(new IndexDefinition(name, "plain", columns, GenericProperties.EMPTY));
                     }
-
                 }
             }
             return elements;

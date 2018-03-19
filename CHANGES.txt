@@ -112,6 +112,9 @@ Changes
 Fixes
 =====
 
+- Fixed a potential NPE when running `SHOW CREATE TABLE` with plain type
+  indices.
+
 - Fixed an issue that would cause queries ordered by a ``STRING`` scalar with 
   possible ``NULL`` values to get stuck.
 

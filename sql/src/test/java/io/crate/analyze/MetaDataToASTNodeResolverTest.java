@@ -393,7 +393,10 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                     ImmutableList.of(colA, colB), "english"))
             .put(new ColumnIdent("col_d_a_ft"),
                 new IndexReference(new ReferenceIdent(ident, "col_d_a_ft"), Reference.IndexType.ANALYZED,
-                    ImmutableList.of(colE), "custom_analyzer"));
+                    ImmutableList.of(colE), "custom_analyzer"))
+            .put(new ColumnIdent("col_a_col_b_plain"),
+                new IndexReference(new ReferenceIdent(ident, "col_a_col_b_plain"), Reference.IndexType.NOT_ANALYZED,
+                    ImmutableList.of(colA, colB), null));
 
         DocTableInfo tableInfo = new TestDocTableInfo(
             ident,
@@ -425,7 +428,8 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                      "   ),\n" +
                      "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
                      "      analyzer = 'custom_analyzer'\n" +
-                     "   )\n" +
+                     "   ),\n" +
+                     "   INDEX \"col_a_col_b_plain\" USING PLAIN (\"col_a\", \"col_b\")\n" +
                      ")\n" +
                      "CLUSTERED INTO 5 SHARDS\n" +
                      "WITH (\n" +
