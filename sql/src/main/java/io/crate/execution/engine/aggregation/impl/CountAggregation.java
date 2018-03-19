@@ -23,11 +23,13 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Input;
+import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -35,7 +37,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -48,7 +49,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
+public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> implements FunctionFormatSpec {
 
     public static final String NAME = "count";
     private final FunctionInfo info;
@@ -63,6 +64,24 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     public static void register(AggregationImplModule mod) {
         mod.register(NAME, new CountAggregationFunctionResolver());
+    }
+
+    @Override
+    public String beforeArgs(Function function) {
+        return "count(";
+    }
+
+    @Override
+    public String afterArgs(Function function) {
+        if (function.arguments().isEmpty()) {
+            return "*)";
+        }
+        return ")";
+    }
+
+    @Override
+    public boolean formatArgs(Function function) {
+        return true;
     }
 
     private static class CountAggregationFunctionResolver extends BaseFunctionResolver {

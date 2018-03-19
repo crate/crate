@@ -144,7 +144,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "        RootBoundary[1]\n" +
                                 "        MultiPhase[\n" +
                                 "            subQueries[\n" +
-                                "                RootBoundary[count()]\n" +
+                                "                RootBoundary[count(*)]\n" +
                                 "                Limit[1;0]\n" +
                                 "                Count[doc.t2 | All]\n" +
                                 "            ]\n" +
