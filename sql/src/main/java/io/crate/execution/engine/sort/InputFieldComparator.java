@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.sort;
 
-import com.google.common.base.MoreObjects;
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
@@ -30,6 +29,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
+import org.elasticsearch.common.Nullable;
 
 import java.io.IOException;
 
@@ -41,7 +41,7 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
     private final Object[] values;
     private final Input input;
     private final Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions;
-    private final Object missingValue;
+    private final @Nullable Object missingValue;
     private final DataType valueType;
     private Object bottom;
     private Object top;
@@ -50,7 +50,7 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
                          Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions,
                          Input input,
                          DataType valueType,
-                         Object missingValue) {
+                         @Nullable Object missingValue) {
         this.collectorExpressions = collectorExpressions;
         this.missingValue = missingValue;
         this.valueType = valueType;
@@ -88,7 +88,16 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
         }
-        return valueType.compareValueTo(bottom, MoreObjects.firstNonNull(input.value(), missingValue));
+        return valueType.compareValueTo(bottom, getFirstNonNullOrNull(input.value(), missingValue));
+    }
+
+    @Nullable
+    private static Object getFirstNonNullOrNull(Object first, Object second) {
+        if (first != null) {
+            return first;
+        } else {
+            return second;
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -97,7 +106,7 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
         for (LuceneCollectorExpression collectorExpression : collectorExpressions) {
             collectorExpression.setNextDocId(doc);
         }
-        return valueType.compareValueTo(top, MoreObjects.firstNonNull(input.value(), missingValue));
+        return valueType.compareValueTo(top, getFirstNonNullOrNull(input.value(), missingValue));
     }
 
     @Override

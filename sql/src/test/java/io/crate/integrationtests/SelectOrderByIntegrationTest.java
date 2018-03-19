@@ -24,13 +24,11 @@ package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Before
@@ -137,5 +135,15 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
         response = execute(
             "select distinct details['job'] from characters order by details['job'] desc nulls last");
         assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+    }
+
+    @Test
+    public void testOrderByScalarOnStringColumnWithNullValues() throws Exception {
+        execute("create table t1 (x string) clustered into 1 shards");
+        execute("insert into t1 values (null), ('a'), (null), ('c'), ('c'), ('b'), (null), ('d'), (null), ('e'), ('f')");
+        refresh();
+
+        execute("select x from t1 order by upper(x) limit 5");
+        assertNull(response.rows()[0][0]);
     }
 }

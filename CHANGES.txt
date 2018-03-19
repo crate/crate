@@ -112,6 +112,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause queries ordered by a ``STRING`` scalar with 
+  possible ``NULL`` values to get stuck.
+
 - Fixed an issue that caused nodes to crash with ``OutOfMemoryException`` when
   executing queries with ``ORDER BY`` on large data sets. Instead, the query
   circuit breaker is tripped, the query is killed and the node’s health is

@@ -23,15 +23,15 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -46,6 +46,7 @@ import io.crate.types.StringType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
@@ -225,6 +226,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
      * The reducedType groups non-decimal numeric types to Long and uses Long's MIN_VALUE & MAX_VALUE
      * to replace NULLs which can lead to ClassCastException when the original type was for example Integer.
      */
+    @Nullable
     private static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
         boolean min = sortMissingFirst(missingValue) ^ reversed;
         switch (dataType.id()) {
