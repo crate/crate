@@ -14,7 +14,7 @@ nonconforming in their implementation. However, the main reference
 documentation of CrateDB always contains the most accurate information about
 what CrateDB supports, what they are and how to use them.
 
-.. csv-table::
+.. csv-filter::
    :header: ID,Package,#,Description,Supported,Verified,Comments
    :widths: 80,140,15,250,130
    :delim: U+0009

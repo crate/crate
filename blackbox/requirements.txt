@@ -1,18 +1,17 @@
-alabaster==0.7.10
+# don't pin crate version numbers so the latest will always be pulled when you
+# set up your environment from scratch
+
+crash
+crate
+crate-docs-theme
+sphinx-csv-filter>=0.2.0
+
+# packages for local dev
+
 appdirs==1.4.3
 argh==0.26.2
 Babel==2.4.0
 colorama==0.3.9
-crash==0.23.0
-crate==0.21.2
-
-# don't pin crate-docs-theme to a version number so the docs pick up whatever
-# the latest theme happens to be. these packages are installed into a venv, so
-# if you want to pick up the newest theme, clear your venv and rerun
-# boostrap.sh
-crate-docs-theme
-
-docutils==0.13.1
 imagesize==0.7.1
 Jinja2==2.9.6
 livereload==2.5.1
@@ -21,14 +20,11 @@ pathtools==0.1.2
 port-for==0.3.1
 prompt-toolkit==1.0.14
 psycopg2==2.7.3.1
-Pygments==2.2.0
 pytz==2017.2
 PyYAML==3.12
 six==1.10.0
 snowballstemmer==1.2.1
-Sphinx==1.4.4
 sphinx-autobuild==0.6.0
-sphinx-csv-filter==0.1.1
 sphinxcontrib-plantuml==0.8.1
 tornado==4.5.1
 tqdm==4.14.0
@@ -39,3 +35,16 @@ zc.customdoctests==1.0.1
 zope.exceptions==4.1.0
 zope.interface==4.4.2
 zope.testrunner==4.7.0
+
+# the next section should exact copy of the hosted RTD environment (please
+# update if you notice that this is not the case)
+
+alabaster>=0.7,<0.8,!=0.7.5
+commonmark==0.5.4
+docutils==0.13.1
+mock==1.0.1
+pillow==2.6.1
+Pygments==2.2.0
+recommonmark==0.4.0
+setuptools==37.0.0
+sphinx==1.6.5
