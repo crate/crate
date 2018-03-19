@@ -56,6 +56,7 @@ import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.view.ViewsMetaData;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
@@ -244,14 +245,24 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             IngestRulesMetaData::new
         ));
         entries.add(new NamedWriteableRegistry.Entry(
+            MetaData.Custom.class,
+            ViewsMetaData.TYPE,
+            ViewsMetaData::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UserDefinedFunctionsMetaData.TYPE,
-            UserDefinedFunctionsMetaData::readDiffFrom
+            in -> UserDefinedFunctionsMetaData.readDiffFrom(MetaData.Custom.class, UserDefinedFunctionsMetaData.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             IngestRulesMetaData.TYPE,
             in -> IngestRulesMetaData.readDiffFrom(MetaData.Custom.class, IngestRulesMetaData.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ViewsMetaData.TYPE,
+            in -> ViewsMetaData.readDiffFrom(MetaData.Custom.class, ViewsMetaData.TYPE, in)
         ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
@@ -271,6 +282,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             MetaData.Custom.class,
             new ParseField(IngestRulesMetaData.TYPE),
             IngestRulesMetaData::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            MetaData.Custom.class,
+            new ParseField(ViewsMetaData.TYPE),
+            ViewsMetaData::fromXContent
         ));
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
