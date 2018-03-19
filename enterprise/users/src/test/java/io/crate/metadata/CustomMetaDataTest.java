@@ -24,6 +24,8 @@ package io.crate.metadata;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.expression.udf.UserDefinedFunctionsMetaDataTest;
+import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetaDataTest;
 import io.crate.plugin.SQLPlugin;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -62,6 +64,8 @@ public class CustomMetaDataTest {
                 UserDefinedFunctionsMetaDataTest.DUMMY_UDF_META_DATA)
             .putCustom(UsersPrivilegesMetaData.TYPE,
                 UsersPrivilegesMetaDataTest.createMetaData())
+            .putCustom(ViewsMetaData.TYPE,
+                ViewsMetaDataTest.createMetaData())
             .generateClusterUuidIfNeeded()
             .version(1L)
             .build();
