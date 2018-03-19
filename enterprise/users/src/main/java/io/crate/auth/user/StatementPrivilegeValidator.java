@@ -40,6 +40,7 @@ import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropIngestionRuleAnalysedStatement;
@@ -380,6 +381,11 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         @Override
         public Void visitKillAnalyzedStatement(KillAnalyzedStatement analysis, User user) {
             throwUnauthorized(user);
+            return null;
+        }
+
+        @Override
+        public Void visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, User user) {
             return null;
         }
 

@@ -143,6 +143,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
+    public R visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
+
     public R visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
