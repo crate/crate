@@ -1,9 +1,0 @@
-crate.docs-theme
-sphinx-csv-filter
-Sphinx==1.4.4
-sphinx-autobuild
-crash
-zope.testrunner
-zc.customdoctests
-tqdm
-psycopg2
