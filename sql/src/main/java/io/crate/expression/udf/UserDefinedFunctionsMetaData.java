@@ -29,7 +29,6 @@ package io.crate.expression.udf;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -61,10 +60,6 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
     @VisibleForTesting
     public static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
         return new UserDefinedFunctionsMetaData(Arrays.asList(functions));
-    }
-
-    public static NamedDiff<MetaData.Custom> readDiffFrom(StreamInput in) throws IOException {
-        return readDiffFrom(MetaData.Custom.class, TYPE, in);
     }
 
     public void add(UserDefinedFunctionMetaData function) {
