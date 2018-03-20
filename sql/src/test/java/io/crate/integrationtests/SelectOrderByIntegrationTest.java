@@ -138,12 +138,32 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOrderByScalarOnStringColumnWithNullValues() throws Exception {
-        execute("create table t1 (x string) clustered into 1 shards");
-        execute("insert into t1 values (null), ('a'), (null), ('c'), ('c'), ('b'), (null), ('d'), (null), ('e'), ('f')");
+    public void testOrderByScalarOnColumnsWithNullValues() throws Exception {
+        execute(
+            "create table t1 (i integer, d double, t timestamp, str string) " +
+            "clustered into 1 shards");
+        execute("insert into t1 ( i, d, t, str) values " +
+                "(null, null, null, null), " +
+                "(null, 1.1, null, 'a'), " +
+                "(2, 2.2, null, null)," +
+                "(null, 3.3, 1521479461, null), " +
+                "(4, null, 1521479462, 'b'), " +
+                "(null, 1.0, null, null)");
         refresh();
 
-        execute("select x from t1 order by upper(x) limit 5");
+        execute("select str from t1 order by upper(str) limit 5");
         assertNull(response.rows()[0][0]);
+
+        execute("select i from t1 order by ln(i)");
+        assertThat(response.rows()[0][0], is(2));
+
+        execute("select d from t1 order by ceil(d)");
+        assertThat(response.rows()[0][0], is(1.0));
+
+        execute("select i from t1 order by ceil(i)");
+        assertThat(response.rows()[0][0], is(2));
+
+        execute("select t from t1 order by date_trunc('year', 'Europe/London', t)");
+        assertThat(response.rows()[0][0], is(1521479461L));
     }
 }

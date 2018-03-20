@@ -112,6 +112,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue where ordering by a ``TIMESTAMP`` scalar would cause the query
+  to get stuck.
+
 - Fixed a potential NPE when running `SHOW CREATE TABLE` with plain type
   indices.
 
