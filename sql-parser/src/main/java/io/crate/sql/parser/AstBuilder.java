@@ -412,18 +412,30 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             throw e;
         }
 
+        final List<SqlBaseParser.AssignmentContext> assignment;
+        if (context.onDuplicate() != null) {
+            assignment = context.onDuplicate().assignment();
+        } else if (context.onConflict() != null) {
+            if (context.onConflict().NOTHING() != null) {
+                throw new UnsupportedOperationException("ON CONFLICT DO NOTHING is not implemented yet.");
+            }
+            assignment = context.onConflict().assignment();
+        } else {
+            assignment = Collections.emptyList();
+        }
+
         if (context.insertSource().VALUES() != null) {
             return new InsertFromValues(
                 table,
                 visitCollection(context.insertSource().values(), ValuesList.class),
                 columns,
-                visitCollection(context.assignment(), Assignment.class));
+                visitCollection(assignment, Assignment.class));
         }
         return new InsertFromSubquery(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
-            visitCollection(context.assignment(), Assignment.class));
+            visitCollection(assignment, Assignment.class));
     }
 
     @Override

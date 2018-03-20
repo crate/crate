@@ -62,7 +62,7 @@ statement
         setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
-        (ON DUPLICATE KEY UPDATE assignment (',' assignment)*)?                      #insert
+        (onDuplicate | onConflict)?                                                  #insert
     | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
     | COPY tableWithPartition FROM path=expr withProperties?                         #copyFrom
     | COPY tableWithPartition columns? where?
@@ -385,6 +385,15 @@ insertSource
    | '(' query ')'
    ;
 
+onDuplicate
+   : ON DUPLICATE KEY UPDATE assignment (',' assignment)*
+   ;
+
+onConflict
+   : ON CONFLICT DO NOTHING
+   | ON CONFLICT DO UPDATE SET assignment (',' assignment)*
+   ;
+
 values
     : '(' expr (',' expr)* ')'
     ;
@@ -595,6 +604,7 @@ nonReserved
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | INGEST | RULE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
+    | DO | NOTHING | CONFLICT
     ;
 
 SELECT: 'SELECT';
@@ -770,6 +780,9 @@ DELETE: 'DELETE';
 UPDATE: 'UPDATE';
 KEY: 'KEY';
 DUPLICATE: 'DUPLICATE';
+CONFLICT: 'CONFLICT';
+DO: 'DO';
+NOTHING: 'NOTHING';
 SET: 'SET';
 RESET: 'RESET';
 DEFAULT: 'DEFAULT';
