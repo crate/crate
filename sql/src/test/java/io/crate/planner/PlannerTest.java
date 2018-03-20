@@ -103,4 +103,10 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         KillPlan killJobsPlan = e.plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
         assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
+
+    @Test
+    public void testDeallocate() {
+        assertThat(e.plan("deallocate all"), instanceOf(NoopPlan.class));
+        assertThat(e.plan("deallocate test_prep_stmt"), instanceOf(NoopPlan.class));
+    }
 }

@@ -27,15 +27,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
-import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -98,7 +98,12 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public String getLastQuery() {
-        return this.query;
+        return query;
+    }
+
+    @Override
+    public AnalyzedStatement getLastAnalyzedStatement() {
+        return analyzedStatement;
     }
 
     @Override
