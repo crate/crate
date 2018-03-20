@@ -32,12 +32,17 @@ import static org.hamcrest.Matchers.is;
 public class ViewsITest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testViewCanBeCreated() throws Exception {
+    public void testViewCanBeCreatedAndThenDropped() throws Exception {
         execute("create view v1 as select 1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v1"), is(true));
+        }
+        execute("drop view v1");
+        for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
+            ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+            assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v1"), is(false));
         }
     }
 
@@ -66,5 +71,16 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
         expectedException.expectMessage("Relation '" + sqlExecutor.getDefaultSchema() + ".t1' already exists");
         execute("create view t1 as select 1");
+    }
+
+    @Test
+    public void testDropViewFailsIfViewIsMissing() {
+        expectedException.expectMessage("Relations not found: " + sqlExecutor.getDefaultSchema() + ".v1");
+        execute("drop view v1");
+    }
+
+    @Test
+    public void testDropViewDoesNotFailIfViewIsMissingAndIfExistsIsUsed() {
+        execute("drop view if exists v1");
     }
 }
