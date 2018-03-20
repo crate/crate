@@ -29,6 +29,7 @@ import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
@@ -60,6 +61,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
@@ -67,6 +69,7 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
@@ -85,6 +88,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 @Singleton
@@ -461,6 +465,17 @@ public class Analyzer {
         public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
             return createViewAnalyzer.analyze(
                 createView, analysis.transactionContext(), analysis.sessionContext().defaultSchema());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropView(DropView dropView, Analysis analysis) {
+            // No exists check to avoid stale clusterState race conditions
+            String defaultSchema = analysis.sessionContext().defaultSchema();
+            ArrayList<TableIdent> views = new ArrayList<>(dropView.names().size());
+            for (QualifiedName qualifiedName : dropView.names()) {
+                views.add(TableIdent.of(qualifiedName, defaultSchema));
+            }
+            return new DropViewStmt(views, dropView.ifExists());
         }
     }
 }
