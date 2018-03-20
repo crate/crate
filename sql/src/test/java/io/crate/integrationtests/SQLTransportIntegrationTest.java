@@ -713,7 +713,15 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     private <T extends Annotation> T getTestAnnotation(Class<T> annotationClass) {
         try {
             Class<?> clazz = this.getClass();
-            Method method = clazz.getMethod(testName.getMethodName());
+            String testMethodName = testName.getMethodName();
+            String[] split = testName.getMethodName().split(" ");
+            if (split.length > 1) {
+                // When we annotate tests with @Repeat the test method name gets augmented with a seed and we won't
+                // be able to find it in the class methods, so just grab the method name.
+                testMethodName = split[0];
+            }
+
+            Method method = clazz.getMethod(testMethodName);
             T annotation = method.getAnnotation(annotationClass);
             if (annotation == null) {
                 annotation = clazz.getAnnotation(annotationClass);
