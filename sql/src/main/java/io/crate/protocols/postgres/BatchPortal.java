@@ -28,8 +28,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Symbols;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.data.Row;
@@ -37,9 +35,11 @@ import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TransactionContext;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -99,6 +99,11 @@ class BatchPortal extends AbstractPortal {
     @Override
     public String getLastQuery() {
         return queries.get(queries.size() - 1);
+    }
+
+    @Override
+    public AnalyzedStatement getLastAnalyzedStatement() {
+        return analyzedStatements.get(analyzedStatements.size() - 1);
     }
 
     @Override

@@ -23,9 +23,9 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
-import io.crate.expression.symbol.Field;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.symbol.Field;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -41,6 +41,8 @@ public interface Portal {
     List<? extends DataType> getLastOutputTypes();
 
     String getLastQuery();
+
+    AnalyzedStatement getLastAnalyzedStatement();
 
     /**
      * If bind() is called on a synced portal, all pending result receiving operations must be stopped.
