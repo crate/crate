@@ -21,29 +21,3 @@ Changes
 Fixes
 =====
 
-- Fixed handling of ``null`` values correctly in the cluster tab of the
-  Admin UI.
-
-- Updated the ``Size`` label in the table detail tab of the Admin UI to
-  ``Size (Sum of primary shards)``
-
-- Fixed an issue where ordering by a ``TIMESTAMP`` scalar would cause the query
-  to get stuck.
-
-- Fixed a potential NPE when running `SHOW CREATE TABLE` with plain type
-  indices.
-
-- Fixed an issue that would cause queries ordered by a ``STRING`` scalar with 
-  possible ``NULL`` values to get stuck.
-
-- Fixed an issue that caused nodes to crash with ``OutOfMemoryException`` when
-  executing queries with ``ORDER BY`` on large data sets. Instead, the query
-  circuit breaker is tripped, the query is killed and the node’s health is
-  unaffected.
-
-- Improved the error handling for a race condition to make sure it doesn't
-  cause queries to get stuck.
-
-- Improved the behaviour in case the cluster drops below the number of minimum
-  nodes. The root REST endpoint will no longer timeout and ``sys.checks`` can
-  still be queried, similar to how ``sys.nodes`` can still be queried.
