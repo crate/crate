@@ -36,13 +36,16 @@ import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.ShortType;
 import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
@@ -231,6 +234,10 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     private static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
         boolean min = sortMissingFirst(missingValue) ^ reversed;
         switch (dataType.id()) {
+            case ByteType.ID:
+                return min ? Byte.MIN_VALUE : Byte.MAX_VALUE;
+            case ShortType.ID:
+                return min ? Short.MIN_VALUE : Short.MAX_VALUE;
             case IntegerType.ID:
                 return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
             case LongType.ID:
@@ -239,6 +246,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
             case DoubleType.ID:
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+            case TimestampType.ID:
+                return min ? Long.MIN_VALUE : Long.MAX_VALUE;
             case StringType.ID:
                 return null;
             default:
