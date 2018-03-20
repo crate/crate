@@ -21,10 +21,10 @@
 
 package io.crate.planner;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.expression.symbol.SelectSymbol;
 
 import java.util.Map;
 
@@ -33,7 +33,12 @@ import static io.crate.data.SentinelRow.SENTINEL;
 /**
  * A plan with an empty result
  */
-public class NoopPlan implements Plan {
+public final class NoopPlan implements Plan {
+
+    public static final Plan INSTANCE = new NoopPlan();
+
+    private NoopPlan(){
+    }
 
     @Override
     public void execute(DependencyCarrier executor,

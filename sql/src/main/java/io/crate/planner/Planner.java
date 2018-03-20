@@ -45,8 +45,8 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -138,7 +138,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitBegin(AnalyzedBegin analyzedBegin, PlannerContext context) {
-        return new NoopPlan();
+        return NoopPlan.INSTANCE;
     }
 
     @Override
@@ -202,7 +202,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
-            return new NoopPlan();
+            return NoopPlan.INSTANCE;
         }
         return visitDDLStatement(analysis, context);
     }
@@ -210,7 +210,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noop()) {
-            return new NoopPlan();
+            return NoopPlan.INSTANCE;
         }
         return new DropTablePlan(analysis.table(), analysis.dropIfExists());
     }
@@ -218,7 +218,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitCreateTableStatement(CreateTableAnalyzedStatement analysis, PlannerContext context) {
         if (analysis.noOp()) {
-            return new NoopPlan();
+            return NoopPlan.INSTANCE;
         }
         return new GenericDDLPlan(analysis);
     }
@@ -238,7 +238,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, PlannerContext context) {
         Set<String> settingsToRemove = resetStatement.settingsToRemove();
         if (settingsToRemove.isEmpty()) {
-            return new NoopPlan();
+            return NoopPlan.INSTANCE;
         }
 
         Map<String, List<Expression>> nullSettings = new HashMap<>(settingsToRemove.size(), 1);
@@ -253,10 +253,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         switch (setStatement.scope()) {
             case LOCAL:
                 LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
-                return new NoopPlan();
+                return NoopPlan.INSTANCE;
             case SESSION_TRANSACTION_MODE:
                 LOGGER.warn("'SET SESSION CHARACTERISTICS AS TRANSACTION' STATEMENT WILL BE IGNORED");
-                return new NoopPlan();
+                return NoopPlan.INSTANCE;
             case SESSION:
                 return new SetSessionPlan(setStatement.settings(), context.transactionContext().sessionContext());
             case GLOBAL:
