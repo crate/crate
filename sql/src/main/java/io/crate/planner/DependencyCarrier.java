@@ -27,6 +27,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
+import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.metadata.Functions;
@@ -55,6 +56,7 @@ public class DependencyCarrier {
     private final TransportDropTableAction transportDropTableAction;
     private final ProjectionBuilder projectionBuilder;
     private final TransportCreateViewAction createViewAction;
+    private final TransportDropViewAction dropViewAction;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -66,7 +68,8 @@ public class DependencyCarrier {
                              ClusterService clusterService,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
-                             TransportCreateViewAction createViewAction) {
+                             TransportCreateViewAction createViewAction,
+                             TransportDropViewAction dropViewAction) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -78,6 +81,7 @@ public class DependencyCarrier {
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(functions);
         this.createViewAction = createViewAction;
+        this.dropViewAction = dropViewAction;
     }
 
     public DDLStatementDispatcher ddlAction() {
@@ -130,5 +134,9 @@ public class DependencyCarrier {
 
     public TransportCreateViewAction createViewAction() {
         return createViewAction;
+    }
+
+    public TransportDropViewAction dropViewAction() {
+        return dropViewAction;
     }
 }

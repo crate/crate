@@ -37,6 +37,7 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
+import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
@@ -288,6 +289,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateViewStmt(CreateViewStmt createViewStmt, PlannerContext context) {
         return new CreateViewPlan(createViewStmt);
+    }
+
+    @Override
+    public Plan visitDropView(DropViewStmt dropViewStmt, PlannerContext context) {
+        return new DropViewPlan(dropViewStmt);
     }
 
     private LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis, PlannerContext context) {
