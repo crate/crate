@@ -76,6 +76,7 @@ statement
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
+    | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
     | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
       (ON clazz  ( qname (',' qname)* ))?
       TO userNames                                                                   #grantPrivilege
@@ -325,6 +326,10 @@ datetimeLiteral
 
 whenClause
     : WHEN condition=expr THEN result=expr
+    ;
+
+qnames
+    : qname (',' qname)*
     ;
 
 qname

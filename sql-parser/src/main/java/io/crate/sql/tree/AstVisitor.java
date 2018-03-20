@@ -564,4 +564,8 @@ public abstract class AstVisitor<R, C> {
     public R visitCreateView(CreateView createView, C context) {
         return visitStatement(createView, context);
     }
+
+    public R visitDropView(DropView dropView, C context) {
+        return visitStatement(dropView, context);
+    }
 }

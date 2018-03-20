@@ -1229,6 +1229,14 @@ public class TestStatementBuilder {
         printStatement("CREATE OR REPLACE VIEW myView AS SELECT * FROM foobar");
     }
 
+    @Test
+    public void testDropViewParsing() {
+        printStatement("DROP VIEW myView");
+        printStatement("DROP VIEW v1, v2, x.v3");
+        printStatement("DROP VIEW IF EXISTS myView");
+        printStatement("DROP VIEW IF EXISTS v1, x.v2, y.v3");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
