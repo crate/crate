@@ -22,6 +22,7 @@
 
 package io.crate.metadata.view;
 
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -32,8 +33,10 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -151,14 +154,44 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     /**
      * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
      */
-    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, String name, String query) {
+    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, TableIdent name, String query) {
         HashMap<String, String> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();
         } else {
             queryByName = new HashMap<>(prevViews.queryByName);
         }
-        queryByName.put(name, query);
+        queryByName.put(name.fqn(), query);
         return new ViewsMetaData(queryByName);
+    }
+
+    public RemoveResult remove(List<TableIdent> names) {
+        HashMap<String, String> updatedQueryByName = new HashMap<>(this.queryByName);
+        ArrayList<TableIdent> missing = new ArrayList<>(names.size());
+        for (TableIdent name : names) {
+            String removed = updatedQueryByName.remove(name.fqn());
+            if (removed == null) {
+                missing.add(name);
+            }
+        }
+        return new RemoveResult(new ViewsMetaData(updatedQueryByName), missing);
+    }
+
+    public class RemoveResult {
+        private final ViewsMetaData updatedViews;
+        private final List<TableIdent> missing;
+
+        RemoveResult(ViewsMetaData updatedViews, List<TableIdent> missing) {
+            this.updatedViews = updatedViews;
+            this.missing = missing;
+        }
+
+        public ViewsMetaData updatedViews() {
+            return updatedViews;
+        }
+
+        public List<TableIdent> missing() {
+            return missing;
+        }
     }
 }
