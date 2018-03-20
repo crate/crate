@@ -25,10 +25,11 @@ package io.crate.action.sql;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
@@ -214,5 +216,64 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
+    }
+
+    @Test
+    public void testDeallocateAllClearsAllPortalsAndPreparedStatements() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+
+        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            SessionContext.create());
+
+        session.parse("S_1", "select * from sys.cluster;", Collections.emptyList());
+        session.bind("Portal", "S_1", Collections.emptyList(), null);
+        session.describe('S', "S_1");
+
+        session.parse("S_2", "DEALLOCATE ALL;", Collections.emptyList());
+        session.bind("", "S_2", Collections.emptyList(), null);
+        session.execute("", 0, new BaseResultReceiver() {
+            @Override
+            public void setNextRow(Row row) {
+            }
+        });
+
+        assertThat(session.portals.size(), greaterThan(0));
+        assertThat(session.preparedStatements.size(), is(0));
+    }
+
+    @Test
+    public void testDeallocatePreparedStatementClearsPreparedStatement() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+
+        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            SessionContext.create());
+
+        session.parse("test_prep_stmt", "select * from sys.cluster;", Collections.emptyList());
+        session.bind("Portal", "test_prep_stmt", Collections.emptyList(), null);
+        session.describe('S', "test_prep_stmt");
+
+        session.parse("stmt", "DEALLOCATE test_prep_stmt;", Collections.emptyList());
+        session.bind("", "stmt", Collections.emptyList(), null);
+        session.execute("", 0, new BaseResultReceiver() {
+            @Override
+            public void setNextRow(Row row) {
+            }
+        });
+
+        assertThat(session.portals.size(), greaterThan(0));
+        assertThat(session.preparedStatements.size(), is(1));
+        assertThat(session.preparedStatements.get("stmt").query(), is("DEALLOCATE test_prep_stmt;"));
     }
 }

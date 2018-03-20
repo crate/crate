@@ -34,6 +34,7 @@ import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
+import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
@@ -45,8 +46,8 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -123,7 +124,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     /**
      * dispatch plan creation based on analyzed statement
      *
-     * @param analyzedStatement  analyzed statement to create plan from
+     * @param analyzedStatement analyzed statement to create plan from
      * @return plan
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
@@ -277,6 +278,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         return analysis.jobId().isPresent() ?
             new KillPlan(analysis.jobId().get()) :
             new KillPlan();
+    }
+
+    @Override
+    public Plan visitDeallocateAnalyzedStatement(DeallocateAnalyzedStatement analysis, PlannerContext context) {
+        return new NoopPlan();
     }
 
     @Override

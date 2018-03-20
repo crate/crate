@@ -42,6 +42,8 @@ public interface Portal {
 
     String getLastQuery();
 
+    AnalyzedStatement getLastAnalyzedStatement();
+
     /**
      * If bind() is called on a synced portal, all pending result receiving operations must be stopped.
      * This is primarily relevant for the UNNAMED simple portal.

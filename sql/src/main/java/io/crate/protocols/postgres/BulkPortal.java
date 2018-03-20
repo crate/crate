@@ -98,7 +98,12 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public String getLastQuery() {
-        return this.query;
+        return query;
+    }
+
+    @Override
+    public AnalyzedStatement getLastAnalyzedStatement() {
+        return analyzedStatement;
     }
 
     @Override

@@ -22,9 +22,12 @@
 
 package io.crate.action.sql;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.data.Row;
@@ -110,8 +113,10 @@ public class Session implements AutoCloseable {
     private final DependencyCarrier executor;
     private final SessionContext sessionContext;
 
-    private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
-    private final Map<String, Portal> portals = new HashMap<>();
+    @VisibleForTesting
+    final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
+    @VisibleForTesting
+    final Map<String, Portal> portals = new HashMap<>();
     private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
     private final Analyzer analyzer;
@@ -363,9 +368,21 @@ public class Session implements AutoCloseable {
 
         Portal portal = getSafePortal(portalName);
         portal.execute(resultReceiver, maxRows);
-        if (portal.getLastQuery().equalsIgnoreCase("BEGIN")) {
+
+        AnalyzedStatement analyzedStatement = portal.getLastAnalyzedStatement();
+        if (analyzedStatement instanceof AnalyzedBegin) {
             portal.sync(planner, jobsLogs);
             clearState();
+        } else if (analyzedStatement instanceof DeallocateAnalyzedStatement) {
+            String stmtToDeallocate = ((DeallocateAnalyzedStatement) analyzedStatement).preparedStmtName();
+            if (stmtToDeallocate != null) {
+                close((byte) 'S', stmtToDeallocate);
+            } else {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("deallocating all prepared statements");
+                }
+                preparedStatements.clear();
+            }
         } else {
             // delay execution to be able to bundle bulk operations
             pendingExecutions.add(portal);
@@ -464,6 +481,7 @@ public class Session implements AutoCloseable {
             portal.close();
         }
         portals.clear();
+        preparedStatements.clear();
     }
 
     static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {

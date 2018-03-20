@@ -102,6 +102,11 @@ class BatchPortal extends AbstractPortal {
     }
 
     @Override
+    public AnalyzedStatement getLastAnalyzedStatement() {
+        return analyzedStatements.get(analyzedStatements.size() - 1);
+    }
+
+    @Override
     public Portal bind(String statementName,
                        String query,
                        Statement statement,
