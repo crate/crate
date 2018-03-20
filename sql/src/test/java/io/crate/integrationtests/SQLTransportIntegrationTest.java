@@ -35,6 +35,7 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
@@ -42,7 +43,6 @@ import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.execution.jobs.JobExecutionContext;
 import io.crate.execution.jobs.kill.KillableCallable;
-import io.crate.data.Paging;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -650,28 +650,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * Method annotations have higher priority than class annotations.
      */
     private boolean isJdbcEnabled() {
-        try {
-            Class<?> clazz = this.getClass();
-            Method method = clazz.getMethod(testName.getMethodName());
-            UseJdbc annotation = method.getAnnotation(UseJdbc.class);
-            if (annotation == null) {
-                annotation = clazz.getAnnotation(UseJdbc.class);
-                if (annotation == null) {
-                    return false;
-                }
-            }
-            double ratio = annotation.value();
-            assert ratio >= 0.0 && ratio <= 1.0;
-            if (ratio == 0) {
-                return false;
-            }
-            if (ratio == 1) {
-                return true;
-            }
-            return RandomizedContext.current().getRandom().nextDouble() < ratio;
-        } catch (NoSuchMethodException ignored) {
+        UseJdbc useJdbc = getTestAnnotation(UseJdbc.class);
+        if (useJdbc == null) {
             return false;
         }
+        return isFeatureEnabled(useJdbc.value());
     }
 
     /**
