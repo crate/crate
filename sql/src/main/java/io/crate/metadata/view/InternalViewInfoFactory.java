@@ -53,7 +53,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         if (meta == null) {
             return null;
         }
-        String statement = meta.getStatement(ident.fqn());
+        String statement = meta.getStatement(ident);
         if (statement == null) {
             return null;
         }
