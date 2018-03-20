@@ -129,7 +129,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testTableNotAvailableIfEnterpriseIsOff() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("TableUnknownException: Table 'sys.privileges' unknown");
+        expectedException.expectMessage("RelationUnknown: Relation 'sys.privileges' unknown");
         execute("select * from sys.privileges", null, createSuperUserSession(false));
     }
 }

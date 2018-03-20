@@ -67,7 +67,7 @@ public class MqttNettyHandler extends ChannelInboundHandlerAdapter {
             }
         } catch (SQLActionException ex) {
             SQLActionException sqlActionException = (SQLActionException) ex;
-            // 4041 is an unknown table exception, 4045 is an unknown schema exception
+            // 4041 is an unknown relation exception, 4045 is an unknown schema exception
             if (sqlActionException.errorCode() == 4041 || sqlActionException.errorCode() == 4045) {
                 LOGGER.error("Unable to process MQTT message, as the target table does not exist");
             } else {

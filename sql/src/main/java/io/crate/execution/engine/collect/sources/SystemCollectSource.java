@@ -27,8 +27,8 @@ import com.google.common.collect.Iterables;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.BatchIteratorCollectorBridge;
@@ -150,7 +150,7 @@ public class SystemCollectSource implements CollectSource {
                 throw new SchemaUnknownException(tableIdent.schema());
         }
         if (tableDefinition == null) {
-            throw new TableUnknownException(tableIdent);
+            throw new RelationUnknown(tableIdent);
         }
         return tableDefinition;
     }

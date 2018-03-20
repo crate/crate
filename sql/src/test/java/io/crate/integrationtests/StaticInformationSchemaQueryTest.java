@@ -43,7 +43,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testSelectSysColumnsFromInformationSchema() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
+        expectedException.expectMessage("Relation 'sys.nodes' unknown");
         execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
 
@@ -201,7 +201,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testSelectUnknownTableFromInformationSchema() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table 'information_schema.non_existent' unknown");
+        expectedException.expectMessage("Relation 'information_schema.non_existent' unknown");
         execute("select * from information_schema.non_existent");
     }
 }

@@ -23,11 +23,11 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -71,8 +71,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereSysColumn() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'sys.nodes' unknown");
         e.analyze("delete from users where sys.nodes.id = 'node_1'");
     }
 

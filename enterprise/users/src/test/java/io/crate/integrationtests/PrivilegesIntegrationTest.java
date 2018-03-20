@@ -294,7 +294,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("TableUnknownException: Table 'custom_schema.t1' unknown");
+        expectedException.expectMessage("RelationUnknown: Relation 'custom_schema.t1' unknown");
         executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
     }
 

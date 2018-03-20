@@ -27,17 +27,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 
-public class TableUnknownException extends ResourceUnknownException implements TableScopeException {
+public class RelationUnknown extends ResourceUnknownException implements TableScopeException {
 
     private TableIdent tableIdent;
 
-    public TableUnknownException(String tableName, Throwable e) {
-        super(String.format(Locale.ENGLISH, "Table '%s' unknown", tableName), e);
+    public RelationUnknown(String tableName, Throwable e) {
+        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName), e);
         this.tableIdent = TableIdent.fromIndexName(tableName);
     }
 
-    public TableUnknownException(TableIdent tableIdent) {
-        super(String.format(Locale.ENGLISH, "Table '%s' unknown", tableIdent));
+    public RelationUnknown(TableIdent tableIdent) {
+        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableIdent));
         this.tableIdent = tableIdent;
     }
 

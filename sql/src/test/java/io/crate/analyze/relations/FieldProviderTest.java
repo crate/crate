@@ -22,10 +22,10 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -65,24 +65,24 @@ public class FieldProviderTest extends CrateUnitTest {
 
     @Test
     public void testUnknownSchema() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'invalid.table'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'invalid.table' unknown");
         FieldProvider<Field> resolver = newFQFieldProvider(dummySources);
         resolver.resolveField(newQN("invalid.table.name"), Operation.READ);
     }
 
     @Test
     public void testUnknownTable() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'dummy.invalid'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'dummy.invalid' unknown");
         FieldProvider<Field> resolver = newFQFieldProvider(dummySources);
         resolver.resolveField(newQN("dummy.invalid.name"), Operation.READ);
     }
 
     @Test
     public void testSysColumnWithoutSourceRelation() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'sys.nodes'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'sys.nodes' unknown");
         FieldProvider<Field> resolver = newFQFieldProvider(dummySources);
 
         resolver.resolveField(newQN("sys.nodes.name"), Operation.READ);
@@ -246,8 +246,8 @@ public class FieldProviderTest extends CrateUnitTest {
 
     @Test
     public void testAliasRelationNameResolverFail() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'doc.\"Bar\"'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.\"Bar\"' unknown");
         AnalyzedRelation barT = new DummyRelation("name");
         FieldProvider<Field> resolver = newFQFieldProvider(ImmutableMap.of(newQN("bar"), barT));
         resolver.resolveField(newQN("\"Bar\".name"), Operation.READ);

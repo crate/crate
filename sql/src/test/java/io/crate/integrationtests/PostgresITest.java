@@ -657,7 +657,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             conn.createStatement().execute("set session search_path to DEFAULT");
             expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("TableUnknownException: Table 'doc.foo' unknown");
+            expectedException.expectMessage("RelationUnknown: Relation 'doc.foo' unknown");
             conn.createStatement().execute("select * from foo");
         }
     }

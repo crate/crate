@@ -38,20 +38,20 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
+import io.crate.analyze.validator.GroupBySymbolValidator;
+import io.crate.analyze.validator.HavingSymbolValidator;
+import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.RelationValidationException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.analyze.validator.GroupBySymbolValidator;
-import io.crate.analyze.validator.HavingSymbolValidator;
-import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknownException;
-import io.crate.exceptions.RelationValidationException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -246,7 +246,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 try {
                     joinCondition = expressionAnalyzer.convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
-                } catch (RelationUnknownException e) {
+                } catch (RelationUnknown e) {
                     throw new RelationValidationException(e.getTableIdents(),
                         String.format(Locale.ENGLISH,
                         "missing FROM-clause entry for relation '%s'", e.getTableIdents()));

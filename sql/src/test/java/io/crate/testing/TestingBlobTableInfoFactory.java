@@ -22,7 +22,7 @@
 
 package io.crate.testing;
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
@@ -42,7 +42,7 @@ class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
     public BlobTableInfo create(TableIdent ident, ClusterState state) {
         BlobTableInfo blobTableInfo = tables.get(ident);
         if (blobTableInfo == null) {
-            throw new TableUnknownException(ident);
+            throw new RelationUnknown(ident);
         }
         return blobTableInfo;
     }

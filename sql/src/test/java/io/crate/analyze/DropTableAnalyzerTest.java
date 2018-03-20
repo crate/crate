@@ -22,9 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -58,8 +58,8 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropNonExistingTable() throws Exception {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'doc.unknown' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.unknown' unknown");
         e.analyze("drop table unknown");
     }
 
@@ -88,7 +88,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropTableIfExistsWithUnknownSchema() throws Exception {
-        // shouldn't raise SchemaUnknownException / TableUnknownException
+        // shouldn't raise SchemaUnknownException / RelationUnknown
         e.analyze("drop table if exists unknown_schema.unknown");
     }
 

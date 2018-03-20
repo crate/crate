@@ -23,7 +23,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.Constants;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -89,8 +89,8 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             false
         );
 
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Table '%s.test' unknown", schemaName));
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
         builder.build();
     }
 }

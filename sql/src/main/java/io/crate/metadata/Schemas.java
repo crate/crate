@@ -25,8 +25,8 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
@@ -94,14 +94,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
-     * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
+     * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
     public <T extends TableInfo> T getTableInfo(TableIdent ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
-            throw new TableUnknownException(ident);
+            throw new RelationUnknown(ident);
         }
         return (T) info;
     }
@@ -113,7 +113,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * required on it.
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
-     * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
+     * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
     public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation) {

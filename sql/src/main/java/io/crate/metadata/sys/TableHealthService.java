@@ -27,7 +27,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.Row;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -146,7 +146,7 @@ public class TableHealthService extends AbstractComponent {
             DocTableInfo tableInfo;
             try {
                 tableInfo = schemas.getTableInfo(tableIdent);
-            } catch (TableUnknownException e) {
+            } catch (RelationUnknown e) {
                 continue;
             }
 

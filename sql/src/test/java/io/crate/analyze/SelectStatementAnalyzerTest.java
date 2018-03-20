@@ -28,7 +28,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
@@ -82,7 +82,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -694,8 +693,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testOrderByQualifiedName() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'doc.friends'");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.friends' unknown");
         analyze("select * from users order by friends.id");
     }
 
@@ -921,17 +920,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testTableAliasWrongUse() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
+        expectedException.expect(RelationUnknown.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Cannot resolve relation 'doc.users'");
+        expectedException.expectMessage("Relation 'doc.users' unknown");
         analyze("select * from users as u where users.awesome = true");
     }
 
     @Test
     public void testTableAliasFullQualifiedName() throws Exception {
-        expectedException.expect(RelationUnknownException.class);
+        expectedException.expect(RelationUnknown.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Cannot resolve relation 'doc.users'");
+        expectedException.expectMessage("Relation 'doc.users' unknown");
         analyze("select * from users as u where doc.users.awesome = true");
     }
 

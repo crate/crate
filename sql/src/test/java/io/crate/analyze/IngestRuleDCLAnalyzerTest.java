@@ -1,7 +1,7 @@
 package io.crate.analyze;
 
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -70,8 +70,8 @@ public class IngestRuleDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testCreateRuleIntoUnknownTableThrowsException() {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'doc.hoichi' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.hoichi' unknown");
         e.analyze("CREATE INGEST RULE v4 ON mqtt INTO doc.hoichi");
     }
 

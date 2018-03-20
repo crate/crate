@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -133,8 +133,8 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeMultipleTablesUnknown() throws Exception {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'doc.foo' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.foo' unknown");
         e.analyze("OPTIMIZE TABLE parted, foo, bar");
     }
 

@@ -23,10 +23,10 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
@@ -89,7 +89,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.partitionIdent(), equalTo(parted));
     }
 
-    @Test(expected = TableUnknownException.class)
+    @Test(expected = RelationUnknown.class)
     public void testCopyFromNonExistingTable() throws Exception {
         e.analyze("copy unknown from '/some/distant/file.ext'");
     }

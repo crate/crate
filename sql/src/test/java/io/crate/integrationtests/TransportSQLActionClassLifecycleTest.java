@@ -107,7 +107,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSelectNonExistentGlobalExpression() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot resolve relation 'suess.cluster'");
+        expectedException.expectMessage("Relation 'suess.cluster' unknown");
         execute("select count(race), suess.cluster.name from characters");
     }
 
@@ -207,7 +207,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void selectMultiGetRequestFromNonExistentTable() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "TableUnknownException: Table '%s.non_existent' unknown", sqlExecutor.getDefaultSchema()));
+            "RelationUnknown: Relation '%s.non_existent' unknown", sqlExecutor.getDefaultSchema()));
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 

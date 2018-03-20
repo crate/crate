@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -72,7 +72,7 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
-    @Test(expected = TableUnknownException.class)
+    @Test(expected = RelationUnknown.class)
     public void testRefreshMultipleTablesUnknown() throws Exception {
         RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted, foo, bar");
 

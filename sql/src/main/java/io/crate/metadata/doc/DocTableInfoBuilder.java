@@ -22,7 +22,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.Constants;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
@@ -94,11 +94,11 @@ class DocTableInfoBuilder {
                 concreteOpenIndices = concreteIndices;
                 if (concreteIndices.length == 0) {
                     // no matching index found
-                    throw new TableUnknownException(ident);
+                    throw new RelationUnknown(ident);
                 }
                 docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
             } catch (IndexNotFoundException ex) {
-                throw new TableUnknownException(ident.fqn(), ex);
+                throw new RelationUnknown(ident.fqn(), ex);
             }
         }
 

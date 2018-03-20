@@ -304,7 +304,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectShardIdFromSysNodes() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot resolve relation 'sys.shards'");
+        expectedException.expectMessage("Relation 'sys.shards' unknown");
         execute("select sys.shards.id from sys.nodes");
     }
 

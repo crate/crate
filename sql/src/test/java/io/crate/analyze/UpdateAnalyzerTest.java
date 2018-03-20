@@ -27,7 +27,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnValidationException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.expression.operator.EqOperator;
@@ -145,7 +145,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analyzedStatement, instanceOf(AnalyzedUpdateStatement.class));
     }
 
-    @Test(expected = TableUnknownException.class)
+    @Test(expected = RelationUnknown.class)
     public void testUpdateUnknownTable() throws Exception {
         analyze("update unknown set name='Prosser'");
     }

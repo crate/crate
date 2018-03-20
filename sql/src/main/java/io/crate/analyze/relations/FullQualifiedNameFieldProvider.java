@@ -21,10 +21,10 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
@@ -124,7 +124,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             if (!schemaMatched || !tableNameMatched) {
                 String schema = columnSchema == null ? defaultSchema : columnSchema;
                 raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
-                throw RelationUnknownException.of(schema, columnTableName);
+                throw new RelationUnknown(new TableIdent(schema, columnTableName));
             }
             QualifiedName tableName = sources.entrySet().iterator().next().getKey();
             TableIdent tableIdent = TableIdent.fromIndexName(tableName.toString());

@@ -22,7 +22,7 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -93,7 +93,7 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
             new BytesRef("t1"), new BytesRef("doc"), null);
         TableIdent tableIdent = new TableIdent("doc", "t1");
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
         TableHealthService tableHealthService = new TableHealthService(Settings.EMPTY, clusterService, schemas, null);
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());

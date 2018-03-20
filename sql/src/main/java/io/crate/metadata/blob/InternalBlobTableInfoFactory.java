@@ -26,7 +26,7 @@ import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.Logger;
@@ -69,7 +69,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         try {
             index = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), indexName)[0];
         } catch (IndexNotFoundException ex) {
-            throw new TableUnknownException(indexName, ex);
+            throw new RelationUnknown(indexName, ex);
         }
         return state.metaData().index(index);
     }

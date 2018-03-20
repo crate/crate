@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -52,7 +52,7 @@ public final class TableSettingsResolver {
         String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
         IndexTemplateMetaData templateMetaData = metaData.templates().get(templateName);
         if (templateMetaData == null) {
-            throw new TableUnknownException(tableIdent);
+            throw new RelationUnknown(tableIdent);
         }
         return templateMetaData.getSettings();
     }

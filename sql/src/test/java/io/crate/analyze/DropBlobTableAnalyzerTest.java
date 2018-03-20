@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -54,7 +54,7 @@ public class DropBlobTableAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testDeletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
 
         DropBlobTableAnalyzedStatement statement = analyzer.analyze(new DropBlobTable(table, true));
         assertThat(statement.noop(), is(true));
@@ -62,10 +62,10 @@ public class DropBlobTableAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testDeletingNonExistingTableRaisesException() throws Exception {
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
 
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'blob.Irrelevant' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'blob.Irrelevant' unknown");
         analyzer.analyze(new DropBlobTable(table, false));
     }
 }

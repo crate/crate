@@ -610,7 +610,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropUnknownTable() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table 'doc.test' unknown");
+        expectedException.expectMessage("Relation 'doc.test' unknown");
 
         execute("drop table test");
     }

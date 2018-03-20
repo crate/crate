@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
@@ -257,8 +257,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantToUnknownTableThrowsException() {
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("Table 'doc.hoichi' unknown");
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.hoichi' unknown");
         analyzePrivilegesStatement("Grant DQL on table doc.hoichi to user1");
     }
 

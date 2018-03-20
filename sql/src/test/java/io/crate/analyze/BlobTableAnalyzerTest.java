@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -148,7 +148,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.tableIdent().name(), is("blobs"));
     }
 
-    @Test(expected = TableUnknownException.class)
+    @Test(expected = RelationUnknown.class)
     public void testDropBlobTableThatDoesNotExist() {
         e.analyze("drop blob table unknown");
     }

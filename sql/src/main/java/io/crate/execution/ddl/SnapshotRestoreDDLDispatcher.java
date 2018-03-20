@@ -28,7 +28,7 @@ import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -257,7 +257,7 @@ public class SnapshotRestoreDDLDispatcher {
         @VisibleForTesting
         public static void resolveTableFromSnapshot(RestoreSnapshotAnalyzedStatement.RestoreTableInfo table,
                                                     List<SnapshotInfo> snapshots,
-                                                    ResolveIndicesAndTemplatesContext ctx) throws TableUnknownException {
+                                                    ResolveIndicesAndTemplatesContext ctx) throws RelationUnknown {
             String name = table.tableIdent().indexName();
             for (SnapshotInfo snapshot : snapshots) {
                 for (String index : snapshot.indices()) {

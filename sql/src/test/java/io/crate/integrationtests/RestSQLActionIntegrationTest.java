@@ -78,7 +78,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
         response = post("{\"stmt\": \"select * from foo\"}");
         assertThat(response.getStatusLine().getStatusCode(), is(404));
-        assertThat(EntityUtils.toString(response.getEntity()), containsString("TableUnknownException"));
+        assertThat(EntityUtils.toString(response.getEntity()), containsString("RelationUnknown"));
     }
 
     @Test

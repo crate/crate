@@ -22,7 +22,7 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterState;
@@ -52,7 +52,7 @@ public class TestingDocTableInfoFactory implements DocTableInfoFactory {
         DocTableInfo tableInfo = tables.get(ident);
         if (tableInfo == null) {
             if (internalFactory == null) {
-                throw new TableUnknownException(ident);
+                throw new RelationUnknown(ident);
             }
             return internalFactory.create(ident, state);
         }
