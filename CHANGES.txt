@@ -15,6 +15,8 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- Adapted queries in the Admin UI to be compatible with CrateDB 3.0+
+
 - For HTTP authentication, support was dropped for the ``X-User`` header, used
   to provide a username, which has been deprecated in ``2.3.0.`` in favour of
   the standard HTTP ``Authorization`` header.
