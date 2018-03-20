@@ -70,6 +70,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
+import io.crate.metadata.view.ViewsMetaData;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -393,6 +394,25 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            return this;
+        }
+
+        /**
+         * Add a view definition to the metaData.
+         * Note that this by-passes the analyzer step and directly operates on the clusterState. So there is no
+         * resolve logic for columns (`*` is not resolved to the column names)
+         */
+        public Builder addView(TableIdent name, String query) {
+            ClusterState prevState = clusterService.state();
+            ViewsMetaData newViews = ViewsMetaData.addOrReplace(
+                prevState.metaData().custom(ViewsMetaData.TYPE), name, query);
+
+            MetaData newMetaData = MetaData.builder(prevState.metaData()).putCustom(ViewsMetaData.TYPE, newViews).build();
+            ClusterState newState = ClusterState.builder(prevState)
+                .metaData(newMetaData)
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, newState);
             return this;
         }
 

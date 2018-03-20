@@ -182,8 +182,8 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     @Nullable
-    String getStatement(String name) {
-        return queryByName.get(name);
+    public String getStatement(TableIdent name) {
+        return queryByName.get(name.fqn());
     }
 
     public class RemoveResult {

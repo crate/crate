@@ -27,18 +27,20 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 public class ViewsITest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testViewCanBeCreatedAndThenDropped() throws Exception {
-        execute("create view v1 as select 1");
+    public void testViewCanBeCreatedSelectedAndThenDropped() throws Exception {
+        execute("create view v1 as select 1 from sys.cluster");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v1"), is(true));
         }
+        assertThat(printedTable(execute("select * from v1").rows()), is("1\n"));
         execute("drop view v1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
@@ -48,8 +50,10 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testViewCanBeCreatedAndThenReplaced() throws Exception {
-        execute("create view v2 as select 1");
-        execute("create or replace view v2 as select 1");
+        execute("create view v2 as select 1 from sys.cluster");
+        assertThat(printedTable(execute("select * from v2").rows()), is("1\n"));
+        execute("create or replace view v2 as select 2 from sys.cluster");
+        assertThat(printedTable(execute("select * from v2").rows()), is("2\n"));
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
