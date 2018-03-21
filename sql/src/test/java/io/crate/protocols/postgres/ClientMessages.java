@@ -147,4 +147,9 @@ class ClientMessages {
         buffer.writeBytes(passwordBytes);
         buffer.writeByte(0);
     }
+
+    static void sendTermination(ByteBuf buffer) {
+        buffer.writeByte('X');
+        buffer.writeInt(4);
+    }
 }

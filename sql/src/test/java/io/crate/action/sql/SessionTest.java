@@ -25,10 +25,10 @@ package io.crate.action.sql;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -214,5 +214,38 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
+    }
+
+    @Test
+    public void testProperCleanupOnSessionClose() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+
+        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            SessionContext.create());
+
+        session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
+        session.bind("Portal", "S_1", Collections.emptyList(), null);
+        session.describe('S', "S_1");
+
+        session.parse("S_2", "select id from sys.cluster", Collections.emptyList());
+        session.bind("", "S_2", Collections.emptyList(), null);
+        session.describe('S', "S_2");
+        session.execute("", 0, new BaseResultReceiver());
+
+        assertThat(session.portals.size(), is(2));
+        assertThat(session.preparedStatements.size(), is(2));
+        assertThat(session.pendingExecutions.size(), is(1));
+
+        session.close();
+
+        assertThat(session.portals.size(), is(0));
+        assertThat(session.preparedStatements.size(), is(0));
+        assertThat(session.pendingExecutions.size(), is(0));
     }
 }

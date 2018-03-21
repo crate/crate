@@ -22,6 +22,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
@@ -110,9 +111,12 @@ public class Session implements AutoCloseable {
     private final DependencyCarrier executor;
     private final SessionContext sessionContext;
 
-    private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
-    private final Map<String, Portal> portals = new HashMap<>();
-    private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
+    @VisibleForTesting
+    final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
+    @VisibleForTesting
+    final Map<String, Portal> portals = new HashMap<>();
+    @VisibleForTesting
+    final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
     private final Analyzer analyzer;
     private final Planner planner;
@@ -464,6 +468,8 @@ public class Session implements AutoCloseable {
             portal.close();
         }
         portals.clear();
+        preparedStatements.clear();
+        pendingExecutions.clear();
     }
 
     static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {

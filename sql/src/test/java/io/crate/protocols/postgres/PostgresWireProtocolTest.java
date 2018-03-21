@@ -364,4 +364,24 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         respBuf = channel.readOutbound();
         assertThat((char) respBuf.readByte(), is('R')); // Auth OK
     }
+
+    @Test
+    public void testSessionCloseOnTerminationMessage() throws Exception {
+        SQLOperations sqlOperations = mock(SQLOperations.class);
+        Session session = mock(Session.class);
+        when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sqlOperations,
+                new AlwaysOKNullAuthentication(),
+                null);
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendStartupMessage(buffer, "doc");
+        ClientMessages.sendTermination(buffer);
+        channel.writeInbound(buffer);
+
+        verify(session, times(1)).close();
+    }
 }
