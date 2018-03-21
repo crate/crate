@@ -24,6 +24,8 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
@@ -33,7 +35,8 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.greaterThan;
+import java.util.Iterator;
+
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -51,11 +54,29 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     @UseJdbc(0) // SET extra_float_digits = 3 gets added to the jobs_log
     public void testJobLogWithEnabledAndDisabledStats() throws Exception {
-        execute("select name from sys.cluster");
-        execute("select * from sys.jobs_log");
-        assertThat(response.rowCount(), greaterThan(0L));
-
         execute("set global transient stats.jobs_log_size=1");
+
+        // We record the statements in the log **after** we notify the result receivers (see {@link JobsLogsUpdateListener usage).
+        // So it might happen that the "set global ..." statement execution is returned to this test but the recording
+        // in the log is done AFTER the execution of the below "select name from sys.cluster" statement (because async
+        // programming is evil like that). And then this test will fail and people will spend days and days to figure
+        // out what's going on.
+        // So let's just wait for the "set global ... " statement to be recorded here and then move on with our test.
+        boolean recordedSetJobsLogStatement = false;
+        while (recordedSetJobsLogStatement == false) {
+            for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+                for (JobContextLog log : jobsLogService.get().jobsLog()) {
+                    if (log.statement().equals("set global transient stats.jobs_log_size=1")) {
+                        recordedSetJobsLogStatement = true;
+                        break;
+                    }
+                }
+                if (recordedSetJobsLogStatement) {
+                    break;
+                }
+            }
+        }
+        // wait for the other node to receive the new jobs_log_size setting change instruction
         for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> assertThat(jobsLogService.jobsLogSize(), is(1)));
         }
@@ -67,10 +88,13 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
             Session session = sqlOperations.newSystemSession();
             execute("select name from sys.cluster", null, session);
         }
+        assertJobLogOnNodesHaveOnlyStatement("select name from sys.cluster");
+
         for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
             Session session = sqlOperations.newSystemSession();
             execute("select id from sys.cluster", null, session);
         }
+        assertJobLogOnNodesHaveOnlyStatement("select id from sys.cluster");
 
         execute("select stmt from sys.jobs_log order by ended desc");
         assertThat(response.rowCount(), is(2L));
@@ -84,6 +108,19 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
         }
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    private void assertJobLogOnNodesHaveOnlyStatement(String statement) throws Exception {
+        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> {
+                assertThat(jobsLogService.jobsLogSize(), is(1));
+                JobsLogs jobsLogs = jobsLogService.get();
+                Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
+                if (iterator.hasNext()) {
+                    assertThat(iterator.next().statement(), is(statement));
+                }
+            });
+        }
     }
 
     @Test
