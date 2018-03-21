@@ -397,6 +397,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return supportedOperations;
     }
 
+    @Override
+    public TableType tableType() {
+        return TableType.BASE_TABLE;
+    }
+
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
         return analyzers.get(ident);
     }

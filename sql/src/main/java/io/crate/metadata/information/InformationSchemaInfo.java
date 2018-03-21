@@ -29,6 +29,8 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collections;
+
 @Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
@@ -69,6 +71,11 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfoMap.values();
+    }
+
+    @Override
+    public Iterable<TableInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -96,7 +96,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo()),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );
         resolver = ShardReferenceResolver.create(
             clusterService,

@@ -91,8 +91,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                 return "burlesque";
             }
         });
-        docSchemaInfo = new DocSchemaInfo("doc", clusterService, null, udfService,
-            new TestingDocTableInfoFactory(ImmutableMap.of()));
+        docSchemaInfo = new DocSchemaInfo("doc", clusterService, functions, udfService,
+            (ident, state) -> null, new TestingDocTableInfoFactory(ImmutableMap.of()));
     }
 
     @Test

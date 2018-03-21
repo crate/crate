@@ -75,6 +75,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     private final Schemas schemas;
     private final FluentIterable<TableInfo> tablesIterable;
+    private final FluentIterable<TableInfo> viewsIterable;
     private final PartitionInfos partitionInfos;
     private final FluentIterable<ColumnContext> columnsIterable;
     private final FluentIterable<TableInfo> primaryKeyTableInfos;
@@ -96,8 +97,13 @@ public class InformationSchemaIterables implements ClusterStateListener {
         tablesIterable = FluentIterable.from(schemas)
             .transformAndConcat(schema -> FluentIterable.from(schema.getTables())
                 .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
+
+        viewsIterable = FluentIterable.from(schemas)
+            .transformAndConcat(schema -> FluentIterable.from(schema.getViews())
+                .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
+
         partitionInfos = new PartitionInfos(clusterService);
-        columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
+        columnsIterable = tablesIterable.append(viewsIterable).transformAndConcat(ColumnsIterable::new);
 
         primaryKeyTableInfos = tablesIterable
             .filter(i -> i != null && (i.primaryKey().size() > 1 ||
@@ -124,7 +130,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<TableInfo> tables() {
-        return tablesIterable;
+        return FluentIterable.concat(tablesIterable, viewsIterable);
     }
 
     public Iterable<PartitionInfo> partitions() {
