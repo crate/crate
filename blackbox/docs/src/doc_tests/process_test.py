@@ -370,7 +370,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
                 client.sql(
                     'delete from t1 where name like ?', (pattern,))
             except Exception as e:
-                if 'TableUnknownException' not in str(e):
+                if 'RelationUnknown' not in str(e):
                     errors.append(e)
         finished.wait()
 
