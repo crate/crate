@@ -22,10 +22,12 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
@@ -33,6 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Reference;
 import io.crate.sql.Identifiers;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -73,7 +76,7 @@ public final class SQLPrinter {
             return simpleSelect(table, sb);
         }
 
-        private Void simpleSelect(QueriedRelation relation, StringBuilder sb) {
+        private Void simpleSelect(QueriedTableRelation<?> relation, StringBuilder sb) {
             sb.append("SELECT ");
             addOutputs(relation, sb);
             addFrom(sb, relation);
@@ -94,6 +97,9 @@ public final class SQLPrinter {
                 process(((SelectSymbol) symbol).relation(), sb);
                 sb.append(")");
                 return sb.toString();
+            }
+            if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
+                return ((Reference) symbol).column().sqlFqn();
             }
             return symbolPrinter.printQualified(symbol);
         }
@@ -186,9 +192,22 @@ public final class SQLPrinter {
             }
         }
 
-        private static void addFrom(StringBuilder sb, QueriedRelation relation) {
+        private void addFrom(StringBuilder sb, QueriedTableRelation<?> relation) {
             sb.append(" FROM ");
-            sb.append(relation.getQualifiedName());
+            AbstractTableRelation<?> tableRelation = relation.tableRelation();
+            if (tableRelation instanceof TableFunctionRelation) {
+                QualifiedName qName = tableRelation.getQualifiedName();
+                Function function = ((TableFunctionRelation) tableRelation).function();
+                if (qName.getParts().size() == 2 && qName.getParts().get(1).equals(function.info().ident().name())) {
+                    sb.append(printSymbol(function));
+                } else {
+                    sb.append(printSymbol(function));
+                    sb.append(" AS ");
+                    sb.append(qName.toString());
+                }
+            } else {
+                sb.append(tableRelation.tableInfo().ident().sqlFqn());
+            }
         }
 
         @Override
