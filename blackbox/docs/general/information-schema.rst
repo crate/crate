@@ -55,44 +55,43 @@ settings like the ``number of shards`` or ``number of replicas``.
 
 ::
 
-    cr> select table_schema, table_name, number_of_shards, number_of_replicas
-    ... from information_schema.tables
-    ... where table_name not like 'my_table%'
-    ... order by table_schema asc, table_name asc;
-    +--------------------+-------------------------+------------------+--------------------+
-    | table_schema       | table_name              | number_of_shards | number_of_replicas |
-    +--------------------+-------------------------+------------------+--------------------+
-    | doc                | locations               |                2 | 0                  |
-    | doc                | partitioned_table       |                4 | 0-1                |
-    | doc                | quotes                  |                2 | 0                  |
-    | information_schema | columns                 |             NULL | NULL               |
-    | information_schema | ingestion_rules         |             NULL | NULL               |
-    | information_schema | key_column_usage        |             NULL | NULL               |
-    | information_schema | referential_constraints |             NULL | NULL               |
-    | information_schema | routines                |             NULL | NULL               |
-    | information_schema | schemata                |             NULL | NULL               |
-    | information_schema | sql_features            |             NULL | NULL               |
-    | information_schema | table_constraints       |             NULL | NULL               |
-    | information_schema | table_partitions        |             NULL | NULL               |
-    | information_schema | tables                  |             NULL | NULL               |
-    | pg_catalog         | pg_type                 |             NULL | NULL               |
-    | sys                | allocations             |             NULL | NULL               |
-    | sys                | checks                  |             NULL | NULL               |
-    | sys                | cluster                 |             NULL | NULL               |
-    | sys                | health                  |             NULL | NULL               |
-    | sys                | jobs                    |             NULL | NULL               |
-    | sys                | jobs_log                |             NULL | NULL               |
-    | sys                | node_checks             |             NULL | NULL               |
-    | sys                | nodes                   |             NULL | NULL               |
-    | sys                | operations              |             NULL | NULL               |
-    | sys                | operations_log          |             NULL | NULL               |
-    | sys                | privileges              |             NULL | NULL               |
-    | sys                | repositories            |             NULL | NULL               |
-    | sys                | shards                  |             NULL | NULL               |
-    | sys                | snapshots               |             NULL | NULL               |
-    | sys                | summits                 |             NULL | NULL               |
-    | sys                | users                   |             NULL | NULL               |
-    +--------------------+-------------------------+------------------+--------------------+
+    cr> SELECT table_schema, table_name, table_type, number_of_shards, number_of_replicas
+    ... FROM information_schema.tables
+    ... ORDER BY table_schema ASC, table_name ASC;
+    +--------------------+-------------------------+------------+------------------+--------------------+
+    | table_schema       | table_name              | table_type | number_of_shards | number_of_replicas |
+    +--------------------+-------------------------+------------+------------------+--------------------+
+    | doc                | locations               | BASE TABLE |                2 | 0                  |
+    | doc                | partitioned_table       | BASE TABLE |                4 | 0-1                |
+    | doc                | quotes                  | BASE TABLE |                2 | 0                  |
+    | information_schema | columns                 | BASE TABLE |             NULL | NULL               |
+    | information_schema | ingestion_rules         | BASE TABLE |             NULL | NULL               |
+    | information_schema | key_column_usage        | BASE TABLE |             NULL | NULL               |
+    | information_schema | referential_constraints | BASE TABLE |             NULL | NULL               |
+    | information_schema | routines                | BASE TABLE |             NULL | NULL               |
+    | information_schema | schemata                | BASE TABLE |             NULL | NULL               |
+    | information_schema | sql_features            | BASE TABLE |             NULL | NULL               |
+    | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
+    | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
+    | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_type                 | BASE TABLE |             NULL | NULL               |
+    | sys                | allocations             | BASE TABLE |             NULL | NULL               |
+    | sys                | checks                  | BASE TABLE |             NULL | NULL               |
+    | sys                | cluster                 | BASE TABLE |             NULL | NULL               |
+    | sys                | health                  | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs                    | BASE TABLE |             NULL | NULL               |
+    | sys                | jobs_log                | BASE TABLE |             NULL | NULL               |
+    | sys                | node_checks             | BASE TABLE |             NULL | NULL               |
+    | sys                | nodes                   | BASE TABLE |             NULL | NULL               |
+    | sys                | operations              | BASE TABLE |             NULL | NULL               |
+    | sys                | operations_log          | BASE TABLE |             NULL | NULL               |
+    | sys                | privileges              | BASE TABLE |             NULL | NULL               |
+    | sys                | repositories            | BASE TABLE |             NULL | NULL               |
+    | sys                | shards                  | BASE TABLE |             NULL | NULL               |
+    | sys                | snapshots               | BASE TABLE |             NULL | NULL               |
+    | sys                | summits                 | BASE TABLE |             NULL | NULL               |
+    | sys                | users                   | BASE TABLE |             NULL | NULL               |
+    +--------------------+-------------------------+------------+------------------+--------------------+
     SELECT 30 rows in set (... sec)
 
 The table also contains additional information such as specified routing
@@ -146,7 +145,7 @@ columns::
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``table_schema``                 | The name of the schema the table belongs to                                        | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``table_type``                   | The type of the table (always ``BASE TABLE``)                                      | ``String``  |
+| ``table_type``                   | The type of the table (``BASE TABLE`` for tables, ``VIEW`` for views)              | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``version``                      | A collection of version numbers relevent to the table                              | ``Object``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+

@@ -87,6 +87,8 @@ import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
@@ -97,6 +99,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+@Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
@@ -108,6 +111,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
+    @Inject
     public RelationAnalyzer(Functions functions, Schemas schemas) {
         relationNormalizer = new RelationNormalizer(functions);
         this.functions = functions;

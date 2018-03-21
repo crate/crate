@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
@@ -106,6 +107,11 @@ public class BlobSchemaInfo implements SchemaInfo {
             .map(BlobIndex::stripPrefix)
             .map(this::getTableInfo)
             ::iterator;
+    }
+
+    @Override
+    public Iterable<TableInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

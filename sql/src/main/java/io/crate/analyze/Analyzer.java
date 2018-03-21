@@ -132,14 +132,20 @@ public class Analyzer {
     private final AlterUserAnalyzer alterUserAnalyzer;
     private final CreateViewAnalyzer createViewAnalyzer;
 
+    /**
+     * @param relationAnalyzer is injected because we also need to inject it in
+     *                         {@link io.crate.metadata.view.InternalViewInfoFactory} and we want to keep only a single
+     *                         instance of the class
+     */
     @Inject
     public Analyzer(Schemas schemas,
                     Functions functions,
+                    RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
-        this.relationAnalyzer = new RelationAnalyzer(functions, schemas);
+        this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =

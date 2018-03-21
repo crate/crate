@@ -13,6 +13,7 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -24,6 +25,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
@@ -35,6 +37,7 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -942,14 +945,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             functions,
             new IndexNameExpressionResolver(Settings.EMPTY)
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
+        ViewInfoFactory viewInfoFactory = (ident, state) -> null;
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, viewInfoFactory, docTableInfoFactory );
         Path homeDir = createTempDir();
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
-                new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)),
+                new DocSchemaInfoFactory(docTableInfoFactory, viewInfoFactory, functions, udfService)),
             new FulltextAnalyzerResolver(clusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()

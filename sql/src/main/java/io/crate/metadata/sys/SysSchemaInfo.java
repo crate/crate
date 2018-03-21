@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,6 +74,11 @@ public class SysSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfos.values();
+    }
+
+    @Override
+    public Iterable<TableInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

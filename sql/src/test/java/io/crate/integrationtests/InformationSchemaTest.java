@@ -33,6 +33,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -47,6 +48,15 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
+
+    @After
+    public void dropLeftoverViews() {
+        execute("SELECT table_schema, table_name FROM information_schema.tables WHERE table_type = 'VIEW'");
+        for (Object[] row : response.rows()) {
+            logger.info("DROP VIEW {}.{}", row[0], row[1]);
+            execute("DROP VIEW " + String.format("\"%s\".\"%s\"", row[0], row[1]));
+        }
+    }
 
     @Test
     public void testDefaultTables() {
@@ -113,6 +123,45 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.routines");
         assertEquals(125L, response.rowCount());
+    }
+
+    @Test
+    public void testSelectViewsFromInformationSchema() {
+        execute("CREATE TABLE t1 (id INTEGER, name STRING) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=1)");
+        execute("CREATE VIEW t1_view1 AS SELECT * FROM t1 WHERE name = 'foo'");
+        execute("CREATE VIEW t1_view2 AS SELECT id FROM t1 WHERE name = 'foo'");
+
+        // SELECT information_schema.tables
+        execute("SELECT table_type, table_name, number_of_shards, number_of_replicas " +
+                "FROM information_schema.tables " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("BASE TABLE| t1| 2| 1\n" +
+                                                                    "VIEW| t1_view1| NULL| NULL\n" +
+                                                                    "VIEW| t1_view2| NULL| NULL\n"));
+
+        // SELECT information_schema.columns
+        execute("SELECT table_name, column_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1| id\n" +
+                                                                    "t1| name\n" +
+                                                                    "t1_view1| id\n" +
+                                                                    "t1_view1| name\n" +
+                                                                    "t1_view2| id\n"));
+
+        // After dropping the target table of the view, the view does not show up in the information_schema any more,
+        // because the SELECT statement cannot be analyzed and converted into a ViewInfo any more.
+        execute("DROP TABLE t1");
+        execute("SELECT table_name, column_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(""));
+
+        // Clean up metadata that does not show up in information_schema any more
+        execute("DROP VIEW t1_view1, t1_view2");
     }
 
     @Test
