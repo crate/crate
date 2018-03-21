@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 
 public class PgCatalogSchemaInfo implements SchemaInfo {
 
@@ -64,6 +65,12 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfoMap.values();
+    }
+
+
+    @Override
+    public Iterable<TableInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

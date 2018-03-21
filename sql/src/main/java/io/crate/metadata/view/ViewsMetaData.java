@@ -151,6 +151,10 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return queryByName.containsKey(name);
     }
 
+    public Iterable<String> names() {
+        return queryByName.keySet();
+    }
+
     /**
      * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
      */
@@ -175,6 +179,11 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
             }
         }
         return new RemoveResult(new ViewsMetaData(updatedQueryByName), missing);
+    }
+
+    @Nullable
+    String getStatement(String name) {
+        return queryByName.get(name);
     }
 
     public class RemoveResult {

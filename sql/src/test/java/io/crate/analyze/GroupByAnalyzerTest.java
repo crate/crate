@@ -25,6 +25,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
@@ -41,6 +42,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Provider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,6 +63,7 @@ import static org.hamcrest.core.Is.is;
 public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor sqlExecutor;
+    private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
     @Before
     public void prepare() {
@@ -77,7 +80,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
             .build();
     }
 

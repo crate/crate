@@ -41,4 +41,6 @@ public interface SchemaInfo extends AutoCloseable {
 
     Iterable<TableInfo> getTables();
 
+    Iterable<TableInfo> getViews();
+
 }

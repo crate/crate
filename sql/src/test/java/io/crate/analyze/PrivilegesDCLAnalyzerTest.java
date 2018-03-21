@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -42,6 +43,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Provider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -72,12 +74,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         ImmutableMap.of(CUSTOM_SCHEMA_IDENT, CUSTOM_SCHEMA_INFO));
 
     private SQLExecutor e;
+    private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService).enableDefaultTables()
             .addSchema(new DocSchemaInfo(CUSTOM_SCHEMA_IDENT.schema(), clusterService, getFunctions(),
-                new UserDefinedFunctionService(clusterService, getFunctions()), CUSTOM_SCHEMA_TABLE_FACTORY))
+                new UserDefinedFunctionService(clusterService, getFunctions()), (ident, state) -> null, CUSTOM_SCHEMA_TABLE_FACTORY))
             .build();
     }
 
