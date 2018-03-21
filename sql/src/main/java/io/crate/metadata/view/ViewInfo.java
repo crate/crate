@@ -20,11 +20,19 @@
  * agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.metadata.view;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.cluster.ClusterState;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -34,35 +42,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public abstract class StaticTableInfo implements TableInfo {
+public class ViewInfo implements TableInfo {
 
     private final TableIdent ident;
-    private final List<ColumnIdent> primaryKey;
-    private final Collection<Reference> columns;
-    protected final Map<ColumnIdent, Reference> columnMap;
+    private final List<Reference> columns;
 
-    /**
-     * @param columns top level columns. If null the values of columnMap are used.
-     *                Can/should be specified if columnMap contains nested columns.
-     */
-    public StaticTableInfo(TableIdent ident,
-                           Map<ColumnIdent, Reference> columnMap,
-                           @Nullable Collection<Reference> columns,
-                           List<ColumnIdent> primaryKey) {
+    public ViewInfo(TableIdent ident, List<Reference> columns) {
         this.ident = ident;
-        this.columnMap = columnMap;
-        this.columns = columns == null ? columnMap.values() : columns;
-        this.primaryKey = primaryKey;
-    }
-
-    public StaticTableInfo(TableIdent ident, ColumnRegistrar columnRegistrar, List<ColumnIdent> primaryKey) {
-        this(ident, columnRegistrar.infos(), columnRegistrar.columns(), primaryKey);
+        this.columns = columns;
     }
 
     @Nullable
     @Override
     public Reference getReference(ColumnIdent columnIdent) {
-        return columnMap.get(columnIdent);
+        return null;
     }
 
     @Override
@@ -71,13 +64,23 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
+    public RowGranularity rowGranularity() {
+        return RowGranularity.DOC;
+    }
+
+    @Override
     public TableIdent ident() {
         return ident;
     }
 
     @Override
+    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause, RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
+        return null;
+    }
+
+    @Override
     public List<ColumnIdent> primaryKey() {
-        return primaryKey;
+        return Collections.emptyList();
     }
 
     @Override
@@ -86,22 +89,22 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public String toString() {
-        return ident.fqn();
-    }
-
-    @Override
-    public Iterator<Reference> iterator() {
-        return columnMap.values().iterator();
-    }
-
-    @Override
     public Set<Operation> supportedOperations() {
-        return Operation.SYS_READ_ONLY;
+        return Operation.READ_ONLY;
     }
 
     @Override
     public TableType tableType() {
-        return TableType.BASE_TABLE;
+        return TableType.BASE_VIEW;
+    }
+
+    @Override
+    public Iterator<Reference> iterator() {
+        return columns.iterator();
+    }
+
+    @Override
+    public String toString() {
+        return ident.fqn();
     }
 }

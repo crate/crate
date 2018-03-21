@@ -53,7 +53,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final String NAME = "tables";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
     static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
     static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
 
@@ -240,7 +239,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.TABLE_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> TABLE_TYPE))
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.tableType().pretty()))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
                 () -> RowContextCollectorExpression.forFunction(row -> {
                     if (row instanceof ShardedTable) {

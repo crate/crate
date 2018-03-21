@@ -183,6 +183,11 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
+    public TableType tableType() {
+        return TableType.BASE_TABLE;
+    }
+
+    @Override
     public boolean isClosed() {
         return closed;
     }

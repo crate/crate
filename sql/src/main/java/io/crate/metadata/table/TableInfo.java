@@ -39,6 +39,21 @@ import java.util.Set;
 
 public interface TableInfo extends Iterable<Reference> {
 
+    enum TableType {
+        BASE_TABLE("BASE TABLE"),
+        BASE_VIEW("BASE VIEW");
+
+        private final String prettyName;
+
+        TableType(String prettyName) {
+            this.prettyName = prettyName;
+        }
+
+        public String pretty() {
+            return this.prettyName;
+        }
+    }
+
     /**
      * returns information about a column with the given ident.
      * returns null if this table contains no such column.
@@ -73,4 +88,6 @@ public interface TableInfo extends Iterable<Reference> {
     Map<String, Object> tableParameters();
 
     Set<Operation> supportedOperations();
+
+    TableType tableType();
 }

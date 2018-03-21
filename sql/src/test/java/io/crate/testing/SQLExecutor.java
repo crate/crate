@@ -69,6 +69,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -98,6 +99,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationD
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -179,12 +181,14 @@ public class SQLExecutor {
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
         private final TestingDocTableInfoFactory testingDocTableInfoFactory;
+        private final ViewInfoFactory testingViewInfoFactory;
         private final AnalysisRegistry analysisRegistry;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final AllocationService allocationService;
         private final UserDefinedFunctionService udfService;
         private final Random random;
         private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
+        private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
         private TableStats tableStats = new TableStats();
 
@@ -199,16 +203,17 @@ public class SQLExecutor {
 
             testingDocTableInfoFactory = new TestingDocTableInfoFactory(
                 docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
+            testingViewInfoFactory = (ident, state) -> null;
             udfService = new UserDefinedFunctionService(clusterService, functions);
             schemaInfoByName.put(
                 defaultSchema,
-                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, testingDocTableInfoFactory)
+                new DocSchemaInfo(defaultSchema, clusterService, functions, udfService, testingViewInfoFactory, testingDocTableInfoFactory)
             );
             Schemas schemas = new Schemas(
                 Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
+                new DocSchemaInfoFactory(testingDocTableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
             File homeDir = createTempDir();
             Environment environment = new Environment(
@@ -297,7 +302,7 @@ public class SQLExecutor {
                 Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(testingDocTableInfoFactory, functions, udfService)
+                new DocSchemaInfoFactory(testingDocTableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
             return new SQLExecutor(
                 functions,
