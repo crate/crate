@@ -109,7 +109,7 @@ public class TableHealthService extends AbstractComponent {
 
     private Iterable<TableHealth> allAsUnavailable() {
         return StreamSupport.stream(schemas.spliterator(), false)
-            .flatMap(schemaInfo -> StreamSupport.stream(schemaInfo.spliterator(), false))
+            .flatMap(schemaInfo -> StreamSupport.stream(schemaInfo.getTables().spliterator(), false))
             .flatMap(tableInfo -> {
                 if (tableInfo instanceof DocTableInfo) {
                     return healthFromPartitions(tableInfo.ident(), ((DocTableInfo) tableInfo).partitions().stream());

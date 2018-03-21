@@ -27,9 +27,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nonnull;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 @Singleton
@@ -73,9 +71,8 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    @Nonnull
-    public Iterator<TableInfo> iterator() {
-        return tableInfos.values().iterator();
+    public Iterable<TableInfo> getTables() {
+        return tableInfos.values();
     }
 
     @Override

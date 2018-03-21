@@ -59,7 +59,7 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
     }
 
     boolean validateDocTablesPartitioning(SchemaInfo schemaInfo) {
-        for (TableInfo tableInfo : schemaInfo) {
+        for (TableInfo tableInfo : schemaInfo.getTables()) {
             DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
             if (docTableInfo.isPartitioned() && docTableInfo.partitions().size() > PARTITIONS_THRESHOLD) {
                 return false;

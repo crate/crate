@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -37,7 +38,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
@@ -48,7 +48,6 @@ public class SysChecksTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
     private final ClusterReferenceResolver referenceResolver = mock(ClusterReferenceResolver.class);
-    private final Iterator docSchemaInfoItr = mock(Iterator.class);
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
 
@@ -95,10 +94,8 @@ public class SysChecksTest extends CrateUnitTest {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
             mock(Schemas.class));
 
-        when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);
-        when(docSchemaInfoItr.hasNext()).thenReturn(true, true, false);
-        when(docSchemaInfoItr.next()).thenReturn(docTableInfo);
-        when(docTableInfo.isPartitioned()).thenReturn(true, true);
+        when(docSchemaInfo.getTables()).thenReturn(ImmutableList.of(docTableInfo, docTableInfo));
+        when(docTableInfo.isPartitioned()).thenReturn(true);
 
         List<PartitionName> partitionsFirst = buildPartitions(500);
         List<PartitionName> partitionsSecond = buildPartitions(100);
@@ -115,9 +112,7 @@ public class SysChecksTest extends CrateUnitTest {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(mock(Schemas.class));
         List<PartitionName> partitions = buildPartitions(1001);
 
-        when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);
-        when(docSchemaInfoItr.hasNext()).thenReturn(true, false);
-        when(docSchemaInfoItr.next()).thenReturn(docTableInfo);
+        when(docSchemaInfo.getTables()).thenReturn(ImmutableList.of(docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
         when(docTableInfo.partitions()).thenReturn(partitions);
 

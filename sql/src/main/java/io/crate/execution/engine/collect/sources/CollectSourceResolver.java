@@ -111,17 +111,17 @@ public class CollectSourceResolver {
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(singleRowSource, projectorFactory));
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
-        for (TableInfo tableInfo : sysSchemaInfo) {
+        for (TableInfo tableInfo : sysSchemaInfo.getTables()) {
             if (tableInfo.rowGranularity().equals(RowGranularity.DOC)) {
                 nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
             }
         }
         nodeDocCollectSources.put(SysNodesTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(nodeStatsCollectSource, projectorFactory));
 
-        for (TableInfo tableInfo : pgCatalogSchemaInfo) {
+        for (TableInfo tableInfo : pgCatalogSchemaInfo.getTables()) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
-        for (TableInfo tableInfo : informationSchemaInfo) {
+        for (TableInfo tableInfo : informationSchemaInfo.getTables()) {
             nodeDocCollectSources.put(tableInfo.ident().fqn(), sysSource);
         }
 

@@ -131,7 +131,7 @@ class CreateSnapshotAnalyzer {
                 ImmutableList.copyOf(snapshotIndices));
         } else {
             for (SchemaInfo schemaInfo : schemas) {
-                for (TableInfo tableInfo : schemaInfo) {
+                for (TableInfo tableInfo : schemaInfo.getTables()) {
                     // only check for user generated tables
                     if (tableInfo instanceof DocTableInfo) {
                         Operation.blockedRaiseException(tableInfo, Operation.READ);

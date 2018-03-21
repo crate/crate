@@ -25,7 +25,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 
 import javax.annotation.Nullable;
 
-public interface SchemaInfo extends Iterable<TableInfo>, AutoCloseable {
+public interface SchemaInfo extends AutoCloseable {
 
     @Nullable
     TableInfo getTableInfo(String name);
@@ -38,4 +38,7 @@ public interface SchemaInfo extends Iterable<TableInfo>, AutoCloseable {
      * Called when cluster state and so the table definitions changes.
      */
     void update(ClusterChangedEvent event);
+
+    Iterable<TableInfo> getTables();
+
 }

@@ -36,10 +36,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class BlobSchemaInfo implements SchemaInfo {
@@ -60,20 +57,11 @@ public class BlobSchemaInfo implements SchemaInfo {
             }
         );
 
-    private final Function<String, TableInfo> tableInfoFunction;
-
     @Inject
     public BlobSchemaInfo(ClusterService clusterService,
                           BlobTableInfoFactory blobTableInfoFactory) {
         this.clusterService = clusterService;
         this.blobTableInfoFactory = blobTableInfoFactory;
-        tableInfoFunction = new Function<String, TableInfo>() {
-            @Nullable
-            @Override
-            public TableInfo apply(@Nullable String input) {
-                return getTableInfo(input);
-            }
-        };
     }
 
     private BlobTableInfo innerGetTableInfo(String name) {
@@ -81,7 +69,7 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public BlobTableInfo getTableInfo(String name) {
+    public TableInfo getTableInfo(String name) {
         try {
             return cache.get(name);
         } catch (ExecutionException e) {
@@ -112,12 +100,12 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
+    public Iterable<TableInfo> getTables() {
         return Stream.of(clusterService.state().metaData().getConcreteAllOpenIndices())
             .filter(BlobIndex::isBlobIndex)
             .map(BlobIndex::stripPrefix)
-            .map(tableInfoFunction)
-            .iterator();
+            .map(this::getTableInfo)
+            ::iterator;
     }
 
     @Override

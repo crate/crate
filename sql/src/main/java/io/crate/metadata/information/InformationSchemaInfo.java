@@ -29,19 +29,16 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nonnull;
-import java.util.Iterator;
-
 @Singleton
 public class InformationSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "information_schema";
 
-    public final ImmutableMap<String, TableInfo> tableInfoMap;
+    private final ImmutableMap<String, TableInfo> tableInfoMap;
 
     @Inject
     public InformationSchemaInfo() {
-        this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
+        tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo())
             .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo())
             .put(InformationKeyColumnUsageTableInfo.NAME, new InformationKeyColumnUsageTableInfo())
@@ -70,9 +67,8 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    @Nonnull
-    public Iterator<TableInfo> iterator() {
-        return tableInfoMap.values().iterator();
+    public Iterable<TableInfo> getTables() {
+        return tableInfoMap.values();
     }
 
     @Override

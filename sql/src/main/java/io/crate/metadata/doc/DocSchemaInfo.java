@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
@@ -140,7 +139,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public DocTableInfo getTableInfo(String name) {
+    public TableInfo getTableInfo(String name) {
         try {
             return docTableByName.computeIfAbsent(name, this::innerGetTableInfo);
         } catch (ResourceUnknownException e) {
@@ -292,8 +291,10 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
-        return Iterators.transform(tableNames().iterator(), this::getTableInfo);
+    public Iterable<TableInfo> getTables() {
+        return tableNames().stream()
+            .map(this::getTableInfo)
+            ::iterator;
     }
 
     @Override

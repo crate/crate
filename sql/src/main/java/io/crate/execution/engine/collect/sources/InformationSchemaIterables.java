@@ -94,7 +94,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         tablesIterable = FluentIterable.from(schemas)
-            .transformAndConcat(schema -> FluentIterable.from(schema)
+            .transformAndConcat(schema -> FluentIterable.from(schema.getTables())
                 .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
         partitionInfos = new PartitionInfos(clusterService);
         columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);

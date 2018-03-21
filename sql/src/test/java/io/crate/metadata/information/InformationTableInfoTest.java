@@ -42,7 +42,7 @@ public class InformationTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testColumnsInAlphabeticalColumnOrder() throws Exception {
-        for (TableInfo tableInfo : informationSchemaInfo) {
+        for (TableInfo tableInfo : informationSchemaInfo.getTables()) {
             assertSortedColumns(tableInfo);
         }
     }

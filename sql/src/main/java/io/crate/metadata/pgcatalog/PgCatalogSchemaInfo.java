@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 
 public class PgCatalogSchemaInfo implements SchemaInfo {
 
@@ -38,7 +37,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Inject
     public PgCatalogSchemaInfo() {
-        this.tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
+        tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(PgTypeTable.IDENT.name(), new PgTypeTable())
             .build();
     }
@@ -63,8 +62,8 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
-        return tableInfoMap.values().iterator();
+    public Iterable<TableInfo> getTables() {
+        return tableInfoMap.values();
     }
 
     @Override
