@@ -56,6 +56,10 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``DEALLOCATE`` statement which is used by certain Postgres
+  Wire Protocol clients (e.g. libpq) to deallocate a prepared statement and
+  release its resources.
+
 - Implemented ``constraint_schema`` and ``table_schema`` in
   ``information_schema.key_column_usage`` correctly and documented the full
   table schema.
