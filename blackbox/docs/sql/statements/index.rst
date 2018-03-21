@@ -20,6 +20,7 @@ SQL Statements
     create-snapshot
     create-table
     create-user
+    deallocate
     delete
     deny
     drop-function
