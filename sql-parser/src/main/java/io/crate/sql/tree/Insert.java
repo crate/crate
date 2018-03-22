@@ -29,14 +29,22 @@ public abstract class Insert extends Statement {
 
     protected final Table table;
 
+    public enum DuplicateKeyType {
+        ON_DUPLICATE_KEY_UPDATE,
+        ON_CONFLICT_DO_UPDATE_SET,
+        NONE
+    }
+
+    private final DuplicateKeyType duplicateKeyType;
     protected final List<Assignment> onDuplicateKeyAssignments;
     protected final List<String> columns;
 
 
-    Insert(Table table, List<String> columns, List<Assignment> onDuplicateKeyAssignments) {
+    Insert(Table table, List<String> columns, DuplicateKeyType duplicateKeyType, List<Assignment> onDuplicateKeyAssignments) {
         this.table = table;
-        this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.columns = columns;
+        this.duplicateKeyType = duplicateKeyType;
+        this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
     }
 
     public Table table() {
@@ -45,6 +53,10 @@ public abstract class Insert extends Statement {
 
     public List<String> columns() {
         return columns;
+    }
+
+    public DuplicateKeyType getDuplicateKeyType() {
+        return duplicateKeyType;
     }
 
     public List<Assignment> onDuplicateKeyAssignments() {

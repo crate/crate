@@ -26,6 +26,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -53,6 +54,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ValuesList;
@@ -158,6 +160,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             exprAnalyzer.copyForOperation(Operation.UPDATE),
             txnCtx,
             typeHints,
+            insert.getDuplicateKeyType(),
             insert.onDuplicateKeyAssignments());
         return new AnalyzedInsertStatement(rows, onDuplicateKeyAssignments);
     }
@@ -169,16 +172,22 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         );
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
+        ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
+        final FieldProvider fieldProvider;
+        if (node.getDuplicateKeyType() == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
+            fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(tableRelation), valuesResolver);
+        } else {
+            fieldProvider = new NameFieldProvider(tableRelation);
+        }
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
 
-        ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
             functions,
             analysis.transactionContext(),
             convertParamFunction,
             fieldProvider,
-            valuesResolver);
+            valuesResolver,
+            node.getDuplicateKeyType());
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
             tableInfo, analysis.parameterContext().numBulkParams());

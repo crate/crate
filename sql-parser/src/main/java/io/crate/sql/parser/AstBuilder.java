@@ -96,6 +96,7 @@ import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.Intersect;
@@ -413,15 +414,19 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             throw e;
         }
 
+        final Insert.DuplicateKeyType duplicateKeyType;
         final List<SqlBaseParser.AssignmentContext> assignment;
         if (context.onDuplicate() != null) {
+            duplicateKeyType = Insert.DuplicateKeyType.ON_DUPLICATE_KEY_UPDATE;
             assignment = context.onDuplicate().assignment();
         } else if (context.onConflict() != null) {
             if (context.onConflict().NOTHING() != null) {
                 throw new UnsupportedOperationException("ON CONFLICT DO NOTHING is not implemented yet.");
             }
+            duplicateKeyType = Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET;
             assignment = context.onConflict().assignment();
         } else {
+            duplicateKeyType = Insert.DuplicateKeyType.NONE;
             assignment = Collections.emptyList();
         }
 
@@ -430,12 +435,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 table,
                 visitCollection(context.insertSource().values(), ValuesList.class),
                 columns,
+                duplicateKeyType,
                 visitCollection(assignment, Assignment.class));
         }
         return new InsertFromSubquery(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
+            duplicateKeyType,
             visitCollection(assignment, Assignment.class));
     }
 

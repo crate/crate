@@ -31,6 +31,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataTypes;
 
@@ -44,8 +45,7 @@ import java.util.function.Function;
  * <p>
  * -------------------------------------------------------------------
  * insert into t_new (id, name) (select id_old, name_old from t_old)
- * on duplicate key update
- * set id = values(id) + 1000
+ * on duplicate key update id = values(id) + 1000
  * <p>
  * will return the following for values (id) + 1000
  * <p>
@@ -53,21 +53,35 @@ import java.util.function.Function;
  * <p>
  * -------------------------------------------------------------------
  * insert into t_new (id, name) values (1, 'foo')
- * on duplicate key update
- * set id = values (id) + 1
+ * on duplicate key update id = values (id) + 1
  * <p>
  * will return the following for values (id) + 1
  * <p>
  * 2      (normalized add(1, 1))
+ *
+ * ON DUPLICATE KEY UPDATE / ON CONFLICT DO UPDATE SET
+ * ===================================================
+ *
+ * The behavior is identical for ON CONFLICT DO UPDATE SET with the only difference
+ * that VALUES(col) is not allowed and has to be represented as EXCLUDED.col instead.
+ *
+ * The following two statements are semantically identical:
+ *
+ * insert into t_new (id, name) values (1, 'foo')
+ *   on conflict do update set name = excluded.name
+ *
+ * insert into t_new (id, name) values (1, 'foo')
+ *   on duplicate key update name = values(name)
  */
 public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     private final ValuesResolver valuesResolver;
+    private final Insert.DuplicateKeyType duplicateKeyType;
 
     /**
      * used to resolve the argument column in VALUES (&lt;argumentColumn&gt;) to the literal or reference
      */
-    interface ValuesResolver {
+    public interface ValuesResolver {
 
         Symbol allocateAndResolve(Field argumentColumn);
     }
@@ -76,24 +90,30 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
                                   TransactionContext transactionContext,
                                   Function<ParameterExpression, Symbol> convertParamFunction,
                                   FieldProvider fieldProvider,
-                                  ValuesResolver valuesResolver) {
+                                  ValuesResolver valuesResolver,
+                                  Insert.DuplicateKeyType duplicateKeyType) {
         super(functions, transactionContext, convertParamFunction, fieldProvider, null);
         this.valuesResolver = valuesResolver;
+        this.duplicateKeyType = duplicateKeyType;
     }
 
     @Override
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
         List<String> parts = node.getName().getParts();
         if (parts.get(0).equals("values")) {
+            if (duplicateKeyType != Insert.DuplicateKeyType.ON_DUPLICATE_KEY_UPDATE) {
+                throw new UnsupportedOperationException("Can't use VALUES outside ON DUPLICATE KEY UPDATE col = VALUES(..)");
+            }
             Expression expression = node.getArguments().get(0);
-            Symbol argumentColumn = super.convert(expression, context);
+
+            Symbol argumentColumn = convert(expression, context);
             if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(
-                    SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
+                    SymbolFormatter.format("Referenced column '%s' in VALUES not found", argumentColumn));
             }
             if (!(argumentColumn instanceof Field)) {
                 throw new IllegalArgumentException(SymbolFormatter.format(
-                    "Argument to VALUES expression must reference a column that " +
+                    "Argument to VALUES must reference a column that " +
                     "is part of the INSERT statement. %s is invalid", argumentColumn));
             }
             return valuesResolver.allocateAndResolve((Field) argumentColumn);
