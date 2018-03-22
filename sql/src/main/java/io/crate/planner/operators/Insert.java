@@ -25,8 +25,8 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
-import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -41,11 +41,11 @@ import java.util.Map;
 
 public class Insert extends OneInputPlan {
 
-    final ColumnIndexWriterProjection projection;
+    private final List<Projection> projections;
 
-    public Insert(LogicalPlan source, ColumnIndexWriterProjection projection) {
+    public Insert(LogicalPlan source, List<Projection> projections) {
         super(source);
-        this.projection = projection;
+        this.projections = projections;
     }
 
     @Override
@@ -59,7 +59,9 @@ public class Insert extends OneInputPlan {
                                Map<SelectSymbol, Object> subQueryValues) {
         ExecutionPlan executionSubPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
-        executionSubPlan.addProjection(projection);
+        for (Projection projection : projections) {
+            executionSubPlan.addProjection(projection);
+        }
         ExecutionPlan executionPlan = Merge.ensureOnHandler(executionSubPlan, plannerContext);
         if (executionPlan == executionSubPlan) {
             return executionPlan;
@@ -70,7 +72,7 @@ public class Insert extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Insert(newSource, projection);
+        return new Insert(newSource, projections);
     }
 
     @Override
@@ -96,5 +98,9 @@ public class Insert extends OneInputPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitInsert(this, context);
+    }
+
+    public List<Projection> projections() {
+        return projections;
     }
 }

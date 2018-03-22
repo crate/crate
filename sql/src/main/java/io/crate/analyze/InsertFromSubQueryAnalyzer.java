@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Iterators;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -50,6 +49,8 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.ParameterExpression;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,7 +113,7 @@ class InsertFromSubQueryAnalyzer {
 
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), targetTable, subQueryRelation.fields().size()));
-        validateColumnsAndAddCastsIfNecessary(targetColumns, subQueryRelation.querySpec());
+        validateColumnsAndAddCastsIfNecessary(targetColumns, subQueryRelation.outputs());
 
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
@@ -138,7 +139,7 @@ class InsertFromSubQueryAnalyzer {
             node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
 
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
-        validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
+        validateColumnsAndAddCastsIfNecessary(targetColumns, source.outputs());
 
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
@@ -202,25 +203,28 @@ class InsertFromSubQueryAnalyzer {
      * or complete table schema
      */
     private static void validateColumnsAndAddCastsIfNecessary(List<Reference> targetColumns,
-                                                              QuerySpec querySpec) {
-        if (targetColumns.size() != querySpec.outputs().size()) {
+                                                              List<Symbol> sources) {
+        if (targetColumns.size() != sources.size()) {
             Collector<CharSequence, ?, String> commaJoiner = Collectors.joining(", ");
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
                 targetColumns.stream().map(r -> r.column().sqlFqn()).collect(commaJoiner),
-                querySpec.outputs().stream().map(SymbolPrinter.INSTANCE::printUnqualified).collect(commaJoiner)));
+                sources.stream().map(SymbolPrinter.INSTANCE::printUnqualified).collect(commaJoiner)));
         }
 
-        int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbol::valueType));
-        if (failedCastPosition >= 0) {
-            Symbol failedSource = querySpec.outputs().get(failedCastPosition);
-            Reference failedTarget = targetColumns.get(failedCastPosition);
+        for (int i = 0; i < targetColumns.size(); i++) {
+            Reference targetCol = targetColumns.get(i);
+            Symbol source = sources.get(i);
+            DataType targetType = targetCol.valueType();
+            if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType)) {
+                continue;
+            }
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
-                failedSource,
-                failedSource.valueType(),
-                failedTarget.column().fqn(),
-                failedTarget.valueType()
+                source,
+                source.valueType(),
+                targetCol.column().fqn(),
+                targetType
             ));
         }
     }

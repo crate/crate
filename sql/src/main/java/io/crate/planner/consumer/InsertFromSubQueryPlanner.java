@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -29,15 +30,24 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.Reference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -77,7 +87,31 @@ public final class InsertFromSubQueryPlanner {
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
         LogicalPlan plannedSubQuery = logicalPlanner.plan(subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
-        return new Insert(plannedSubQuery, indexWriterProjection);
+
+        EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
+        List<Projection> projections = castOutputs == null
+            ? Collections.singletonList(indexWriterProjection)
+            : ImmutableList.of(castOutputs, indexWriterProjection);
+        return new Insert(plannedSubQuery, projections);
+    }
+
+    @Nullable
+    private static EvalProjection createCastProjection(List<Reference> targetCols, List<Symbol> sourceCols) {
+        ArrayList<Symbol> casts = new ArrayList<>(targetCols.size());
+        boolean requiresCasts = false;
+        for (int i = 0; i < sourceCols.size(); i++) {
+            Symbol output = sourceCols.get(i);
+            Reference targetCol = targetCols.get(i);
+            InputColumn inputColumn = new InputColumn(i, output.valueType());
+            DataType targetType = targetCol.valueType();
+            if (targetType.id() == DataTypes.UNDEFINED.id() || targetType.equals(output.valueType())) {
+                casts.add(inputColumn);
+            } else {
+                requiresCasts = true;
+                casts.add(inputColumn.cast(targetType, false));
+            }
+        }
+        return requiresCasts ? new EvalProjection(casts) : null;
     }
 
     private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {

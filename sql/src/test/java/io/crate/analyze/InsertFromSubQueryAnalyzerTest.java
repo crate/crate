@@ -164,23 +164,6 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testImplicitTypeCasting() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement =
-            e.analyze("insert into users (id, name, shape) (" +
-                      "  select id, other_id, name from users " +
-                      "  where name = 'Trillian'" +
-                      ")");
-
-        List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
-        assertThat(statement.columns().size(), is(outputSymbols.size()));
-        assertThat(outputSymbols.get(1), instanceOf(Function.class));
-        Function castFunction = (Function) outputSymbols.get(1);
-        assertThat(castFunction, isFunction(CastFunctionResolver.FunctionNames.TO_STRING));
-        Function geoCastFunction = (Function) outputSymbols.get(2);
-        assertThat(geoCastFunction, isFunction(CastFunctionResolver.FunctionNames.TO_GEO_SHAPE));
-    }
-
-    @Test
     public void testFromQueryWithOnDuplicateKey() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement =
             e.analyze("insert into users (id, name) (select id, name from users) " +

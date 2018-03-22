@@ -25,6 +25,7 @@ package io.crate.planner.operators;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
@@ -207,7 +208,7 @@ public class ExplainLogicalPlan {
         @Override
         public ImmutableMap.Builder<String, Object> visitInsert(Insert logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("projection", logicalPlan.projection.mapRepresentation())
+                .put("projections", logicalPlan.projections().stream().map(Projection::mapRepresentation))
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 

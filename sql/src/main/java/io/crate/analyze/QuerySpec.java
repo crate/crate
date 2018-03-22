@@ -21,17 +21,12 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -136,40 +131,6 @@ public class QuerySpec {
     public QuerySpec hasAggregates(boolean hasAggregates) {
         this.hasAggregates = hasAggregates;
         return this;
-    }
-
-    /**
-     * Tries to cast the outputs to the given types. Types might contain Null values, which indicates to skip that
-     * position. The iterator needs to return exactly the same number of types as there are outputs.
-     *
-     * @param types an iterable providing the types
-     * @return -1 if all casts where successfully applied or the position of the failed cast
-     */
-    public int castOutputs(Iterator<DataType> types) {
-        int i = 0;
-        ListIterator<Symbol> outputsIt = outputs.listIterator();
-        while (types.hasNext() && outputsIt.hasNext()) {
-            DataType targetType = types.next();
-            assert targetType != null : "targetType must not be null";
-
-            Symbol output = outputsIt.next();
-            DataType sourceType = output.valueType();
-            if (!sourceType.equals(targetType)) {
-                if (sourceType.isConvertableTo(targetType)) {
-                    Symbol castFunction = CastFunctionResolver.generateCastFunction(output, targetType, false);
-                    Collections.replaceAll(groupBy, output, castFunction);
-                    if (orderBy != null) {
-                        Collections.replaceAll(orderBy.orderBySymbols(), output, castFunction);
-                    }
-                    outputsIt.set(castFunction);
-                } else if (!targetType.equals(DataTypes.UNDEFINED)) {
-                    return i;
-                }
-            }
-            i++;
-        }
-        assert i == outputs.size() : "i must be equal to outputs.size()";
-        return -1;
     }
 
     public QuerySpec copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {

@@ -33,7 +33,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.expression.symbol.Function;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -71,6 +71,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService, 2, Randomness.get())
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
             .addTable("create table users (id long primary key, name string, date timestamp) clustered into 4 shards")
+            .addTable("create table source (id int primary key, name string)")
             .build();
     }
 
@@ -192,8 +193,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         MergePhase mergePhase = groupBy.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(2));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
@@ -395,8 +397,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect.size(), is(2));
-        assertThat(toCollect.get(0), isFunction("to_long"));
-        assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
+        assertThat(toCollect.get(0), isReference("_doc['id']"));
         assertThat(toCollect.get(1), equalTo(new Reference(
             new ReferenceIdent(TableDefinitions.PARTED_PKS_IDENT, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP)));
     }
@@ -427,5 +428,22 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+    }
+
+    @Test
+    public void testProjectionWithCastsIsAddedIfSourceTypeDoNotMatchTargetTypes() throws Exception {
+        Merge plan = e.plan("insert into users (id, name) (select id, name from source)");
+        List<Projection> projections = ((Collect) plan.subPlan()).collectPhase().projections();
+        assertThat(projections,
+            contains(
+                instanceOf(EvalProjection.class),
+                instanceOf(ColumnIndexWriterProjection.class))
+        );
+        assertThat(projections.get(0).outputs(),
+            contains(
+                isFunction("to_long"),
+                isInputColumn(1)
+            )
+        );
     }
 }
