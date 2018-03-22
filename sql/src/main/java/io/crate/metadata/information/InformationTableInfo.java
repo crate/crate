@@ -30,6 +30,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.ClusterState;
 
@@ -41,7 +42,7 @@ public class InformationTableInfo extends StaticTableInfo {
     InformationTableInfo(TableIdent ident,
                          ImmutableList<ColumnIdent> primaryKeyIdentList,
                          Map<ColumnIdent, Reference> references) {
-        this(ident, primaryKeyIdentList, references, null);
+        super(ident, references, null, primaryKeyIdentList);
     }
 
     InformationTableInfo(TableIdent ident,
@@ -49,6 +50,12 @@ public class InformationTableInfo extends StaticTableInfo {
                          Map<ColumnIdent, Reference> references,
                          @Nullable ImmutableList<Reference> columns) {
         super(ident, references, columns, primaryKeyIdentList);
+    }
+
+    InformationTableInfo(TableIdent ident,
+                         ColumnRegistrar columnRegistrar,
+                         ImmutableList<ColumnIdent> primaryKey) {
+        super(ident, columnRegistrar, primaryKey);
     }
 
     @Override

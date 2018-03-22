@@ -48,6 +48,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -178,10 +179,12 @@ public class DocSchemaInfo implements SchemaInfo {
         return tables;
     }
 
+    @Nullable
     private ViewInfo getViewInfo(String name) {
         try {
             return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
         } catch (ResourceUnknownException e) {
+            // underlying table of the view does not exist any more
             return null;
         }
     }
@@ -274,7 +277,6 @@ public class DocSchemaInfo implements SchemaInfo {
                 }
             }
         }
-
 
         // re register UDFs for this schema
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);

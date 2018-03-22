@@ -39,7 +39,7 @@ public abstract class StaticTableInfo implements TableInfo {
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKey;
     private final Collection<Reference> columns;
-    protected final Map<ColumnIdent, Reference> columnMap;
+    private final Map<ColumnIdent, Reference> columnMap;
 
     /**
      * @param columns top level columns. If null the values of columnMap are used.
