@@ -47,6 +47,7 @@ import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -165,65 +166,103 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testFromQueryWithOnDuplicateKey() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement =
-            e.analyze("insert into users (id, name) (select id, name from users) " +
-                      "on duplicate key update name = 'Arthur'");
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
+                              "on duplicate key update name = 'Arthur'";
+        insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
+                              "on conflict do update set name = 'Arthur'";
 
-        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        for (String insertStatement : insertStatements) {
+            InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey(), isReference("name"));
-            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+            for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+                assertThat(entry.getKey(), isReference("name"));
+                assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            }
         }
     }
 
     @Test
     public void testFromQueryWithOnDuplicateKeyParameter() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement =
-            e.analyze("insert into users (id, name) (select id, name from users) " +
-                      "on duplicate key update name = ?",
-                new Object[]{"Arthur"});
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
+                              "on duplicate key update name = ?";
+        insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
+                              "on conflict do update set name = ?";
 
-        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        for (String insertStatement : insertStatements) {
+            InsertFromSubQueryAnalyzedStatement statement =
+                e.analyze(insertStatement, new Object[]{"Arthur"});
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey(), isReference("name"));
-            assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+            for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+                assertThat(entry.getKey(), isReference("name"));
+                assertThat(entry.getValue(), isLiteral("Arthur", StringType.INSTANCE));
+            }
         }
     }
 
     @Test
     public void testFromQueryWithOnDuplicateKeyValues() throws Exception {
-        InsertFromSubQueryAnalyzedStatement statement =
-            e.analyze("insert into users (id, name) (select id, name from users) " +
-                      "on duplicate key update name = substr(values (name), 1, 1)");
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
+                              "on duplicate key update name = substr(values (name), 1, 1)";
+        insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
+                              "on conflict do update set name = substr(excluded.name, 1, 1)";
 
-        Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        for (String insertStatement : insertStatements) {
+            InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
 
-        for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
-            assertThat(entry.getKey(), isReference("name"));
-            assertThat(entry.getValue(), isFunction(SubstrFunction.NAME));
-            Function function = (Function) entry.getValue();
-            assertThat(function.arguments().get(0), instanceOf(InputColumn.class));
-            InputColumn inputColumn = (InputColumn) function.arguments().get(0);
-            assertThat(inputColumn.index(), is(1));
-            assertThat(inputColumn.valueType(), instanceOf(StringType.class));
+            Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+            for (Map.Entry<Reference, Symbol> entry : statement.onDuplicateKeyAssignments().entrySet()) {
+                assertThat(entry.getKey(), isReference("name"));
+                assertThat(entry.getValue(), isFunction(SubstrFunction.NAME));
+                Function function = (Function) entry.getValue();
+                assertThat(function.arguments().get(0), instanceOf(InputColumn.class));
+                InputColumn inputColumn = (InputColumn) function.arguments().get(0);
+                assertThat(inputColumn.index(), is(1));
+                assertThat(inputColumn.valueType(), instanceOf(StringType.class));
+            }
         }
     }
 
     @Test
     public void testFromQueryWithUnknownOnDuplicateKeyValues() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column does_not_exist unknown");
-        e.analyze("insert into users (id, name) (select id, name from users) " +
-                  "on duplicate key update name = values (does_not_exist)");
+        try {
+            e.analyze("insert into users (id, name) (select id, name from users) " +
+                      "on duplicate key update name = values (does_not_exist)");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnUnknownException e) {
+            assertThat(e.getMessage(), containsString("Column does_not_exist unknown"));
+        }
+        try {
+            e.analyze("insert into users (id, name) (select id, name from users) " +
+                      "on conflict do update set name = excluded.does_not_exist");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnUnknownException e) {
+            assertThat(e.getMessage(), containsString("Column does_not_exist unknown"));
+        }
     }
 
     @Test
     public void testFromQueryWithOnDuplicateKeyPrimaryKeyUpdate() {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Updating a primary key is not supported");
-        e.analyze("insert into users (id, name) (select 1, 'Arthur') on duplicate key update id = id + 1");
+        try {
+            e.analyze("insert into users (id, name) (select 1, 'Arthur') on duplicate key update id = id + 1");
+            fail("Analyze passed without a failure.");
+
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Updating a primary key is not supported"));
+        }
+        try {
+            e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set id = id + 1");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Updating a primary key is not supported"));
+        }
     }
 
     @Test

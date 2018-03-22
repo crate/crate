@@ -25,6 +25,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedRelation;
@@ -47,6 +48,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
@@ -121,6 +123,7 @@ class InsertFromSubQueryAnalyzer {
             typeHints,
             txnCtx,
             new NameFieldProvider(tableRelation),
+            insert.getDuplicateKeyType(),
             insert.onDuplicateKeyAssignments()
         );
 
@@ -147,6 +150,7 @@ class InsertFromSubQueryAnalyzer {
             analysis.parameterContext(),
             analysis.transactionContext(),
             fieldProvider,
+            node.getDuplicateKeyType(),
             node.onDuplicateKeyAssignments()
         );
 
@@ -235,14 +239,21 @@ class InsertFromSubQueryAnalyzer {
                                                        ExpressionAnalyzer exprAnalyzer,
                                                        TransactionContext txnCtx,
                                                        Function<ParameterExpression, Symbol> paramConverter,
+                                                       Insert.DuplicateKeyType duplicateKeyType,
                                                        List<Assignment> assignments) {
         if (assignments.isEmpty()) {
             return Collections.emptyMap();
         }
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
         ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
+        final FieldProvider fieldProvider;
+        if (duplicateKeyType == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
+            fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(targetTable), valuesResolver);
+        } else {
+            fieldProvider = new NameFieldProvider(targetTable);
+        }
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            functions, txnCtx, paramConverter, new NameFieldProvider(targetTable), valuesResolver);
+            functions, txnCtx, paramConverter, fieldProvider, valuesResolver, duplicateKeyType);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
 
         HashMap<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
@@ -267,6 +278,7 @@ class InsertFromSubQueryAnalyzer {
                                                             java.util.function.Function<ParameterExpression, Symbol> parameterContext,
                                                             TransactionContext transactionContext,
                                                             FieldProvider fieldProvider,
+                                                            Insert.DuplicateKeyType duplicateKeyType,
                                                             List<Assignment> assignments) {
         if (assignments.isEmpty()) {
             return Collections.emptyMap();
@@ -276,6 +288,7 @@ class InsertFromSubQueryAnalyzer {
             functions, transactionContext, parameterContext, fieldProvider, null, Operation.UPDATE);
 
         return getUpdateAssignments(
-            functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext, assignments);
+            functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext,
+            duplicateKeyType, assignments);
     }
 }
