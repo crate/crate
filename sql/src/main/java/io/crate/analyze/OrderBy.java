@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class OrderBy implements Writeable {
@@ -154,5 +155,11 @@ public class OrderBy implements Writeable {
             }
         }
         return sb;
+    }
+
+    public void accept(Consumer<? super Symbol> consumer) {
+        for (Symbol sortItem : orderBySymbols) {
+            consumer.accept(sortItem);
+        }
     }
 }
