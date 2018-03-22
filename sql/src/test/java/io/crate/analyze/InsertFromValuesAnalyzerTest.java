@@ -22,13 +22,14 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.ValidationException;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference.IndexType;
@@ -38,7 +39,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
+import io.crate.sql.tree.Insert;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -61,6 +62,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -916,34 +918,65 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInsertFromValuesWithOnDuplicateKey() throws Exception {
-        InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into users (id, name, other_id) values (1, 'Arthur', 10) " +
+    public void testInsertFromValuesWithOnDuplicateKey() {
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name, other_id) values (1, 'Arthur', 10) " +
             "on duplicate key update name = substr(values (name), 1, 2), " +
-            "other_id = other_id + 100");
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+            "other_id = other_id + 100";
+        insertStatements[1] = "insert into users (id, name, other_id) values (1, 'Arthur', 10) " +
+            "on conflict do update set name = substr(excluded.name, 1, 2), " +
+            "other_id = other_id + 100";
 
-        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(2));
-        assertThat(assignments[0], isLiteral("Ar"));
-        assertThat(assignments[1], isFunction(ArithmeticFunctions.Names.ADD));
-        Function function = (Function) assignments[1];
-        assertThat(function.arguments().get(0), isReference("other_id"));
+        for (String insertStatement : insertStatements) {
+            InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+            assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+
+            Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+            assertThat(assignments.length, is(2));
+            assertThat(assignments[0], isLiteral("Ar"));
+            assertThat(assignments[1], isFunction(ArithmeticFunctions.Names.ADD));
+            Function function = (Function) assignments[1];
+            assertThat(function.arguments().get(0), isReference("other_id"));
+        }
     }
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKeyInvalidColumnInValues() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column does_not_exist unknown");
-       e.analyze("insert into users (id, name) values (1, 'Arthur') " +
+        e.analyze("insert into users (id, name) values (1, 'Arthur') " +
                 "on duplicate key update name = values (does_not_exist)");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnConflictDoUpdateInvalidColumnInExcluded() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column does_not_exist unknown");
+        e.analyze("insert into users (id, name) values (1, 'Arthur') " +
+                  "on conflict do update set name = excluded.does_not_exist");
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnConflictDoUpdateAndValueUsage() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Can't use VALUES outside ON DUPLICATE KEY");
+        e.analyze("insert into users (id, name) values (1, 'Arthur') " +
+                  "on conflict do update set name = values (name)");
+    }
+
+    @Test
+    public void testInsertFromValuesWithWithDuplicateKeyAndUseOfExcluded() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column reference \"excluded.name\" has too many parts");
+        e.analyze("insert into users (id, name) values (1, 'Arthur') " +
+                  "on duplicate key update name = excluded.name");
     }
 
     @Test
     public void testInsertFromValuesWithOnDuplicateKeyFunctionInValues() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
-            "Argument to VALUES expression must reference a column that is part of the INSERT statement. random() is invalid");
+            "Argument to VALUES must reference a column that is part of the INSERT statement. random() is invalid");
        e.analyze("insert into users (id, name) values (1, 'Arthur') " +
                 "on duplicate key update name = values (random())");
     }
@@ -956,28 +989,48 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
+    public void testInsertFromValuesWithOnConflictUpdateExcludedWithNotInsertedColumnRef() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Referenced column 'name' isn't part of the column list of the INSERT statement");
+        e.analyze("insert into users (id) values (1) on conflict do update set name = excluded.name");
+    }
+
+    @Test
     public void testInsertFromValuesWithOnDupKeyValuesWithReferenceToNull() throws Exception {
-        InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into users (id, name) values (1, null) on duplicate key update name = values(name)");
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
-        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(1));
-        assertThat(assignments[0], isLiteral(null, DataTypes.STRING));
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) values (1, null) on duplicate key update name = values(name)";
+        insertStatements[1] = "insert into users (id, name) values (1, null) on conflict do update set name = excluded.name";
+
+        for (String insertStatement : insertStatements) {
+            InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+            assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+            Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+            assertThat(assignments.length, is(1));
+            assertThat(assignments[0], isLiteral(null, DataTypes.STRING));
+        }
     }
 
     @Test
     public void testInsertFromValuesWithOnDupKeyValuesWithParams() throws Exception {
-        InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)",
-            new Object[]{"foobar"});
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
-        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(1));
-        assertThat(assignments[0], isLiteral("foobar"));
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)";
+        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict do update set name = excluded.name";
+
+        for (String insertStatement : insertStatements) {
+            InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement, new Object[]{"foobar"});
+            assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+            Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+            assertThat(assignments.length, is(1));
+            assertThat(assignments[0], isLiteral("foobar"));
+        }
     }
 
     @Test
     public void testInsertFromValuesWithOnDuplicateWithTwoRefsAndDifferentTypes() throws Exception {
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)";
+        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict do update set name = excluded.name";
+
         InsertFromValuesAnalyzedStatement statement = e.analyze(
             "insert into users (id, name) values (1, 'foobar') " +
             "on duplicate key update name = awesome");
@@ -988,48 +1041,87 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testInsertFromMultipleValuesWithOnDuplicateKey() throws Exception {
-        InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
-            "on duplicate key update name = substr(values (name), 1, 1)");
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(2));
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
+                              "on duplicate key update name = substr(values (name), 1, 1)";
+        insertStatements[1] = "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
+                              "on conflict do update set name = substr(excluded.name, 1, 1)";
 
-        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(1));
-        assertThat(assignments[0], isLiteral("A"));
+        for (String insertStatement : insertStatements) {
+            InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+            assertThat(statement.onDuplicateKeyAssignments().size(), is(2));
 
-        assignments = statement.onDuplicateKeyAssignments().get(1);
-        assertThat(assignments.length, is(1));
-        assertThat(assignments[0], isLiteral("T"));
+            Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+            assertThat(assignments.length, is(1));
+            assertThat(assignments[0], isLiteral("A"));
+
+            assignments = statement.onDuplicateKeyAssignments().get(1);
+            assertThat(assignments.length, is(1));
+            assertThat(assignments[0], isLiteral("T"));
+        }
     }
 
     @Test
     public void testOnDuplicateKeyUpdateOnObjectColumn() throws Exception {
-        InsertFromValuesAnalyzedStatement statement = e.analyze(
-            "insert into users (id) values (1) on duplicate key update details['foo'] = 'foobar'");
-        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
-        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
-        assertThat(assignments.length, is(1));
-        assertThat(assignments[0], isLiteral("foobar"));
+        String[] insertStatements = new String[2];
+        insertStatements[0] = "insert into users (id) values (1) on duplicate key update details['foo'] = 'foobar'";
+        insertStatements[1] = "insert into users (id) values (1) on conflict do update set details['foo'] = 'foobar'";
+
+        for (String insertStatement : insertStatements) {
+            InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+            assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+            Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+            assertThat(assignments.length, is(1));
+            assertThat(assignments[0], isLiteral("foobar"));
+        }
     }
 
     @Test
     public void testInvalidLeftSideExpressionInOnDuplicateKey() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        e.analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
+        try {
+            e.analyze("insert into users (id, name) values (1, 'Arthur') on duplicate key update [1, 2] = 1");
+            fail("Analyze passed without a failure.");
+        } catch (IllegalArgumentException e) {
+            // this is what we want
+        }
+        try {
+            e.analyze("insert into users (id, name) values (1, 'Arthur') on conflict do update set [1, 2] = 1");
+            fail("Analyze passed without a failure.");
+        } catch (IllegalArgumentException e) {
+            // this is what we want
+        }
     }
 
     @Test
     public void testUpdateOnPartitionedColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for date: Updating a partitioned-by column is not supported");
-        e.analyze("insert into parted (id) values (1) on duplicate key update date = 0");
+        try {
+            e.analyze("insert into parted (id) values (1) on duplicate key update date = 0");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Validation failed for date: Updating a partitioned-by column is not supported"));
+        }
+        try {
+            e.analyze("insert into parted (id) values (1) on conflict do update set date = 0");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Validation failed for date: Updating a partitioned-by column is not supported"));
+        }
     }
 
     @Test
     public void testUpdateOnClusteredByColumnShouldRaiseAnError() throws Exception {
-        expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
-        e.analyze("insert into users_clustered_by_only (id) values (1) on duplicate key update id = 10");
+        try {
+            e.analyze("insert into users_clustered_by_only (id) values (1) on duplicate key update id = 10");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Validation failed for id: Updating a clustered-by column is not supported"));
+        }
+        try {
+            e.analyze("insert into users_clustered_by_only (id) values (1) on conflict do update set id = 10");
+            fail("Analyze passed without a failure.");
+        } catch (ColumnValidationException e) {
+            assertThat(e.getMessage(), containsString("Validation failed for id: Updating a clustered-by column is not supported"));
+        }
     }
 
     @Test

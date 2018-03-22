@@ -34,8 +34,9 @@ public class InsertFromValues extends Insert {
     public InsertFromValues(Table table,
                             List<ValuesList> valuesLists,
                             List<String> columns,
+                            DuplicateKeyType duplicateKeyType,
                             List<Assignment> onDuplicateKeyAssignments) {
-        super(table, columns, onDuplicateKeyAssignments);
+        super(table, columns, duplicateKeyType, onDuplicateKeyAssignments);
         this.valuesLists = valuesLists;
 
         int i = 0;

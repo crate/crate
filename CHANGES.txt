@@ -60,6 +60,11 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ``INSERT INTO ... ON CONFLICT DO UPDATE SET col = val``
+  which is identical to ``INSERT INTO ... ON DUPLICATE KEY UPDATE col = val``.
+  The special EXCLUDED table can be used to refer to the insert values:
+  ``INSERT INTO ... ON CONFLICT DO UPDATE SET col = EXCLUDED.col``
+
 - Added support for ``DEALLOCATE`` statement which is used by certain Postgres
   Wire Protocol clients (e.g. libpq) to deallocate a prepared statement and
   release its resources.

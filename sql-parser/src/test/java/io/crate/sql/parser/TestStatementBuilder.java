@@ -78,6 +78,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestStatementBuilder {
 
@@ -785,6 +786,7 @@ public class TestStatementBuilder {
 
         try {
             printStatement("insert into t (a, b) values (1, 2) on conflict do nothing");
+            fail("Should have failed to parse statement.");
         } catch (UnsupportedOperationException e) {
             // this is what we want
         }
