@@ -92,7 +92,11 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                         return currentState;
                     }
                     return ClusterState.builder(currentState)
-                        .metaData(MetaData.builder().putCustom(ViewsMetaData.TYPE, removeResult.updatedViews()).build())
+                        .metaData(
+                            MetaData.builder(currentState.metaData())
+                                .putCustom(ViewsMetaData.TYPE, removeResult.updatedViews())
+                                .build()
+                        )
                         .build();
                 }
 
