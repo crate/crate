@@ -158,7 +158,8 @@ class HashJoin extends TwoInputPlan {
 
         List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
         // The projection operates on the the outputs of the join operation, which may be inverted due to a table switch,
-        // and must produce outputs that match the order of the original outputs the plan.
+        // and must produce outputs that match the order of the original outputs, because a "parent" (eg. GROUP BY)
+        // operator of the join expects the original outputs order.
         List<Symbol> projectionOutputs = InputColumns.create(
                 outputs,
                 new InputColumns.SourceSymbols(joinOutputs));
