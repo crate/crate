@@ -6,11 +6,13 @@ Version 1.0.0
 
 Released on 2016/12/05.
 
-If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
-before you upgrade to 1.0.0.
+.. NOTE::
 
-You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
-version will require a `full restart upgrade`_.
+   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+   before you upgrade to 1.0.0.
+
+   You cannot perform a `rolling upgrade`_ to this version. Any upgrade to this
+   version will require a `full restart upgrade`_.
 
 .. WARNING::
 
