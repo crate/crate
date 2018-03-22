@@ -22,12 +22,9 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Function;
+import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
-import io.crate.expression.scalar.conditional.LeastFunction;
 
 import javax.annotation.Nullable;
 
@@ -47,16 +44,5 @@ public final class Limits {
             s2,
             FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
         );
-    }
-
-    @Nullable
-    public static Symbol mergeMin(@Nullable Symbol limit1, @Nullable Symbol limit2) {
-        if (limit1 == null) {
-            return limit2;
-        }
-        if (limit2 == null) {
-            return limit1;
-        }
-        return new Function(LeastFunction.TWO_LONG_INFO, ImmutableList.of(limit1, limit2));
     }
 }

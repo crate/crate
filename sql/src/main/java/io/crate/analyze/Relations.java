@@ -28,7 +28,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
-import io.crate.analyze.relations.SubselectRewriter;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -73,8 +72,7 @@ class Relations {
         } else {
             newRelation = new QueriedSelectRelation(
                 ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);
-            newRelation = (QueriedRelation) normalizer.normalize(
-                SubselectRewriter.rewrite(newRelation), transactionContext);
+            newRelation = (QueriedRelation) normalizer.normalize(newRelation, transactionContext);
         }
         newRelation.setQualifiedName(relation.getQualifiedName());
         return newRelation;

@@ -116,8 +116,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
         AnalyzedRelation relation = process(node, statementContext);
-        AnalyzedRelation rewrittenRelation = SubselectRewriter.rewrite(relation);
-        return relationNormalizer.normalize(rewrittenRelation, statementContext.transactionContext());
+        return relationNormalizer.normalize(relation, statementContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query,

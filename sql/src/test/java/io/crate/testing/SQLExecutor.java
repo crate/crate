@@ -42,7 +42,6 @@ import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.analyze.relations.SubselectRewriter;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.data.Row;
@@ -516,9 +515,8 @@ public class SQLExecutor {
             // because the subRelations are not yet QueriedRelations.
             // we eventually should integrate normalize into unboundAnalyze.
             // But then we have to remove the whereClauseAnalyzer calls because they depend on all values being available
-            AnalyzedRelation rewrittenRelation = SubselectRewriter.rewrite(((AnalyzedRelation) stmt));
             stmt = (AnalyzedStatement) new RelationNormalizer(functions)
-                .normalize(rewrittenRelation, transactionContext);
+                .normalize((AnalyzedRelation) stmt, transactionContext);
         }
         return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
     }
