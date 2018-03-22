@@ -106,15 +106,13 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new TransactionContext(SessionContext.create()));
 
-        assertThat(
-            semiJoin.querySpec().where(),
-            isSQL("WhereClause{MATCH_ALL=true}"));
+        assertThat(semiJoin.querySpec().where(), isSQL("true"));
         assertThat(((QueriedRelation) semiJoin.sources().get(T1)).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
-            .querySpec(), isSQL("SELECT 'foo'"));
+            .querySpec(), isSQL("SELECT .empty_row.'foo'"));
 
-        assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = .empty_row.'foo')"));
+        assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
         assertThat(semiJoin.joinPairs().get(0).joinType(), is(JoinType.SEMI));
     }
 
@@ -124,15 +122,13 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect antiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new TransactionContext(SessionContext.create()));
 
-        assertThat(
-            antiJoin.querySpec().where(),
-            isSQL("WhereClause{MATCH_ALL=true}"));
+        assertThat(antiJoin.querySpec().where(), isSQL("true"));
         assertThat(((QueriedRelation) antiJoin.sources().get(T1)).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
         assertThat(((QueriedRelation) antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
-            .querySpec(), isSQL("SELECT 'foo'"));
+            .querySpec(), isSQL("SELECT .empty_row.'foo'"));
 
-        assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = .empty_row.'foo')"));
+        assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
         assertThat(antiJoin.joinPairs().get(0).joinType(), is(JoinType.ANTI));
     }
 

@@ -41,17 +41,20 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -315,12 +318,18 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     "  select distinct id from users group by id, name order by 1" +
                     ") t order by 1 desc");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
-        assertThat(relation.querySpec(),
-            isSQL("SELECT doc.users.id GROUP BY doc.users.id ORDER BY doc.users.id DESC"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
-        assertThat(outerRelation.subRelation().querySpec(),
-            isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name"));
+        assertThat(outerRelation.outputs(), contains(isField("id")));
+
+        assertThat(outerRelation.groupBy(), Matchers.empty());
+        assertThat(outerRelation.orderBy().orderBySymbols(), contains(isField("id")));
+
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
+        QueriedSelectRelation subRelation = (QueriedSelectRelation) outerRelation.subRelation();
+        assertThat(subRelation.groupBy(), contains(isField("id")));
+
+        assertThat(subRelation.subRelation().groupBy(), contains(isReference("id"), isReference("name")));
+
     }
 
     @Test

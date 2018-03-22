@@ -404,6 +404,9 @@ class FetchOrEval extends OneInputPlan {
                 });
             }
             Symbol mapped = expressionMapping.get(output);
+            if (mapped == null) {
+                mapped = expressionMapping.get(f);
+            }
             assert mapped != null
                 : "Field mapping must exists for " + output + " in " + expressionMapping;
             return toInputColOrFetchRef(
