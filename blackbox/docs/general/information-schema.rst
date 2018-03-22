@@ -65,33 +65,33 @@ settings like the ``number of shards`` or ``number of replicas``.
     | doc                | locations               |                2 | 0                  |
     | doc                | partitioned_table       |                4 | 0-1                |
     | doc                | quotes                  |                2 | 0                  |
-    | information_schema | columns                 |                1 | 0                  |
-    | information_schema | ingestion_rules         |                1 | 0                  |
-    | information_schema | key_column_usage        |                1 | 0                  |
-    | information_schema | referential_constraints |                1 | 0                  |
-    | information_schema | routines                |                1 | 0                  |
-    | information_schema | schemata                |                1 | 0                  |
-    | information_schema | sql_features            |                1 | 0                  |
-    | information_schema | table_constraints       |                1 | 0                  |
-    | information_schema | table_partitions        |                1 | 0                  |
-    | information_schema | tables                  |                1 | 0                  |
-    | pg_catalog         | pg_type                 |                1 | 0                  |
-    | sys                | allocations             |                1 | 0                  |
-    | sys                | checks                  |                1 | 0                  |
-    | sys                | cluster                 |                1 | 0                  |
-    | sys                | health                  |                1 | 0                  |
-    | sys                | jobs                    |                1 | 0                  |
-    | sys                | jobs_log                |                1 | 0                  |
-    | sys                | node_checks             |                1 | 0                  |
-    | sys                | nodes                   |                1 | 0                  |
-    | sys                | operations              |                1 | 0                  |
-    | sys                | operations_log          |                1 | 0                  |
-    | sys                | privileges              |                1 | 0                  |
-    | sys                | repositories            |                1 | 0                  |
-    | sys                | shards                  |                1 | 0                  |
-    | sys                | snapshots               |                1 | 0                  |
-    | sys                | summits                 |                1 | 0                  |
-    | sys                | users                   |                1 | 0                  |
+    | information_schema | columns                 |             NULL | NULL               |
+    | information_schema | ingestion_rules         |             NULL | NULL               |
+    | information_schema | key_column_usage        |             NULL | NULL               |
+    | information_schema | referential_constraints |             NULL | NULL               |
+    | information_schema | routines                |             NULL | NULL               |
+    | information_schema | schemata                |             NULL | NULL               |
+    | information_schema | sql_features            |             NULL | NULL               |
+    | information_schema | table_constraints       |             NULL | NULL               |
+    | information_schema | table_partitions        |             NULL | NULL               |
+    | information_schema | tables                  |             NULL | NULL               |
+    | pg_catalog         | pg_type                 |             NULL | NULL               |
+    | sys                | allocations             |             NULL | NULL               |
+    | sys                | checks                  |             NULL | NULL               |
+    | sys                | cluster                 |             NULL | NULL               |
+    | sys                | health                  |             NULL | NULL               |
+    | sys                | jobs                    |             NULL | NULL               |
+    | sys                | jobs_log                |             NULL | NULL               |
+    | sys                | node_checks             |             NULL | NULL               |
+    | sys                | nodes                   |             NULL | NULL               |
+    | sys                | operations              |             NULL | NULL               |
+    | sys                | operations_log          |             NULL | NULL               |
+    | sys                | privileges              |             NULL | NULL               |
+    | sys                | repositories            |             NULL | NULL               |
+    | sys                | shards                  |             NULL | NULL               |
+    | sys                | snapshots               |             NULL | NULL               |
+    | sys                | summits                 |             NULL | NULL               |
+    | sys                | users                   |             NULL | NULL               |
     +--------------------+-------------------------+------------------+--------------------+
     SELECT 30 rows in set (... sec)
 

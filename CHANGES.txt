@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+- The columns ``number_of_shards``, ``number_of_replicas``, and
+  ``self_referencing_column_name`` in ``information_schema.tables`` changed to
+  return ``NULL`` for non-sharded tables.
+
 - Adapted queries in the Admin UI to be compatible with CrateDB 3.0+
 
 - For HTTP authentication, support was dropped for the ``X-User`` header, used

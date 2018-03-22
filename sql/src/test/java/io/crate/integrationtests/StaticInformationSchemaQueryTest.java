@@ -184,7 +184,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testOrderByNumberAndLimit() throws Exception {
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-                " order by number_of_shards desc limit 2");
+                " order by number_of_shards desc nulls last limit 2");
         assertEquals(2L, response.rowCount());
         assertEquals(10, response.rows()[0][1]);
         assertEquals("t2", response.rows()[0][0]);

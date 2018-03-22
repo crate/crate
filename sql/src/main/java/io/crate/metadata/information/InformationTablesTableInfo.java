@@ -53,7 +53,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final String NAME = "tables";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    private static final BytesRef ZERO_REPLICAS = new BytesRef("0");
     static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
     static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
     static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
@@ -247,14 +246,14 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).numberOfShards();
                     }
-                    return 1;
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
                     if (row instanceof ShardedTable) {
                         return ((ShardedTable) row).numberOfReplicas();
                     }
-                    return ZERO_REPLICAS;
+                    return null;
                 }))
             .put(InformationTablesTableInfo.Columns.CLUSTERED_BY,
                 () -> RowContextCollectorExpression.objToBytesRef(row -> {
@@ -312,7 +311,12 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                     return null;
                 }))
             .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> SELF_REFERENCING_COLUMN_NAME))
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                    if (row instanceof ShardedTable) {
+                        return SELF_REFERENCING_COLUMN_NAME;
+                    }
+                    return null;
+                }))
             .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> REFERENCE_GENERATION))
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)

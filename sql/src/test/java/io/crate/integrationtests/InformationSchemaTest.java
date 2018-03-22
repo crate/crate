@@ -54,31 +54,31 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(25L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| columns| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| ingestion_rules| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| key_column_usage| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| referential_constraints| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| routines| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| schemata| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| sql_features| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| table_constraints| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| table_partitions| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| information_schema| tables| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| pg_catalog| pg_type| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| allocations| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| checks| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| cluster| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| health| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| jobs| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| jobs_log| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| node_checks| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| nodes| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| operations| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| operations_log| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| repositories| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| shards| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| snapshots| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| summits| sys| BASE TABLE| NULL\n")
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| columns| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| ingestion_rules| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| key_column_usage| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| referential_constraints| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| routines| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| schemata| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| sql_features| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_constraints| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_partitions| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| tables| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_type| pg_catalog| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| allocations| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| checks| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| cluster| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| health| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| jobs| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| jobs_log| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| node_checks| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| nodes| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| operations| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| operations_log| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| repositories| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| shards| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| snapshots| sys| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| summits| sys| BASE TABLE| NULL\n")
         );
     }
 
