@@ -27,15 +27,15 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.DocReferences;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
@@ -77,7 +77,7 @@ public final class InsertFromSubQueryPlanner {
         }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
         LogicalPlan plannedSubQuery = logicalPlanner.plan(subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
-        return new Insert(plannedSubQuery, subRelation, indexWriterProjection);
+        return new Insert(plannedSubQuery, indexWriterProjection);
     }
 
     private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {

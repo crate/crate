@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -42,12 +41,10 @@ import java.util.Map;
 
 public class Insert extends OneInputPlan {
 
-    private final QueriedRelation relation;
     final ColumnIndexWriterProjection projection;
 
-    public Insert(LogicalPlan source, QueriedRelation relation, ColumnIndexWriterProjection projection) {
+    public Insert(LogicalPlan source, ColumnIndexWriterProjection projection) {
         super(source);
-        this.relation = relation;
         this.projection = projection;
     }
 
@@ -73,12 +70,12 @@ public class Insert extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Insert(newSource, relation, projection);
+        return new Insert(newSource, projection);
     }
 
     @Override
     public List<Symbol> outputs() {
-        return relation.outputs();
+        return MergeCountProjection.OUTPUTS;
     }
 
     @Override

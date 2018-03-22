@@ -37,7 +37,7 @@ public class MergeCountProjection extends Projection {
 
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
-    private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
+    public static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
         new Value(DataTypes.LONG)  // number of rows updated
     );
 
