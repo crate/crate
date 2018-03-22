@@ -89,7 +89,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                         }
                         return ClusterState.builder(currentState)
                             .metaData(
-                                MetaData.builder()
+                                MetaData.builder(currentState.metaData())
                                     .putCustom(
                                         ViewsMetaData.TYPE,
                                         ViewsMetaData.addOrReplace(views, request.name(), request.query()))
