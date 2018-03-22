@@ -100,7 +100,29 @@ public interface QueriedRelation extends AnalyzedRelation, AnalyzedStatement {
      */
     @Override
     default void visitSymbols(Consumer<? super Symbol> consumer) {
-        querySpec().visitSymbols(consumer);
+        for (Symbol output : outputs()) {
+            consumer.accept(output);
+        }
+        where().accept(consumer);
+        for (Symbol groupKey : groupBy()) {
+            consumer.accept(groupKey);
+        }
+        HavingClause having = having();
+        if (having != null) {
+            having.accept(consumer);
+        }
+        OrderBy orderBy = orderBy();
+        if (orderBy != null) {
+            orderBy.accept(consumer);
+        }
+        Symbol limit = limit();
+        if (limit != null) {
+            consumer.accept(limit);
+        }
+        Symbol offset = offset();
+        if (offset != null) {
+            consumer.accept(offset);
+        }
     }
 
 

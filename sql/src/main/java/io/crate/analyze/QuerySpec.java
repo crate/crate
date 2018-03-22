@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -169,38 +168,6 @@ public class QuerySpec {
         }
         if (having != null) {
             having.replace(replaceFunction);
-        }
-    }
-
-    /**
-     * Visit all symbols present in this query spec.
-     * <p>
-     * (non-recursive, so function symbols won't be walked into)
-     * </p>
-     */
-    public void visitSymbols(Consumer<? super Symbol> consumer) {
-        for (Symbol output : outputs) {
-            consumer.accept(output);
-        }
-        if (where.hasQuery()) {
-            consumer.accept(where.query());
-        }
-        for (Symbol groupBySymbol : groupBy) {
-            consumer.accept(groupBySymbol);
-        }
-        if (having != null && having.hasQuery()) {
-            consumer.accept(having.query());
-        }
-        if (orderBy != null) {
-            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                consumer.accept(orderBySymbol);
-            }
-        }
-        if (limit != null) {
-            consumer.accept(limit);
-        }
-        if (offset != null) {
-            consumer.accept(offset);
         }
     }
 

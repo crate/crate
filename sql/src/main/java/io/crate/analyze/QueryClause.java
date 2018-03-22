@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class QueryClause {
@@ -85,6 +86,12 @@ public abstract class QueryClause {
                     query = newQuery;
                 }
             }
+        }
+    }
+
+    public void accept(Consumer<? super Symbol> consumer) {
+        if (query != null) {
+            consumer.accept(query);
         }
     }
 }
