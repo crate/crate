@@ -47,6 +47,7 @@ import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -74,11 +75,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
         ImmutableSet.of(InformationSchemaInfo.NAME, SysSchemaInfo.NAME, BlobSchemaInfo.NAME, PgCatalogSchemaInfo.NAME);
 
     private final Schemas schemas;
-    private final FluentIterable<RelationInfo> tablesIterable;
-    private final FluentIterable<RelationInfo> viewsIterable;
+    private final FluentIterable<RelationInfo> tables;
+    private final FluentIterable<ViewInfo> views;
     private final PartitionInfos partitionInfos;
-    private final FluentIterable<ColumnContext> columnsIterable;
-    private final FluentIterable<RelationInfo> primaryKeyTableInfos;
+    private final FluentIterable<ColumnContext> columns;
+    private final FluentIterable<RelationInfo> primaryKeys;
     private final FluentIterable<ConstraintInfo> constraints;
     private final SqlFeaturesIterable sqlFeatures;
     private final Iterable<Void> referentialConstraints;
@@ -94,26 +95,26 @@ public class InformationSchemaIterables implements ClusterStateListener {
                                       ClusterService clusterService) throws IOException {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-        tablesIterable = FluentIterable.from(schemas)
+        tables = FluentIterable.from(schemas)
             .transformAndConcat(schema -> FluentIterable.from(schema.getTables())
                 .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
 
-        viewsIterable = FluentIterable.from(schemas)
+        views = FluentIterable.from(schemas)
             .transformAndConcat(schema -> FluentIterable.from(schema.getViews())
                 .filter(i -> !IndexParts.isPartitioned(i.ident().indexName())));
 
         partitionInfos = new PartitionInfos(clusterService);
-        columnsIterable = tablesIterable.append(viewsIterable).transformAndConcat(ColumnsIterable::new);
+        columns = tables.append(views).transformAndConcat(ColumnsIterable::new);
 
-        primaryKeyTableInfos = tablesIterable
+        primaryKeys = tables
             .filter(i -> i != null && (i.primaryKey().size() > 1 ||
                                        (i.primaryKey().size() == 1 && !i.primaryKey().get(0).name().equals("_id"))));
-        FluentIterable<ConstraintInfo> primaryKeyConstraints = primaryKeyTableInfos
+        FluentIterable<ConstraintInfo> primaryKeyConstraints = primaryKeys
             .transform(t -> new ConstraintInfo(
                 t.ident(),
                 t.ident().name() + PK_SUFFIX,
                 ConstraintInfo.Constraint.PRIMARY_KEY));
-        FluentIterable<ConstraintInfo> notnullConstraints = tablesIterable.transformAndConcat(NotNullConstraintIterable::new);
+        FluentIterable<ConstraintInfo> notnullConstraints = tables.transformAndConcat(NotNullConstraintIterable::new);
         constraints = FluentIterable.concat(primaryKeyConstraints, notnullConstraints);
 
         sqlFeatures = new SqlFeaturesIterable();
@@ -129,8 +130,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return schemas;
     }
 
-    public Iterable<RelationInfo> tables() {
-        return FluentIterable.concat(tablesIterable, viewsIterable);
+    public Iterable<RelationInfo> relations() {
+        return FluentIterable.concat(tables, views);
+    }
+
+    public Iterable<ViewInfo> views() {
+        return views;
     }
 
     public Iterable<PartitionInfo> partitions() {
@@ -138,7 +143,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<ColumnContext> columns() {
-        return columnsIterable;
+        return columns;
     }
 
     public Iterable<ConstraintInfo> constraints() {
@@ -158,7 +163,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<KeyColumnUsage> keyColumnUsage() {
-        return primaryKeyTableInfos.stream()
+        return primaryKeys.stream()
             .filter(tableInfo -> !IGNORED_SCHEMAS.contains(tableInfo.ident().schema()))
             .flatMap(tableInfo -> {
                 List<ColumnIdent> pks = tableInfo.primaryKey();
