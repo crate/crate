@@ -39,19 +39,24 @@ Virtual Tables
 ``tables``
 ----------
 
-The information schema contains a table called ``tables``.
+The ``information_schema.tables`` virtual table can be queried to get a list of
+all available tables and views and their settings, such as number of shards or
+number of replicas.
 
-This table can be queried to get a list of all available tables and their
-settings like the ``number of shards`` or ``number of replicas``.
+.. hide: CREATE VIEW::
 
-.. Hidden: CREATE TABLE::
+   cr> CREATE VIEW galaxies AS
+   ... SELECT id, name, description FROM locations WHERE kind = 'Galaxy';
+   CREATE OK, 1 row affected (... sec)
 
-    cr> create table partitioned_table (
-    ... id long,
-    ... title string,
-    ... date timestamp
-    ... ) partitioned by (date);
-    CREATE OK, 1 row affected (... sec)
+.. hide: CREATE TABLE::
+
+   cr> create table partitioned_table (
+   ... id long,
+   ... title string,
+   ... date timestamp
+   ... ) partitioned by (date);
+   CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -61,6 +66,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     +--------------------+-------------------------+------------+------------------+--------------------+
     | table_schema       | table_name              | table_type | number_of_shards | number_of_replicas |
     +--------------------+-------------------------+------------+------------------+--------------------+
+    | doc                | galaxies                | VIEW       |             NULL | NULL               |
     | doc                | locations               | BASE TABLE |                2 | 0                  |
     | doc                | partitioned_table       | BASE TABLE |                4 | 0-1                |
     | doc                | quotes                  | BASE TABLE |                2 | 0                  |
@@ -74,6 +80,7 @@ settings like the ``number of shards`` or ``number of replicas``.
     | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
     | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
     | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | views                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_type                 | BASE TABLE |             NULL | NULL               |
     | sys                | allocations             | BASE TABLE |             NULL | NULL               |
     | sys                | checks                  | BASE TABLE |             NULL | NULL               |
@@ -92,25 +99,25 @@ settings like the ``number of shards`` or ``number of replicas``.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 30 rows in set (... sec)
+    SELECT 32 rows in set (... sec)
 
 The table also contains additional information such as specified routing
 (:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
 columns::
 
-    cr> select table_name, clustered_by, partitioned_by
-    ... from information_schema.tables
-    ... where table_name not like 'my_table%'
-    ...   and table_schema = 'doc'
-    ... order by table_schema asc, table_name asc;
+    cr> SELECT table_name, clustered_by, partitioned_by
+    ... FROM information_schema.tables
+    ... WHERE table_schema = 'doc'
+    ... ORDER BY table_schema ASC, table_name ASC;
     +-------------------+--------------+----------------+
     | table_name        | clustered_by | partitioned_by |
     +-------------------+--------------+----------------+
+    | galaxies          | NULL         | NULL           |
     | locations         | id           | NULL           |
     | partitioned_table | _id          | ["date"]       |
     | quotes            | id           | NULL           |
     +-------------------+--------------+----------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
 
 .. rubric:: Schema
 
@@ -192,6 +199,47 @@ On existing tables this needs to be done with ``ALTER TABLE`` statement::
 
     cr> drop table parameterized_table;
     DROP OK, 1 row affected (... sec)
+
+``views``
+---------
+
+The table ``information_schema.views`` contains the name, definition and
+options of all available views.
+
+::
+
+    cr> SELECT table_schema, table_name, view_definition
+    ... FROM information_schema.views
+    ... ORDER BY table_schema ASC, table_name ASC;
+    +--------------+------------+--------...----------------------------------------------------------+
+    | table_schema | table_name | view_definition                                                     |
+    +--------------+------------+--------...----------------------------------------------------------+
+    | doc          | galaxies   | SELECT ... FROM doc.locations WHERE (doc.locations.kind = 'Galaxy') |
+    +--------------+------------+--------...----------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. rubric:: Schema
+
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| Name                | Description                                                                         | Data Type   |
++=====================+=====================================================================================+=============+
+| ``table_catalog``   | The catalog of the table of the view (refers to ``table_schema``)                   | ``String``  |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| ``table_schema``    | The schema of the table of the view                                                 | ``String``  |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| ``table_name``      | The name of the table of the view                                                   | ``String``  |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| ``view_definition`` | The SELECT statement that defines the view                                          | ``String``  |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| ``check_option``    | Not applicable for CrateDB, always return ``NONE``                                  | ``String``  |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+| ``is_updatable``    | Whether the view is updatable. Not applicable for CrateDB, always returns ``FALSE`` | ``Boolean`` |
++---------------------+-------------------------------------------------------------------------------------+-------------+
+
+.. hide:
+
+   cr> DROP view galaxies;
+   DROP OK, 1 row affected (... sec)
 
 ``columns``
 -----------

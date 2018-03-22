@@ -39,10 +39,12 @@ import java.util.Set;
 public class ViewInfo implements RelationInfo {
 
     private final TableIdent ident;
+    private final String definition;
     private final List<Reference> columns;
 
-    ViewInfo(TableIdent ident, List<Reference> columns) {
+    ViewInfo(TableIdent ident, String definition, List<Reference> columns) {
         this.ident = ident;
+        this.definition = definition;
         this.columns = columns;
     }
 
@@ -89,5 +91,9 @@ public class ViewInfo implements RelationInfo {
     @Override
     public String toString() {
         return ident.fqn();
+    }
+
+    public String definition() {
+        return definition;
     }
 }

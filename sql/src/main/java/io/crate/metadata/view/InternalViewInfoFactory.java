@@ -61,6 +61,6 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         AnalyzedRelation relation = analyzerProvider.get().analyze(parsedStmt, new TransactionContext(), ParameterContext.EMPTY);
         ArrayList<Reference> columns = new ArrayList<>(relation.fields().size());
         relation.fields().forEach(field -> columns.add(new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
-        return new ViewInfo(ident, columns);
+        return new ViewInfo(ident, statement, columns);
     }
 }
