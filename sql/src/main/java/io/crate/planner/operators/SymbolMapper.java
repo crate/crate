@@ -45,4 +45,8 @@ interface SymbolMapper extends BiFunction<List<Symbol>, Symbol, Symbol> {
         Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(mapping);
         return (newOutputs, x) -> mapper.apply(x);
     }
+
+    default SymbolMapper andThen(List<Symbol> outputs, SymbolMapper after) {
+        return (newOutputs, x) -> after.apply(newOutputs, apply(outputs, x));
+    }
 }

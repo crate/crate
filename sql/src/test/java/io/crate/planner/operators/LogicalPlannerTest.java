@@ -167,8 +167,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[cnt]\n" +
+                                "    Boundary[cnt]\n" +
                                 "    Count[doc.t1 | All]\n" +
                                 "    --- INNER ---\n" +
+                                "    Boundary[i]\n" +
                                 "    Boundary[i]\n" +
                                 "    Limit[1;0]\n" +
                                 "    Collect[doc.t2 | [i] | All]\n" +

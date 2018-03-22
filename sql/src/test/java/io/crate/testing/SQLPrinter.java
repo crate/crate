@@ -25,6 +25,7 @@ package io.crate.testing;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueryClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
@@ -49,6 +50,14 @@ public class SQLPrinter {
             return print((Collection<Symbol>) o);
         } else if (o == null) {
             return "null";
+        } else if (o instanceof QueryClause) {
+            if (((QueryClause) o).hasQuery()) {
+                return print(((QueryClause) o).query());
+            } else if (((QueryClause) o).noMatch()){
+                return "false";
+            } else {
+                return "true";
+            }
         }
         return o.toString();
     }

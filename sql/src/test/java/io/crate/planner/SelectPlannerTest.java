@@ -533,8 +533,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, contains(
             instanceOf(GroupProjection.class), // parallel on shard-level
             instanceOf(GroupProjection.class), // node-level
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class)
+            instanceOf(EvalProjection.class),
+            instanceOf(FilterProjection.class)
         ));
     }
 

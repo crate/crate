@@ -225,9 +225,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2)
+            isTopN(10, 2),
+            instanceOf(EvalProjection.class)
         ));
-        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.a, doc.t1.i"));
+        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
 
 
         Collect right = (Collect) nl.right();

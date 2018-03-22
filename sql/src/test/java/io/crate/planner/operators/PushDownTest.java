@@ -224,9 +224,13 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "NestedLoopJoin[\n" +
                 "    Boundary[_fetchid, y, b]\n" +
                 "    FetchOrEval[_fetchid, y, b]\n" +
+                "    Boundary[_fetchid, y, b]\n" +
+                "    FetchOrEval[_fetchid, y, b]\n" +
                 "    OrderBy['lower(b)' ASC]\n" +
                 "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
                 "    --- INNER ---\n" +
+                "    Boundary[_fetchid, x]\n" +
+                "    FetchOrEval[_fetchid, x]\n" +
                 "    Boundary[_fetchid, x]\n" +
                 "    FetchOrEval[_fetchid, x]\n" +
                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
