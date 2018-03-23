@@ -28,6 +28,7 @@ import io.crate.shade.org.postgresql.PGProperty;
 import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -705,6 +706,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getLong(1), is(1L));
         }
+    }
+
+    @Test
+    @UseJdbc(0) // Simulate explicit call by a user through HTTP iface
+    public void test_proper_termination_of_deallocate_through_http_call() throws Exception {
+       execute("DEALLOCATE ALL");
+       assertThat(response.rowCount(), is (0L));
     }
 
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {

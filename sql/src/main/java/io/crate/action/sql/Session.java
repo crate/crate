@@ -384,6 +384,7 @@ public class Session implements AutoCloseable {
                 }
                 preparedStatements.clear();
             }
+            portal.sync(planner, jobsLogs);
         } else {
             // delay execution to be able to bundle bulk operations
             pendingExecutions.add(portal);

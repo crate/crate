@@ -25,7 +25,6 @@ package io.crate.action.sql;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
-import io.crate.data.Row;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
@@ -36,8 +35,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +46,8 @@ import java.util.function.Consumer;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -105,7 +106,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testGetParamType() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
@@ -222,7 +223,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testProperCleanupOnSessionClose() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class);
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
@@ -255,7 +256,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testDeallocateAllClearsAllPortalsAndPreparedStatements() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class);
+        when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
@@ -270,11 +272,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         session.parse("S_2", "DEALLOCATE ALL;", Collections.emptyList());
         session.bind("", "S_2", Collections.emptyList(), null);
-        session.execute("", 0, new BaseResultReceiver() {
-            @Override
-            public void setNextRow(Row row) {
-            }
-        });
+        session.execute("", 0, new BaseResultReceiver());
 
         assertThat(session.portals.size(), greaterThan(0));
         assertThat(session.preparedStatements.size(), is(0));
@@ -284,7 +282,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void testDeallocatePreparedStatementClearsPreparedStatement() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
-        DependencyCarrier executor = Mockito.mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class);
+        when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
         Session session = new Session(
             sqlExecutor.analyzer,
             sqlExecutor.planner,
@@ -299,11 +298,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         session.parse("stmt", "DEALLOCATE test_prep_stmt;", Collections.emptyList());
         session.bind("", "stmt", Collections.emptyList(), null);
-        session.execute("", 0, new BaseResultReceiver() {
-            @Override
-            public void setNextRow(Row row) {
-            }
-        });
+        session.execute("", 0, new BaseResultReceiver());
 
         assertThat(session.portals.size(), greaterThan(0));
         assertThat(session.preparedStatements.size(), is(1));
