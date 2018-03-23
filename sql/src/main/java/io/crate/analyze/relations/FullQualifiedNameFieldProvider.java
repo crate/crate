@@ -59,11 +59,6 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
     }
 
     @Override
-    public Field resolveField(QualifiedName qualifiedName, Operation operation) {
-        return resolveField(qualifiedName, null, operation);
-    }
-
-    @Override
     public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         String columnSchema = null;

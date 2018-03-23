@@ -49,11 +49,6 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName, Operation operation) {
-        return resolveField(qualifiedName, null, operation);
-    }
-
-    @Override
     public Reference resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
