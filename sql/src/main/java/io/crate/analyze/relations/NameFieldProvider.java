@@ -45,10 +45,12 @@ public class NameFieldProvider implements FieldProvider<Field> {
         this.relation = relation;
     }
 
+    @Override
     public Field resolveField(QualifiedName qualifiedName, Operation operation) {
         return resolveField(qualifiedName, null, operation);
     }
 
+    @Override
     public Field resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
         List<String> parts = qualifiedName.getParts();
         ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
