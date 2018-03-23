@@ -65,24 +65,6 @@ public class WhereClauseTest {
     }
 
     @Test
-    public void testMerge() {
-        WhereClause whereLiteralTrue = new WhereClause(Literal.BOOLEAN_TRUE);
-        WhereClause whereLiteralFalse = new WhereClause(Literal.BOOLEAN_FALSE);
-        Symbol query1 = sqlExpressions.asSymbol("x = 1");
-        WhereClause where1 = new WhereClause(query1);
-        Symbol query2 = sqlExpressions.asSymbol("x = 2");
-        WhereClause where2 = new WhereClause(query2);
-        Symbol queryMerged = sqlExpressions.asSymbol("x = 1 and x =2");
-        WhereClause whereMerged = new WhereClause(queryMerged);
-
-        assertThat(whereLiteralFalse.mergeWhere(whereLiteralTrue), is(WhereClause.NO_MATCH));
-        assertThat(whereLiteralTrue.mergeWhere(whereLiteralTrue), is(WhereClause.MATCH_ALL));
-        assertThat(where1.mergeWhere(whereLiteralTrue), is(where1));
-        assertThat(where1.mergeWhere(whereLiteralFalse), is(WhereClause.NO_MATCH));
-        assertThat(where2.mergeWhere(where1), is(whereMerged));
-    }
-
-    @Test
     public void testNormalizeEliminatesNulls() {
         WhereClause where = new WhereClause(sqlExpressions.asSymbol("null or x = 10 or a = null"));
         WhereClause normalizedWhere = where.normalize(
