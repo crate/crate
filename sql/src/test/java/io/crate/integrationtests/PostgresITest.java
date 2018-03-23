@@ -532,6 +532,24 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_execute_batch_fails_with_read_operations() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.setAutoCommit(true);
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
+            ensureYellow();
+            Statement statement = conn.createStatement();
+            statement.addBatch("insert into t(x) values(1), (2)");
+            statement.addBatch("refresh table t");
+            statement.addBatch("select count(*) from t");
+
+            expectedException.expect(BatchUpdateException.class);
+            expectedException.expectMessage("Only write operations are allowed in Batch statements");
+            statement.executeBatch();
+        }
+    }
+
+    @Test
     public void testCreateInsertSelectStringAndTimestamp() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);

@@ -130,11 +130,11 @@ class BatchPortal extends AbstractPortal {
 
     @Override
     public List<Field> describe() {
-        AnalyzedStatement lastAnalyzedStatement = analyzedStatements.get(analyzedStatements.size() - 1);
+        AnalyzedStatement lastAnalyzedStatement = getLastAnalyzedStatement();
         if (lastAnalyzedStatement instanceof AnalyzedRelation == false) {
             return null;
         }
-        List<Field> fields = ((AnalyzedRelation) analyzedStatements).fields();
+        List<Field> fields = ((AnalyzedRelation) lastAnalyzedStatement).fields();
         outputTypes.add(Symbols.typeView(fields));
         return fields;
     }
