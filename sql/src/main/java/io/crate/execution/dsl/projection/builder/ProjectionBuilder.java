@@ -22,13 +22,6 @@
 package io.crate.execution.dsl.projection.builder;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.QueryClause;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -36,12 +29,17 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -113,17 +111,9 @@ public class ProjectionBuilder {
         return aggregations;
     }
 
-    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, QueryClause queryClause) {
-        Symbol query;
-        if (queryClause.hasQuery()) {
-            query = InputColumns.create(queryClause.query(), inputs);
-        } else if (queryClause.noMatch()) {
-            query = Literal.BOOLEAN_FALSE;
-        } else {
-            query = Literal.BOOLEAN_TRUE;
-        }
+    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
         // FilterProjection can only pass-through rows as is; create inputColumns which preserve the type:
-        return new FilterProjection(query, InputColumn.fromSymbols(inputs));
+        return new FilterProjection(InputColumns.create(query, inputs), InputColumn.fromSymbols(inputs));
     }
 
     /**

@@ -148,7 +148,7 @@ public class ExplainLogicalPlan {
         @Override
         public ImmutableMap.Builder<String, Object> visitFilter(Filter logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
-                .put("filter", logicalPlan.queryClause.query().representation())
+                .put("filter", logicalPlan.query.representation())
                 .put("source", explainMap(logicalPlan.source, context)));
         }
 
