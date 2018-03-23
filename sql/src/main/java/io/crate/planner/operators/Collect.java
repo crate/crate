@@ -31,6 +31,17 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.where.DocKeys;
+import io.crate.analyze.where.WhereClauseAnalyzer;
+import io.crate.data.Row;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersionInvalidException;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
@@ -38,19 +49,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.analyze.where.DocKeys;
-import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.data.Row;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.predicate.MatchPredicate;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
@@ -58,9 +62,6 @@ import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -121,6 +122,22 @@ class Collect extends ZeroInputPlan {
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
     }
+
+    private Collect(QueriedTableRelation relation,
+                    List<Symbol> outputs,
+                    WhereClause where,
+                    long numExpectedRows) {
+        super(outputs, Collections.singletonList(relation.tableRelation()));
+        this.numExpectedRows = numExpectedRows;
+        if (where.hasVersions()) {
+            throw new VersionInvalidException();
+        }
+        this.relation = relation;
+        this.where = where;
+        this.tableInfo = relation.tableRelation().tableInfo();
+    }
+
+
 
     private static List<Symbol> generateOutputs(List<Symbol> toCollect,
                                                 AbstractTableRelation tableRelation,
@@ -279,6 +296,13 @@ class Collect extends ZeroInputPlan {
     public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
             return ((Order) pushDown).updateSource(this, mapper);
+        }
+        if (pushDown instanceof Filter) {
+            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) pushDown).query);
+            assert !SymbolVisitors.any(s -> s instanceof Field, ancestorQuery)
+                : "mapped ancestorQuery must not have any Field but only Reference symbols: " + ancestorQuery;
+            return new Collect(
+                relation, outputs, where.add(ancestorQuery), numExpectedRows);
         }
         return super.tryOptimize(pushDown, mapper);
     }

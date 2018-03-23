@@ -27,6 +27,7 @@ import io.crate.analyze.QueryClause;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -103,6 +104,20 @@ class Filter extends OneInputPlan {
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
         return new Filter(newSource, query);
+    }
+
+    @Override
+    public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
+        Filter currentFilter = this;
+        if (pushDown instanceof Filter) {
+            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) pushDown).query);
+            currentFilter = new Filter(source, AndOperator.of(ancestorQuery, query));
+        }
+        LogicalPlan newSourceWithFilter = source.tryOptimize(currentFilter, mapper);
+        if (newSourceWithFilter == null) {
+            return super.tryOptimize(pushDown, mapper);
+        }
+        return newSourceWithFilter;
     }
 
     @Override

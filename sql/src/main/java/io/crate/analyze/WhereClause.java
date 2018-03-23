@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -212,17 +211,5 @@ public class WhereClause extends QueryClause implements Streamable {
         }
         Symbol newQuery = replaceFunction.apply(query);
         return new WhereClause(newQuery, docKeys.orElse(null), partitions, clusteredBy);
-    }
-
-    public WhereClause mergeWhere(WhereClause where2) {
-        if (noMatch || where2.noMatch()) {
-            return WhereClause.NO_MATCH;
-        } else if (!hasQuery() || this == WhereClause.MATCH_ALL) {
-            return where2;
-        } else if (!where2.hasQuery() || where2 == WhereClause.MATCH_ALL) {
-            return this;
-        }
-
-        return new WhereClause(AndOperator.join(ImmutableList.of(where2.query(), query)));
     }
 }

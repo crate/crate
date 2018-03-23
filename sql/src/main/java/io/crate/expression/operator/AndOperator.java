@@ -21,10 +21,11 @@
 
 package io.crate.expression.operator;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
@@ -121,7 +122,7 @@ public class AndOperator extends Operator<Boolean> {
         assert second.valueType().equals(DataTypes.BOOLEAN) || second.valueType().equals(DataTypes.UNDEFINED) :
             "second symbol must have BOOLEAN return type to create AND function";
 
-        return new Function(INFO, Arrays.asList(first, second));
+        return new Function(INFO, ImmutableList.of(first, second));
     }
 
     public static Symbol join(Iterable<? extends Symbol> symbols) {
