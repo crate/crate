@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -45,41 +44,41 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 class Filter extends OneInputPlan {
 
-    final QueryClause queryClause;
+    final Symbol query;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, @Nullable QueryClause queryClause) {
         if (queryClause == null) {
             return sourceBuilder;
         }
-        if (queryClause.hasQuery()) {
-            Set<Symbol> columnsInQuery = extractColumns(queryClause.query());
-            return (tableStats, usedColumns) -> {
-                Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-                allUsedColumns.addAll(columnsInQuery);
-                allUsedColumns.addAll(usedColumns);
-                return new Filter(sourceBuilder.build(tableStats, allUsedColumns), queryClause);
-            };
+        Symbol query = queryClause.queryOrFallback();
+        if (isMatchAll(query)) {
+            return sourceBuilder;
         }
-        if (queryClause.noMatch()) {
-            return (tableStats, usedColumns) ->
-                new Filter(sourceBuilder.build(tableStats, usedColumns), WhereClause.NO_MATCH);
-        }
-        return sourceBuilder;
+        Set<Symbol> columnsInQuery = extractColumns(query);
+        return (tableStats, usedColumns) -> {
+            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
+            allUsedColumns.addAll(columnsInQuery);
+            allUsedColumns.addAll(usedColumns);
+            return new Filter(sourceBuilder.build(tableStats, allUsedColumns), query);
+        };
     }
 
     public static LogicalPlan create(LogicalPlan source, Symbol query) {
         assert query.valueType().equals(DataTypes.BOOLEAN)
             : "query must have a boolean result type, got: " + query.valueType();
-
-        if (query.symbolType().isValueSymbol() && ((Literal) query).value() == Boolean.TRUE) {
+        if (isMatchAll(query)) {
             return source;
         }
-        return new Filter(source, new WhereClause(query));
+        return new Filter(source, query);
     }
 
-    private Filter(LogicalPlan source, QueryClause queryClause) {
+    private static boolean isMatchAll(Symbol query) {
+        return query instanceof Literal && ((Literal) query).value() == Boolean.TRUE;
+    }
+
+    private Filter(LogicalPlan source, Symbol query) {
         super(source);
-        this.queryClause = queryClause;
+        this.query = query;
     }
 
     @Override
@@ -93,7 +92,7 @@ class Filter extends OneInputPlan {
                                Map<SelectSymbol, Object> subQueryValues) {
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryValues);
-        FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), queryClause);
+        FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), query);
         if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);
         }
@@ -103,7 +102,7 @@ class Filter extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Filter(newSource, queryClause);
+        return new Filter(newSource, query);
     }
 
     @Override

@@ -348,7 +348,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof Filter) {
                 Filter filter = (Filter) plan;
                 startLine("Filter[");
-                sb.append(printQueryClause(symbolPrinter, filter.queryClause));
+                sb.append(symbolPrinter.printUnqualified(filter.query));
                 sb.append("]\n");
                 plan = filter.source;
             }

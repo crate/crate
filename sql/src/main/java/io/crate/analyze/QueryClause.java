@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.Nullable;
 
@@ -68,6 +69,13 @@ public abstract class QueryClause {
 
     @Nullable
     public Symbol query() {
+        return query;
+    }
+
+    public Symbol queryOrFallback() {
+        if (query == null) {
+            return noMatch ? Literal.BOOLEAN_FALSE : Literal.BOOLEAN_TRUE;
+        }
         return query;
     }
 
