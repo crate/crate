@@ -59,11 +59,33 @@ Within expressions in the ``UPDATE`` clause you can use the
 ``VALUES(column_ident)`` function to refer to column values from the INSERT
 statement.
 
-So ``VALUES(column_ident)`` in the ``UPDATE`` clause referes to the value of
+So ``VALUES(column_ident)`` in the ``UPDATE`` clause refers to the value of
 the column_ident that would be inserted if no duplicate-key conflict occured.
 
 This function is especially useful in multiple-row inserts, because the values
 of the current row can be referenced.
+
+``ON CONFLICT DO UPDATE SET``
+-----------------------------
+
+``ON CONFLICT DO UPDATE SET`` works just like ``ON DUPLICATE KEY UPDATE``, but
+its syntax is slightly different.
+
+::
+
+     ON CONFLICT DO UPDATE SET { column_ident = expression } [, ...]
+
+Within expressions in the ``DO UPDATE SET`` clause, you can use the
+``EXCLUDED`` table to refer to column values from the INSERT
+statement values. For example:
+
+::
+
+     INSERT INTO t (col1, col2) VALUES (1, 41)
+     ON CONFLICT DO UPDATE SET { col2 = excluded.col2 + 1 }
+
+The above statement would update ``col2`` to ``42`` if ``col1`` was a primary
+key and the value ``1`` already existed for ``col1``.
 
 Insert From Dynamic Queries Constraints
 ---------------------------------------
