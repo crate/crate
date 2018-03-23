@@ -108,12 +108,6 @@ public class MqttIngestService implements IngestRuleListener {
         this.inputFactory = new InputFactory(functions);
         this.expressionAnalysisContext = new ExpressionAnalysisContext();
         FieldProvider<Symbol> mqttSourceFieldsProvider = new FieldProvider<Symbol>() {
-
-            @Override
-            public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
-                return resolveField(qualifiedName, null, operation);
-            }
-
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
                 return new InputColumn(MQTT_FIELDS_ORDER.get(qualifiedName));

@@ -45,11 +45,6 @@ public class CreateUserAnalyzer {
 
     private static final FieldProvider fieldProvider = new FieldProvider() {
         @Override
-        public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
-            throw new UnsupportedOperationException("Cannot resolve field references");
-        }
-
-        @Override
         public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
             throw new UnsupportedOperationException("Cannot resolve field references");
         }

@@ -79,12 +79,6 @@ public class IngestionServiceIntegrationTest extends SQLTransportIntegrationTest
         private AtomicReference<Set<Tuple<Predicate<Row>, IngestRule>>> predicateAndIngestRulesReference;
         private final ExpressionAnalysisContext expressionAnalysisContext;
         private FieldProvider<Symbol> inputColumnProvider = new FieldProvider<Symbol>() {
-
-            @Override
-            public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
-                return resolveField(qualifiedName, null, operation);
-            }
-
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, @Nullable List<String> path, Operation operation) {
                 return new InputColumn(0);
