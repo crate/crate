@@ -87,6 +87,20 @@ statement values. For example:
 The above statement would update ``col2`` to ``42`` if ``col1`` was a primary
 key and the value ``1`` already existed for ``col1``.
 
+``ON CONFLICT DO NOTHING``
+--------------------------
+
+When ``ON CONFLICT DO NOTHING`` is specified, rows which caused a duplicate
+key conflict will not be inserted. No exception will be thrown. For example:
+
+::
+
+     INSERT INTO t (col1, col2) VALUES (1, 42)
+     ON CONFLICT DO NOTHING
+
+In the above statement, if ``col1`` had a primary key constraint and the value
+``1`` already existed for ``col1``, no insert would be performed.
+
 Insert From Dynamic Queries Constraints
 ---------------------------------------
 
