@@ -118,10 +118,10 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                                  "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                                                  "limit 10");
         assertThat(relation.querySpec(),
-                   isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
-                         "io.crate.analyze.QueriedSelectRelation.i, doc.t2.b, doc.t2.i LIMIT 10"));
+                   isSQL("SELECT t1.a, " +
+                         "t1.i, doc.t2.b, doc.t2.i LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
-                   isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
+                   isSQL("(t1.i = doc.t2.i)"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
                    isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
@@ -139,11 +139,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                              "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                              "order by 2 limit 10");
         assertThat(relation.querySpec(),
-            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
-                  "io.crate.analyze.QueriedSelectRelation.i, doc.t2.b, doc.t2.i " +
-                  "ORDER BY io.crate.analyze.QueriedSelectRelation.i LIMIT 10"));
+            isSQL("SELECT t1.a, t1.i, doc.t2.b, doc.t2.i ORDER BY t1.i LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
+            isSQL("(t1.i = doc.t2.i)"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
             isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
@@ -165,7 +163,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.querySpec(),
             isSQL("SELECT count() ORDER BY count() LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
+            isSQL("(t1.i = doc.t2.i)"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
             isSQL("SELECT doc.t1.i ORDER BY doc.t1.a LIMIT 10"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),

@@ -25,9 +25,10 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -37,7 +38,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -283,9 +283,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     "group by users.name order by 1");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT io.crate.analyze.MultiSourceSelect.max(id) " +
-                  "GROUP BY io.crate.analyze.MultiSourceSelect.max(id) " +
-                  "ORDER BY io.crate.analyze.MultiSourceSelect.max(id)"));
+            isSQL("SELECT MultiSourceSelect.max(id) " +
+                  "GROUP BY MultiSourceSelect.max(id) " +
+                  "ORDER BY MultiSourceSelect.max(id)"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(MultiSourceSelect.class));
         assertThat(outerRelation.subRelation().querySpec(),
@@ -299,9 +299,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                    ") t group by name order by 1");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.max(id) " +
-                  "GROUP BY io.crate.analyze.QueriedSelectRelation.max(id) " +
-                  "ORDER BY io.crate.analyze.QueriedSelectRelation.max(id)"));
+            isSQL("SELECT t.max(id) " +
+                  "GROUP BY t.max(id) " +
+                  "ORDER BY t.max(id)"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
         assertThat(outerRelation.subRelation().querySpec(),
