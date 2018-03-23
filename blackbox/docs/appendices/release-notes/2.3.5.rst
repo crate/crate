@@ -32,13 +32,13 @@ Fixes
 - Fixed handling of ``NULL`` values correctly in the cluster tab of the Admin
   UI.
 
-- Updated the ``Size`` label in the table detail tab of the Admin UI to
-  ``Size (Sum of primary shards)``
+- Updated the *Size* label in the table detail tab of the Admin UI to *Size
+  (Sum of primary shards)*.
 
 - Fixed an issue where ordering by a ``TIMESTAMP`` scalar would cause the query
   to get stuck.
 
-- Fixed a potential NullPointerException when running ``SHOW CREATE TABLE``
+- Fixed a potential ``NullPointerException`` when running ``SHOW CREATE TABLE``
   with plain type indices.
 
 - Fixed an issue that would cause queries ordered by a ``STRING`` scalar with
