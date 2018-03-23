@@ -23,13 +23,7 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.Path;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.WhereClauseOptimizer;
 
 import java.util.Collection;
 
@@ -46,20 +40,5 @@ public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedDocTable(this, context);
-    }
-
-    void optimizeWhereClause(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        DocTableInfo tableInfo = tableRelation.tableInfo;
-        if (querySpec().where().hasQuery()) {
-            WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                normalizer, querySpec().where().query(), tableInfo, transactionContext);
-            WhereClauseValidator.validate(detailedQuery.query());
-            querySpec().where(
-                new WhereClause(
-                    detailedQuery.query(),
-                    detailedQuery.docKeys().orElse(null),
-                    querySpec().where().partitions(),
-                    detailedQuery.clusteredBy()));
-        }
     }
 }

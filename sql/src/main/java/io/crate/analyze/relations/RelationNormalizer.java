@@ -22,16 +22,21 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.Rewriter;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.where.WhereClauseValidator;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.WhereClauseOptimizer;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -69,29 +74,53 @@ public final class RelationNormalizer {
         public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
             QueriedRelation subRelation = relation.subRelation();
             QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
-            relation.subRelation(normalizedSubRelation);
-            if (subRelation != normalizedSubRelation) {
-                relation.querySpec().replace(FieldReplacer.bind(f -> {
+            if (subRelation == normalizedSubRelation) {
+                return relation;
+            }
+            return new QueriedSelectRelation(
+                normalizedSubRelation,
+                relation.fields(),
+                relation.querySpec().copyAndReplace(FieldReplacer.bind(f -> {
                     if (f.relation().equals(subRelation)) {
                         return normalizedSubRelation.getField(f.path(), Operation.READ);
                     }
                     return f;
-                }));
-            }
-            return relation;
+                }))
+            );
         }
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, TransactionContext context) {
-            table.normalize(functions, context);
-            return table;
+            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, null, table.tableRelation());
+            return new QueriedTable(
+                table.tableRelation(),
+                table.fields(),
+                table.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, context))
+            );
         }
 
         @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, TransactionContext context) {
-            table.normalize(functions, context);
-            table.optimizeWhereClause(normalizer, context);
-            return table;
+        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, TransactionContext tnxCtx) {
+            DocTableRelation docTableRelation = table.tableRelation();
+            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, null, docTableRelation);
+
+            DocTableInfo tableInfo = docTableRelation.tableInfo;
+            QuerySpec normalizedQS = table.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx));
+            WhereClause where = normalizedQS.where();
+            if (where.hasQuery()) {
+                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
+                    normalizer, where.query(), tableInfo, tnxCtx);
+                WhereClauseValidator.validate(detailedQuery.query());
+                where = new WhereClause(
+                    detailedQuery.query(),
+                    detailedQuery.docKeys().orElse(null),
+                    where.partitions(),
+                    detailedQuery.clusteredBy()
+                );
+            }
+            return new QueriedDocTable(docTableRelation, table.fields(), normalizedQS.where(where));
         }
 
         @Override

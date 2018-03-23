@@ -23,13 +23,9 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -65,12 +61,6 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
 
     public TR tableRelation() {
         return tableRelation;
-    }
-
-    public void normalize(Functions functions, TransactionContext transactionContext) {
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, null, tableRelation);
-        querySpec.replace(s -> normalizer.normalize(s, transactionContext));
     }
 
     @Nullable

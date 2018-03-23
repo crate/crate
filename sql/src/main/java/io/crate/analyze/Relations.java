@@ -29,10 +29,12 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 
 import java.util.Collection;
@@ -62,13 +64,18 @@ class Relations {
                                              QuerySpec querySpec) {
         QueriedRelation newRelation;
         if (relation instanceof DocTableRelation) {
-            QueriedDocTable queriedDocTable = new QueriedDocTable((DocTableRelation) relation, querySpec);
-            queriedDocTable.normalize(functions, transactionContext);
-            newRelation = queriedDocTable;
+            DocTableRelation tableRelation = (DocTableRelation) relation;
+            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, null, tableRelation);
+
+            newRelation = new QueriedDocTable(
+                tableRelation, querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
         } else if (relation instanceof TableRelation) {
-            QueriedTable queriedTable = new QueriedTable((TableRelation) relation, querySpec);
-            queriedTable.normalize(functions, transactionContext);
-            newRelation = queriedTable;
+            TableRelation tableRelation = (TableRelation) relation;
+            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, null, tableRelation);
+            newRelation = new QueriedTable(
+                (TableRelation) relation, querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
         } else {
             newRelation = new QueriedSelectRelation(
                 ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);

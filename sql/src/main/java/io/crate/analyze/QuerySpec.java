@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.collections.Lists2;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
@@ -145,30 +146,14 @@ public class QuerySpec {
         if (having != null) {
             if (having.hasQuery()) {
                 newSpec.having(new HavingClause(replaceFunction.apply(having.query)));
+            } else {
+                newSpec.having(new HavingClause(Literal.BOOLEAN_FALSE));
             }
         }
         if (!groupBy.isEmpty()) {
             newSpec.groupBy(Lists2.copyAndReplace(groupBy, replaceFunction));
         }
         return newSpec;
-    }
-
-    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        Lists2.replaceItems(outputs, replaceFunction);
-        where.replace(replaceFunction);
-        if (orderBy != null) {
-            orderBy.replace(replaceFunction);
-        }
-        Lists2.replaceItems(groupBy, replaceFunction);
-        if (limit != null) {
-            limit = replaceFunction.apply(limit);
-        }
-        if (offset != null) {
-            offset = replaceFunction.apply(offset);
-        }
-        if (having != null) {
-            having.replace(replaceFunction);
-        }
     }
 
     @Override
