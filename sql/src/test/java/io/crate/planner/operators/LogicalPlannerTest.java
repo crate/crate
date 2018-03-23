@@ -240,6 +240,33 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                    "Collect[doc.t1 | [x, a] | All]\n"));
     }
 
+    @Test
+    public void testParentQueryIsPushedDownAndMergedIntoSubRelationWhereClause() {
+        LogicalPlan plan = plan("select * from " +
+                                " (select a, i from t1 order by a limit 5) t1 " +
+                                "inner join" +
+                                " (select b, i from t2 where b > 10) t2 " +
+                                "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                "limit 10");
+        assertThat(plan, isPlan("FetchOrEval[a, i, b, i]\n" +
+                                "Limit[10;0]\n" +
+                                "HashJoin[\n" +
+                                "    Boundary[i, a]\n" +
+                                "    FetchOrEval[i, a]\n" +
+                                "    Filter[(a > '50')]\n" +
+                                "    Boundary[a, i]\n" +
+                                "    Limit[5;0]\n" +
+                                "    OrderBy['a' ASC]\n" +
+                                "    Collect[doc.t1 | [a, i] | All]\n" +
+                                "    --- INNER ---\n" +
+                                "    Boundary[i, b]\n" +
+                                "    FetchOrEval[i, b]\n" +
+                                "    Boundary[b, i]\n" +
+                                "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
+                                "]\n"));
+
+    }
+
     public static LogicalPlan plan(String statement,
                                    SQLExecutor sqlExecutor,
                                    ClusterService clusterService,

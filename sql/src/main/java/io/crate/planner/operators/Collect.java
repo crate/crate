@@ -41,6 +41,7 @@ import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
@@ -132,6 +133,24 @@ class Collect extends ZeroInputPlan {
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
     }
+
+    private Collect(QueriedTableRelation relation,
+                    List<Symbol> outputs,
+                    WhereClause where,
+                    long numExpectedRows,
+                    long estimatedRowSize) {
+        super(outputs, Collections.singletonList(relation.tableRelation()));
+        this.numExpectedRows = numExpectedRows;
+        this.estimatedRowSize = estimatedRowSize;
+        if (where.hasVersions()) {
+            throw new VersionInvalidException();
+        }
+        this.relation = relation;
+        this.where = where;
+        this.tableInfo = relation.tableRelation().tableInfo();
+    }
+
+
 
     private static List<Symbol> generateOutputs(List<Symbol> toCollect,
                                                 AbstractTableRelation tableRelation,
@@ -294,6 +313,13 @@ class Collect extends ZeroInputPlan {
     public LogicalPlan tryOptimize(@Nullable LogicalPlan pushDown, SymbolMapper mapper) {
         if (pushDown instanceof Order) {
             return ((Order) pushDown).updateSource(this, mapper);
+        }
+        if (pushDown instanceof Filter) {
+            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) pushDown).query);
+            assert !SymbolVisitors.any(s -> s instanceof Field, ancestorQuery)
+                : "mapped ancestorQuery must not have any Field but only Reference symbols: " + ancestorQuery;
+            return new Collect(
+                relation, outputs, where.add(ancestorQuery), numExpectedRows, estimatedRowSize);
         }
         return super.tryOptimize(pushDown, mapper);
     }

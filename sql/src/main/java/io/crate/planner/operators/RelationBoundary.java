@@ -103,6 +103,12 @@ public class RelationBoundary extends OneInputPlan {
                 return updateSource(newSource, mapper);
             }
         }
+        if (pushDown instanceof Filter) {
+            LogicalPlan newSource = source.tryOptimize(pushDown, mapper.andThen(outputs, SymbolMapper.fromMap(expressionMapping)));
+            if (newSource != null && newSource != source) {
+                return updateSource(newSource, mapper);
+            }
+        }
         return super.tryOptimize(pushDown, mapper);
     }
 
