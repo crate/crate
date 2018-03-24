@@ -92,8 +92,8 @@ public class HashJoinPhase extends JoinPhase {
         rightJoinConditionInputs = Symbols.listFromStream(in);
         leftOutputTypes = DataTypes.listFromStream(in);
 
-        estimatedRowSizeForLeft = in.readVLong();
-        numberOfRowsForLeft = in.readVLong();
+        estimatedRowSizeForLeft = in.readLong();
+        numberOfRowsForLeft = in.readLong();
         rowsToBeConsumed = in.readVInt();
     }
 
@@ -105,8 +105,8 @@ public class HashJoinPhase extends JoinPhase {
         Symbols.toStream(rightJoinConditionInputs, out);
         DataTypes.toStream(leftOutputTypes, out);
 
-        out.writeVLong(estimatedRowSizeForLeft);
-        out.writeVLong(numberOfRowsForLeft);
+        out.writeLong(estimatedRowSizeForLeft);
+        out.writeLong(numberOfRowsForLeft);
         out.writeVInt(rowsToBeConsumed);
     }
 
