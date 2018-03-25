@@ -388,7 +388,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return tableParameterInfo;
     }
 
-    public ImmutableMap<String, Object> tableParameters() {
+    public ImmutableMap<String, Object> parameters() {
         return tableParameters;
     }
 
@@ -398,8 +398,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public TableType tableType() {
-        return TableType.BASE_TABLE;
+    public RelationType relationType() {
+        return RelationType.BASE_TABLE;
     }
 
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {

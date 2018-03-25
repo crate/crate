@@ -24,13 +24,14 @@ package io.crate.expression.reference.information;
 
 import io.crate.Version;
 import io.crate.core.collections.Maps;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.RowCollectNestedObjectExpression;
 
 import java.util.Map;
 
-public class TablesVersionExpression extends RowCollectNestedObjectExpression<TableInfo> {
+public class TablesVersionExpression extends RowCollectNestedObjectExpression<RelationInfo> {
 
     public TablesVersionExpression() {
         addChildImplementations();

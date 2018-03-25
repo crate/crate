@@ -31,6 +31,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -110,7 +111,7 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterable<TableInfo> getViews() {
+    public Iterable<ViewInfo> getViews() {
         return Collections.emptyList();
     }
 

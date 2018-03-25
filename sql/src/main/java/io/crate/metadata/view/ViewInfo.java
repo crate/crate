@@ -22,19 +22,13 @@
 
 package io.crate.metadata.view;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.ClusterState;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -42,20 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ViewInfo implements TableInfo {
+public class ViewInfo implements RelationInfo {
 
     private final TableIdent ident;
     private final List<Reference> columns;
 
-    public ViewInfo(TableIdent ident, List<Reference> columns) {
+    ViewInfo(TableIdent ident, List<Reference> columns) {
         this.ident = ident;
         this.columns = columns;
-    }
-
-    @Nullable
-    @Override
-    public Reference getReference(ColumnIdent columnIdent) {
-        return null;
     }
 
     @Override
@@ -74,17 +62,12 @@ public class ViewInfo implements TableInfo {
     }
 
     @Override
-    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause, RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
-        return null;
-    }
-
-    @Override
     public List<ColumnIdent> primaryKey() {
         return Collections.emptyList();
     }
 
     @Override
-    public Map<String, Object> tableParameters() {
+    public Map<String, Object> parameters() {
         return Collections.emptyMap();
     }
 
@@ -94,8 +77,8 @@ public class ViewInfo implements TableInfo {
     }
 
     @Override
-    public TableType tableType() {
-        return TableType.BASE_VIEW;
+    public RelationType relationType() {
+        return RelationType.BASE_VIEW;
     }
 
     @Override

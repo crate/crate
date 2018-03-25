@@ -21,13 +21,13 @@
 
 package io.crate.expression.reference.information;
 
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.RowCollectNestedObjectExpression;
 
 import java.util.Map;
 
-public abstract class AbstractTablesSettingsExpression extends RowCollectNestedObjectExpression<TableInfo> {
+public abstract class AbstractTablesSettingsExpression extends RowCollectNestedObjectExpression<RelationInfo> {
 
     @Override
     public Map<String, Object> value() {
