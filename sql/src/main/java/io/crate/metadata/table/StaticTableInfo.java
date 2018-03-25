@@ -81,7 +81,7 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public Map<String, Object> tableParameters() {
+    public Map<String, Object> parameters() {
         return Collections.emptyMap();
     }
 
@@ -101,7 +101,7 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public TableType tableType() {
-        return TableType.BASE_TABLE;
+    public RelationType relationType() {
+        return RelationType.BASE_TABLE;
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 
 import javax.annotation.Nullable;
@@ -41,6 +42,6 @@ public interface SchemaInfo extends AutoCloseable {
 
     Iterable<TableInfo> getTables();
 
-    Iterable<TableInfo> getViews();
+    Iterable<ViewInfo> getViews();
 
 }

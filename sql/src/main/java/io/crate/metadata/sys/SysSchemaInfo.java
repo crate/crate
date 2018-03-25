@@ -23,6 +23,7 @@ package io.crate.metadata.sys;
 
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -77,7 +78,7 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterable<TableInfo> getViews() {
+    public Iterable<ViewInfo> getViews() {
         return Collections.emptyList();
     }
 
