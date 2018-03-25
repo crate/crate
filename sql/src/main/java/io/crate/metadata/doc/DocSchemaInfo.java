@@ -36,6 +36,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -177,7 +178,7 @@ public class DocSchemaInfo implements SchemaInfo {
         return tables;
     }
 
-    private TableInfo getViewInfo(String name) {
+    private ViewInfo getViewInfo(String name) {
         try {
             return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
         } catch (ResourceUnknownException e) {
@@ -325,7 +326,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public Iterable<TableInfo> getViews() {
+    public Iterable<ViewInfo> getViews() {
         return viewNames().stream()
             .map(this::getViewInfo)
             .filter(Objects::nonNull)

@@ -57,7 +57,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         @Override
         public Object value() {
-            return row.tableParameters().get(paramName);
+            return row.parameters().get(paramName);
         }
     }
 
@@ -71,7 +71,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         @Override
         public BytesRef value() {
-            return BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+            return BytesRefs.toBytesRef(row.parameters().get(paramName));
         }
     }
 
