@@ -22,18 +22,18 @@
 package io.crate.expression.reference.information;
 
 import io.crate.metadata.Reference;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.RelationInfo;
 
 import javax.annotation.Nullable;
 
 public class ColumnContext {
 
-    public final TableInfo tableInfo;
+    public final RelationInfo tableInfo;
     public final Reference info;
     @Nullable
     public final Short ordinal;
 
-    public ColumnContext(TableInfo tableInfo, Reference ref, @Nullable Short ordinal) {
+    public ColumnContext(RelationInfo tableInfo, Reference ref, @Nullable Short ordinal) {
         this.tableInfo = tableInfo;
         this.info = ref;
         this.ordinal = ordinal;

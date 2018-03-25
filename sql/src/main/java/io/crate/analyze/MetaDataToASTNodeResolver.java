@@ -242,7 +242,7 @@ public class MetaDataToASTNodeResolver {
             );
             // we want a sorted map of table parameters
             TreeMap<String, Object> tableParameters = new TreeMap<>();
-            tableParameters.putAll(tableInfo.tableParameters());
+            tableParameters.putAll(tableInfo.parameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
                 properties.add(new GenericProperty(
                         TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
