@@ -20,6 +20,7 @@ SQL Statements
     create-snapshot
     create-table
     create-user
+    create-view
     deallocate
     delete
     deny
@@ -29,6 +30,7 @@ SQL Statements
     drop-snapshot
     drop-table
     drop-user
+    drop-view
     explain
     grant
     insert
