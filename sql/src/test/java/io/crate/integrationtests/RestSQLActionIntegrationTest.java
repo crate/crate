@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -79,6 +80,16 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         response = post("{\"stmt\": \"select * from foo\"}");
         assertThat(response.getStatusLine().getStatusCode(), is(404));
         assertThat(EntityUtils.toString(response.getEntity()), containsString("RelationUnknown"));
+    }
+
+    @Test
+    public void testInsertWithMixedCompatibleTypes() throws IOException {
+        execute("create table doc.t1 (x array(float))");
+        CloseableHttpResponse resp = post("{\"stmt\": \"insert into doc.t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}");
+        assertThat(resp.getStatusLine().getStatusCode(), is(200));
+        execute("refresh table doc.t1");
+        assertThat(printedTable(execute("select x from doc.t1").rows()),
+            is("[0.0, 1.0, 1.42]\n"));
     }
 
     @Test

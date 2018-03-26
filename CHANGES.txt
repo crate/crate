@@ -60,6 +60,10 @@ Breaking Changes
 Changes
 =======
 
+- Arrays can now contain mixed types if they're safely convertible. JSON
+  libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
+  caused an error because of the strict type match we enforced before.
+
 - Added support for ``INSERT INTO ... ON CONFLICT DO UPDATE SET col = val``
   which is identical to ``INSERT INTO ... ON DUPLICATE KEY UPDATE col = val``.
   The special EXCLUDED table can be used to refer to the insert values:
