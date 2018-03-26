@@ -21,3 +21,4 @@ Changes
 Fixes
 =====
 
+- Do not allow renaming a table when connected to a read-only node.
