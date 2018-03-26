@@ -155,6 +155,18 @@ public final class DataTypes {
         .put(SingleColumnTableType.ID, ImmutableSet.of()) // convertability handled in SingleColumnTableType
         .build();
 
+    /**
+     * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
+     * used to store the value)
+     */
+    private static final ImmutableMap<Integer, Set<DataType>> SAFE_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
+        .put(BYTE.id(), ImmutableSet.of(SHORT, INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
+        .put(SHORT.id(), ImmutableSet.of(INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
+        .put(INTEGER.id(), ImmutableSet.of(LONG, TIMESTAMP, FLOAT, DOUBLE))
+        .put(LONG.id(), ImmutableSet.of(TIMESTAMP, DOUBLE))
+        .put(FLOAT.id(), ImmutableSet.of(DOUBLE))
+        .build();
+
     public static boolean isCollectionType(DataType type) {
         return type.id() == ArrayType.ID || type.id() == SetType.ID || type.id() == SingleColumnTableType.ID;
     }
@@ -204,22 +216,40 @@ public final class DataTypes {
     }
 
     private static DataType valueFromList(List<Object> value) {
-        DataType previous = null;
-        DataType current = null;
+        DataType highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
                 continue;
             }
-            current = guessType(o);
-            if (previous != null && !current.equals(previous)) {
-                throw new IllegalArgumentException("Mixed dataTypes inside a list are not supported");
+            DataType current = guessType(o);
+            // JSON libraries tend to optimize things like [ 0.0, 1.2 ] to [ 0, 1.2 ]; so we allow mixed types
+            // in such cases.
+            if (!current.equals(highest) && !safeConversionPossible(current, highest)) {
+                throw new IllegalArgumentException(
+                    "Mixed dataTypes inside a list are not supported. Found " + highest + " and " + current);
             }
-            previous = current;
+            if (current.precedes(highest)) {
+                highest = current;
+            }
         }
-        if (current == null) {
-            return new ArrayType(UNDEFINED);
+        return new ArrayType(highest);
+    }
+
+    private static boolean safeConversionPossible(DataType type1, DataType type2) {
+        final DataType source;
+        final DataType target;
+        if (type1.precedes(type2)) {
+            source = type2;
+            target = type1;
+        } else {
+            source = type1;
+            target = type2;
         }
-        return new ArrayType(current);
+        if (source.id() == DataTypes.UNDEFINED.id()) {
+            return true;
+        }
+        Set<DataType> conversions = SAFE_CONVERSIONS.get(source.id());
+        return conversions != null && conversions.contains(target);
     }
 
     private static final ImmutableMap<String, DataType> staticTypesNameMap = ImmutableMap.<String, DataType>builder()

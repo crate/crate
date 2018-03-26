@@ -28,9 +28,11 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,6 +121,14 @@ public class DataTypeTest extends CrateUnitTest {
     public void testForValueMixedDataTypeInList() {
         List<Object> objects = Arrays.<Object>asList("foo", 1);
         DataTypes.guessType(objects);
+    }
+
+    @Test
+    public void testListCanContainMixedTypeIfSafeCastIsPossible() {
+        List<Object> objects = Arrays.asList(1, null, 1.2f, 0);
+        Collections.shuffle(objects);
+        DataType<?> dataType = DataTypes.guessType(objects);
+        assertThat(dataType, Matchers.is(new ArrayType(DataTypes.FLOAT)));
     }
 
     @Test

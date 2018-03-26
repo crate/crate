@@ -27,7 +27,11 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
 import static org.hamcrest.Matchers.instanceOf;
