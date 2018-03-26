@@ -118,12 +118,12 @@ public final class InsertFromSubQueryPlanner {
 
         @Override
         public Void visitQueriedDocTable(QueriedDocTable table, Void context) {
-            if (table.querySpec().hasAggregates() || !table.querySpec().groupBy().isEmpty()) {
+            if (table.hasAggregates() || !table.groupBy().isEmpty()) {
                 return null;
             }
 
-            List<Symbol> outputs = table.querySpec().outputs();
-            assert table.querySpec().orderBy() == null : "insert from subquery with order by is not supported";
+            List<Symbol> outputs = table.outputs();
+            assert table.orderBy() == null : "insert from subquery with order by is not supported";
             for (int i = 0; i < outputs.size(); i++) {
                 outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
             }

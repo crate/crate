@@ -216,7 +216,7 @@ public final class RelationSplitter {
         boolean[] hasAggregations = new boolean[] {false};
         FieldsVisitor.visitFields(mergedQuery, f -> {
             hasAggregations[0] |= Aggregations.containsAggregation(
-                relation.querySpec().outputs().get(f.index()));
+                relation.outputs().get(f.index()));
         });
         if (hasAggregations[0]) {
             HavingClause having = qs.having();

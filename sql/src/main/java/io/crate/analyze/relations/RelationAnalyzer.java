@@ -373,7 +373,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // of the ORDER BY symbol in the list of select symbols and we use this index to
         // rewrite the symbol as the corresponding field of the relation
         OrderBy newOrderBy = null;
-        OrderBy oldOrderBy = relation.querySpec().orderBy();
+        OrderBy oldOrderBy = relation.orderBy();
         if (oldOrderBy != null) {
             List<Symbol> orderBySymbols = new ArrayList<>();
             for (Symbol symbol : oldOrderBy.orderBySymbols()) {

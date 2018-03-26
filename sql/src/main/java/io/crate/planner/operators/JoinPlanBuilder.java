@@ -324,7 +324,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
         FieldsVisitor.visitFields(symbol, f -> {
             if (f.relation().getQualifiedName().equals(rel.getQualifiedName())) {
-                consumer.accept(rel.querySpec().outputs().get(f.index()));
+                consumer.accept(rel.outputs().get(f.index()));
             }
         });
     }

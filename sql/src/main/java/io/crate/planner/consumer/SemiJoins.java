@@ -32,6 +32,10 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
+import io.crate.expression.operator.OrOperator;
+import io.crate.expression.operator.any.AnyNeqOperator;
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.FuncReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -44,10 +48,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
-import io.crate.expression.operator.OrOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyOperator;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
@@ -92,7 +92,7 @@ final class SemiJoins {
      */
     @Nullable
     QueriedRelation tryRewrite(QueriedRelation rel, TransactionContext transactionCtx) {
-        WhereClause where = rel.querySpec().where();
+        WhereClause where = rel.where();
         if (!where.hasQuery()) {
             return null;
         }
@@ -157,7 +157,7 @@ final class SemiJoins {
     }
 
     private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Collection<Candidate> rewriteCandidates) {
-        rel.querySpec().where().replace(FuncReplacer.mapNodes(f -> {
+        rel.where().replace(FuncReplacer.mapNodes(f -> {
             for (Candidate rewriteCandidate : rewriteCandidates) {
                 if (rewriteCandidate.function.equals(f)) {
                     return Literal.BOOLEAN_TRUE;

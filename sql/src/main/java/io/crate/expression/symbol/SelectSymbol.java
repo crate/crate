@@ -65,7 +65,7 @@ public class SelectSymbol extends Symbol {
 
     @Override
     public boolean canBeCasted() {
-        for (Symbol symbol : relation.querySpec().outputs()) {
+        for (Symbol symbol : relation.outputs()) {
             if (!symbol.canBeCasted()) {
                 return false;
             }

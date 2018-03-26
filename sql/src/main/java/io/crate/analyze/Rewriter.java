@@ -30,13 +30,13 @@ import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
@@ -87,7 +87,7 @@ public class Rewriter {
         if (mss.sources().size() > 2) {
             return;
         }
-        WhereClause where = mss.querySpec().where();
+        WhereClause where = mss.where();
         if (!where.hasQuery()) {
             return;
         }
@@ -255,7 +255,7 @@ public class Rewriter {
                 !SymbolVisitors.any(symbol -> Objects.equals(input, symbol), joinCondition)) {
                 fieldsToNotCollect.add(input);
             }
-            return outerRelation.querySpec().outputs().get(input.index());
+            return outerRelation.outputs().get(input.index());
         }
 
         Collection<Field> fieldsToNotCollect() {

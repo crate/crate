@@ -58,7 +58,7 @@ public class RelationBoundary extends OneInputPlan {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
             for (Field field : relation.fields()) {
-                Symbol value = ((QueriedRelation) field.relation()).querySpec().outputs().get(field.index());
+                Symbol value = ((QueriedRelation) field.relation()).outputs().get(field.index());
                 expressionMapping.put(field, value);
                 reverseMapping.put(value, field);
             }
