@@ -50,6 +50,6 @@ public class AlterTableRenameAnalyzedStatement implements DDLStatement {
 
     @Override
     public boolean isWriteOperation() {
-        return false;
+        return true;
     }
 }

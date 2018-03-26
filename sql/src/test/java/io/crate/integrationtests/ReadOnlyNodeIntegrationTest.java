@@ -244,6 +244,11 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testForbiddenAlterTableRename() throws Exception {
+        assertReadOnly("ALTER TABLE write_test RENAME TO write_test_new");
+    }
+
+    @Test
     public void testForbiddenSetGlobal() throws Exception {
         assertReadOnly("set global PERSISTENT stats.enabled = false");
     }
