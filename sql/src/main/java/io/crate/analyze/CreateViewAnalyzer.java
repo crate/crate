@@ -45,6 +45,7 @@ public final class CreateViewAnalyzer {
 
     public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx, String defaultSchema) {
         TableIdent name = TableIdent.of(createView.name(), defaultSchema);
+        name.validate();
         QueriedRelation query = (QueriedRelation) relationAnalyzer.analyzeUnbound(
             createView.query(), txnCtx, ParamTypeHints.EMPTY);
 
