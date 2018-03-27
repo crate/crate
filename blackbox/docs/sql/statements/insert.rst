@@ -48,6 +48,10 @@ type conversion will be attempted.
 ``ON DUPLICATE KEY UPDATE``
 ---------------------------
 
+.. note::
+      This clause of the ``INSERT`` statement has been deprecated. Please use
+      the ``ON CONFLICT DO UPDATE SET`` clause instead.
+
 If ``ON DUPLICATE KEY UPDATE`` is specified and a row is inserted that would
 cause a duplicate-key conflict, an update of the existing row is performed.
 

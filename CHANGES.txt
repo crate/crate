@@ -64,6 +64,9 @@ Changes
   libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
   caused an error because of the strict type match we enforced before.
 
+- DEPRECATED: The ``ON DUPLICATE KEY UPDATE`` clause has been deprecated in
+  favor of the ``ON CONFLICT DO UPDATE SET`` clause.
+
 - Added support for ``INSERT INTO ... ON CONFLICT DO UPDATE SET col = val``
   which is identical to ``INSERT INTO ... ON DUPLICATE KEY UPDATE col = val``.
   The special EXCLUDED table can be used to refer to the insert values:

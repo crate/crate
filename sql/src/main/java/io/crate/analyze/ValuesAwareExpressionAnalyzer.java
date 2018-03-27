@@ -72,7 +72,10 @@ import java.util.function.Function;
  *
  * insert into t_new (id, name) values (1, 'foo')
  *   on duplicate key update name = values(name)
+ *
+ * @deprecated in favor of ON CONFLICT DO UPDATE clause. ExpressionAnalyzer should not be subclassed in the future.
  */
+@Deprecated
 public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     private final ValuesResolver valuesResolver;
