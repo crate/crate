@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.TableIdent;
 
@@ -29,11 +30,13 @@ public final class CreateViewStmt implements AnalyzedStatement {
 
     private final TableIdent name;
     private final QueriedRelation query;
+    private final String formattedQuery;
     private final boolean replaceExisting;
 
-    CreateViewStmt(TableIdent name, QueriedRelation query, boolean replaceExisting) {
+    CreateViewStmt(TableIdent name, QueriedRelation query, String formattedQuery, boolean replaceExisting) {
         this.name = name;
         this.query = query;
+        this.formattedQuery = formattedQuery;
         this.replaceExisting = replaceExisting;
     }
 
@@ -41,8 +44,13 @@ public final class CreateViewStmt implements AnalyzedStatement {
         return name;
     }
 
+    @VisibleForTesting
     public QueriedRelation query() {
         return query;
+    }
+
+    public String formattedQuery() {
+        return formattedQuery;
     }
 
     public boolean replaceExisting() {

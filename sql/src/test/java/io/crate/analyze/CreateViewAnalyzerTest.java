@@ -66,4 +66,11 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CreateViewStmt createView = e.analyze("create view v1 as select x, x as y from t1");
         assertThat(createView.query().fields(), contains(isField("x"), isField("y")));
     }
+
+    @Test
+    public void testErrorIsThrownForUnsupportedQueries() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Query cannot be used in a VIEW");
+        e.analyze("create view v1 as select t1.x, t1.x as y from t1, t1 as t2");
+    }
 }
