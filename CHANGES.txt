@@ -15,9 +15,6 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
-- Added support for views which can be created using the new ``CREATE VIEW``
-  statement and dropped using the ``DROP VIEW`` statement.
-
 - The columns ``number_of_shards``, ``number_of_replicas``, and
   ``self_referencing_column_name`` in ``information_schema.tables`` changed to
   return ``NULL`` for non-sharded tables.
@@ -62,6 +59,11 @@ Breaking Changes
 
 Changes
 =======
+
+- Added support for views which can be created using the new ``CREATE VIEW``
+  statement and dropped using the ``DROP VIEW`` statement. Views are listed in
+  ``information_schema.views`` and they show up in
+  ``information_schema.tables`` as well as ``information_schema.columns``
 
 - Arrays can now contain mixed types if they're safely convertible. JSON
   libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
