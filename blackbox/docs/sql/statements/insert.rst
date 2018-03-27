@@ -22,9 +22,8 @@ Synopsis
     INSERT INTO table_ident
       [ ( column_ident [, ...] ) ]
       { VALUES ( expression [, ...] ) [, ...] | ( query ) | query }
-      [ ON DUPLICATE KEY UPDATE
-        { column_ident = expression } [, ...]
-      ]
+      [ ON CONFLICT DO UPDATE SET { column_ident = expression } [, ...] |
+        ON DUPLICATE KEY UPDATE { column_ident = expression } [, ...]]
 
 Description
 ===========
@@ -48,7 +47,7 @@ type conversion will be attempted.
 ``ON DUPLICATE KEY UPDATE``
 ---------------------------
 
-.. note::
+.. warning::
       This clause of the ``INSERT`` statement has been deprecated. Please use
       the ``ON CONFLICT DO UPDATE SET`` clause instead.
 
