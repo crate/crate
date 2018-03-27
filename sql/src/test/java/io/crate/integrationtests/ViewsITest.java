@@ -78,6 +78,13 @@ public class ViewsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateViewFailsIfNameConflictsWithPartitionedTable() {
+        execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        expectedException.expectMessage("Relation '" + sqlExecutor.getDefaultSchema() + ".t1' already exists");
+        execute("create view t1 as select 1");
+    }
+
+    @Test
     public void testDropViewFailsIfViewIsMissing() {
         expectedException.expectMessage("Relations not found: " + sqlExecutor.getDefaultSchema() + ".v1");
         execute("drop view v1");
