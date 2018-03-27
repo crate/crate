@@ -26,18 +26,18 @@ import io.crate.metadata.TableIdent;
 import java.util.Collections;
 import java.util.Locale;
 
-public class InvalidTableNameException extends ValidationException implements TableScopeException {
+public class InvalidRelationName extends ValidationException implements TableScopeException {
 
-    private final TableIdent tableIdent;
+    private final TableIdent ident;
 
-    InvalidTableNameException(String tableName, Throwable e) {
-        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableName), e);
-        tableIdent = TableIdent.fromIndexName(tableName);
+    InvalidRelationName(String indexName, Throwable e) {
+        super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", indexName), e);
+        ident = TableIdent.fromIndexName(indexName);
     }
 
-    public InvalidTableNameException(TableIdent tableIdent) {
-        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableIdent.fqn()));
-        this.tableIdent = tableIdent;
+    public InvalidRelationName(TableIdent ident) {
+        super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", ident.fqn()));
+        this.ident = ident;
     }
 
     @Override
@@ -47,6 +47,6 @@ public class InvalidTableNameException extends ValidationException implements Ta
 
     @Override
     public Iterable<TableIdent> getTableIdents() {
-        return Collections.singletonList(tableIdent);
+        return Collections.singletonList(ident);
     }
 }

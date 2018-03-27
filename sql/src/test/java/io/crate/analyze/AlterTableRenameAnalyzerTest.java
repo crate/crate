@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -53,7 +53,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testRenameToInvalidName() throws Exception {
-        expectedException.expect(InvalidTableNameException.class);
+        expectedException.expect(InvalidRelationName.class);
         e.analyze("alter table t1 rename to \"foo.bar\"");
     }
 }

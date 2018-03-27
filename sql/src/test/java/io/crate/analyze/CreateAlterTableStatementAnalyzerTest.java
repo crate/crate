@@ -28,7 +28,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
@@ -545,15 +545,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         e.analyze("create table test (dot.column integer)");
     }
 
-    @Test(expected = InvalidTableNameException.class)
+    @Test(expected = InvalidRelationName.class)
     public void testCreateTableIllegalTableName() throws Exception {
         e.analyze("create table \"abc.def\" (id integer primary key, name string)");
     }
 
     @Test
     public void testTableStartWithUnderscore() throws Exception {
-        expectedException.expect(InvalidTableNameException.class);
-        expectedException.expectMessage("table name \"doc._invalid\" is invalid.");
+        expectedException.expect(InvalidRelationName.class);
+        expectedException.expectMessage("Relation name \"doc._invalid\" is invalid.");
         e.analyze("create table _invalid (id integer primary key)");
     }
 

@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.TableIdent;
@@ -125,7 +125,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         e.analyze("create blob table screenshots with (blobs_path=?)", new Object[]{1});
     }
 
-    @Test(expected = InvalidTableNameException.class)
+    @Test(expected = InvalidRelationName.class)
     public void testCreateBlobTableIllegalTableName() throws Exception {
         e.analyze("create blob table \"blob.s\"");
     }

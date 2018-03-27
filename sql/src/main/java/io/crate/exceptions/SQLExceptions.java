@@ -195,10 +195,10 @@ public class SQLExceptions {
                 return new RelationAlreadyExists(((InvalidIndexNameException) e).getIndex().getName(),
                     e);
             }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex().getName(), e);
+            return new InvalidRelationName(((InvalidIndexNameException) e).getIndex().getName(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
-            return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
+            return new InvalidRelationName(partitionName.tableIdent().fqn(), e);
         } else if (e instanceof IndexNotFoundException) {
             return new RelationUnknown(((IndexNotFoundException) e).getIndex().getName(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {

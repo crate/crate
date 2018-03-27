@@ -708,7 +708,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("table name \"AAA.t\" is invalid.");
+        expectedException.expectMessage("Relation name \"AAA.t\" is invalid.");
         execute("create table \"AAA\".t (name string) with (number_of_replicas=0)");
     }
 

@@ -25,7 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.exceptions.InvalidTableNameException;
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -102,12 +102,12 @@ public class TableIdent implements Writeable {
         return fqn();
     }
 
-    public void validate() throws InvalidSchemaNameException, InvalidTableNameException {
+    public void validate() throws InvalidSchemaNameException, InvalidRelationName {
         if (!isValidTableOrSchemaName(schema)) {
             throw new InvalidSchemaNameException(schema);
         }
         if (!isValidTableOrSchemaName(name)) {
-            throw new InvalidTableNameException(this);
+            throw new InvalidRelationName(this);
         }
     }
 
