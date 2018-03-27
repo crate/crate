@@ -236,6 +236,14 @@ options of all available views.
 | ``is_updatable``    | Whether the view is updatable. Not applicable for CrateDB, always returns ``FALSE`` | ``Boolean`` |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
 
+.. note::
+
+   If you drop the table of a view, the view will not show up in the
+   ``information_schema.tables`` and ``information_schema.views`` tables any
+   more. However, the view does still exist in the state of the CrateDB
+   cluster. In order to clean the view from the state, you need to also drop
+   the view using :ref:`ref-drop-view`.
+
 .. hide:
 
    cr> DROP view galaxies;
