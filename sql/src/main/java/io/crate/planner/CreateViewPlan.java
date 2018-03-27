@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.analyze.CreateViewStmt;
-import io.crate.analyze.SQLPrinter;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -31,7 +30,6 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.CreateViewRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
 
 import java.util.Map;
 
@@ -50,15 +48,11 @@ public final class CreateViewPlan implements Plan {
                         Row params,
                         Map<SelectSymbol, Object> valuesBySubQuery) {
 
-        SQLPrinter sqlPrinter = new SQLPrinter(new SymbolPrinter(dependencies.functions()));
-        final String query;
-        try {
-            query = sqlPrinter.format(createViewStmt.query());
-        } catch (Exception e) {
-            consumer.accept(null, e);
-            return;
-        }
-        CreateViewRequest request = new CreateViewRequest(createViewStmt.name(), query, createViewStmt.replaceExisting());
+        CreateViewRequest request = new CreateViewRequest(
+            createViewStmt.name(),
+            createViewStmt.formattedQuery(),
+            createViewStmt.replaceExisting()
+        );
         dependencies.createViewAction().execute(request, new OneRowActionListener<>(consumer, resp -> {
             if (resp.alreadyExistsFailure()) {
                 throw new RelationAlreadyExists(createViewStmt.name());

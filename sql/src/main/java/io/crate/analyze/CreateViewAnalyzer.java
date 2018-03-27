@@ -25,15 +25,21 @@ package io.crate.analyze;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateView;
+import io.crate.sql.tree.Query;
 
 public final class CreateViewAnalyzer {
 
     private final RelationAnalyzer relationAnalyzer;
+    private final SQLPrinter sqlPrinter;
 
-    CreateViewAnalyzer(RelationAnalyzer relationAnalyzer) {
+    CreateViewAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
+        this.sqlPrinter = new SQLPrinter(new SymbolPrinter(functions));
         this.relationAnalyzer = relationAnalyzer;
     }
 
@@ -42,6 +48,16 @@ public final class CreateViewAnalyzer {
         QueriedRelation query = (QueriedRelation) relationAnalyzer.analyzeUnbound(
             createView.query(), txnCtx, ParamTypeHints.EMPTY);
 
+        // sqlPrinter isn't feature complete yet; so restrict CREATE VIEW to only support queries where the
+        // format->analyze round-trip works.
+        String formattedQuery;
+        try {
+            formattedQuery = sqlPrinter.format(query);
+            relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
+        } catch (Exception e) {
+            throw new UnsupportedOperationException("Query cannot be used in a VIEW: " + createView.query());
+        }
+
         // We do not bother with exists checks here because it wouldn't be "atomic" as it might be based
         // on an outdated cluster check, leading to a potential race condition.
         // The "masterOperation" which will update the clusterState will do a real-time verification
@@ -49,6 +65,6 @@ public final class CreateViewAnalyzer {
         if (query.fields().stream().map(Field::outputName).distinct().count() != query.fields().size()) {
             throw new IllegalArgumentException("Query in CREATE VIEW must not have duplicate column names");
         }
-        return new CreateViewStmt(name, query, createView.replaceExisting());
+        return new CreateViewStmt(name, query, formattedQuery, createView.replaceExisting());
     }
 }
