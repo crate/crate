@@ -28,7 +28,7 @@ Synopsis
 
 where ``relation`` is::
 
-    table_reference | joined_relation | table_function | sub_select
+    relation_reference | joined_relation | table_function | sub_select
 
 Description
 ===========
@@ -107,25 +107,32 @@ The FROM clause specifies the source relation for the SELECT::
 
 The relation can be any of the following relations.
 
-Table Reference
-'''''''''''''''
+Relation Reference
+''''''''''''''''''
 
-A ``table_reference`` is a table ident with an optional table alias::
+A ``relation_reference`` is an ident which can either reference a table or a
+view with an optional alias::
 
-    table_ident [ [AS] table_alias ]
+    relation_ident [ [AS] alias ]
 
-:table_ident:
-  The name (optionally schema-qualified) of an existing table.
+:relation_ident:
+  The name (optionally schema-qualified) of an existing table or view.
 
-.. _sql_reference_table_alias:
+.. _sql_reference_relation_alias:
 
-:table_alias:
+:alias:
   A substitute name for the FROM item containing the alias.
 
-  An alias is used for brevity. When an alias is provided, it completely
-  hides the actual name of the table. For example given ``FROM foo AS
-  f``, the remainder of the SELECT must refer to this ``FROM`` item as ``f``
-  not ``foo``.
+  An alias is used for brevity. When an alias is provided, it completely hides
+  the actual name of the relation. For example given ``FROM foo AS f``, the
+  remainder of the SELECT must refer to this ``FROM`` item as ``f`` not
+  ``foo``.
+
+.. SEEALSO::
+
+    :ref:`ref-create-table`
+
+    :ref:`ref-create-view`
 
 .. _sql_reference_joined_tables:
 
@@ -186,7 +193,7 @@ the inner ``SELECT`` statement.
   A :ref:`SELECT <sql_reference_select>` statement.
 
 :alias:
-  An :ref:`alias <sql_reference_table_alias>` for the sub select.
+  An :ref:`alias <sql_reference_relation_alias>` for the sub select.
 
 ``WHERE``
 .........
