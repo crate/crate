@@ -180,13 +180,14 @@ class ShowStatementAnalyzer {
          *     ORDER BY 1;
          * </code>
          */
-        StringBuilder sb = new StringBuilder("SELECT distinct(table_name) as table_name FROM information_schema.tables ");
+        StringBuilder sb = new StringBuilder(
+            "SELECT distinct(table_name) as table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' ");
         QualifiedName schema = node.schema();
         if (schema != null) {
-            sb.append("WHERE table_schema = ");
+            sb.append("AND table_schema = ");
             singleQuote(sb, schema.toString());
         } else {
-            sb.append("WHERE table_schema NOT IN (");
+            sb.append("AND table_schema NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
                 singleQuote(sb, explicitSchemas[i]);
                 if (i < explicitSchemas.length - 1) {
