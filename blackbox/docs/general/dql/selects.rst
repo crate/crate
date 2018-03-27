@@ -58,13 +58,13 @@ Aliases can be used to change the output name of the columns::
 ===============
 
 The ``FROM`` clause is used to reference the relation this select query is
-based upon. Can be a single table, many tables, table :ref:`JOIN <sql_joins>`
+based upon. Can be a single table, many tables, a view, a :ref:`JOIN <sql_joins>`
 or another ``SELECT`` statement. See :ref:`SELECT Reference
 <sql_reference_select>`
 
-A table is referenced by schema and table name and can optionally be aliased.
-If the table ``t`` is only referenced by table name, CrateDB assumes the table
-``doc.t`` was meant. Schemas that were newly created using
+Tables and views are referenced by schema and table name and can optionally be
+aliased.  If the relation ``t`` is only referenced by name, CrateDB assumes the
+relation ``doc.t`` was meant. Schemas that were newly created using
 :ref:`ref-create-table` must be referenced explicitly.
 
 The two following queries are equivalent::
