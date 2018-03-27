@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -52,6 +53,12 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(createView.name(), is(new TableIdent(e.getSessionContext().defaultSchema(), "v1")));
         assertThat(createView.query(), isSQL("QueriedTable{DocTableRelation{doc.t1}}"));
+    }
+
+    @Test
+    public void testViewNameWithDotsAreNotAllowed() {
+        expectedException.expect(InvalidRelationName.class);
+        e.analyze("create view \"v.1\" as select 1");
     }
 
     @Test
