@@ -181,12 +181,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Nullable
     private ViewInfo getViewInfo(String name) {
-        try {
-            return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
-        } catch (ResourceUnknownException e) {
-            // underlying table of the view does not exist any more
-            return null;
-        }
+        return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
     }
 
     private Collection<String> viewNames() {
