@@ -98,8 +98,6 @@ These **features** of standard SQL are not supported:
 
 - Stored Procedures
 
-- Views
-
 - Triggers
 
 - ``VALUES`` list used as constant tables
@@ -146,7 +144,7 @@ These **functions** are either not supported or only partly supported:
 
 The currently supported and unsupported features in CrateDB are exposed in the
 :ref:`information_schema` table (see :ref:`sql_features` for usage).
-:
+
 If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We're always improving and extending
 CrateDB, and we love to hear feedback.
