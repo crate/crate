@@ -39,7 +39,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.sql.tree.Insert;
+import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -62,7 +62,6 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -82,7 +81,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("o", DataTypes.OBJECT, null)
         .add("o", DataTypes.STRING, Arrays.asList("c"))
+        .add("o2", DataTypes.OBJECT, null)
+        .add("o2", DataTypes.STRING, Arrays.asList("p"))
+        .add("k", DataTypes.INTEGER, null)
         .clusteredBy("o.c")
+        .addPrimaryKey("o2.p")
         .build();
 
     private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
@@ -91,6 +94,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         .add("a", DataTypes.INTEGER)
         .add("b", DataTypes.INTEGER)
         .add("c", DataTypes.INTEGER)
+        .add("d", DataTypes.INTEGER)
         .addPrimaryKey("a")
         .addPrimaryKey("b")
         .addPrimaryKey("c")
@@ -898,14 +902,14 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testNestedClusteredByColumnMustNotBeNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value must not be NULL");
-        e.analyze("insert into nested_clustered (o) values ({c=null})");
+        e.analyze("insert into nested_clustered (o, o2) values ({c=null}, {p=1})");
     }
 
     @Test
     public void testNestedClusteredByColumnMustNotBeNullWholeObject() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value must not be NULL");
-        e.analyze("insert into nested_clustered (o) values (null)");
+        e.analyze("insert into nested_clustered (o, o2) values (null, {p=1})");
     }
 
     @Test
@@ -924,7 +928,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             "on duplicate key update name = substr(values (name), 1, 2), " +
             "other_id = other_id + 100";
         insertStatements[1] = "insert into users (id, name, other_id) values (1, 'Arthur', 10) " +
-            "on conflict do update set name = substr(excluded.name, 1, 2), " +
+            "on conflict (id) do update set name = substr(excluded.name, 1, 2), " +
             "other_id = other_id + 100";
 
         for (String insertStatement : insertStatements) {
@@ -941,6 +945,34 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
+    public void testInsertFromValuesWithOnConflictAndMultiplePKs() {
+        String insertStatement = "insert into three_pk (a, b, c) values (1, 2, 3) on conflict (a, b, c) do update set d = 1";
+        InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        assertThat(statement.onDuplicateKeyAssignmentsColumns().size(), is(1));
+
+        String[] cols = statement.onDuplicateKeyAssignmentsColumns().get(0);
+        assertThat(cols[0], is("d"));
+        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+        assertThat(assignments.length, is(1));
+        assertThat(assignments[0], isLiteral(1));
+    }
+
+    @Test
+    public void testInsertFromValuesWithOnConflictAndNestedColumn() {
+        String insertStatement = "insert into nested_clustered (o, o2) values ({c=1}, {p=1}) on conflict (o2.p) do update set k = 1";
+        InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
+        assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
+        assertThat(statement.onDuplicateKeyAssignmentsColumns().size(), is(1));
+
+        String[] cols = statement.onDuplicateKeyAssignmentsColumns().get(0);
+        assertThat(cols[0], is("k"));
+        Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
+        assertThat(assignments.length, is(1));
+        assertThat(assignments[0], isLiteral(1));
+    }
+
+    @Test
     public void testInsertFromValuesWithOnDuplicateKeyInvalidColumnInValues() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column does_not_exist unknown");
@@ -953,7 +985,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column does_not_exist unknown");
         e.analyze("insert into users (id, name) values (1, 'Arthur') " +
-                  "on conflict do update set name = excluded.does_not_exist");
+                  "on conflict (id) do update set name = excluded.does_not_exist");
     }
 
     @Test
@@ -961,7 +993,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Can't use VALUES outside ON DUPLICATE KEY");
         e.analyze("insert into users (id, name) values (1, 'Arthur') " +
-                  "on conflict do update set name = values (name)");
+                  "on conflict (id) do update set name = values (name)");
     }
 
     @Test
@@ -992,6 +1024,35 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertFromValuesWithOnConflictUpdateExcludedWithNotInsertedColumnRef() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Referenced column 'name' isn't part of the column list of the INSERT statement");
+        e.analyze("insert into users (id) values (1) on conflict (id) do update set name = excluded.name");
+    }
+
+    @Test
+    public void testInsertFromValuesWithInvalidConflictTarget() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id) values (1) on conflict (id2) do update set name = excluded.name");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetNotMatchingPK() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        e.analyze("insert into users (id) values (1) on conflict (id, id2) do update set name = excluded.name");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetNotMatchingMultiplePKs() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        e.analyze("insert into three_pk (a, b, c) values (1, 2, 3) " +
+                  "on conflict (a, b) do update set d = 1");
+    }
+
+    @Test
+    public void testInsertFromValuesWithMissingConflictTarget() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:47: no viable alternative at input 'on conflict do'");
         e.analyze("insert into users (id) values (1) on conflict do update set name = excluded.name");
     }
 
@@ -999,7 +1060,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertFromValuesWithOnDupKeyValuesWithReferenceToNull() throws Exception {
         String[] insertStatements = new String[2];
         insertStatements[0] = "insert into users (id, name) values (1, null) on duplicate key update name = values(name)";
-        insertStatements[1] = "insert into users (id, name) values (1, null) on conflict do update set name = excluded.name";
+        insertStatements[1] = "insert into users (id, name) values (1, null) on conflict (id) do update set name = excluded.name";
 
         for (String insertStatement : insertStatements) {
             InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
@@ -1014,7 +1075,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertFromValuesWithOnDupKeyValuesWithParams() throws Exception {
         String[] insertStatements = new String[2];
         insertStatements[0] = "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)";
-        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict do update set name = excluded.name";
+        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict (id) do update set name = excluded.name";
 
         for (String insertStatement : insertStatements) {
             InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement, new Object[]{"foobar"});
@@ -1029,7 +1090,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertFromValuesWithOnDuplicateWithTwoRefsAndDifferentTypes() throws Exception {
         String[] insertStatements = new String[2];
         insertStatements[0] = "insert into users (id, name) values (1, ?) on duplicate key update name = values(name)";
-        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict do update set name = excluded.name";
+        insertStatements[1] = "insert into users (id, name) values (1, ?) on conflict (id) do update set name = excluded.name";
 
         InsertFromValuesAnalyzedStatement statement = e.analyze(
             "insert into users (id, name) values (1, 'foobar') " +
@@ -1045,7 +1106,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         insertStatements[0] = "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
                               "on duplicate key update name = substr(values (name), 1, 1)";
         insertStatements[1] = "insert into users (id, name) values (1, 'Arthur'), (2, 'Trillian') " +
-                              "on conflict do update set name = substr(excluded.name, 1, 1)";
+                              "on conflict (id) do update set name = substr(excluded.name, 1, 1)";
 
         for (String insertStatement : insertStatements) {
             InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
@@ -1065,7 +1126,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testOnDuplicateKeyUpdateOnObjectColumn() throws Exception {
         String[] insertStatements = new String[2];
         insertStatements[0] = "insert into users (id) values (1) on duplicate key update details['foo'] = 'foobar'";
-        insertStatements[1] = "insert into users (id) values (1) on conflict do update set details['foo'] = 'foobar'";
+        insertStatements[1] = "insert into users (id) values (1) on conflict (id) do update set details['foo'] = 'foobar'";
 
         for (String insertStatement : insertStatements) {
             InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
@@ -1085,7 +1146,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             // this is what we want
         }
         try {
-            e.analyze("insert into users (id, name) values (1, 'Arthur') on conflict do update set [1, 2] = 1");
+            e.analyze("insert into users (id, name) values (1, 'Arthur') on conflict (id) do update set [1, 2] = 1");
             fail("Analyze passed without a failure.");
         } catch (IllegalArgumentException e) {
             // this is what we want
@@ -1093,35 +1154,17 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testUpdateOnPartitionedColumnShouldRaiseAnError() throws Exception {
-        try {
-            e.analyze("insert into parted (id) values (1) on duplicate key update date = 0");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnValidationException e) {
-            assertThat(e.getMessage(), containsString("Validation failed for date: Updating a partitioned-by column is not supported"));
-        }
-        try {
-            e.analyze("insert into parted (id) values (1) on conflict do update set date = 0");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnValidationException e) {
-            assertThat(e.getMessage(), containsString("Validation failed for date: Updating a partitioned-by column is not supported"));
-        }
+    public void testUpdateOnPartitionedColumnShouldRaiseAnError() {
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for date: Updating a partitioned-by column is not supported");
+        e.analyze("update parted set date = 1");
     }
 
     @Test
     public void testUpdateOnClusteredByColumnShouldRaiseAnError() throws Exception {
-        try {
-            e.analyze("insert into users_clustered_by_only (id) values (1) on duplicate key update id = 10");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnValidationException e) {
-            assertThat(e.getMessage(), containsString("Validation failed for id: Updating a clustered-by column is not supported"));
-        }
-        try {
-            e.analyze("insert into users_clustered_by_only (id) values (1) on conflict do update set id = 10");
-            fail("Analyze passed without a failure.");
-        } catch (ColumnValidationException e) {
-            assertThat(e.getMessage(), containsString("Validation failed for id: Updating a clustered-by column is not supported"));
-        }
+        expectedException.expect(ColumnValidationException.class);
+        expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
+        e.analyze("update users_clustered_by_only set id = 10");
     }
 
     @Test

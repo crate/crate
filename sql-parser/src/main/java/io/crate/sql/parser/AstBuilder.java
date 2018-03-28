@@ -172,6 +172,7 @@ import io.crate.sql.tree.Update;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -433,18 +434,23 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
         final Insert.DuplicateKeyType duplicateKeyType;
         final List<SqlBaseParser.AssignmentContext> assignment;
+        final List<String> conflictColumns;
         if (context.onDuplicate() != null) {
             duplicateKeyType = Insert.DuplicateKeyType.ON_DUPLICATE_KEY_UPDATE;
             assignment = context.onDuplicate().assignment();
+            conflictColumns = Collections.emptyList();
         } else if (context.onConflict() != null) {
             if (context.onConflict().NOTHING() != null) {
                 throw new UnsupportedOperationException("ON CONFLICT DO NOTHING is not implemented yet.");
             }
             duplicateKeyType = Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET;
             assignment = context.onConflict().assignment();
+            conflictColumns = context.onConflict().conflictTarget().qname().stream()
+                .map(RuleContext::getText).collect(toList());
         } else {
             duplicateKeyType = Insert.DuplicateKeyType.NONE;
             assignment = Collections.emptyList();
+            conflictColumns = Collections.emptyList();
         }
 
         if (context.insertSource().VALUES() != null) {
@@ -453,14 +459,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 visitCollection(context.insertSource().values(), ValuesList.class),
                 columns,
                 duplicateKeyType,
-                visitCollection(assignment, Assignment.class));
+                visitCollection(assignment, Assignment.class),
+                conflictColumns);
         }
         return new InsertFromSubquery(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
             duplicateKeyType,
-            visitCollection(assignment, Assignment.class));
+            visitCollection(assignment, Assignment.class),
+            conflictColumns);
     }
 
     @Override

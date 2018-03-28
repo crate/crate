@@ -21,21 +21,25 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.scalar.SubstrFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.scalar.SubstrFunction;
-import io.crate.expression.scalar.cast.CastFunctionResolver;
+import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
+import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,9 +70,33 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
             .add("lastname", DataTypes.STRING)
             .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
             .addPrimaryKey("id");
+
+        TableIdent threePksIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
+        TestingTableInfo.Builder threePks = new TestingTableInfo.Builder(threePksIdent, SHARD_ROUTING)
+            .add("a", DataTypes.INTEGER)
+            .add("b", DataTypes.INTEGER)
+            .add("c", DataTypes.INTEGER)
+            .add("d", DataTypes.INTEGER)
+            .addPrimaryKey("a")
+            .addPrimaryKey("b")
+            .addPrimaryKey("c");
+
         builder.addDocTable(usersGenerated);
+        builder.addDocTable(threePks);
         e = builder.build();
     }
+
+    private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
+    private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
+        THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
+        .add("a", DataTypes.INTEGER)
+        .add("b", DataTypes.INTEGER)
+        .add("c", DataTypes.INTEGER)
+        .add("d", DataTypes.INTEGER)
+        .addPrimaryKey("a")
+        .addPrimaryKey("b")
+        .addPrimaryKey("c")
+        .build();
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
         List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
@@ -170,7 +198,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
                               "on duplicate key update name = 'Arthur'";
         insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
-                              "on conflict do update set name = 'Arthur'";
+                              "on conflict (id) do update set name = 'Arthur'";
 
         for (String insertStatement : insertStatements) {
             InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
@@ -190,7 +218,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
                               "on duplicate key update name = ?";
         insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
-                              "on conflict do update set name = ?";
+                              "on conflict (id) do update set name = ?";
 
         for (String insertStatement : insertStatements) {
             InsertFromSubQueryAnalyzedStatement statement =
@@ -211,7 +239,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         insertStatements[0] = "insert into users (id, name) (select id, name from users) " +
                               "on duplicate key update name = substr(values (name), 1, 1)";
         insertStatements[1] = "insert into users (id, name) (select id, name from users) " +
-                              "on conflict do update set name = substr(excluded.name, 1, 1)";
+                              "on conflict (id) do update set name = substr(excluded.name, 1, 1)";
 
         for (String insertStatement : insertStatements) {
             InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
@@ -231,6 +259,15 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void testFromQueryWithOnConflictAndMultiplePKs() {
+        String insertStatement = "insert into three_pk (a, b, c) (select 1, 2, 3) on conflict (a, b, c) do update set d = 1";
+        InsertFromSubQueryAnalyzedStatement statement = e.analyze(insertStatement);
+        assertThat(statement.onDuplicateKeyAssignments().size(), Is.is(1));
+        assertThat(statement.onDuplicateKeyAssignments().keySet().iterator().next(), isReference("d"));
+        assertThat(statement.onDuplicateKeyAssignments().values().iterator().next(), isLiteral(1));
+    }
+
+    @Test
     public void testFromQueryWithUnknownOnDuplicateKeyValues() throws Exception {
         try {
             e.analyze("insert into users (id, name) (select id, name from users) " +
@@ -241,7 +278,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         }
         try {
             e.analyze("insert into users (id, name) (select id, name from users) " +
-                      "on conflict do update set name = excluded.does_not_exist");
+                      "on conflict (id) do update set name = excluded.does_not_exist");
             fail("Analyze passed without a failure.");
         } catch (ColumnUnknownException e) {
             assertThat(e.getMessage(), containsString("Column does_not_exist unknown"));
@@ -258,7 +295,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
             assertThat(e.getMessage(), containsString("Updating a primary key is not supported"));
         }
         try {
-            e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set id = id + 1");
+            e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id) do update set id = id + 1");
             fail("Analyze passed without a failure.");
         } catch (ColumnValidationException e) {
             assertThat(e.getMessage(), containsString("Updating a primary key is not supported"));
@@ -282,5 +319,34 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         expectedException.expectMessage("Number of target columns (id, firstname, lastname, name) " +
                                         "of insert statement doesn't match number of source columns (id, firstname, lastname)");
         e.analyze("insert into users_generated (select id, firstname, lastname from users_generated)");
+    }
+
+    @Test
+    public void testFromQueryWithInvalidConflictTarget() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id2) do update set name = excluded.name");
+    }
+
+    @Test
+    public void testFromQueryWithConflictTargetNotMatchingPK() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) do update set name = excluded.name");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetNotMatchingMultiplePKs() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
+                  "on conflict (a, b) do update set d = 1");
+    }
+
+    @Test
+    public void testFromQueryWithMissingConflictTarget() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:63: no viable alternative at input 'on conflict do'");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set name = excluded.name");
     }
 }

@@ -124,7 +124,8 @@ class InsertFromSubQueryAnalyzer {
             txnCtx,
             new NameFieldProvider(tableRelation),
             insert.getDuplicateKeyType(),
-            insert.onDuplicateKeyAssignments()
+            insert.onDuplicateKeyAssignments(),
+            insert.getConstraintColumns()
         );
 
         return new AnalyzedInsertStatement(subQueryRelation, onDuplicateKeyAssignments);
@@ -151,7 +152,8 @@ class InsertFromSubQueryAnalyzer {
             analysis.transactionContext(),
             fieldProvider,
             node.getDuplicateKeyType(),
-            node.onDuplicateKeyAssignments()
+            node.onDuplicateKeyAssignments(),
+            node.getConstraintColumns()
         );
 
         return new InsertFromSubQueryAnalyzedStatement(
@@ -169,7 +171,7 @@ class InsertFromSubQueryAnalyzer {
         }
         LinkedHashSet<Reference> columns = new LinkedHashSet<>(targetColumnNames.size());
         for (String targetColumnName : targetColumnNames) {
-            ColumnIdent columnIdent = new ColumnIdent(targetColumnName);
+            ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
             Reference reference = targetTable.getReference(columnIdent);
             Reference targetReference;
             if (reference == null) {
@@ -240,7 +242,8 @@ class InsertFromSubQueryAnalyzer {
                                                        TransactionContext txnCtx,
                                                        Function<ParameterExpression, Symbol> paramConverter,
                                                        Insert.DuplicateKeyType duplicateKeyType,
-                                                       List<Assignment> assignments) {
+                                                       List<Assignment> assignments,
+                                                       List<String> constraintColumns) {
         if (assignments.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -248,6 +251,7 @@ class InsertFromSubQueryAnalyzer {
         ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
         final FieldProvider fieldProvider;
         if (duplicateKeyType == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
+            InsertFromValuesAnalyzer.verifyOnConflictTargets(constraintColumns, targetTable.tableInfo());
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(targetTable), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(targetTable);
@@ -279,7 +283,8 @@ class InsertFromSubQueryAnalyzer {
                                                             TransactionContext transactionContext,
                                                             FieldProvider fieldProvider,
                                                             Insert.DuplicateKeyType duplicateKeyType,
-                                                            List<Assignment> assignments) {
+                                                            List<Assignment> assignments,
+                                                            List<String> constraintColumns) {
         if (assignments.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -289,6 +294,6 @@ class InsertFromSubQueryAnalyzer {
 
         return getUpdateAssignments(
             functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext,
-            duplicateKeyType, assignments);
+            duplicateKeyType, assignments, constraintColumns);
     }
 }

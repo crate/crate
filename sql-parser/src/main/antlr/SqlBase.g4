@@ -402,8 +402,12 @@ onDuplicate
    ;
 
 onConflict
-   : ON CONFLICT DO NOTHING
-   | ON CONFLICT DO UPDATE SET assignment (',' assignment)*
+   : ON CONFLICT conflictTarget DO NOTHING
+   | ON CONFLICT conflictTarget DO UPDATE SET assignment (',' assignment)*
+   ;
+
+conflictTarget
+   : '(' qname (',' qname)* ')'
    ;
 
 values

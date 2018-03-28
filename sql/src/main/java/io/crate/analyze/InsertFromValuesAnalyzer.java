@@ -161,7 +161,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             txnCtx,
             typeHints,
             insert.getDuplicateKeyType(),
-            insert.onDuplicateKeyAssignments());
+            insert.onDuplicateKeyAssignments(),
+            insert.getConstraintColumns());
         return new AnalyzedInsertStatement(rows, onDuplicateKeyAssignments);
     }
 
@@ -175,6 +176,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         final FieldProvider fieldProvider;
         if (node.getDuplicateKeyType() == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
+            verifyOnConflictTargets(node.getConstraintColumns(), tableInfo);
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(tableRelation), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(tableRelation);
@@ -605,6 +607,25 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Given value %s for generated column does not match defined generated expression value %s",
                 givenValue, generatedValue));
+        }
+    }
+
+    static void verifyOnConflictTargets(List<String> constraintColumns, DocTableInfo docTableInfo) {
+        List<ColumnIdent> pkColumnIdents = docTableInfo.primaryKey();
+        if (constraintColumns.size() != pkColumnIdents.size()) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH,
+                    "Number of conflict targets (%s) did not match the number of primary key columns (%s)",
+                    constraintColumns, pkColumnIdents));
+        }
+        Collection<Reference> constraintRefs = resolveTargetColumns(constraintColumns, docTableInfo, pkColumnIdents.size());
+        for (Reference contraintRef : constraintRefs) {
+            if (!pkColumnIdents.contains(contraintRef.column())) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH,
+                        "Conflict target (%s) did not match the primary key columns (%s)",
+                        constraintColumns, pkColumnIdents));
+            }
         }
     }
 }

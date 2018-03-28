@@ -38,13 +38,19 @@ public abstract class Insert extends Statement {
     private final DuplicateKeyType duplicateKeyType;
     protected final List<Assignment> onDuplicateKeyAssignments;
     protected final List<String> columns;
+    protected final List<String> constraintColumns;
 
 
-    Insert(Table table, List<String> columns, DuplicateKeyType duplicateKeyType, List<Assignment> onDuplicateKeyAssignments) {
+    Insert(Table table,
+           List<String> columns,
+           DuplicateKeyType duplicateKeyType,
+           List<Assignment> onDuplicateKeyAssignments,
+           List<String> constraintColumns) {
         this.table = table;
         this.columns = columns;
         this.duplicateKeyType = duplicateKeyType;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
+        this.constraintColumns = constraintColumns;
     }
 
     public Table table() {
@@ -53,6 +59,10 @@ public abstract class Insert extends Statement {
 
     public List<String> columns() {
         return columns;
+    }
+
+    public List<String> getConstraintColumns() {
+        return constraintColumns;
     }
 
     public DuplicateKeyType getDuplicateKeyType() {
