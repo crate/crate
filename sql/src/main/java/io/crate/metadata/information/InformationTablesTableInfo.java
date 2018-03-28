@@ -49,19 +49,16 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final String NAME = "tables";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
-    static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
-
+    private static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
+    private static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
 
     public static class Columns {
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
         static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
         static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
         static final ColumnIdent TABLE_TYPE = new ColumnIdent("table_type");
-        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        public static final ColumnIdent VALUES = new ColumnIdent("values");
         static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
-        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
+        static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
         static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
         static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
         static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
