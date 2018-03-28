@@ -25,6 +25,7 @@ package io.crate.metadata.view;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -37,6 +38,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class InternalViewInfoFactory implements ViewInfoFactory {
 
@@ -58,9 +61,19 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
             return null;
         }
         Statement parsedStmt = SqlParser.createStatement(statement);
-        AnalyzedRelation relation = analyzerProvider.get().analyze(parsedStmt, new TransactionContext(), ParameterContext.EMPTY);
-        ArrayList<Reference> columns = new ArrayList<>(relation.fields().size());
-        relation.fields().forEach(field -> columns.add(new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
+        List<Reference> columns;
+        try {
+            AnalyzedRelation relation = analyzerProvider.get()
+                .analyze(parsedStmt, new TransactionContext(), ParameterContext.EMPTY);
+            final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
+            relation.fields()
+                .forEach(field -> collectedColumns.add(new Reference(new ReferenceIdent(ident, field.outputName()), RowGranularity.DOC, field.valueType())));
+            columns = collectedColumns;
+        } catch (ResourceUnknownException e) {
+            // Return ViewInfo with no columns in case the statement could not be analyzed,
+            // because the underlying table of the view could not be found.
+            columns = Collections.emptyList();
+        }
         return new ViewInfo(ident, statement, columns);
     }
 }

@@ -238,11 +238,8 @@ options of all available views.
 
 .. note::
 
-   If you drop the table of a view, the view will not show up in the
-   ``information_schema.tables`` and ``information_schema.views`` tables any
-   more. However, the view does still exist in the state of the CrateDB
-   cluster. In order to clean the view from the state, you need to also drop
-   the view using :ref:`ref-drop-view`.
+   If you drop the table of a view, the view will still exist and show up in
+   the ``information_schema.tables`` and ``information_schema.views`` tables.
 
 .. hide:
 
@@ -253,7 +250,8 @@ options of all available views.
 -----------
 
 This table can be queried to get a list of all available columns of all tables
-and their definition like data type and ordinal position inside the table::
+and views and their definition like data type and ordinal position inside the
+table::
 
     cr> select table_name, column_name, ordinal_position as pos, data_type
     ... from information_schema.columns

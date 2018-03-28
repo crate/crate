@@ -127,6 +127,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testSelectViewsFromInformationSchema() {
         execute("CREATE TABLE t1 (id INTEGER, name STRING) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=1)");
         execute("CREATE VIEW t1_view1 AS SELECT * FROM t1 WHERE name = 'foo'");
@@ -141,6 +142,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                                                                     "BASE VIEW| t1_view1| NULL| NULL\n" +
                                                                     "BASE VIEW| t1_view2| NULL| NULL\n"));
 
+        // SELECT information_schema.views
+        execute("SELECT table_name, view_definition " +
+                "FROM information_schema.views " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
+                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+
         // SELECT information_schema.columns
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +
@@ -152,9 +161,18 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                                                                     "t1_view1| name\n" +
                                                                     "t1_view2| id\n"));
 
-        // After dropping the target table of the view, the view does not show up in the information_schema any more,
-        // because the SELECT statement cannot be analyzed and converted into a ViewInfo any more.
+        // After dropping the target table of the view, the view still shows up in information_schema.tables and
+        // information_schema.views,  but not in information_schema.columns, because the SELECT statement could not be
+        // analyzed.
         execute("DROP TABLE t1");
+
+        execute("SELECT table_name, view_definition " +
+                "FROM information_schema.views " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
+                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+
         execute("SELECT table_name, column_name " +
                 "FROM information_schema.columns " +
                 "WHERE table_name LIKE 't1%' " +
