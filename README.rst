@@ -15,7 +15,7 @@
 
 |
 
-CrateDB is a distributed SQL database that makes it simple to store and analyze massive amounts of machine data in real-time.
+CrateDB is a distributed SQL database which simplifies storing and analyzing massive amounts of machine data in real-time.
 
 Features of CrateDB:
 
@@ -25,7 +25,7 @@ Features of CrateDB:
 - Auto-partitioning, auto-sharding, and auto-replication.
 - Self-healing and auto-rebalancing.
 
-CrateDB offers the scalability and flexibility typically associated with a NoSQL database and is designed to run on inexpensive commodity servers and can be deployed and run across any sort of network. From personal computers to multi-region hybrid clouds.
+CrateDB offers the scalability and flexibility typically associated with a NoSQL database. CrateDB is designed to run on inexpensive commodity servers which can be deployed and run across any network from personal computers to multi-region hybrid clouds.
 
 The smallest CrateDB clusters can easily ingest tens of thousands of records per second. And this data can be queried, ad-hoc, in parallel across the whole cluster in real time.
 
