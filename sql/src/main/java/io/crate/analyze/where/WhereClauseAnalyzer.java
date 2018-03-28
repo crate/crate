@@ -102,11 +102,15 @@ public class WhereClauseAnalyzer {
             return WhereClause.MATCH_ALL;
         }
         WhereClauseValidator.validate(query);
-        Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
-            query,
-            table.generatedColumns(),
-            Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference))
-        );
+
+        Symbol queryGenColsProcessed = query;
+        if (partitions.isEmpty()) { // Query already analyzed and partitions are extracted
+            queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
+                query,
+                table.generatedColumns(),
+                Lists2.concat(table.partitionedByColumns(), Lists2.copyAndReplace(table.primaryKey(), table::getReference))
+            );
+        }
         if (!query.equals(queryGenColsProcessed)) {
             query = normalizer.normalize(queryGenColsProcessed, transactionContext);
         }

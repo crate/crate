@@ -26,3 +26,14 @@ Fixes
 =====
 
 - Do not allow renaming a table when connected to a read-only node.
+
+- Fixed an issue that caused an error to be thrown when filtering on a
+  partitioned table using a column which is a source column for a ``GENERATED``
+  column which in turn is used for partitioning. E.g.::
+
+    CREATE TABLE parted_t(
+        t TIMESTAMP,
+        day TIMESTAMP GENERATED ALWAYS AS date_trunc('day', t)
+    ) PARTITIONED BY (day);
+
+    SELECT * FROM parted_t WHERE t > 1522170000000;
