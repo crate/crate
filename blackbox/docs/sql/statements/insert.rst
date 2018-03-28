@@ -22,7 +22,8 @@ Synopsis
     INSERT INTO table_ident
       [ ( column_ident [, ...] ) ]
       { VALUES ( expression [, ...] ) [, ...] | ( query ) | query }
-      [ ON CONFLICT DO UPDATE SET { column_ident = expression } [, ...] |
+      [ ON CONFLICT (column_ident [, ...])
+          DO UPDATE SET { column_ident = expression } [, ...] |
         ON DUPLICATE KEY UPDATE { column_ident = expression } [, ...]]
 
 Description
@@ -72,11 +73,12 @@ of the current row can be referenced.
 -----------------------------
 
 ``ON CONFLICT DO UPDATE SET`` works just like ``ON DUPLICATE KEY UPDATE``, but
-its syntax is slightly different.
+its syntax is slightly different. Additionally, it requires to specify the key
+columns to perform the duplicate key check against.
 
 ::
 
-     ON CONFLICT DO UPDATE SET { column_ident = expression } [, ...]
+     ON CONFLICT (column_ident, [, ...]) DO UPDATE SET { column_ident = expression } [, ...]
 
 Within expressions in the ``DO UPDATE SET`` clause, you can use the
 ``EXCLUDED`` table to refer to column values from the INSERT
@@ -85,7 +87,7 @@ statement values. For example:
 ::
 
      INSERT INTO t (col1, col2) VALUES (1, 41)
-     ON CONFLICT DO UPDATE SET { col2 = excluded.col2 + 1 }
+     ON CONFLICT (col1) DO UPDATE SET { col2 = excluded.col2 + 1 }
 
 The above statement would update ``col2`` to ``42`` if ``col1`` was a primary
 key and the value ``1`` already existed for ``col1``.
