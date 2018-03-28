@@ -2159,4 +2159,18 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select * from t where p='a' and v='Marvin'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("a| Marvin\n"));
     }
+
+    @Test
+    public void test_partition_filter_on_table_with_generated_column() {
+        execute("create table t (" +
+                "    t timestamp," +
+                "    day timestamp GENERATED ALWAYS AS date_trunc('day', t)) " +
+                "PARTITIONED BY (day)");
+        execute("insert into t(t) values ('2018-03-28T12:00:00+07:00');");
+        execute("insert into t(t) values ('2018-01-01T12:00:00+07:00');");
+        execute("refresh table t");
+
+        execute("select count(*) from t where t > 1000");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+    }
 }
