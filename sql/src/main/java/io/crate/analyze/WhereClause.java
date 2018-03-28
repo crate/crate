@@ -201,6 +201,9 @@ public class WhereClause extends QueryClause implements Streamable {
             // NO_MATCH & anything is still NO_MATCH
             return NO_MATCH;
         }
+        if (this.query == null) {
+            return new WhereClause(otherQuery);
+        }
         this.query = AndOperator.of(this.query, otherQuery);
         return this;
     }

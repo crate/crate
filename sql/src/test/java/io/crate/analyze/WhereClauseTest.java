@@ -71,4 +71,36 @@ public class WhereClauseTest {
             EvaluatingNormalizer.functionOnlyNormalizer(getFunctions()), new TransactionContext());
         assertThat(normalizedWhere.query(), is(sqlExpressions.asSymbol("x = 10")));
     }
+
+    @Test
+    public void testAddWithNoMatch() {
+        WhereClause where1 = WhereClause.NO_MATCH;
+        WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
+        WhereClause where1_where2 = where1.add(where2.query);
+
+        assertThat(where1_where2.hasQuery(), is(false));
+        assertThat(where1_where2.noMatch, is(true));
+    }
+
+    @Test
+    public void testAddWithMatchAll() {
+        WhereClause where1 = WhereClause.MATCH_ALL;
+        WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
+        WhereClause where1_where2 = where1.add(where2.query);
+
+        assertThat(where1_where2.hasQuery(), is(true));
+        assertThat(where1_where2.noMatch, is(false));
+        assertThat(where1_where2.query(), is(where2.query()));
+    }
+
+    @Test
+    public void testAddWithNullQuery() {
+        WhereClause where1 = new WhereClause((Symbol) null);
+        WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
+        WhereClause where1_where2 = where1.add(where2.query);
+
+        assertThat(where1_where2.hasQuery(), is(true));
+        assertThat(where1_where2.noMatch, is(false));
+        assertThat(where1_where2.query(), is(where2.query()));
+    }
 }
