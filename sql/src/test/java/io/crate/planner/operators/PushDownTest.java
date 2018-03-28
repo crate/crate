@@ -208,7 +208,6 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                           "]\n"));
     }
 
-
     @Test
     public void testOrderByIsPushedDownToLeftSide() {
         sqlExecutor.getSessionContext().setHashJoinEnabled(false);
@@ -236,5 +235,20 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                 "]\n")
         );
+    }
+
+    @Test
+    public void testWhereClauseIsPushedDown() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        LogicalPlan plan = sqlExecutor.logicalPlan("SELECT name FROM (SELECT id, name FROM sys.nodes) t " +
+                                                   "WHERE id = 'nodeName'");
+
+        assertThat(
+            plan,
+            LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                "RootBoundary[name]\n" +
+                "FetchOrEval[name]\n" +
+                "Boundary[id, name]\n" +
+                "Collect[sys.nodes | [id, name] | (id = 'nodeName')]\n"));
     }
 }
