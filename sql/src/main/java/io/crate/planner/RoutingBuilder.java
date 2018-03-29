@@ -26,9 +26,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import org.elasticsearch.cluster.ClusterState;
@@ -41,7 +41,7 @@ import java.util.Map;
 
 final class RoutingBuilder {
 
-    final Map<TableIdent, List<Routing>> routingListByTable = new HashMap<>();
+    final Map<RelationName, List<Routing>> routingListByTable = new HashMap<>();
     private final ClusterState clusterState;
     private final RoutingProvider routingProvider;
 
@@ -72,12 +72,12 @@ final class RoutingBuilder {
             return readerAllocations;
         }
 
-        Multimap<TableIdent, String> indicesByTable = HashMultimap.create();
+        Multimap<RelationName, String> indicesByTable = HashMultimap.create();
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
         Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
 
-        for (final Map.Entry<TableIdent, List<Routing>> tableRoutingEntry : routingListByTable.entrySet()) {
-            TableIdent table = tableRoutingEntry.getKey();
+        for (final Map.Entry<RelationName, List<Routing>> tableRoutingEntry : routingListByTable.entrySet()) {
+            RelationName table = tableRoutingEntry.getKey();
             List<Routing> routingList = tableRoutingEntry.getValue();
             for (Routing routing : routingList) {
                 allocateRoutingNodes(shardNodes, routing.locations());

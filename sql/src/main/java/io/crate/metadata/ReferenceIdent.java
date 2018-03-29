@@ -32,29 +32,29 @@ import java.util.Locale;
 
 public class ReferenceIdent {
 
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
     private final ColumnIdent columnIdent;
 
     public ReferenceIdent(StreamInput in) throws IOException {
         columnIdent = new ColumnIdent(in);
-        tableIdent = new TableIdent(in);
+        relationName = new RelationName(in);
     }
 
-    public ReferenceIdent(TableIdent tableIdent, ColumnIdent columnIdent) {
-        this.tableIdent = tableIdent;
+    public ReferenceIdent(RelationName relationName, ColumnIdent columnIdent) {
+        this.relationName = relationName;
         this.columnIdent = columnIdent;
     }
 
-    public ReferenceIdent(TableIdent tableIdent, String column) {
-        this(tableIdent, new ColumnIdent(column));
+    public ReferenceIdent(RelationName relationName, String column) {
+        this(relationName, new ColumnIdent(column));
     }
 
-    public ReferenceIdent(TableIdent tableIdent, String column, @Nullable List<String> path) {
-        this(tableIdent, new ColumnIdent(column, path));
+    public ReferenceIdent(RelationName relationName, String column, @Nullable List<String> path) {
+        this(relationName, new ColumnIdent(column, path));
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     public ColumnIdent columnIdent() {
@@ -65,7 +65,7 @@ public class ReferenceIdent {
         if (columnIdent.isTopLevel()) {
             return this;
         }
-        return new ReferenceIdent(tableIdent, columnIdent.name());
+        return new ReferenceIdent(relationName, columnIdent.name());
     }
 
     @Override
@@ -78,23 +78,23 @@ public class ReferenceIdent {
         }
         ReferenceIdent o = (ReferenceIdent) obj;
         return Objects.equal(columnIdent, o.columnIdent) &&
-               Objects.equal(tableIdent, o.tableIdent);
+               Objects.equal(relationName, o.relationName);
     }
 
     @Override
     public int hashCode() {
-        int result = tableIdent.hashCode();
+        int result = relationName.hashCode();
         result = 31 * result + columnIdent.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        return String.format(Locale.ENGLISH, "<RefIdent: %s->%s>", tableIdent, columnIdent);
+        return String.format(Locale.ENGLISH, "<RefIdent: %s->%s>", relationName, columnIdent);
     }
 
     public void writeTo(StreamOutput out) throws IOException {
         columnIdent.writeTo(out);
-        tableIdent.writeTo(out);
+        relationName.writeTo(out);
     }
 }

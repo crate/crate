@@ -29,7 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -43,7 +43,7 @@ import static org.junit.Assert.assertThat;
 
 public class ColumnIndexWriterProjectionTest {
 
-    private TableIdent tableIdent = new TableIdent("dummy", "table");
+    private RelationName relationName = new RelationName("dummy", "table");
 
     @Test
     public void testTargetColumnRefsAndSymbolsAreCorrectAfterExclusionOfPartitionColumns() {
@@ -76,7 +76,7 @@ public class ColumnIndexWriterProjectionTest {
         List<Symbol> partitionedBySymbols = InputColumns.create(Arrays.asList(ymdRef, ispRef), targetColsCtx);
 
         ColumnIndexWriterProjection projection = new ColumnIndexWriterProjection(
-            tableIdent,
+            relationName,
             null,
             primaryKeys,
             targetColumns,
@@ -100,10 +100,10 @@ public class ColumnIndexWriterProjectionTest {
     }
 
     private Reference ref(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(tableIdent, column), RowGranularity.DOC, type);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type);
     }
 
     private Reference partitionRef(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(tableIdent, column), RowGranularity.PARTITION, type);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type);
     }
 }

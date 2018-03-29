@@ -22,26 +22,26 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class RelationsUnknown extends ResourceUnknownException implements TableScopeException {
 
-    private final Iterable<TableIdent> relations;
+    private final Iterable<RelationName> relations;
 
-    public RelationsUnknown(Collection<TableIdent> relations) {
+    public RelationsUnknown(Collection<RelationName> relations) {
         super(errorMsg(relations));
         this.relations = relations;
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
+    public Iterable<RelationName> getTableIdents() {
         return relations;
     }
 
-    private static String errorMsg(Collection<TableIdent> relations) {
-        return "Relations not found: " + relations.stream().map(TableIdent::sqlFqn).collect(Collectors.joining(", "));
+    private static String errorMsg(Collection<RelationName> relations) {
+        return "Relations not found: " + relations.stream().map(RelationName::sqlFqn).collect(Collectors.joining(", "));
     }
 }

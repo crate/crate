@@ -22,7 +22,7 @@
 
 package io.crate.ingestion;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,20 +32,20 @@ public class IngestionDDLClusterStateModifier implements DDLClusterStateModifier
 
     @Override
     public ClusterState onRenameTable(ClusterState currentState,
-                                      TableIdent sourceTableIdent,
-                                      TableIdent targetTableIdent,
+                                      RelationName sourceRelationName,
+                                      RelationName targetRelationName,
                                       boolean isPartitionedTable) {
         MetaData currentMetaData = currentState.metaData();
         MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-        if (transferIngestionRules(mdBuilder, sourceTableIdent, targetTableIdent)) {
+        if (transferIngestionRules(mdBuilder, sourceRelationName, targetRelationName)) {
             return ClusterState.builder(currentState).metaData(mdBuilder).build();
         }
         return currentState;
     }
 
     private static boolean transferIngestionRules(MetaData.Builder mdBuilder,
-                                                  TableIdent sourceTableIdent,
-                                                  TableIdent targetTableIdent) {
+                                                  RelationName sourceRelationName,
+                                                  RelationName targetRelationName) {
         IngestRulesMetaData oldMetaData = (IngestRulesMetaData) mdBuilder.getCustom(IngestRulesMetaData.TYPE);
         if (oldMetaData == null) {
             return false;
@@ -54,7 +54,7 @@ public class IngestionDDLClusterStateModifier implements DDLClusterStateModifier
         // a new instance of the metadata is created if any rules are transferred from source to target (this guarantees
         // a cluster change event is triggered)
         IngestRulesMetaData newMetaData = IngestRulesMetaData.maybeCopyAndReplaceTargetTableIdents(
-            oldMetaData, sourceTableIdent.fqn(), targetTableIdent.fqn());
+            oldMetaData, sourceRelationName.fqn(), targetRelationName.fqn());
 
         if (newMetaData != null) {
             mdBuilder.putCustom(IngestRulesMetaData.TYPE, newMetaData);

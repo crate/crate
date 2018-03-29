@@ -24,7 +24,7 @@ package io.crate.exceptions;
 import io.crate.analyze.TableIdentsExtractor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Locale;
 
@@ -38,7 +38,7 @@ public class AmbiguousColumnException extends ValidationException implements Tab
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
+    public Iterable<RelationName> getTableIdents() {
         return TableIdentsExtractor.extract(columnSymbol);
     }
 }

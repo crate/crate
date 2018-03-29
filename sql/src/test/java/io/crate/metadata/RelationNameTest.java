@@ -29,63 +29,63 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class TableIdentTest extends CrateUnitTest {
+public class RelationNameTest extends CrateUnitTest {
 
     @Test
     public void testIndexName() throws Exception {
-        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.indexName(), is("t"));
-        ti = new TableIdent("s", "t");
+        ti = new RelationName("s", "t");
         assertThat(ti.indexName(), is("s.t"));
     }
 
     @Test
     public void testFromIndexName() throws Exception {
-        assertThat(TableIdent.fromIndexName("t"), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t")));
-        assertThat(TableIdent.fromIndexName("s.t"), is(new TableIdent("s", "t")));
+        assertThat(RelationName.fromIndexName("t"), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
+        assertThat(RelationName.fromIndexName("s.t"), is(new RelationName("s", "t")));
 
         PartitionName pn = new PartitionName("s", "t", ImmutableList.of(new BytesRef("v1")));
-        assertThat(TableIdent.fromIndexName(pn.asIndexName()), is(new TableIdent("s", "t")));
+        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName("s", "t")));
 
         pn = new PartitionName( "t", ImmutableList.of(new BytesRef("v1")));
-        assertThat(TableIdent.fromIndexName(pn.asIndexName()), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t")));
+        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
     }
 
     @Test
     public void testDefaultSchema() throws Exception {
-        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.schema(), is("doc"));
-        assertThat(ti, is(new TableIdent("doc", "t")));
+        assertThat(ti, is(new RelationName("doc", "t")));
     }
 
     @Test
     public void testFQN() throws Exception {
-        TableIdent ti = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.fqn(), is("doc.t"));
 
-        ti = new TableIdent("s", "t");
+        ti = new RelationName("s", "t");
         assertThat(ti.fqn(), is("s.t"));
     }
 
     @Test
     public void testFqnFromIndexName() throws Exception {
-        assertThat(TableIdent.fqnFromIndexName("t1"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
-        assertThat(TableIdent.fqnFromIndexName("my_schema.t1"), is("my_schema.t1"));
-        assertThat(TableIdent.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
-        assertThat(TableIdent.fqnFromIndexName("my_schema..partitioned.t1.abc"), is("my_schema.t1"));
+        assertThat(RelationName.fqnFromIndexName("t1"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
+        assertThat(RelationName.fqnFromIndexName("my_schema.t1"), is("my_schema.t1"));
+        assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DOC_SCHEMA_NAME + ".t1"));
+        assertThat(RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc"), is("my_schema.t1"));
     }
 
     @Test
     public void testFqnFromIndexNameUnsupported3Parts() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid index name: my_schema.t1.foo");
-        TableIdent.fqnFromIndexName("my_schema.t1.foo");
+        RelationName.fqnFromIndexName("my_schema.t1.foo");
     }
 
     @Test
     public void testFqnFromIndexNameUnsupportedMoreThan5Parts() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid index name: my_schema..partitioned.t1.abc.foo");
-        TableIdent.fqnFromIndexName("my_schema..partitioned.t1.abc.foo");
+        RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc.foo");
     }
 }

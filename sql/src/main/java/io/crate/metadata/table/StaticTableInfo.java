@@ -24,7 +24,7 @@ package io.crate.metadata.table;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -36,7 +36,7 @@ import java.util.Set;
 
 public abstract class StaticTableInfo implements TableInfo {
 
-    private final TableIdent ident;
+    private final RelationName ident;
     private final List<ColumnIdent> primaryKey;
     private final Collection<Reference> columns;
     private final Map<ColumnIdent, Reference> columnMap;
@@ -45,7 +45,7 @@ public abstract class StaticTableInfo implements TableInfo {
      * @param columns top level columns. If null the values of columnMap are used.
      *                Can/should be specified if columnMap contains nested columns.
      */
-    public StaticTableInfo(TableIdent ident,
+    public StaticTableInfo(RelationName ident,
                            Map<ColumnIdent, Reference> columnMap,
                            @Nullable Collection<Reference> columns,
                            List<ColumnIdent> primaryKey) {
@@ -55,7 +55,7 @@ public abstract class StaticTableInfo implements TableInfo {
         this.primaryKey = primaryKey;
     }
 
-    public StaticTableInfo(TableIdent ident, ColumnRegistrar columnRegistrar, List<ColumnIdent> primaryKey) {
+    public StaticTableInfo(RelationName ident, ColumnRegistrar columnRegistrar, List<ColumnIdent> primaryKey) {
         this(ident, columnRegistrar.infos(), columnRegistrar.columns(), primaryKey);
     }
 
@@ -71,7 +71,7 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public TableIdent ident() {
+    public RelationName ident() {
         return ident;
     }
 

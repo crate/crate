@@ -246,7 +246,7 @@ public final class CopyStatementPlanner {
     /**
      * To generate the upsert request the following is required:
      *
-     *  - tableIdent + partitionIdent / partitionValues
+     *  - relationName + partitionIdent / partitionValues
      *      -> to retrieve the indexName
      *
      *  - primaryKeys + clusteredBy  (+ indexName)

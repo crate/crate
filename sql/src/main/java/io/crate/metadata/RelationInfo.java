@@ -56,7 +56,7 @@ public interface RelationInfo extends Iterable<Reference> {
 
     RowGranularity rowGranularity();
 
-    TableIdent ident();
+    RelationName ident();
 
     List<ColumnIdent> primaryKey();
 

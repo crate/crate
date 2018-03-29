@@ -35,8 +35,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
@@ -232,34 +232,34 @@ public class AnalyzedTableElements {
         return builder.build();
     }
 
-    void finalizeAndValidate(TableIdent tableIdent,
+    void finalizeAndValidate(RelationName relationName,
                              Collection<? extends Reference> existingColumns,
                              Functions functions,
                              ParameterContext parameterContext,
                              TransactionContext transactionContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, existingColumns, functions, parameterContext, transactionContext);
+        validateGeneratedColumns(relationName, existingColumns, functions, parameterContext, transactionContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
         }
-        validateIndexDefinitions(tableIdent);
-        validatePrimaryKeys(tableIdent);
+        validateIndexDefinitions(relationName);
+        validatePrimaryKeys(relationName);
         validateColumnStorageDefinitions();
     }
 
-    private void validateGeneratedColumns(TableIdent tableIdent,
+    private void validateGeneratedColumns(RelationName relationName,
                                           Collection<? extends Reference> existingColumns,
                                           Functions functions,
                                           ParameterContext parameterContext,
                                           TransactionContext transactionContext) {
         List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            buildReference(tableIdent, columnDefinition, tableReferences);
+            buildReference(relationName, columnDefinition, tableReferences);
         }
         tableReferences.addAll(existingColumns);
 
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, tableIdent);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, relationName);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(functions);
@@ -305,16 +305,16 @@ public class AnalyzedTableElements {
         columnDefinition.formattedGeneratedExpression(formattedExpression);
     }
 
-    private void buildReference(TableIdent tableIdent, AnalyzedColumnDefinition columnDefinition, List<Reference> references) {
+    private void buildReference(RelationName relationName, AnalyzedColumnDefinition columnDefinition, List<Reference> references) {
         Reference reference;
         if (columnDefinition.generatedExpression() == null) {
             reference = new Reference(
-                new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
         } else {
             reference = new GeneratedReference(
-                new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 columnDefinition.dataType() ==
                 null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
@@ -322,7 +322,7 @@ public class AnalyzedTableElements {
         }
         references.add(reference);
         for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
-            buildReference(tableIdent, childDefinition, references);
+            buildReference(relationName, childDefinition, references);
         }
     }
 
@@ -338,22 +338,22 @@ public class AnalyzedTableElements {
         }
     }
 
-    private void validatePrimaryKeys(TableIdent tableIdent) {
+    private void validatePrimaryKeys(RelationName relationName) {
         for (String additionalPrimaryKey : additionalPrimaryKeys) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey);
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
+                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
             }
         }
         // will collect both column constraint and additional defined once and check for duplicates
         primaryKeys();
     }
 
-    private void validateIndexDefinitions(TableIdent tableIdent) {
+    private void validateIndexDefinitions(RelationName relationName) {
         for (Map.Entry<String, Set<String>> entry : copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
+                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -422,7 +422,7 @@ public class AnalyzedTableElements {
         return result;
     }
 
-    void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound, TableIdent tableIdent) {
+    void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound, RelationName relationName) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
             "Cannot use system columns in PARTITIONED BY clause");
 
@@ -438,7 +438,7 @@ public class AnalyzedTableElements {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), tableIdent);
+            throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), relationName);
         }
         DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
         if (!DataTypes.isPrimitive(columnType)) {

@@ -28,7 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.Value;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -49,7 +49,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     public static final int BULK_SIZE_DEFAULT = 10000;
 
     private final int bulkActions;
-    protected TableIdent tableIdent;
+    protected RelationName relationName;
     protected String partitionIdent;
     protected List<ColumnIdent> primaryKeys;
 
@@ -65,14 +65,14 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     private boolean autoCreateIndices;
 
 
-    protected AbstractIndexWriterProjection(TableIdent tableIdent,
+    protected AbstractIndexWriterProjection(RelationName relationName,
                                             @Nullable String partitionIdent,
                                             List<ColumnIdent> primaryKeys,
                                             @Nullable ColumnIdent clusteredByColumn,
                                             Settings settings,
                                             List<Symbol> idSymbols,
                                             boolean autoCreateIndices) {
-        this.tableIdent = tableIdent;
+        this.relationName = relationName;
         this.partitionIdent = partitionIdent;
         this.primaryKeys = primaryKeys;
         this.clusteredByColumn = clusteredByColumn;
@@ -84,7 +84,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     }
 
     protected AbstractIndexWriterProjection(StreamInput in) throws IOException {
-        tableIdent = new TableIdent(in);
+        relationName = new RelationName(in);
 
         partitionIdent = in.readOptionalString();
         idSymbols = Symbols.listFromStream(in);
@@ -144,8 +144,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         return bulkActions;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     @Nullable
@@ -172,7 +172,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         if (!partitionedBySymbols.equals(that.partitionedBySymbols))
             return false;
         if (!primaryKeys.equals(that.primaryKeys)) return false;
-        if (!tableIdent.equals(that.tableIdent)) return false;
+        if (!relationName.equals(that.relationName)) return false;
         if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
             return false;
 
@@ -183,7 +183,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + Integer.hashCode(bulkActions);
-        result = 31 * result + tableIdent.hashCode();
+        result = 31 * result + relationName.hashCode();
         result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
         result = 31 * result + primaryKeys.hashCode();
         result = 31 * result + (clusteredByColumn != null ? clusteredByColumn.hashCode() : 0);
@@ -196,7 +196,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        tableIdent.writeTo(out);
+        relationName.writeTo(out);
         out.writeOptionalString(partitionIdent);
 
         Symbols.toStream(idSymbols, out);

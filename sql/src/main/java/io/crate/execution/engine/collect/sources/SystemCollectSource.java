@@ -41,7 +41,7 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.InformationSchemaTableDefinitions;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -65,7 +65,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
  */
 public class SystemCollectSource implements CollectSource {
 
-    private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
+    private final ImmutableMap<RelationName, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
@@ -119,8 +119,8 @@ public class SystemCollectSource implements CollectSource {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
-        TableIdent tableIdent = TableIdent.fromIndexName(table);
-        StaticTableDefinition<?> tableDefinition = tableDefinition(tableIdent);
+        RelationName relationName = RelationName.fromIndexName(table);
+        StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
 
         return BatchIteratorCollectorBridge.newInstance(
             () -> tableDefinition.getIterable(collectPhase.user()).get().thenApply(dataIterable ->
@@ -134,23 +134,23 @@ public class SystemCollectSource implements CollectSource {
         );
     }
 
-    public StaticTableDefinition<?> tableDefinition(TableIdent tableIdent) {
+    public StaticTableDefinition<?> tableDefinition(RelationName relationName) {
         StaticTableDefinition<?> tableDefinition;
-        switch (tableIdent.schema()) {
+        switch (relationName.schema()) {
             case InformationSchemaInfo.NAME:
-                tableDefinition = informationSchemaTables.get(tableIdent);
+                tableDefinition = informationSchemaTables.get(relationName);
                 break;
             case SysSchemaInfo.NAME:
-                tableDefinition = sysTables.get(tableIdent);
+                tableDefinition = sysTables.get(relationName);
                 break;
             case PgCatalogSchemaInfo.NAME:
-                tableDefinition = pgCatalogTables.get(tableIdent);
+                tableDefinition = pgCatalogTables.get(relationName);
                 break;
             default:
-                throw new SchemaUnknownException(tableIdent.schema());
+                throw new SchemaUnknownException(relationName.schema());
         }
         if (tableDefinition == null) {
-            throw new RelationUnknown(tableIdent);
+            throw new RelationUnknown(relationName);
         }
         return tableDefinition;
     }
@@ -161,7 +161,7 @@ public class SystemCollectSource implements CollectSource {
      * @param ident the ident of the table
      * @return a row updater instance for the given table
      */
-    public SysRowUpdater<?> getRowUpdater(TableIdent ident) {
+    public SysRowUpdater<?> getRowUpdater(RelationName ident) {
         assert rowUpdaters.containsKey(ident) : "RowUpdater for " + ident.fqn() + " must exist";
         return rowUpdaters.get(ident);
     }

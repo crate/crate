@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Table;
@@ -38,7 +38,7 @@ class ShowCreateTableAnalyzer {
 
     public ShowCreateTableAnalyzedStatement analyze(Table table, SessionContext sessionContext) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.of(table, sessionContext.defaultSchema()),
+            RelationName.of(table, sessionContext.defaultSchema()),
             Operation.SHOW_CREATE);
         return new ShowCreateTableAnalyzedStatement(tableInfo);
     }

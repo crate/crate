@@ -29,8 +29,8 @@ import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
@@ -98,7 +98,7 @@ class CreateSnapshotAnalyzer {
                 DocTableInfo docTableInfo;
                 try {
                     docTableInfo = schemas.getTableInfo(
-                        TableIdent.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
+                        RelationName.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());

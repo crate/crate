@@ -23,8 +23,8 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.QualifiedName;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 public class DropBlobTableAnalyzerTest extends CrateUnitTest {
 
     private static final String IRRELEVANT = "Irrelevant";
-    private TableIdent tableIdent = new TableIdent(BlobSchemaInfo.NAME, IRRELEVANT);
+    private RelationName relationName = new RelationName(BlobSchemaInfo.NAME, IRRELEVANT);
     private Table table = new Table(new QualifiedName(IRRELEVANT));
 
     @Mock
@@ -54,7 +54,7 @@ public class DropBlobTableAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testDeletingNoExistingTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
+        when(schemas.getTableInfo(relationName)).thenThrow(new RelationUnknown(relationName));
 
         DropBlobTableAnalyzedStatement statement = analyzer.analyze(new DropBlobTable(table, true));
         assertThat(statement.noop(), is(true));
@@ -62,7 +62,7 @@ public class DropBlobTableAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testDeletingNonExistingTableRaisesException() throws Exception {
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
+        when(schemas.getTableInfo(relationName)).thenThrow(new RelationUnknown(relationName));
 
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'blob.Irrelevant' unknown");

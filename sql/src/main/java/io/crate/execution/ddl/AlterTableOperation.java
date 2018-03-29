@@ -43,7 +43,7 @@ import io.crate.execution.support.ChainableAction;
 import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -143,7 +143,7 @@ public class AlterTableOperation {
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
         final CompletableFuture<Long> result = new CompletableFuture<>();
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
-            TableIdent ident = analysis.table().ident();
+            RelationName ident = analysis.table().ident();
             String stmt =
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
@@ -234,28 +234,28 @@ public class AlterTableOperation {
         return result;
     }
 
-    private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, TableIdent tableIdent) {
+    private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, RelationName relationName) {
         Map metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
         if (openTable) {
             //Remove the mapping from the template.
-            return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, tableIdent);
+            return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, relationName);
         } else {
             //Otherwise, add the mapping to the template.
-            return updateTemplate(metaMap, Settings.EMPTY, tableIdent);
+            return updateTemplate(metaMap, Settings.EMPTY, relationName);
         }
     }
 
     public CompletableFuture<Long> executeAlterTableRenameTable(AlterTableRenameAnalyzedStatement statement) {
         DocTableInfo sourceTableInfo = statement.sourceTableInfo();
-        TableIdent sourceTableIdent = sourceTableInfo.ident();
-        TableIdent targetTableIdent = statement.targetTableIdent();
+        RelationName sourceRelationName = sourceTableInfo.ident();
+        RelationName targetRelationName = statement.targetTableIdent();
 
         if (sourceTableInfo.isPartitioned()) {
-            return renamePartitionedTable(sourceTableInfo, targetTableIdent);
+            return renamePartitionedTable(sourceTableInfo, targetRelationName);
         }
 
-        String[] sourceIndices = new String[]{sourceTableIdent.indexName()};
-        String[] targetIndices = new String[]{targetTableIdent.indexName()};
+        String[] sourceIndices = new String[]{sourceRelationName.indexName()};
+        String[] targetIndices = new String[]{targetRelationName.indexName()};
 
         List<ChainableAction<Long>> actions = new ArrayList<>(3);
 
@@ -266,8 +266,8 @@ public class AlterTableOperation {
             ));
         }
         actions.add(new ChainableAction<>(
-            () -> renameTable(sourceTableIdent, targetTableIdent, false),
-            () -> renameTable(targetTableIdent, sourceTableIdent, false)
+            () -> renameTable(sourceRelationName, targetRelationName, false),
+            () -> renameTable(targetRelationName, sourceRelationName, false)
         ));
         if (sourceTableInfo.isClosed() == false) {
             actions.add(new ChainableAction<>(
@@ -278,9 +278,9 @@ public class AlterTableOperation {
         return ChainableActions.run(actions);
     }
 
-    private CompletableFuture<Long> renamePartitionedTable(DocTableInfo sourceTableInfo, TableIdent targetTableIdent) {
+    private CompletableFuture<Long> renamePartitionedTable(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
         boolean completeTableIsClosed = sourceTableInfo.isClosed();
-        TableIdent sourceTableIdent = sourceTableInfo.ident();
+        RelationName sourceRelationName = sourceTableInfo.ident();
         String[] sourceIndices = sourceTableInfo.concreteIndices();
         String[] targetIndices = new String[sourceIndices.length];
         // only close/open open partitions
@@ -291,7 +291,7 @@ public class AlterTableOperation {
         for (int i = 0; i < sourceIndices.length; i++) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i]);
             String sourceIndexName = partitionName.asIndexName();
-            String targetIndexName = IndexParts.toIndexName(targetTableIdent, partitionName.ident());
+            String targetIndexName = IndexParts.toIndexName(targetRelationName, partitionName.ident());
             targetIndices[i] = targetIndexName;
             if (metaData.index(sourceIndexName).getState() == IndexMetaData.State.OPEN) {
                 sourceIndicesToClose.add(sourceIndexName);
@@ -305,8 +305,8 @@ public class AlterTableOperation {
 
         if (completeTableIsClosed == false) {
             actions.add(new ChainableAction<>(
-                () -> updateOpenCloseOnPartitionTemplate(false, sourceTableIdent),
-                () -> updateOpenCloseOnPartitionTemplate(true, sourceTableIdent)
+                () -> updateOpenCloseOnPartitionTemplate(false, sourceRelationName),
+                () -> updateOpenCloseOnPartitionTemplate(true, sourceRelationName)
             ));
             if (sourceIndicesToCloseArray.length > 0) {
                 actions.add(new ChainableAction<>(
@@ -317,14 +317,14 @@ public class AlterTableOperation {
         }
 
         actions.add(new ChainableAction<>(
-            () -> renameTable(sourceTableIdent, targetTableIdent, true),
-            () -> renameTable(targetTableIdent, sourceTableIdent, true)
+            () -> renameTable(sourceRelationName, targetRelationName, true),
+            () -> renameTable(targetRelationName, sourceRelationName, true)
         ));
 
         if (completeTableIsClosed == false) {
             actions.add(new ChainableAction<>(
-                () -> updateOpenCloseOnPartitionTemplate(true, targetTableIdent),
-                () -> updateOpenCloseOnPartitionTemplate(false, targetTableIdent)
+                () -> updateOpenCloseOnPartitionTemplate(true, targetRelationName),
+                () -> updateOpenCloseOnPartitionTemplate(false, targetRelationName)
             ));
 
             if (targetIndicesToOpenArray.length > 0) {
@@ -338,31 +338,31 @@ public class AlterTableOperation {
         return ChainableActions.run(actions);
     }
 
-    private CompletableFuture<Long> renameTable(TableIdent sourceTableIdent,
-                                                TableIdent targetTableIdent,
+    private CompletableFuture<Long> renameTable(RelationName sourceRelationName,
+                                                RelationName targetRelationName,
                                                 boolean isPartitioned) {
-        RenameTableRequest request = new RenameTableRequest(sourceTableIdent, targetTableIdent, isPartitioned);
+        RenameTableRequest request = new RenameTableRequest(sourceRelationName, targetRelationName, isPartitioned);
         FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportRenameTableAction.execute(request, listener);
         return listener;
     }
 
 
-    private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
-        return updateTemplate(tableParameter.mappings(), tableParameter.settings(), tableIdent);
+    private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, RelationName relationName) {
+        return updateTemplate(tableParameter.mappings(), tableParameter.settings(), relationName);
     }
 
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
                                                    Settings newSettings,
-                                                   TableIdent tableIdent) {
-        return updateTemplate(newMappings, Collections.emptyMap(), newSettings, tableIdent);
+                                                   RelationName relationName) {
+        return updateTemplate(newMappings, Collections.emptyMap(), newSettings, relationName);
     }
 
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
                                                    Map<String, Object> mappingsToRemove,
                                                    Settings newSettings,
-                                                   TableIdent tableIdent) {
-        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+                                                   RelationName relationName) {
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         IndexTemplateMetaData indexTemplateMetaData =
             clusterService.state().metaData().templates().get(templateName);
         if (indexTemplateMetaData == null) {
@@ -370,7 +370,7 @@ public class AlterTableOperation {
         }
 
         PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            newMappings, mappingsToRemove, newSettings, tableIdent, templateName, logger);
+            newMappings, mappingsToRemove, newSettings, relationName, templateName, logger);
         FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportPutIndexTemplateAction.execute(request, listener);
         return listener;
@@ -382,7 +382,7 @@ public class AlterTableOperation {
                                                                   Map<String, Object> newMappings,
                                                                   Map<String, Object> mappingsToRemove,
                                                                   Settings newSettings,
-                                                                  TableIdent tableIdent,
+                                                                  RelationName relationName,
                                                                   String templateName,
                                                                   Logger logger) {
         // merge mappings
@@ -400,9 +400,9 @@ public class AlterTableOperation {
         Settings settings = indexScopedSettings.archiveUnknownOrInvalidSettings(
             settingsBuilder.build(),
             e -> logger.warn("{} ignoring unknown table setting: [{}] with value [{}]; archiving",
-                tableIdent.fqn(), e.getKey(), e.getValue()),
+                relationName.fqn(), e.getKey(), e.getValue()),
             (e, ex) -> logger.warn((Supplier<?>) () -> new ParameterizedMessage("{} ignoring invalid table setting: [{}] with value [{}]; archiving",
-                tableIdent.fqn(), e.getKey(), e.getValue()), ex));
+                relationName.fqn(), e.getKey(), e.getValue()), ex));
 
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .create(false)
@@ -410,7 +410,7 @@ public class AlterTableOperation {
             .order(indexTemplateMetaData.order())
             .settings(settings)
             .patterns(indexTemplateMetaData.getPatterns())
-            .alias(new Alias(tableIdent.indexName()));
+            .alias(new Alias(relationName.indexName()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);

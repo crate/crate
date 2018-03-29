@@ -22,7 +22,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 /**
  * Defines that an exception is thrown while operating on table level operations
@@ -35,5 +35,5 @@ public interface TableScopeException extends CrateException {
         return exceptionVisitor.visitTableScopeException(this, context);
     }
 
-    Iterable<TableIdent> getTableIdents();
+    Iterable<RelationName> getTableIdents();
 }

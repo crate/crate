@@ -30,8 +30,8 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -69,7 +69,7 @@ import java.util.stream.StreamSupport;
  *
  * <p>
  *     See the following table for examples how the indexName is encoded.
- *     Functions to encode/decode are either in {@link TableIdent} or {@link PartitionName}
+ *     Functions to encode/decode are either in {@link RelationName} or {@link PartitionName}
  * </p>
  *
  * <table>
@@ -147,7 +147,7 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         try {
-            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new TableIdent(schemaName, n), clusterService.state()));
+            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state()));
         } catch (ResourceUnknownException e) {
             return null;
         }
@@ -167,7 +167,7 @@ public class DocSchemaInfo implements SchemaInfo {
             }
             try {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(templateName);
-                TableIdent ti = partitionName.tableIdent();
+                RelationName ti = partitionName.tableIdent();
                 if (schemaName.equalsIgnoreCase(ti.schema())) {
                     tables.add(ti.name());
                 }
@@ -181,7 +181,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Nullable
     private ViewInfo getViewInfo(String name) {
-        return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
+        return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
     }
 
     private Collection<String> viewNames() {

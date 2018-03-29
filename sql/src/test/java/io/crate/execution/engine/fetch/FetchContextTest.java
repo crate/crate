@@ -28,7 +28,7 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -84,8 +84,8 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
         IndexBaseBuilder ibb = new IndexBaseBuilder();
         ibb.allocate("i1", shards);
 
-        HashMultimap<TableIdent, String> tableIndices = HashMultimap.create();
-        tableIndices.put(new TableIdent(Schemas.DOC_SCHEMA_NAME, "i1"), "i1");
+        HashMultimap<RelationName, String> tableIndices = HashMultimap.create();
+        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), "i1");
 
         MetaData metaData = MetaData.builder()
             .put(IndexMetaData.builder("i1")

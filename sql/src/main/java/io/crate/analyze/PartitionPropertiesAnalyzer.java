@@ -28,7 +28,7 @@ import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.types.DataTypes;
@@ -84,7 +84,7 @@ public class PartitionPropertiesAnalyzer {
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));
     }
 
-    public static PartitionName toPartitionName(TableIdent tableIdent,
+    public static PartitionName toPartitionName(RelationName relationName,
                                                 @Nullable DocTableInfo docTableInfo,
                                                 List<Assignment> partitionProperties,
                                                 Row parameters) {
@@ -92,7 +92,7 @@ public class PartitionPropertiesAnalyzer {
             return toPartitionName(docTableInfo, partitionProperties, parameters);
         }
 
-        // Because only TableIdent is available, types of partitioned columns must be guessed
+        // Because only RelationName is available, types of partitioned columns must be guessed
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
         BytesRef[] values = new BytesRef[properties.size()];
 
@@ -100,7 +100,7 @@ public class PartitionPropertiesAnalyzer {
         for (Object o : properties.values()) {
             values[idx++] = DataTypes.STRING.value(o);
         }
-        return new PartitionName(tableIdent, Arrays.asList(values));
+        return new PartitionName(relationName, Arrays.asList(values));
     }
 
     public static String toPartitionIdent(DocTableInfo tableInfo,

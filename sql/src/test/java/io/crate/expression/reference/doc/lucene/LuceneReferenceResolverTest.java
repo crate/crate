@@ -24,8 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -43,14 +43,14 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
         Reference arrayRef = new Reference(new ReferenceIdent(
-            new TableIdent("s", "t"), "a"),
+            new RelationName("s", "t"), "a"),
             RowGranularity.DOC,
             DataTypes.DOUBLE_ARRAY);
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
 
         Reference setRef = new Reference(new ReferenceIdent(
-            new TableIdent("s", "t"), "a"),
+            new RelationName("s", "t"), "a"),
             RowGranularity.DOC,
             new SetType(DataTypes.DOUBLE));
         assertThat(luceneReferenceResolver.getImplementation(setRef),

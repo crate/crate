@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -42,7 +42,7 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (name string, x int)")
-            .addView(new TableIdent("doc", "v1"), "select name, count(*) from doc.t1 group by name")
+            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name")
             .build();
     }
 
@@ -53,6 +53,6 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(query.groupBy(), Matchers.empty());
         QueriedDocTable queriedDocTable = (QueriedDocTable) query.subRelation();
         assertThat(queriedDocTable.groupBy(), Matchers.contains(isReference("name")));
-        assertThat(queriedDocTable.tableRelation().tableInfo().ident(), is(new TableIdent("doc", "t1")));
+        assertThat(queriedDocTable.tableRelation().tableInfo().ident(), is(new RelationName("doc", "t1")));
     }
 }

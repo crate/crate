@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -76,7 +76,7 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
         clusterService.submitStateUpdateTask("views/drop",
             new AckedClusterStateUpdateTask<DropViewResponse>(Priority.HIGH, request, listener) {
 
-                private List<TableIdent> missing;
+                private List<RelationName> missing;
 
                 @Override
                 public ClusterState execute(ClusterState currentState) {

@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.Table;
 
@@ -33,7 +33,7 @@ final class BlobTableAnalyzer {
     private BlobTableAnalyzer() {
     }
 
-    static TableIdent tableToIdent(Table table) {
+    static RelationName tableToIdent(Table table) {
         List<String> tableNameParts = table.getName().getParts();
         Preconditions.checkArgument(tableNameParts.size() < 3, "Invalid tableName \"%s\"", table.getName());
 
@@ -42,9 +42,9 @@ final class BlobTableAnalyzer {
                 "The Schema \"%s\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause",
                 tableNameParts.get(0));
 
-            return new TableIdent(tableNameParts.get(0), tableNameParts.get(1));
+            return new RelationName(tableNameParts.get(0), tableNameParts.get(1));
         }
         assert tableNameParts.size() == 1 : "tableNameParts.size() must be 1";
-        return new TableIdent(BlobSchemaInfo.NAME, tableNameParts.get(0));
+        return new RelationName(BlobSchemaInfo.NAME, tableNameParts.get(0));
     }
 }

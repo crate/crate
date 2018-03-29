@@ -22,18 +22,18 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collection;
 import java.util.Collections;
 
 public class OperationOnInaccessibleRelationException extends ValidationException implements TableScopeException {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
 
-    public OperationOnInaccessibleRelationException(TableIdent tableIdent, String msg) {
+    public OperationOnInaccessibleRelationException(RelationName relationName, String msg) {
         super(msg);
-        this.tableIdent = tableIdent;
+        this.relationName = relationName;
     }
 
     @Override
@@ -42,7 +42,7 @@ public class OperationOnInaccessibleRelationException extends ValidationExceptio
     }
 
     @Override
-    public Collection<TableIdent> getTableIdents() {
-        return Collections.singletonList(tableIdent);
+    public Collection<RelationName> getTableIdents() {
+        return Collections.singletonList(relationName);
     }
 }

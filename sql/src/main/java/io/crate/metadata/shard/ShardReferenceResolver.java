@@ -43,8 +43,8 @@ import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
@@ -108,9 +108,9 @@ public class ShardReferenceResolver {
             throw new UnhandledServerException(String.format(Locale.ENGLISH,
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
-        TableIdent tableIdent = partitionName.tableIdent();
+        RelationName relationName = partitionName.tableIdent();
         try {
-            DocTableInfo info = schemas.getTableInfo(tableIdent);
+            DocTableInfo info = schemas.getTableInfo(relationName);
             if (!schemas.isOrphanedAlias(info)) {
                 assert info.isPartitioned() : "table must be partitioned";
                 int i = 0;
@@ -127,10 +127,10 @@ public class ShardReferenceResolver {
                     i++;
                 }
             } else {
-                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
+                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
             }
         } catch (ResourceUnknownException e) {
-            LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
+            LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
         }
     }
 }

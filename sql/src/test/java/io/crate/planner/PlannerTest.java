@@ -3,9 +3,9 @@ package io.crate.planner;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
@@ -60,11 +60,11 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIndices() throws Exception {
-        TableIdent custom = new TableIdent("custom", "table");
+        RelationName custom = new RelationName("custom", "table");
         String[] indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom.table"));
 
-        indices = Planner.indices(TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"), shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
+        indices = Planner.indices(TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), shardRouting("t1")).add("id", DataTypes.INTEGER, null).build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("table"));
 
         indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1"))

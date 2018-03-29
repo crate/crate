@@ -18,7 +18,7 @@
 
 package io.crate.auth.user;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
 import org.elasticsearch.cluster.ClusterState;
@@ -27,11 +27,11 @@ import org.elasticsearch.cluster.metadata.MetaData;
 public class UserManagerDDLModifier implements DDLClusterStateModifier {
 
     @Override
-    public ClusterState onDropTable(ClusterState currentState, TableIdent tableIdent) {
+    public ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
         MetaData currentMetaData = currentState.metaData();
         MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
 
-        if (dropPrivileges(mdBuilder, tableIdent) == false) {
+        if (dropPrivileges(mdBuilder, relationName) == false) {
             // if nothing is affected, don't modify the state and just return the given currentState
             return currentState;
         }
@@ -41,30 +41,30 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
 
     @Override
     public ClusterState onRenameTable(ClusterState currentState,
-                                      TableIdent sourceTableIdent,
-                                      TableIdent targetTableIdent,
+                                      RelationName sourceRelationName,
+                                      RelationName targetRelationName,
                                       boolean isPartitionedTable) {
         MetaData currentMetaData = currentState.metaData();
         MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-        if (transferTablePrivileges(mdBuilder, sourceTableIdent, targetTableIdent)) {
+        if (transferTablePrivileges(mdBuilder, sourceRelationName, targetRelationName)) {
             return ClusterState.builder(currentState).metaData(mdBuilder).build();
         }
         return currentState;
     }
 
-    private static boolean dropPrivileges(MetaData.Builder mdBuilder, TableIdent tableIdent) {
+    private static boolean dropPrivileges(MetaData.Builder mdBuilder, RelationName relationName) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
             (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
 
-        long affectedRows = newMetaData.dropTablePrivileges(tableIdent.fqn());
+        long affectedRows = newMetaData.dropTablePrivileges(relationName.fqn());
         mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
         return affectedRows > 0L;
     }
 
     private static boolean transferTablePrivileges(MetaData.Builder mdBuilder,
-                                                TableIdent sourceTableIdent,
-                                                TableIdent targetTableIdent) {
+                                                RelationName sourceRelationName,
+                                                RelationName targetRelationName) {
         UsersPrivilegesMetaData oldMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
         if (oldMetaData == null) {
             return false;
@@ -72,7 +72,7 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
 
         // create a new instance of the metadata if privileges were changed, to guarantee the cluster changed action.
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.maybeCopyAndReplaceTableIdents(
-            oldMetaData, sourceTableIdent.fqn(), targetTableIdent.fqn());
+            oldMetaData, sourceRelationName.fqn(), targetRelationName.fqn());
 
         if (newMetaData != null) {
             mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);

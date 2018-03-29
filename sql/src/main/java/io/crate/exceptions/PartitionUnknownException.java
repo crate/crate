@@ -22,14 +22,14 @@
 package io.crate.exceptions;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collections;
 import java.util.Locale;
 
 public class PartitionUnknownException extends ResourceUnknownException implements TableScopeException {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
 
     public PartitionUnknownException(PartitionName partitionName) {
         super(String.format(Locale.ENGLISH,
@@ -37,7 +37,7 @@ public class PartitionUnknownException extends ResourceUnknownException implemen
             partitionName.tableIdent().fqn(),
             partitionName.ident()));
 
-        this.tableIdent = partitionName.tableIdent();
+        this.relationName = partitionName.tableIdent();
     }
 
     @Override
@@ -46,7 +46,7 @@ public class PartitionUnknownException extends ResourceUnknownException implemen
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
-        return Collections.singletonList(tableIdent);
+    public Iterable<RelationName> getTableIdents() {
+        return Collections.singletonList(relationName);
     }
 }

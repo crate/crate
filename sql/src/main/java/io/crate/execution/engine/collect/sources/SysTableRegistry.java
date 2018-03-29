@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.sources;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
@@ -52,7 +52,7 @@ public class SysTableRegistry {
     public <R> void registerSysTable(TableInfo tableInfo,
                                      Supplier<CompletableFuture<? extends Iterable<R>>> iterableSupplier,
                                      Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories) {
-        TableIdent ident = tableInfo.ident();
+        RelationName ident = tableInfo.ident();
         sysSchemaInfo.registerSysTable(tableInfo);
         tableDefinitions.registerTableDefinition(ident, new StaticTableDefinition<>(
             iterableSupplier, expressionFactories));

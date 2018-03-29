@@ -24,23 +24,23 @@ package io.crate.analyze;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 
-    private final TableIdent name;
+    private final RelationName name;
     private final QueriedRelation query;
     private final String formattedQuery;
     private final boolean replaceExisting;
 
-    CreateViewStmt(TableIdent name, QueriedRelation query, String formattedQuery, boolean replaceExisting) {
+    CreateViewStmt(RelationName name, QueriedRelation query, String formattedQuery, boolean replaceExisting) {
         this.name = name;
         this.query = query;
         this.formattedQuery = formattedQuery;
         this.replaceExisting = replaceExisting;
     }
 
-    public TableIdent name() {
+    public RelationName name() {
         return name;
     }
 

@@ -22,7 +22,7 @@
 
 package io.crate.metadata.view;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -158,7 +158,7 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     /**
      * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
      */
-    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, TableIdent name, String query) {
+    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, RelationName name, String query) {
         HashMap<String, String> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();
@@ -169,10 +169,10 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return new ViewsMetaData(queryByName);
     }
 
-    public RemoveResult remove(List<TableIdent> names) {
+    public RemoveResult remove(List<RelationName> names) {
         HashMap<String, String> updatedQueryByName = new HashMap<>(this.queryByName);
-        ArrayList<TableIdent> missing = new ArrayList<>(names.size());
-        for (TableIdent name : names) {
+        ArrayList<RelationName> missing = new ArrayList<>(names.size());
+        for (RelationName name : names) {
             String removed = updatedQueryByName.remove(name.fqn());
             if (removed == null) {
                 missing.add(name);
@@ -182,15 +182,15 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     @Nullable
-    public String getStatement(TableIdent name) {
+    public String getStatement(RelationName name) {
         return queryByName.get(name.fqn());
     }
 
     public class RemoveResult {
         private final ViewsMetaData updatedViews;
-        private final List<TableIdent> missing;
+        private final List<RelationName> missing;
 
-        RemoveResult(ViewsMetaData updatedViews, List<TableIdent> missing) {
+        RemoveResult(ViewsMetaData updatedViews, List<RelationName> missing) {
             this.updatedViews = updatedViews;
             this.missing = missing;
         }
@@ -199,7 +199,7 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
             return updatedViews;
         }
 
-        public List<TableIdent> missing() {
+        public List<RelationName> missing() {
             return missing;
         }
     }

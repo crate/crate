@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -221,7 +221,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into c.dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table c.dynamic_table");
         execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
-        waitForMappingUpdateOnAll(new TableIdent("c", "dynamic_table"), "meta.meta.a");
+        waitForMappingUpdateOnAll(new RelationName("c", "dynamic_table"), "meta.meta.a");
         Map<String, Object> sourceMap = getSourceMap("c", "dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("keyword"));

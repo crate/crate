@@ -22,19 +22,19 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 public class RelationValidationException extends ValidationException implements TableScopeException {
 
-    private final Iterable<TableIdent> tableIdents;
+    private final Iterable<RelationName> tableIdents;
 
-    public RelationValidationException(Iterable<TableIdent> tableIdents, String s) {
+    public RelationValidationException(Iterable<RelationName> tableIdents, String s) {
         super(s);
         this.tableIdents = tableIdents;
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
+    public Iterable<RelationName> getTableIdents() {
         return tableIdents;
     }
 }

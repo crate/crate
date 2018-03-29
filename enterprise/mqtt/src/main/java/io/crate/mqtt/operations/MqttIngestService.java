@@ -36,8 +36,8 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.ingestion.IngestRuleListener;
 import io.crate.ingestion.IngestionService;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.table.Operation;
@@ -185,9 +185,9 @@ public class MqttIngestService implements IngestRuleListener {
                 IngestRule ingestRule = entry.v2();
 
                 try {
-                    session.parse(ingestRule.getName(), "insert into " + TableIdent.fromIndexName(ingestRule.getTargetTable()).fqn() +
-                                                  " (\"client_id\", \"packet_id\", \"topic\", \"ts\", \"payload\") " +
-                                                  "values (?, ?, ?, CURRENT_TIMESTAMP, ?)", FIELD_TYPES);
+                    session.parse(ingestRule.getName(), "insert into " + RelationName.fromIndexName(ingestRule.getTargetTable()).fqn() +
+                                                        " (\"client_id\", \"packet_id\", \"topic\", \"ts\", \"payload\") " +
+                                                        "values (?, ?, ?, CURRENT_TIMESTAMP, ?)", FIELD_TYPES);
                     session.bind(Session.UNNAMED, ingestRule.getName(), argsAsList, null);
                     BaseResultReceiver resultReceiver = new BaseResultReceiver();
                     insertOperationsFuture.add(resultReceiver.completionFuture().exceptionally(t -> {

@@ -26,8 +26,8 @@ import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.auth.user.User;
 import io.crate.sql.tree.DenyPrivilege;
@@ -103,7 +103,7 @@ class PrivilegesAnalyzer {
 
     private void validateTableNames(List<String> tableNames) {
         tableNames.forEach(t -> {
-            TableIdent ident = TableIdent.fromIndexName(t);
+            RelationName ident = RelationName.fromIndexName(t);
             validateSchemaName(ident.schema());
             schemas.getTableInfo(ident);
         });
@@ -196,6 +196,6 @@ class PrivilegesAnalyzer {
         if (clazz.equals(Privilege.Clazz.SCHEMA)) {
             return Lists2.copyAndReplace(tableOrSchemaNames, QualifiedName::toString);
         }
-        return Lists2.copyAndReplace(tableOrSchemaNames, q -> TableIdent.of(q, defaultSchema).fqn());
+        return Lists2.copyAndReplace(tableOrSchemaNames, q -> RelationName.of(q, defaultSchema).fqn());
     }
 }

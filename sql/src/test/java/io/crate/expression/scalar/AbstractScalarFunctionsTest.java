@@ -35,8 +35,8 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -78,7 +78,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @Before
     public void prepareFunctions() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "users"), null)
             .add("id", DataTypes.INTEGER)
             .add("name", DataTypes.STRING)
             .add("tags", new ArrayType(DataTypes.STRING))

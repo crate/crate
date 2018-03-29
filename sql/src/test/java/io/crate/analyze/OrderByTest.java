@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.is;
 
 public class OrderByTest extends CrateUnitTest {
 
-    private static final TableIdent TI = new TableIdent("doc", "people");
+    private static final RelationName TI = new RelationName("doc", "people");
 
     private Reference ref(String name) {
         return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING);

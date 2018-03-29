@@ -177,7 +177,7 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void splitTemplateName() throws Exception {
         PartitionName partitionName = PartitionName.fromIndexOrTemplate(PartitionName.templateName("schema", "t"));
-        assertThat(partitionName.tableIdent(), is(new TableIdent("schema", "t")));
+        assertThat(partitionName.tableIdent(), is(new RelationName("schema", "t")));
         assertThat(partitionName.ident(), is(""));
     }
 

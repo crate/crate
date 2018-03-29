@@ -33,8 +33,8 @@ public class GeoReferenceTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        TableIdent tableIdent = new TableIdent("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "geo_column");
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
         GeoReference geoReferenceInfo = new GeoReference(referenceIdent, "some_tree", "1m", 3, 0.5d);
 
         BytesStreamOutput out = new BytesStreamOutput();

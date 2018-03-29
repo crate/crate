@@ -34,9 +34,9 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -106,7 +106,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
             new CollectorFieldsVisitor(0)
         );
         reference = new Reference(
-            new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName), RowGranularity.DOC, DataTypes.INTEGER);
+            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName), RowGranularity.DOC, DataTypes.INTEGER);
         orderBy = new OrderBy(
             Collections.singletonList(reference),
             reverseFlags,

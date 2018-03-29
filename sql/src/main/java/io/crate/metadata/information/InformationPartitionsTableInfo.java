@@ -31,9 +31,9 @@ import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.expression.reference.MapLookupByPathExpression;
 import io.crate.expression.reference.partitioned.PartitionsSettingsExpression;
@@ -48,7 +48,7 @@ import java.util.Map;
 public class InformationPartitionsTableInfo extends InformationTableInfo {
 
     public static final String NAME = "table_partitions";
-    public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
         static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");

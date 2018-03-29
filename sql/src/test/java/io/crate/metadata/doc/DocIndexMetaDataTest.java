@@ -13,7 +13,6 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -22,7 +21,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.view.ViewInfoFactory;
@@ -37,7 +36,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -104,7 +102,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
-        return new DocIndexMetaData(functions, metaData, new TableIdent(Schemas.DOC_SCHEMA_NAME, name)).build();
+        return new DocIndexMetaData(functions, metaData, new RelationName(Schemas.DOC_SCHEMA_NAME, name)).build();
     }
 
     @Before

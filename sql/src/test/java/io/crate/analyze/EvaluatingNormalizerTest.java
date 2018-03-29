@@ -12,9 +12,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
@@ -47,7 +47,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         Map<ReferenceIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
-        ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
+        ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
         referenceImplementationMap.put(dummyLoadIdent, new LiteralNestableInput<>(0.08d));
@@ -71,7 +71,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
             functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
         Symbol name_ref = new Reference(
-            new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
+            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
             DataTypes.STRING);
         Symbol x_literal = Literal.of("x");

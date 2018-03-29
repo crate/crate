@@ -31,7 +31,7 @@ import io.crate.Streamer;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
 import org.apache.lucene.util.BytesRef;
 
@@ -44,17 +44,17 @@ import java.util.TreeMap;
 public class FetchProjectorContext {
 
     final Map<String, IntSet> nodeToReaderIds;
-    final Map<TableIdent, FetchSource> tableToFetchSource;
+    final Map<RelationName, FetchSource> tableToFetchSource;
 
     private final TreeMap<Integer, String> readerIdToIndex;
-    private final Map<String, TableIdent> indexToTable;
+    private final Map<String, RelationName> indexToTable;
     private final IntObjectHashMap<ReaderBucket> readerBuckets = new IntObjectHashMap<>();
     private Map<String, IntObjectHashMap<Streamer[]>> nodeIdToReaderIdToStreamers;
 
-    public FetchProjectorContext(Map<TableIdent, FetchSource> tableToFetchSource,
+    public FetchProjectorContext(Map<RelationName, FetchSource> tableToFetchSource,
                                  Map<String, IntSet> nodeToReaderIds,
                                  TreeMap<Integer, String> readerIdToIndex,
-                                 Map<String, TableIdent> indexToTable) {
+                                 Map<String, RelationName> indexToTable) {
         this.tableToFetchSource = tableToFetchSource;
         this.nodeToReaderIds = nodeToReaderIds;
         this.readerIdToIndex = readerIdToIndex;
@@ -80,8 +80,8 @@ public class FetchProjectorContext {
 
     private ReaderBucket createReaderBucket(int readerId) {
         String index = readerIdToIndex.floorEntry(readerId).getValue();
-        TableIdent tableIdent = indexToTable.get(index);
-        FetchSource fetchSource = tableToFetchSource.get(tableIdent);
+        RelationName relationName = indexToTable.get(index);
+        FetchSource fetchSource = tableToFetchSource.get(relationName);
         assert fetchSource != null : "fetchSource must be available";
         return new ReaderBucket(!fetchSource.references().isEmpty(), partitionValues(index, fetchSource.partitionedByColumns()));
 
@@ -107,8 +107,8 @@ public class FetchProjectorContext {
     @Nullable
     private FetchSource getFetchSource(int readerId) {
         String index = readerIdToIndex.floorEntry(readerId).getValue();
-        TableIdent tableIdent = indexToTable.get(index);
-        return tableToFetchSource.get(tableIdent);
+        RelationName relationName = indexToTable.get(index);
+        return tableToFetchSource.get(relationName);
     }
 
     public Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdsToStreamers() {

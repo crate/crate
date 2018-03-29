@@ -29,8 +29,8 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -56,7 +56,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     class TestDocTableInfo extends DocTableInfo {
 
-        TestDocTableInfo(TableIdent ident,
+        TestDocTableInfo(RelationName ident,
                          int numberOfShards,
                          String numberOfReplicas,
                          List<Reference> columns,
@@ -97,11 +97,11 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         }
     }
 
-    private static Reference newReference(TableIdent tableIdent, String name, DataType type) {
-        return newReference(tableIdent, name, type, null, null, false, false);
+    private static Reference newReference(RelationName relationName, String name, DataType type) {
+        return newReference(relationName, name, type, null, null, false, false);
     }
 
-    private static Reference newReference(TableIdent tableIdent,
+    private static Reference newReference(RelationName relationName,
                                           String name,
                                           DataType type,
                                           @Nullable List<String> path,
@@ -109,7 +109,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                           Boolean partitionColumn,
                                           boolean columnStoreDisabled) {
         return new Reference(
-            new ReferenceIdent(tableIdent, name, path),
+            new ReferenceIdent(relationName, name, path),
             partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
             type,
             policy == null ? ColumnPolicy.DYNAMIC : policy,
@@ -127,7 +127,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableColumns() throws Exception {
-        TableIdent ident = new TableIdent("doc", "test");
+        RelationName ident = new RelationName("doc", "test");
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "bools", DataTypes.BOOLEAN),
@@ -198,7 +198,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTablePrimaryKey() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "pk_col_one", DataTypes.LONG),
@@ -240,7 +240,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableNotNull() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
 
         Reference colA = new Reference(new ReferenceIdent(ident, "col_a", null),
             RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
@@ -281,7 +281,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableParameters() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "id", DataTypes.LONG)
@@ -328,7 +328,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableClusteredByPartitionedBy() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "id", DataTypes.LONG),
@@ -369,7 +369,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableIndexes() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
         Reference colA = new Reference(new ReferenceIdent(ident, "col_a", null),
             RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
         Reference colB = new Reference(new ReferenceIdent(ident, "col_b", null),
@@ -441,7 +441,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     @Test
     public void testBuildCreateTableStorageDefinitions() throws Exception {
-        TableIdent ident = new TableIdent("myschema", "test");
+        RelationName ident = new RelationName("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
             newReference(ident, "s", DataTypes.STRING, null, null, false, true)

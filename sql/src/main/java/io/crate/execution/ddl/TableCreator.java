@@ -28,7 +28,7 @@ import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
@@ -166,9 +166,9 @@ public class TableCreator {
             && e.getMessage() != null && e.getMessage().endsWith("already exists");
     }
 
-    private void deleteOrphans(final CreateTableResponseListener listener, TableIdent tableIdent) {
+    private void deleteOrphans(final CreateTableResponseListener listener, RelationName relationName) {
         MetaData metaData = clusterService.state().getMetaData();
-        String fqn = tableIdent.fqn();
+        String fqn = relationName.fqn();
 
         if (metaData.hasAlias(fqn) && isPartition(metaData, fqn)) {
             logger.debug("Deleting orphaned partitions with alias: {}", fqn);
@@ -178,7 +178,7 @@ public class TableCreator {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphaned alias");
                     }
-                    deleteOrphanedPartitions(listener, tableIdent);
+                    deleteOrphanedPartitions(listener, relationName);
                 }
 
                 @Override
@@ -187,7 +187,7 @@ public class TableCreator {
                 }
             });
         } else {
-            deleteOrphanedPartitions(listener, tableIdent);
+            deleteOrphanedPartitions(listener, relationName);
         }
     }
 
@@ -205,8 +205,8 @@ public class TableCreator {
      * <p>
      * should never delete partitions of existing partitioned tables
      */
-    private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
-        String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
+    private void deleteOrphanedPartitions(final CreateTableResponseListener listener, RelationName relationName) {
+        String partitionWildCard = PartitionName.templateName(relationName.schema(), relationName.name()) + "*";
         String[] orphans = indexNameExpressionResolver.concreteIndexNames(
             clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {

@@ -24,7 +24,7 @@ package io.crate.execution.engine.pipeline;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -33,26 +33,26 @@ import org.elasticsearch.index.IndexNotFoundException;
 
 public final class TableSettingsResolver {
 
-    public static Settings get(MetaData metaData, TableIdent tableIdent, boolean partitioned) {
+    public static Settings get(MetaData metaData, RelationName relationName, boolean partitioned) {
         if (partitioned) {
-            return forPartitionedTable(metaData, tableIdent);
+            return forPartitionedTable(metaData, relationName);
         }
-        return forTable(metaData, tableIdent);
+        return forTable(metaData, relationName);
     }
 
-    private static Settings forTable(MetaData metaData, TableIdent tableIdent) {
-        IndexMetaData indexMetaData = metaData.index(tableIdent.indexName());
+    private static Settings forTable(MetaData metaData, RelationName relationName) {
+        IndexMetaData indexMetaData = metaData.index(relationName.indexName());
         if (indexMetaData == null) {
-            throw new IndexNotFoundException(tableIdent.indexName());
+            throw new IndexNotFoundException(relationName.indexName());
         }
         return indexMetaData.getSettings();
     }
 
-    private static Settings forPartitionedTable(MetaData metaData, TableIdent tableIdent) {
-        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+    private static Settings forPartitionedTable(MetaData metaData, RelationName relationName) {
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         IndexTemplateMetaData templateMetaData = metaData.templates().get(templateName);
         if (templateMetaData == null) {
-            throw new RelationUnknown(tableIdent);
+            throw new RelationUnknown(relationName);
         }
         return templateMetaData.getSettings();
     }

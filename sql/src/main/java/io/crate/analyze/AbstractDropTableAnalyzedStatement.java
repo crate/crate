@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
 public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> implements DDLStatement {
@@ -44,7 +44,7 @@ public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> im
         return tableInfo;
     }
 
-    public TableIdent tableIdent() {
+    public RelationName tableIdent() {
         return tableInfo.ident();
     }
 

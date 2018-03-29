@@ -27,7 +27,7 @@ import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -54,7 +54,7 @@ import static org.hamcrest.Matchers.is;
 public class RerouteActionsTest extends CrateUnitTest {
 
     public static final BlobTableInfo BLOB_TABLE_INFO = TableDefinitions.createBlobTable(
-        new TableIdent(BlobSchemaInfo.NAME, "screenshots"));
+        new RelationName(BlobSchemaInfo.NAME, "screenshots"));
 
     @Test
     public void testRerouteIndexOfBlobTable() throws Exception {

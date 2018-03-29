@@ -27,8 +27,8 @@ import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -81,22 +81,22 @@ public class DocSysColumns {
         .put(ID, UID.name())
         .build();
 
-    private static Reference newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
+    private static Reference newInfo(RelationName table, ColumnIdent column, DataType dataType) {
         return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType, ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED, false);
     }
 
     /**
-     * Calls {@code consumer} for each sys column with a reference containing {@code tableIdent}
+     * Calls {@code consumer} for each sys column with a reference containing {@code relationName}
      */
-    public static void forTable(TableIdent tableIdent, BiConsumer<ColumnIdent, Reference> consumer) {
+    public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, Reference> consumer) {
         for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
-            consumer.accept(columnIdent, newInfo(tableIdent, columnIdent, entry.getValue()));
+            consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue()));
         }
     }
 
-    public static Reference forTable(TableIdent table, ColumnIdent column) {
+    public static Reference forTable(RelationName table, ColumnIdent column) {
         return newInfo(table, column, COLUMN_IDENTS.get(column));
     }
 

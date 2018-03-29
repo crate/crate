@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.is;
 
 public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+    private RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
     private SQLExecutor e;
 
     @Before

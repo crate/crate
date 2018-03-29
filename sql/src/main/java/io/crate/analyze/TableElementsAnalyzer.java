@@ -27,7 +27,7 @@ import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.ArrayLiteral;
@@ -62,12 +62,12 @@ public class TableElementsAnalyzer {
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                                TableIdent tableIdent,
+                                                RelationName relationName,
                                                 @Nullable TableInfo tableInfo) {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, tableIdent, tableInfo);
+                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -88,7 +88,7 @@ public class TableElementsAnalyzer {
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
-        final TableIdent tableIdent;
+        final RelationName relationName;
         @Nullable
         final TableInfo tableInfo;
 
@@ -96,13 +96,13 @@ public class TableElementsAnalyzer {
                                 Row parameters,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements analyzedTableElements,
-                                TableIdent tableIdent,
+                                RelationName relationName,
                                 @Nullable  TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
             this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
-            this.tableIdent = tableIdent;
+            this.relationName = relationName;
             this.tableInfo = tableInfo;
         }
     }
@@ -205,7 +205,7 @@ public class TableElementsAnalyzer {
                     context.parameters,
                     context.fulltextAnalyzerResolver,
                     context.analyzedTableElements,
-                    context.tableIdent,
+                    context.relationName,
                     context.tableInfo
                 );
                 process(columnDefinition, childContext);

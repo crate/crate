@@ -23,7 +23,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 
 /**
@@ -39,7 +39,7 @@ public interface DDLClusterStateModifier {
     /**
      * Called while a table is closed.
      */
-    default ClusterState onCloseTable(ClusterState currentState, TableIdent tableIdent) {
+    default ClusterState onCloseTable(ClusterState currentState, RelationName relationName) {
         return currentState;
     }
 
@@ -53,7 +53,7 @@ public interface DDLClusterStateModifier {
     /**
      * Called while a table is opened.
      */
-    default ClusterState onOpenTable(ClusterState currentState, TableIdent tableIdent) {
+    default ClusterState onOpenTable(ClusterState currentState, RelationName relationName) {
         return currentState;
     }
 
@@ -67,7 +67,7 @@ public interface DDLClusterStateModifier {
     /**
      * Called while a table is dropped.
      */
-    default ClusterState onDropTable(ClusterState currentState, TableIdent tableIdent) {
+    default ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
         return currentState;
     }
 
@@ -75,8 +75,8 @@ public interface DDLClusterStateModifier {
      * Called while a table is renamed
      */
     default ClusterState onRenameTable(ClusterState currentState,
-                                       TableIdent sourceTableIdent,
-                                       TableIdent targetTableIdent,
+                                       RelationName sourceRelationName,
+                                       RelationName targetRelationName,
                                        boolean isPartitionedTable) {
         return currentState;
     }

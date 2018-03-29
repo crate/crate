@@ -35,11 +35,11 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -104,7 +104,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterLevel() throws Exception {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
+        TableInfo tableInfo = schemas.getTableInfo(new RelationName("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,

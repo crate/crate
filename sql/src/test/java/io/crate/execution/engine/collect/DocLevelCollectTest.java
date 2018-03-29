@@ -41,11 +41,11 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -80,15 +80,15 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final Reference testDocLevelReference = new Reference(
-        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER);
     private static final Reference underscoreIdReference = new Reference(
-        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING);
     private static final Reference underscoreRawReference = new Reference(
-        new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_raw"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_raw"),
         RowGranularity.DOC,
         DataTypes.STRING);
 
@@ -200,8 +200,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
-        TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        Routing routing = schemas.getTableInfo(tableIdent).getRouting(
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
+        Routing routing = schemas.getTableInfo(relationName).getRouting(
             clusterService().state(),
             new RoutingProvider(Randomness.get().nextInt(), new String[0]),
             WhereClause.MATCH_ALL,
@@ -209,10 +209,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             SessionContext.create());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
-                new Reference(new ReferenceIdent(tableIdent, "id"),
+                new Reference(new ReferenceIdent(relationName, "id"),
                     RowGranularity.DOC,
                     DataTypes.INTEGER),
-                new Reference(new ReferenceIdent(tableIdent, "date"),
+                new Reference(new ReferenceIdent(relationName, "date"),
                     RowGranularity.SHARD,
                     DataTypes.TIMESTAMP)),
             routing,

@@ -21,17 +21,17 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collections;
 
 public class DuplicateKeyException extends ConflictException implements TableScopeException {
 
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
 
     DuplicateKeyException(String indexName, String msg, Throwable e) {
         super(msg, e);
-        tableIdent = TableIdent.fromIndexName(indexName);
+        relationName = RelationName.fromIndexName(indexName);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class DuplicateKeyException extends ConflictException implements TableSco
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
-        return Collections.singletonList(tableIdent);
+    public Iterable<RelationName> getTableIdents() {
+        return Collections.singletonList(relationName);
     }
 }

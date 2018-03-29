@@ -29,10 +29,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
@@ -51,7 +51,7 @@ import java.util.Map;
 public class InformationTablesTableInfo extends InformationTableInfo {
 
     public static final String NAME = "tables";
-    public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
     static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");

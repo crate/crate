@@ -46,9 +46,9 @@ import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -541,11 +541,11 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return builder.string();
     }
 
-    public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception {
+    public void waitForMappingUpdateOnAll(final RelationName relationName, final String... fieldNames) throws Exception {
         assertBusy(() -> {
             Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
             for (Schemas schemas : referenceInfosIterable) {
-                TableInfo tableInfo = schemas.getTableInfo(tableIdent);
+                TableInfo tableInfo = schemas.getTableInfo(relationName);
                 assertThat(tableInfo, Matchers.notNullValue());
                 for (String fieldName : fieldNames) {
                     ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
@@ -576,7 +576,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new TableIdent(sqlExecutor.getDefaultSchema(), tableOrPartition), fieldNames);
+        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getDefaultSchema(), tableOrPartition), fieldNames);
     }
 
     /**

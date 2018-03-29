@@ -26,7 +26,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -121,11 +121,11 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             if (!schemaMatched || !tableNameMatched) {
                 String schema = columnSchema == null ? defaultSchema : columnSchema;
                 raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
-                throw new RelationUnknown(new TableIdent(schema, columnTableName));
+                throw new RelationUnknown(new RelationName(schema, columnTableName));
             }
             QualifiedName tableName = sources.entrySet().iterator().next().getKey();
-            TableIdent tableIdent = TableIdent.fromIndexName(tableName.toString());
-            throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
+            RelationName relationName = RelationName.fromIndexName(tableName.toString());
+            throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
         }
         return lastField;
     }

@@ -26,7 +26,7 @@ import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.SchemaScopeException;
 import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnscopedException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Locale;
 
@@ -57,8 +57,8 @@ class ExceptionPrivilegeValidator implements ExceptionAuthorizedValidator {
 
         @Override
         protected Void visitTableScopeException(TableScopeException e, User context) {
-            for (TableIdent tableIdent : e.getTableIdents()) {
-                Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, tableIdent.toString(), context);
+            for (RelationName relationName : e.getTableIdents()) {
+                Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), context);
             }
             return null;
         }

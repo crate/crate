@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -42,7 +42,7 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addBlobTable(TableDefinitions.createBlobTable(new TableIdent("blob", "screenshots")))
+            .addBlobTable(TableDefinitions.createBlobTable(new RelationName("blob", "screenshots")))
             .build();
     }
 

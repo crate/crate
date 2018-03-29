@@ -25,7 +25,7 @@ import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -79,8 +79,8 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
     @Test
     public void testTableScopeException() throws Exception {
         validator.ensureExceptionAuthorized(new RelationValidationException(Lists.newArrayList(
-            TableIdent.fromIndexName("users"),
-            TableIdent.fromIndexName("my_schema.foo")
+            RelationName.fromIndexName("users"),
+            RelationName.fromIndexName("my_schema.foo")
         ), "bla"));
         assertAskedAnyForTable("doc.users");
         assertAskedAnyForTable("my_schema.foo");

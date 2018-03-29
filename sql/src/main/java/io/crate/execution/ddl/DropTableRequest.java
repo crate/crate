@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,19 +34,19 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
     private boolean isPartitioned;
 
     public DropTableRequest() {
     }
 
-    public DropTableRequest(TableIdent tableIdent, boolean isPartitioned) {
-        this.tableIdent = tableIdent;
+    public DropTableRequest(RelationName relationName, boolean isPartitioned) {
+        this.relationName = relationName;
         this.isPartitioned = isPartitioned;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     public boolean isPartitioned() {
@@ -56,7 +56,7 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (tableIdent == null) {
+        if (relationName == null) {
             validationException = addValidationError("table ident must not be null", null);
         }
         return validationException;
@@ -65,14 +65,14 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        tableIdent = new TableIdent(in);
+        relationName = new RelationName(in);
         isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        tableIdent.writeTo(out);
+        relationName.writeTo(out);
         out.writeBoolean(isPartitioned);
     }
 }

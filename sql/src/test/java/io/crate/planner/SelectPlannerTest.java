@@ -49,10 +49,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.dql.Collect;
@@ -119,9 +119,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocTableInfo bindGeneratedColumnTable() {
-        TableIdent generatedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "gc_table");
+        RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "gc_table");
         return new TestingTableInfo.Builder(
-            generatedColumnTableIdent, new Routing(Collections.emptyMap()))
+            generatedColumnRelationName, new Routing(Collections.emptyMap()))
             .add("revenue", DataTypes.INTEGER, null)
             .add("cost", DataTypes.INTEGER, null)
             .addGeneratedColumn("profit", DataTypes.INTEGER, "subtract(revenue, cost)", false)

@@ -30,7 +30,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.Row;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -118,17 +118,17 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
         private static final Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
 
-        private final Consumer<ObjectObjectMap<TableIdent, TableStats.Stats>> tableStatsConsumer;
-        private ObjectObjectMap<TableIdent, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
+        private final Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer;
+        private ObjectObjectMap<RelationName, TableStats.Stats> newStats = new ObjectObjectHashMap<>();
 
-        TableStatsResultReceiver(Consumer<ObjectObjectMap<TableIdent, TableStats.Stats>> tableStatsConsumer) {
+        TableStatsResultReceiver(Consumer<ObjectObjectMap<RelationName, TableStats.Stats>> tableStatsConsumer) {
             this.tableStatsConsumer = tableStatsConsumer;
         }
 
         @Override
         public void setNextRow(Row row) {
-            TableIdent tableIdent = new TableIdent(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
-            newStats.put(tableIdent, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
+            RelationName relationName = new RelationName(BytesRefs.toString(row.get(2)), BytesRefs.toString(row.get(3)));
+            newStats.put(relationName, new TableStats.Stats((long) row.get(0), (long) row.get(1)));
         }
 
         @Override

@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Test;
@@ -41,9 +41,9 @@ public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(dropView.ifExists(), is(true));
         String defaultSchema = e.getSessionContext().defaultSchema();
         assertThat(dropView.views(), contains(
-            is(new TableIdent(defaultSchema, "v1")),
-            is(new TableIdent(defaultSchema, "v2")),
-            is(new TableIdent("x", "v3")))
+            is(new RelationName(defaultSchema, "v1")),
+            is(new RelationName(defaultSchema, "v2")),
+            is(new RelationName("x", "v3")))
         );
     }
 }

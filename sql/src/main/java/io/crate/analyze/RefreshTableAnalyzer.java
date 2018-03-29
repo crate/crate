@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.RefreshStatement;
@@ -56,7 +56,7 @@ class RefreshTableAnalyzer {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
             DocTableInfo tableInfo = schemas.getTableInfo(
-                TableIdent.of(nodeTable, defaultSchema), Operation.REFRESH);
+                RelationName.of(nodeTable, defaultSchema), Operation.REFRESH);
             indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,
                     nodeTable.partitionProperties(), tableInfo));

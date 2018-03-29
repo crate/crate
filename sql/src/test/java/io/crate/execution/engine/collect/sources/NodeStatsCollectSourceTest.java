@@ -30,8 +30,8 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -69,9 +69,9 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
     private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
         // build where clause with id = ?
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
-        when(tableInfo.ident()).thenReturn(new TableIdent("sys", "nodes"));
+        when(tableInfo.ident()).thenReturn(new RelationName("sys", "nodes"));
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new TableIdent("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
+            new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
         when(tableInfo.getReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME),

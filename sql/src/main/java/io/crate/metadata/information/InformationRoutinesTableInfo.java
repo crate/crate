@@ -27,10 +27,10 @@ import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -40,7 +40,7 @@ import java.util.Map;
 public class InformationRoutinesTableInfo extends InformationTableInfo {
 
     public static final String NAME = "routines";
-    public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
         static final ColumnIdent SPECIFIC_NAME = new ColumnIdent("specific_name");

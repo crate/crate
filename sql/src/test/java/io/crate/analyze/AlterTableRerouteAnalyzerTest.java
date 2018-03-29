@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -41,7 +41,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() {
-        TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).enableDefaultTables().build();
     }

@@ -31,10 +31,10 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -53,7 +53,7 @@ import java.util.List;
 public class EmptyRowTableFunction {
 
     private static final String NAME = "empty_row";
-    private static final TableIdent TABLE_IDENT = new TableIdent("", NAME);
+    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     static class EmptyRowTableFunctionImplementation implements TableFunctionImplementation {
 

@@ -46,9 +46,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceToLiteralConverter;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -116,8 +116,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             throw new IllegalArgumentException("VALUES clause must not be empty");
         }
 
-        TableIdent tableIdent = TableIdent.of(insert.table(), txnCtx.sessionContext().defaultSchema());
-        DocTableInfo targetTable = schemas.getTableInfo(tableIdent, Operation.INSERT);
+        RelationName relationName = RelationName.of(insert.table(), txnCtx.sessionContext().defaultSchema());
+        DocTableInfo targetTable = schemas.getTableInfo(relationName, Operation.INSERT);
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
         ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
@@ -168,7 +168,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()),
+            RelationName.of(node.table(), analysis.sessionContext().defaultSchema()),
             Operation.INSERT
         );
 

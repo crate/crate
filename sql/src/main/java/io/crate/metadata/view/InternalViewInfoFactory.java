@@ -28,8 +28,8 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -51,7 +51,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
     }
 
     @Override
-    public ViewInfo create(TableIdent ident, ClusterState state) {
+    public ViewInfo create(RelationName ident, ClusterState state) {
         ViewsMetaData meta = state.metaData().custom(ViewsMetaData.TYPE);
         if (meta == null) {
             return null;

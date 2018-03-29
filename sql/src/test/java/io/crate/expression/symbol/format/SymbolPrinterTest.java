@@ -38,8 +38,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -68,7 +68,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, TABLE_NAME), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, TABLE_NAME), null)
             .add("foo", DataTypes.STRING)
             .add("bar", DataTypes.LONG)
             .add("CraZy", DataTypes.IP)
@@ -145,7 +145,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testReference() throws Exception {
         Reference r = new Reference(new ReferenceIdent(
-            new TableIdent("sys", "table"),
+            new RelationName("sys", "table"),
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "sys.\"table\".\"column\"['path']['nested']");
@@ -154,7 +154,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testDocReference() throws Exception {
         Reference r = new Reference(new ReferenceIdent(
-            new TableIdent("doc", "table"),
+            new RelationName("doc", "table"),
             new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "doc.\"table\".\"column\"['path']['nested']");
@@ -163,7 +163,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testDynamicReference() throws Exception {
         Reference r = new DynamicReference(
-            new ReferenceIdent(new TableIdent("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
@@ -171,7 +171,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testReferenceEscaped() throws Exception {
         Reference r = new Reference(new ReferenceIdent(
-            new TableIdent("doc", "table"),
+            new RelationName("doc", "table"),
             new ColumnIdent("colum\"n")),
             RowGranularity.DOC, DataTypes.STRING);
         assertPrint(r, "doc.\"table\".\"colum\"\"n\"");

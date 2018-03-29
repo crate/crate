@@ -85,16 +85,16 @@ public class SchemasTest {
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
 
-        TableIdent tableIdent = new TableIdent("foo", "bar");
+        RelationName relationName = new RelationName("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         TableInfo tableInfo = mock(TableInfo.class);
-        when(tableInfo.ident()).thenReturn(tableIdent);
+        when(tableInfo.ident()).thenReturn(relationName);
         when(tableInfo.supportedOperations()).thenReturn(Operation.SYS_READ_ONLY);
-        when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
-        when(schemaInfo.name()).thenReturn(tableIdent.schema());
+        when(schemaInfo.getTableInfo(relationName.name())).thenReturn(tableInfo);
+        when(schemaInfo.name()).thenReturn(relationName.schema());
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getTableInfo(tableIdent, Operation.INSERT);
+        schemas.getTableInfo(relationName, Operation.INSERT);
     }
 
     @Test
@@ -102,17 +102,17 @@ public class SchemasTest {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT operations.");
 
-        TableIdent tableIdent = new TableIdent("foo", "bar");
+        RelationName relationName = new RelationName("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         DocTableInfo tableInfo = mock(DocTableInfo.class);
-        when(tableInfo.ident()).thenReturn(tableIdent);
-        when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
-        when(schemaInfo.name()).thenReturn(tableIdent.schema());
+        when(tableInfo.ident()).thenReturn(relationName);
+        when(schemaInfo.getTableInfo(relationName.name())).thenReturn(tableInfo);
+        when(schemaInfo.name()).thenReturn(relationName.schema());
         when(tableInfo.isAlias()).thenReturn(true);
 
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getTableInfo(tableIdent, Operation.INSERT);
+        schemas.getTableInfo(relationName, Operation.INSERT);
     }
 
     @Test

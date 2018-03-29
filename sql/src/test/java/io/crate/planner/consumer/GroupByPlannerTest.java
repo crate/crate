@@ -42,8 +42,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -86,7 +86,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .enableDefaultTables()
             .addDocTable(TableDefinitions.CLUSTERED_PARTED)
             .addDocTable(TestingTableInfo.builder(
-                new TableIdent("doc", "empty_parted"), shardRouting("empty_parted"))
+                new RelationName("doc", "empty_parted"), shardRouting("empty_parted"))
                 .add("id", DataTypes.INTEGER)
                 .add("date", DataTypes.TIMESTAMP, null, true)
                 .addPrimaryKey("id")

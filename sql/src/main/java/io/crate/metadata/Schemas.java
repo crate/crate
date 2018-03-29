@@ -91,12 +91,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @Nullable
-    public TableInfo getTableInfoOrNull(TableIdent tableIdent, Operation operation) {
-        SchemaInfo schemaInfo = schemas.get(tableIdent.schema());
+    public TableInfo getTableInfoOrNull(RelationName relationName, Operation operation) {
+        SchemaInfo schemaInfo = schemas.get(relationName.schema());
         if (schemaInfo == null) {
             return null;
         }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return null;
         }
@@ -112,7 +112,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
-    public <T extends TableInfo> T getTableInfo(TableIdent ident) {
+    public <T extends TableInfo> T getTableInfo(RelationName ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
@@ -131,13 +131,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws RelationUnknown  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
-    public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation) {
+    public <T extends TableInfo> T getTableInfo(RelationName ident, Operation operation) {
         TableInfo tableInfo = getTableInfo(ident);
         Operation.blockedRaiseException(tableInfo, operation);
         return (T) tableInfo;
     }
 
-    private SchemaInfo getSchemaInfo(TableIdent ident) {
+    private SchemaInfo getSchemaInfo(RelationName ident) {
         String schemaName = ident.schema();
         SchemaInfo schemaInfo = schemas.get(schemaName);
         if (schemaInfo == null) {
@@ -240,13 +240,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return true;
     }
 
-    public boolean tableExists(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = schemas.get(tableIdent.schema());
+    public boolean tableExists(RelationName relationName) {
+        SchemaInfo schemaInfo = schemas.get(relationName.schema());
         if (schemaInfo == null) {
             return false;
         }
-        schemaInfo.invalidateTableCache(tableIdent.name());
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        schemaInfo.invalidateTableCache(relationName.name());
+        TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return false;
         } else if ((tableInfo instanceof DocTableInfo)) {
@@ -291,12 +291,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws SchemaUnknownException if the view was not found and no such schema exists
      */
     @Nullable
-    public String resolveView(TableIdent tableIdent) {
+    public String resolveView(RelationName relationName) {
         ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-        String query = views == null ? null : views.getStatement(tableIdent);
+        String query = views == null ? null : views.getStatement(relationName);
         if (query == null) {
-            if (!schemas.containsKey(tableIdent.schema())) {
-                throw new SchemaUnknownException(tableIdent.schema());
+            if (!schemas.containsKey(relationName.schema())) {
+                throw new SchemaUnknownException(relationName.schema());
             }
             return null;
         }

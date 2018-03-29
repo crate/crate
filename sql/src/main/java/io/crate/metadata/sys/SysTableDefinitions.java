@@ -33,7 +33,7 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -48,7 +48,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class SysTableDefinitions {
 
-    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions = new HashMap<>();
+    private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions = new HashMap<>();
 
     @Inject
     public SysTableDefinitions(JobsLogs jobsLogs,
@@ -114,13 +114,13 @@ public class SysTableDefinitions {
         ));
     }
 
-    public StaticTableDefinition<?> get(TableIdent tableIdent) {
-        return tableDefinitions.get(tableIdent);
+    public StaticTableDefinition<?> get(RelationName relationName) {
+        return tableDefinitions.get(relationName);
     }
 
-    public <R> void registerTableDefinition(TableIdent tableIdent, StaticTableDefinition<R> definition) {
-        StaticTableDefinition<?> existingDefinition = tableDefinitions.putIfAbsent(tableIdent, definition);
-        assert existingDefinition == null : "A static table definition is already registered for ident=" + tableIdent.toString();
+    public <R> void registerTableDefinition(RelationName relationName, StaticTableDefinition<R> definition) {
+        StaticTableDefinition<?> existingDefinition = tableDefinitions.putIfAbsent(relationName, definition);
+        assert existingDefinition == null : "A static table definition is already registered for ident=" + relationName.toString();
     }
 
     @VisibleForTesting

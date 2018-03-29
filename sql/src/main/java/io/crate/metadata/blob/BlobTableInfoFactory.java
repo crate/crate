@@ -22,7 +22,7 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.ImplementedBy;
 
@@ -35,5 +35,5 @@ import org.elasticsearch.common.inject.ImplementedBy;
 @ImplementedBy(InternalBlobTableInfoFactory.class)
 public interface BlobTableInfoFactory {
 
-    BlobTableInfo create(TableIdent ident, ClusterState clusterState);
+    BlobTableInfo create(RelationName ident, ClusterState clusterState);
 }

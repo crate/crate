@@ -35,7 +35,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -59,7 +59,7 @@ import static org.mockito.Mockito.when;
 
 public class ValueNormalizerTest extends CrateUnitTest {
 
-    private static final TableIdent TEST_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "test1");
+    private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
     private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT,
         new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.LONG, null)

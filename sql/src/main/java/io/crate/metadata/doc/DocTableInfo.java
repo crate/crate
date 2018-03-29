@@ -36,10 +36,10 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -120,7 +120,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final ImmutableMap<ColumnIdent, Reference> references;
     private final ImmutableMap<ColumnIdent, String> analyzers;
-    private final TableIdent ident;
+    private final RelationName ident;
     private final List<ColumnIdent> primaryKeys;
     private final ColumnIdent clusteredBy;
     private final String[] concreteIndices;
@@ -146,7 +146,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final ColumnPolicy columnPolicy;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
-    public DocTableInfo(TableIdent ident,
+    public DocTableInfo(RelationName ident,
                         List<Reference> columns,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
@@ -233,7 +233,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public TableIdent ident() {
+    public RelationName ident() {
         return ident;
     }
 

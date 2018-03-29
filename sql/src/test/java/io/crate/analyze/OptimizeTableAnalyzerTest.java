@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -42,7 +42,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void prepare() {
-        TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
     }

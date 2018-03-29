@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
@@ -37,10 +37,10 @@ import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAUL
 
 public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implements AckedRequest {
 
-    private List<TableIdent> names;
+    private List<RelationName> names;
     private boolean ifExists;
 
-    public DropViewRequest(List<TableIdent> names, boolean ifExists) {
+    public DropViewRequest(List<RelationName> names, boolean ifExists) {
         this.names = names;
         this.ifExists = ifExists;
     }
@@ -58,7 +58,7 @@ public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implemen
         return DEFAULT_ACK_TIMEOUT;
     }
 
-    public List<TableIdent> names() {
+    public List<RelationName> names() {
         return names;
     }
 
@@ -69,7 +69,7 @@ public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implemen
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        names = in.readList(TableIdent::new);
+        names = in.readList(RelationName::new);
         ifExists = in.readBoolean();
     }
 

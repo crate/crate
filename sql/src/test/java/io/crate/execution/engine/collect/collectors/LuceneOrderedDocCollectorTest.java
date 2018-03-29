@@ -33,9 +33,9 @@ import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
 import io.crate.expression.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -83,7 +83,7 @@ import static org.mockito.Mockito.mock;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
-    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
     private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
     private NumberFieldMapper.NumberFieldType valueFieldType;
 
@@ -250,7 +250,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Reference sysColReference =
             new Reference(
                 new ReferenceIdent(
-                    new TableIdent(Schemas.DOC_SCHEMA_NAME, "table"),
+                    new RelationName(Schemas.DOC_SCHEMA_NAME, "table"),
                     DocSysColumns.SCORE),
                 RowGranularity.DOC, DataTypes.FLOAT);
 

@@ -29,9 +29,9 @@ import com.google.common.collect.Multimap;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -48,16 +48,16 @@ public class FetchPhaseTest {
     @Test
     public void testStreaming() throws Exception {
 
-        TableIdent t1 = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1");
+        RelationName t1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
 
         TreeMap<String, Integer> bases = new TreeMap<String, Integer>();
         bases.put(t1.name(), 0);
         bases.put("i2", 1);
 
-        Multimap<TableIdent, String> tableIndices = HashMultimap.create();
+        Multimap<RelationName, String> tableIndices = HashMultimap.create();
         tableIndices.put(t1, t1.name());
-        tableIndices.put(new TableIdent(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s1");
-        tableIndices.put(new TableIdent(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s2");
+        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s1");
+        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s2");
 
         ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
         Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING);

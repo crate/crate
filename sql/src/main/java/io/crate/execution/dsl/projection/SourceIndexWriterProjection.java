@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -57,7 +57,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private String[] excludes;
 
 
-    public SourceIndexWriterProjection(TableIdent tableIdent,
+    public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
                                        InputColumn rawSourcePtr,
@@ -70,7 +70,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> idSymbols,
                                        @Nullable Symbol clusteredBySymbol,
                                        boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
         this.includes = includes;
         this.excludes = excludes;

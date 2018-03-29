@@ -30,7 +30,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -66,7 +66,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     private static final User GRANTOR_TEST_USER = User.of("test");
 
-    private static final TableIdent CUSTOM_SCHEMA_IDENT = new TableIdent("my_schema", "locations");
+    private static final RelationName CUSTOM_SCHEMA_IDENT = new RelationName("my_schema", "locations");
     private static final DocTableInfo CUSTOM_SCHEMA_INFO = TestingTableInfo.builder(CUSTOM_SCHEMA_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.INTEGER, ImmutableList.<String>of())
         .build();

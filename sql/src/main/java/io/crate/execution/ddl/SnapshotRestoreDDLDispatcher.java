@@ -32,7 +32,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -277,9 +277,9 @@ public class SnapshotRestoreDDLDispatcher {
             ctx.addTemplate(table.partitionTemplate());
         }
 
-        private static boolean isIndexPartitionOfTable(String index, TableIdent tableIdent) {
+        private static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
             return IndexParts.isPartitioned(index) &&
-                   PartitionName.fromIndexOrTemplate(index).tableIdent().equals(tableIdent);
+                   PartitionName.fromIndexOrTemplate(index).tableIdent().equals(relationName);
         }
 
         @Override

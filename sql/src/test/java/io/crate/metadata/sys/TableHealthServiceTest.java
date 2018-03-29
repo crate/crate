@@ -23,8 +23,8 @@
 package io.crate.metadata.sys;
 
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
@@ -91,9 +91,9 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testTableIsDeletedWhileComputing() {
         TableHealthService.TablePartitionIdent tablePartitionIdent = new TableHealthService.TablePartitionIdent(
             new BytesRef("t1"), new BytesRef("doc"), null);
-        TableIdent tableIdent = new TableIdent("doc", "t1");
+        RelationName relationName = new RelationName("doc", "t1");
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getTableInfo(tableIdent)).thenThrow(new RelationUnknown(tableIdent));
+        when(schemas.getTableInfo(relationName)).thenThrow(new RelationUnknown(relationName));
         TableHealthService tableHealthService = new TableHealthService(Settings.EMPTY, clusterService, schemas, null);
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());

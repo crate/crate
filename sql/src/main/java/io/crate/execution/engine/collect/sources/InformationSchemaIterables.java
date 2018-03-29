@@ -36,10 +36,10 @@ import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -168,7 +168,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .flatMap(tableInfo -> {
                 List<ColumnIdent> pks = tableInfo.primaryKey();
                 PrimitiveIterator.OfInt ids = IntStream.range(1, pks.size() + 1).iterator();
-                TableIdent ident = tableInfo.ident();
+                RelationName ident = tableInfo.ident();
                 return pks.stream().map(
                     pk -> new KeyColumnUsage(ident, pk, ids.next()));
             })::iterator;
@@ -315,18 +315,18 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public static class KeyColumnUsage {
 
-        private final TableIdent tableIdent;
+        private final RelationName relationName;
         private final ColumnIdent pkColumnIdent;
         private final int ordinal;
 
-        KeyColumnUsage(TableIdent tableIdent, ColumnIdent pkColumnIdent, int ordinal) {
-            this.tableIdent = tableIdent;
+        KeyColumnUsage(RelationName relationName, ColumnIdent pkColumnIdent, int ordinal) {
+            this.relationName = relationName;
             this.pkColumnIdent = pkColumnIdent;
             this.ordinal = ordinal;
         }
 
         public String getSchema() {
-            return tableIdent.schema();
+            return relationName.schema();
         }
 
         public String getPkColumnName() {
@@ -338,11 +338,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
         }
 
         public String getTableName() {
-            return tableIdent.name();
+            return relationName.name();
         }
 
         public String getFQN() {
-            return tableIdent.fqn();
+            return relationName.fqn();
         }
     }
 }

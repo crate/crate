@@ -34,8 +34,8 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.RowN;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
@@ -90,7 +90,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         registerTables(builder);
 
         TestingTableInfo.Builder genInfo =
-            TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
                 .add("ts", DataTypes.TIMESTAMP, null)
                 .add("x", DataTypes.INTEGER, null)
                 .add("y", DataTypes.LONG, null)
@@ -103,7 +103,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 );
         builder.addDocTable(genInfo);
 
-        TableIdent ident = new TableIdent(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
+        RelationName ident = new RelationName(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
         TestingTableInfo.Builder doubleGenPartedInfo =
             TestingTableInfo.builder(ident, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
                 .add("x", DataTypes.INTEGER, null)
@@ -119,7 +119,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private void registerTables(SQLExecutor.Builder builder) {
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "users"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "users"), twoNodeRouting)
                 .add("id", DataTypes.STRING, null)
                 .add("name", DataTypes.STRING, null)
                 .add("tags", new ArrayType(DataTypes.STRING), null)
@@ -127,7 +127,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .clusteredBy("id")
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "parted"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "parted"), twoNodeRouting)
                 .add("id", DataTypes.INTEGER, null)
                 .add("name", DataTypes.STRING, null)
                 .add("date", DataTypes.TIMESTAMP, null, true)
@@ -140,7 +140,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     }}).asIndexName())
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "parted_pk"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "parted_pk"), twoNodeRouting)
                 .addPrimaryKey("id").addPrimaryKey("date")
                 .add("id", DataTypes.INTEGER, null)
                 .add("name", DataTypes.STRING, null)
@@ -154,14 +154,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     }}).asIndexName())
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "bystring"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "bystring"), twoNodeRouting)
                 .add("name", DataTypes.STRING, null)
                 .add("score", DataTypes.DOUBLE, null)
                 .addPrimaryKey("name")
                 .clusteredBy("name")
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "users_multi_pk"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "users_multi_pk"), twoNodeRouting)
                 .add("id", DataTypes.LONG, null)
                 .add("name", DataTypes.STRING, null)
                 .add("details", DataTypes.OBJECT, null)
@@ -172,7 +172,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .clusteredBy("id")
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "pk4"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "pk4"), twoNodeRouting)
                 .add("i1", DataTypes.INTEGER, null)
                 .add("i2", DataTypes.INTEGER, null)
                 .add("i3", DataTypes.INTEGER, null)
@@ -184,7 +184,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 .clusteredBy("_id")
                 .build());
         builder.addDocTable(
-            TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), twoNodeRouting)
+            TestingTableInfo.builder(new RelationName("doc", "users_clustered_by_only"), twoNodeRouting)
                 .add("id", DataTypes.LONG, null)
                 .add("name", DataTypes.STRING, null)
                 .add("details", DataTypes.OBJECT, null)

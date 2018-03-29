@@ -30,7 +30,7 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
@@ -76,35 +76,35 @@ class RestoreSnapshotAnalyzer {
             List<Table> tableList = node.tableList().get();
             Set<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables = new HashSet<>(tableList.size());
             for (Table table : tableList) {
-                TableIdent tableIdent = TableIdent.of(table, analysis.sessionContext().defaultSchema());
-                boolean tableExists = schemas.tableExists(tableIdent);
+                RelationName relationName = RelationName.of(table, analysis.sessionContext().defaultSchema());
+                boolean tableExists = schemas.tableExists(relationName);
 
                 if (tableExists) {
                     if (table.partitionProperties().isEmpty()) {
-                        throw new RelationAlreadyExists(tableIdent);
+                        throw new RelationAlreadyExists(relationName);
                     }
 
-                    DocTableInfo docTableInfo = schemas.getTableInfo(tableIdent, Operation.RESTORE_SNAPSHOT);
+                    DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                        tableIdent,
+                        relationName,
                         docTableInfo,
                         table.partitionProperties(),
                         analysis.parameterContext().parameters());
                     if (docTableInfo.partitions().contains(partitionName)) {
                         throw new PartitionAlreadyExistsException(partitionName);
                     }
-                    restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(tableIdent, partitionName));
+                    restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(relationName, partitionName));
                 } else {
                     if (table.partitionProperties().isEmpty()) {
-                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(tableIdent, null));
+                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(relationName, null));
                     } else {
                         PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                            tableIdent,
+                            relationName,
                             null,
                             table.partitionProperties(),
                             analysis.parameterContext().parameters());
                         restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(
-                            tableIdent, partitionName));
+                            relationName, partitionName));
                     }
                 }
             }

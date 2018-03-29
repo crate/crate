@@ -47,7 +47,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -92,7 +92,7 @@ public class DocIndexMetaData {
     private final ImmutableList.Builder<GeneratedReference> generatedColumnReferencesBuilder = ImmutableList.builder();
 
     private final Functions functions;
-    private final TableIdent ident;
+    private final RelationName ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final ImmutableMap<String, Object> tableParameters;
@@ -120,7 +120,7 @@ public class DocIndexMetaData {
     @Nullable
     private final Version versionUpgraded;
 
-    DocIndexMetaData(Functions functions, IndexMetaData metaData, TableIdent ident) throws IOException {
+    DocIndexMetaData(Functions functions, IndexMetaData metaData, RelationName ident) throws IOException {
         this.functions = functions;
         this.ident = ident;
         this.isAlias = !metaData.getIndex().getName().equals(ident.indexName());

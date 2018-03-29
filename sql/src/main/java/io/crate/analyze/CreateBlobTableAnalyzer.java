@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -41,8 +41,8 @@ class CreateBlobTableAnalyzer {
 
     public CreateBlobTableAnalyzedStatement analyze(CreateBlobTable node, ParameterContext parameterContext) {
         CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
-        TableIdent tableIdent = BlobTableAnalyzer.tableToIdent(node.name());
-        statement.table(tableIdent, schemas);
+        RelationName relationName = BlobTableAnalyzer.tableToIdent(node.name());
+        statement.table(relationName, schemas);
 
         int numShards;
         Optional<ClusteredBy> clusteredBy = node.clusteredBy();

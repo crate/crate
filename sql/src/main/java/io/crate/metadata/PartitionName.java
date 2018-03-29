@@ -40,14 +40,14 @@ public class PartitionName {
 
     private static final Base32 BASE32 = new Base32(true);
 
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
 
     private List<BytesRef> values;
     private String indexName;
     private String ident;
 
-    public PartitionName(TableIdent tableIdent, List<BytesRef> values) {
-        this.tableIdent = tableIdent;
+    public PartitionName(RelationName relationName, List<BytesRef> values) {
+        this.relationName = relationName;
         this.values = values;
     }
 
@@ -56,7 +56,7 @@ public class PartitionName {
     }
 
     public PartitionName(String schemaName, String tableName, List<BytesRef> values) {
-        this(new TableIdent(schemaName, tableName), values);
+        this(new RelationName(schemaName, tableName), values);
     }
 
     public PartitionName(String schema, String table, String partitionIdent) {
@@ -65,8 +65,8 @@ public class PartitionName {
     }
 
     public static String templateName(String indexName) {
-        TableIdent tableIdent = PartitionName.fromIndexOrTemplate(indexName).tableIdent;
-        return templateName(tableIdent.schema(), tableIdent.name());
+        RelationName relationName = PartitionName.fromIndexOrTemplate(indexName).relationName;
+        return templateName(relationName.schema(), relationName.name());
     }
 
     /**
@@ -157,8 +157,8 @@ public class PartitionName {
         return values;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     @Override

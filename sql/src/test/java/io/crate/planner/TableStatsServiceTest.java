@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.ObjectObjectMap;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.RowN;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -117,7 +117,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRowsToTableStatConversion() throws InterruptedException, ExecutionException, TimeoutException {
-        CompletableFuture<ObjectObjectMap<TableIdent, TableStats.Stats>> statsFuture = new CompletableFuture<>();
+        CompletableFuture<ObjectObjectMap<RelationName, TableStats.Stats>> statsFuture = new CompletableFuture<>();
         TableStatsService.TableStatsResultReceiver receiver =
             new TableStatsService.TableStatsResultReceiver(statsFuture::complete);
 
@@ -127,17 +127,17 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         receiver.setNextRow(new RowN(new Object[]{3L, 30L, "bar", "foo"}));
         receiver.allFinished(false);
 
-        ObjectObjectMap<TableIdent, TableStats.Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
+        ObjectObjectMap<RelationName, TableStats.Stats> stats = statsFuture.get(10, TimeUnit.SECONDS);
         assertThat(stats.size(), is(4));
-        TableStats.Stats statValues = stats.get(new TableIdent("bar", "foo"));
+        TableStats.Stats statValues = stats.get(new RelationName("bar", "foo"));
         assertThat(statValues.numDocs, is(3L));
         assertThat(statValues.sizeInBytes, is(30L));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(stats);
-        assertThat(tableStats.estimatedSizePerRow(new TableIdent("bar", "foo")), is(10L));
-        assertThat(tableStats.estimatedSizePerRow(new TableIdent("empty", "foo")), is(0L));
-        assertThat(tableStats.estimatedSizePerRow(new TableIdent("notInCache", "foo")), is(-1L));
+        assertThat(tableStats.estimatedSizePerRow(new RelationName("bar", "foo")), is(10L));
+        assertThat(tableStats.estimatedSizePerRow(new RelationName("empty", "foo")), is(0L));
+        assertThat(tableStats.estimatedSizePerRow(new RelationName("notInCache", "foo")), is(-1L));
     }
 
     @Test

@@ -23,7 +23,7 @@
 package io.crate.metadata.information;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import org.elasticsearch.common.inject.Inject;
@@ -37,7 +37,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 @Singleton
 public class InformationSchemaTableDefinitions {
 
-    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions;
+    private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
     @Inject
     public InformationSchemaTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
@@ -97,7 +97,7 @@ public class InformationSchemaTableDefinitions {
         ));
     }
 
-    public StaticTableDefinition<?> get(TableIdent tableIdent) {
-        return tableDefinitions.get(tableIdent);
+    public StaticTableDefinition<?> get(RelationName relationName) {
+        return tableDefinitions.get(relationName);
     }
 }

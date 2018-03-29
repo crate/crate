@@ -57,8 +57,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -671,13 +671,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
-        TableIdent tableIdent = TableIdent.of(node, context.sessionContext().defaultSchema());
-        TableInfo tableInfo = schemas.getTableInfoOrNull(tableIdent, context.currentOperation());
+        RelationName relationName = RelationName.of(node, context.sessionContext().defaultSchema());
+        TableInfo tableInfo = schemas.getTableInfoOrNull(relationName, context.currentOperation());
         final AnalyzedRelation relation;
         if (tableInfo == null) {
-            String query = schemas.resolveView(tableIdent);
+            String query = schemas.resolveView(relationName);
             if (query == null) {
-                throw new RelationUnknown(new TableIdent(tableIdent.schema(), tableIdent.name()));
+                throw new RelationUnknown(new RelationName(relationName.schema(), relationName.name()));
             }
             relation = process(SqlParser.createStatement(query), context);
         } else if (tableInfo instanceof DocTableInfo) {
@@ -686,7 +686,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             relation = new TableRelation(tableInfo);
         }
-        context.currentRelationContext().addSourceRelation(tableIdent.schema(), tableIdent.name(), relation);
+        context.currentRelationContext().addSourceRelation(relationName.schema(), relationName.name(), relation);
         return relation;
     }
 

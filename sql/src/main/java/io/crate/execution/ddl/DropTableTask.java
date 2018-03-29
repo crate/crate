@@ -26,7 +26,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.apache.logging.log4j.Logger;
@@ -57,8 +57,8 @@ public class DropTableTask {
     }
 
     public void execute(final RowConsumer consumer) {
-        TableIdent tableIdent = tableInfo.ident();
-        DropTableRequest request = new DropTableRequest(tableIdent, tableInfo.isPartitioned());
+        RelationName relationName = tableInfo.ident();
+        DropTableRequest request = new DropTableRequest(relationName, tableInfo.isPartitioned());
         transportDropTableAction.execute(request, new ActionListener<DropTableResponse>() {
             @Override
             public void onResponse(DropTableResponse response) {

@@ -26,7 +26,7 @@ import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -83,7 +83,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
-            new TableIdent(schemaName, "test"),
+            new RelationName(schemaName, "test"),
             state,
             new IndexNameExpressionResolver(Settings.EMPTY),
             false

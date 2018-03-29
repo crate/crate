@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Expression;
 
 import javax.annotation.Nullable;
@@ -30,13 +30,13 @@ import javax.annotation.Nullable;
 public class CreateIngestionRuleAnalysedStatement implements DCLStatement {
     private final String ruleName;
     private final String sourceName;
-    private final TableIdent targetTable;
+    private final RelationName targetTable;
     private final Expression whereClause;
     private final ParameterContext parameterContext;
 
     public CreateIngestionRuleAnalysedStatement(String ruleName,
                                                 String sourceName,
-                                                TableIdent targetTable,
+                                                RelationName targetTable,
                                                 @Nullable  Expression whereClause,
                                                 ParameterContext parameterContext) {
         this.ruleName = ruleName;
@@ -59,7 +59,7 @@ public class CreateIngestionRuleAnalysedStatement implements DCLStatement {
         return sourceName;
     }
 
-    public TableIdent targetTable() {
+    public RelationName targetTable() {
         return targetTable;
     }
 

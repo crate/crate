@@ -26,7 +26,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.Merge;
@@ -55,7 +55,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(
-                new TestingTableInfo.Builder(new TableIdent("doc", "parted_generated"), shardRouting("parted_generated"))
+                new TestingTableInfo.Builder(new RelationName("doc", "parted_generated"), shardRouting("parted_generated"))
                     .add("ts", DataTypes.TIMESTAMP, null)
                     .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
                     .addPartitions(

@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.data.Paging;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.node.fetch.FetchSource;
@@ -46,19 +46,19 @@ public class FetchProjection extends Projection {
 
     private final int collectPhaseId;
     private final int fetchSize;
-    private final Map<TableIdent, FetchSource> fetchSources;
+    private final Map<RelationName, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
     private final Map<String, IntSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
-    private final Map<String, TableIdent> indicesToIdents;
+    private final Map<String, RelationName> indicesToIdents;
 
     public FetchProjection(int collectPhaseId,
                            int suppliedFetchSize,
-                           Map<TableIdent, FetchSource> fetchSources,
+                           Map<RelationName, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
-                           Map<String, TableIdent> indicesToIdents) {
+                           Map<String, RelationName> indicesToIdents) {
         this.collectPhaseId = collectPhaseId;
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
@@ -104,7 +104,7 @@ public class FetchProjection extends Projection {
         return fetchSize;
     }
 
-    public Map<TableIdent, FetchSource> fetchSources() {
+    public Map<RelationName, FetchSource> fetchSources() {
         return fetchSources;
     }
 
@@ -120,7 +120,7 @@ public class FetchProjection extends Projection {
         return readerIndices;
     }
 
-    public Map<String, TableIdent> indicesToIdents() {
+    public Map<String, RelationName> indicesToIdents() {
         return indicesToIdents;
     }
 

@@ -24,7 +24,7 @@ package io.crate.analyze.relations;
 
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 public class DocTableRelationTest extends CrateUnitTest {
 
     public void testUpdatingPrimaryKeyThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "t1"), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
             .add("i", DataTypes.INTEGER)
             .addPrimaryKey("i")
             .build();
@@ -47,7 +47,7 @@ public class DocTableRelationTest extends CrateUnitTest {
     }
 
     public void testUpdatingCompoundPrimaryKeyThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "t1"), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
             .add("i", DataTypes.INTEGER)
             .addPrimaryKey("i")
             .add("j", DataTypes.INTEGER)
@@ -61,7 +61,7 @@ public class DocTableRelationTest extends CrateUnitTest {
     }
 
     public void testUpdatingClusteredByColumnThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "t1"), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
             .add("i", DataTypes.INTEGER)
             .clusteredBy("i")
             .build();

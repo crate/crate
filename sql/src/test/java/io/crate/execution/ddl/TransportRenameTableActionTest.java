@@ -23,7 +23,7 @@
 package io.crate.execution.ddl;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +51,8 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
     @Test
     public void testRenameOnOpenTableThrowsException() throws Exception {
         RenameTableRequest request = new RenameTableRequest(
-            TableIdent.fromIndexName(getFqn("t1")),
-            TableIdent.fromIndexName(getFqn("t2")), false);
+            RelationName.fromIndexName(getFqn("t1")),
+            RelationName.fromIndexName(getFqn("t2")), false);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage(String.format("Table '%s' is not closed, cannot perform a rename", getFqn("t1")));
@@ -62,8 +62,8 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
     @Test
     public void testRenameOnOpenPartitionedTableThrowsException() throws Exception {
         String defaultSchema = sqlExecutor.getDefaultSchema();
-        RenameTableRequest request = new RenameTableRequest(TableIdent.fromIndexName(getFqn("p1")),
-            TableIdent.fromIndexName(getFqn("p2")), true);
+        RenameTableRequest request = new RenameTableRequest(RelationName.fromIndexName(getFqn("p1")),
+            RelationName.fromIndexName(getFqn("p2")), true);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage(String.format("Partitioned table '%s' is not closed, cannot perform a rename", getFqn("p1")));
@@ -73,8 +73,8 @@ public class TransportRenameTableActionTest extends SQLTransportIntegrationTest 
     @Test
     public void testRenameOnPartitionedTableWithOpenPartitionsThrowsException() throws Exception {
         String defaultSchema = sqlExecutor.getDefaultSchema();
-        RenameTableRequest request = new RenameTableRequest(TableIdent.fromIndexName(getFqn("p11")),
-            TableIdent.fromIndexName(getFqn("p12")), true);
+        RenameTableRequest request = new RenameTableRequest(RelationName.fromIndexName(getFqn("p11")),
+            RelationName.fromIndexName(getFqn("p12")), true);
 
         expectedException.expect(RuntimeException.class);
         expectedException.expectMessage(String.format("Partition '%s..partitioned.p11.04132' of table '%s' is not closed, cannot perform a rename", defaultSchema, getFqn("p11")));

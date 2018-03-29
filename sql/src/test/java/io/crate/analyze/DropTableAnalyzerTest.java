@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -43,7 +43,7 @@ import static org.hamcrest.Matchers.is;
 
 public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private final TableIdent aliasIdent = new TableIdent(DocSchemaInfo.NAME, "alias_table");
+    private final RelationName aliasIdent = new RelationName(DocSchemaInfo.NAME, "alias_table");
     private final DocTableInfo aliasInfo = TestingTableInfo.builder(aliasIdent, SHARD_ROUTING)
         .add("col", DataTypes.STRING, ImmutableList.<String>of())
         .isAlias(true)

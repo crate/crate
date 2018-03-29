@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,23 +32,23 @@ import java.util.List;
 
 public final class DropViewResponse extends ActionResponse {
 
-    private List<TableIdent> missing;
+    private List<RelationName> missing;
 
     DropViewResponse() {
     }
 
-    DropViewResponse(List<TableIdent> missing) {
+    DropViewResponse(List<RelationName> missing) {
         this.missing = missing;
     }
 
-    public List<TableIdent> missing() {
+    public List<RelationName> missing() {
         return missing;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        missing = in.readList(TableIdent::new);
+        missing = in.readList(RelationName::new);
     }
 
     @Override

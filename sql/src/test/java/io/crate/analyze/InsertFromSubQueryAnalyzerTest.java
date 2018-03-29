@@ -29,9 +29,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.ParsingException;
@@ -63,7 +63,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     public void prepare() {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
 
-        TableIdent usersGeneratedIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users_generated");
+        RelationName usersGeneratedIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_generated");
         TestingTableInfo.Builder usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)
             .add("id", DataTypes.LONG)
             .add("firstname", DataTypes.STRING)
@@ -71,7 +71,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
             .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
             .addPrimaryKey("id");
 
-        TableIdent threePksIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
+        RelationName threePksIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "three_pk");
         TestingTableInfo.Builder threePks = new TestingTableInfo.Builder(threePksIdent, SHARD_ROUTING)
             .add("a", DataTypes.INTEGER)
             .add("b", DataTypes.INTEGER)
@@ -86,7 +86,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         e = builder.build();
     }
 
-    private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "three_pk");
+    private static final RelationName THREE_PK_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "three_pk");
     private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
         THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("a", DataTypes.INTEGER)

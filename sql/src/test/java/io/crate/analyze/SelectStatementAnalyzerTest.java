@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
@@ -54,7 +53,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -70,7 +69,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -111,7 +109,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Before
     public void prepare() {
-        DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
+        DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new RelationName("foo", "users"), SHARD_ROUTING)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .addPrimaryKey("id")
@@ -1894,7 +1892,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCustomSchemaSubSelectWithAccessToParentRelation() throws Exception {
-        DocTableInfo fooTableInfo = TestingTableInfo.builder(new TableIdent("foo", "t1"), SHARD_ROUTING)
+        DocTableInfo fooTableInfo = TestingTableInfo.builder(new RelationName("foo", "t1"), SHARD_ROUTING)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
             .addPrimaryKey("id")

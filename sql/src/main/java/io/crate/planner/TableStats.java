@@ -25,7 +25,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.carrotsearch.hppc.ObjectObjectMap;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
@@ -34,9 +34,9 @@ public class TableStats {
 
     private static final Stats EMPTY_STATS = new Stats();
 
-    private volatile ObjectObjectMap<TableIdent, Stats> tableStats = new ObjectObjectHashMap<>(0);
+    private volatile ObjectObjectMap<RelationName, Stats> tableStats = new ObjectObjectHashMap<>(0);
 
-    public void updateTableStats(ObjectObjectMap<TableIdent, Stats> tableStats) {
+    public void updateTableStats(ObjectObjectMap<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;
     }
 
@@ -48,8 +48,8 @@ public class TableStats {
      * </p>
      * Returns -1 if the table isn't in the cache
      */
-    public long numDocs(TableIdent tableIdent) {
-        return tableStats.getOrDefault(tableIdent, EMPTY_STATS).numDocs;
+    public long numDocs(RelationName relationName) {
+        return tableStats.getOrDefault(relationName, EMPTY_STATS).numDocs;
     }
 
     /**
@@ -60,8 +60,8 @@ public class TableStats {
      * </p>
      * Returns 0 if the table isn't in the cache
      */
-    private long sizeInBytes(TableIdent tableIdent) {
-        return tableStats.getOrDefault(tableIdent, EMPTY_STATS).sizeInBytes;
+    private long sizeInBytes(RelationName relationName) {
+        return tableStats.getOrDefault(relationName, EMPTY_STATS).sizeInBytes;
     }
 
     /**
@@ -72,12 +72,12 @@ public class TableStats {
      * </p>
      * Returns -1 if the table isn't in the cache
      */
-    public long estimatedSizePerRow(TableIdent tableIdent) {
-        long numDocs = numDocs(tableIdent);
+    public long estimatedSizePerRow(RelationName relationName) {
+        long numDocs = numDocs(relationName);
         if (numDocs <= 0) {
             return numDocs;
         }
-        return sizeInBytes(tableIdent) / numDocs(tableIdent);
+        return sizeInBytes(relationName) / numDocs(relationName);
     }
 
     @VisibleForTesting

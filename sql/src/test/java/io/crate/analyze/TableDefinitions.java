@@ -26,9 +26,9 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
@@ -65,7 +65,7 @@ public final class TableDefinitions {
             .map());
     }
 
-    public static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users");
+    public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
     public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
@@ -92,7 +92,7 @@ public final class TableDefinitions {
         .addPrimaryKey("id")
         .clusteredBy("id")
         .build();
-    public static final TableIdent USER_TABLE_IDENT_MULTI_PK = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users_multi_pk");
+    public static final RelationName USER_TABLE_IDENT_MULTI_PK = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_multi_pk");
     public static final DocTableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
@@ -103,7 +103,7 @@ public final class TableDefinitions {
         .addPrimaryKey("name")
         .clusteredBy("id")
         .build();
-    public static final TableIdent USER_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users_clustered_by_only");
+    public static final RelationName USER_TABLE_IDENT_CLUSTERED_BY_ONLY = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_clustered_by_only");
     public static final DocTableInfo USER_TABLE_INFO_CLUSTERED_BY_ONLY = TestingTableInfo.builder(USER_TABLE_IDENT_CLUSTERED_BY_ONLY, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
@@ -112,13 +112,13 @@ public final class TableDefinitions {
         .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
         .clusteredBy("id")
         .build();
-    static final TableIdent USER_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(Schemas.DOC_SCHEMA_NAME, "user_refresh_interval");
+    static final RelationName USER_TABLE_REFRESH_INTERVAL_BY_ONLY = new RelationName(Schemas.DOC_SCHEMA_NAME, "user_refresh_interval");
     public static final DocTableInfo USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY = TestingTableInfo.builder(USER_TABLE_REFRESH_INTERVAL_BY_ONLY, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("content", DataTypes.STRING, null)
         .clusteredBy("id")
         .build();
-    static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "nested_pk");
+    static final RelationName NESTED_PK_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_pk");
     public static final DocTableInfo NESTED_PK_TABLE_INFO = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -127,7 +127,7 @@ public final class TableDefinitions {
         .addPrimaryKey("o.b")
         .clusteredBy("o.b")
         .build();
-    public static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted");
+    public static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
     public static final DocTableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
@@ -142,14 +142,14 @@ public final class TableDefinitions {
                 add(null);
             }}).asIndexName())
         .build();
-    public static final TableIdent TEST_EMPTY_PARTITIONED_TABLE_IDENT =
-        new TableIdent(Schemas.DOC_SCHEMA_NAME, "empty_parted");
+    public static final RelationName TEST_EMPTY_PARTITIONED_TABLE_IDENT =
+        new RelationName(Schemas.DOC_SCHEMA_NAME, "empty_parted");
     public static final DocTableInfo TEST_EMPTY_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_EMPTY_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("name", DataTypes.STRING, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
         .build();
-    public static final TableIdent PARTED_PKS_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted_pks");
+    public static final RelationName PARTED_PKS_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks");
     public static final DocTableInfo PARTED_PKS_TI = new TestingTableInfo.Builder(
         PARTED_PKS_IDENT, PARTED_ROUTING)
         .add("id", DataTypes.INTEGER, null)
@@ -165,7 +165,7 @@ public final class TableDefinitions {
         .addPrimaryKey("date")
         .clusteredBy("id")
         .build();
-    public static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "multi_parted");
+    public static final RelationName TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "multi_parted");
     public static final DocTableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
@@ -179,7 +179,7 @@ public final class TableDefinitions {
             new PartitionName("multi_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("-100"))).asIndexName(),
             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
         .build();
-    static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "nested_parted");
+    static final RelationName TEST_NESTED_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted");
     public static final DocTableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
@@ -192,7 +192,7 @@ public final class TableDefinitions {
             new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
             new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
         .build();
-    public static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "transactions");
+    public static final RelationName TEST_DOC_TRANSACTIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "transactions");
     public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.LONG, null)
@@ -201,7 +201,7 @@ public final class TableDefinitions {
         .add("amount", DataTypes.DOUBLE, null)
         .add("timestamp", DataTypes.TIMESTAMP, null)
         .build();
-    public static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "deeply_nested");
+    public static final RelationName DEEPLY_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "deeply_nested");
     public static final DocTableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
         DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
@@ -217,19 +217,19 @@ public final class TableDefinitions {
         .add("tags", DataTypes.LONG, Arrays.asList("metadata", "id"))
         .build();
 
-    public static final TableIdent IGNORED_NESTED_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "ignored_nested");
+    public static final RelationName IGNORED_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "ignored_nested");
     public static final DocTableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
         IGNORED_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
         .build();
 
-    public static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "locations");
+    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
     public static final DocTableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("loc", DataTypes.GEO_POINT, null)
         .build();
 
-    public static final DocTableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "bystring"), SHARD_ROUTING)
+    public static final DocTableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "bystring"), SHARD_ROUTING)
         .add("name", DataTypes.STRING, null)
         .add("score", DataTypes.DOUBLE, null)
         .addPrimaryKey("name")
@@ -237,7 +237,7 @@ public final class TableDefinitions {
         .build();
 
 
-    public static final TableIdent CLUSTERED_PARTED_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "clustered_parted");
+    public static final RelationName CLUSTERED_PARTED_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "clustered_parted");
     public static final DocTableInfo CLUSTERED_PARTED = new TestingTableInfo.Builder(
         CLUSTERED_PARTED_IDENT, CLUSTERED_PARTED_ROUTING)
         .add("id", DataTypes.INTEGER, null)
@@ -250,7 +250,7 @@ public final class TableDefinitions {
                 .build();
 
 
-    public static TestingBlobTableInfo createBlobTable(TableIdent ident) {
+    public static TestingBlobTableInfo createBlobTable(RelationName ident) {
         return new TestingBlobTableInfo(
             ident,
             ident.indexName(),

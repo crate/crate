@@ -21,21 +21,21 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collections;
 import java.util.Locale;
 
 public class InvalidRelationName extends ValidationException implements TableScopeException {
 
-    private final TableIdent ident;
+    private final RelationName ident;
 
     InvalidRelationName(String indexName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", indexName), e);
-        ident = TableIdent.fromIndexName(indexName);
+        ident = RelationName.fromIndexName(indexName);
     }
 
-    public InvalidRelationName(TableIdent ident) {
+    public InvalidRelationName(RelationName ident) {
         super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", ident.fqn()));
         this.ident = ident;
     }
@@ -46,7 +46,7 @@ public class InvalidRelationName extends ValidationException implements TableSco
     }
 
     @Override
-    public Iterable<TableIdent> getTableIdents() {
+    public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(ident);
     }
 }

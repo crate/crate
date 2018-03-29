@@ -26,9 +26,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -44,7 +44,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 public class ShardUpsertRequestTest extends CrateUnitTest {
 
-    private static final TableIdent CHARACTERS_IDENTS = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private static final Reference ID_REF = new Reference(
         new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER);

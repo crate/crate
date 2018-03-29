@@ -28,9 +28,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.expression.reference.information.ColumnContext;
@@ -50,7 +50,7 @@ import java.util.Map;
 public class InformationColumnsTableInfo extends InformationTableInfo {
 
     public static final String NAME = "columns";
-    public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
         static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");

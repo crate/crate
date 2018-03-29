@@ -33,7 +33,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -49,11 +49,11 @@ import java.util.function.Function;
 
 public class DeletePartitions implements Plan {
 
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
     private final List<List<Symbol>> partitions;
 
-    public DeletePartitions(TableIdent tableIdent, List<List<Symbol>> partitions) {
-        this.tableIdent = tableIdent;
+    public DeletePartitions(RelationName relationName, List<List<Symbol>> partitions) {
+        this.relationName = relationName;
         this.partitions = partitions;
     }
 
@@ -82,7 +82,7 @@ public class DeletePartitions implements Plan {
             Function<Symbol, BytesRef> symbolToBytesRef =
                 s -> DataTypes.STRING.value(SymbolEvaluator.evaluate(functions, s, parameters, subQueryValues));
             List<BytesRef> values = Lists2.copyAndReplace(partitionValues, symbolToBytesRef);
-            String indexName = IndexParts.toIndexName(tableIdent, PartitionName.encodeIdent(values));
+            String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));
             indexNames.add(indexName);
         }
         return indexNames;

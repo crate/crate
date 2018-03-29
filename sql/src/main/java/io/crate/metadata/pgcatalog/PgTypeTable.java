@@ -26,11 +26,11 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
@@ -44,7 +44,7 @@ import java.util.Map;
 
 public class PgTypeTable extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(PgCatalogSchemaInfo.NAME, "pg_type");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
 
     static class Columns {
         static final ColumnIdent OID = new ColumnIdent("oid");

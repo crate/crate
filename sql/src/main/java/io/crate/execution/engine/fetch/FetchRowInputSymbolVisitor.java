@@ -30,8 +30,8 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;
@@ -41,14 +41,14 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
     public static class Context {
 
         private final UnsafeArrayRow[] fetchRows;
-        private final Map<TableIdent, FetchSource> fetchSources;
+        private final Map<RelationName, FetchSource> fetchSources;
         private final UnsafeArrayRow inputRow = new UnsafeArrayRow();
         private final int[] fetchIdPositions;
         private final Object[][] nullCells;
 
         private UnsafeArrayRow[] partitionRows;
 
-        public Context(Map<TableIdent, FetchSource> fetchSources) {
+        public Context(Map<RelationName, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty() : "fetchSources must not be empty";
             this.fetchSources = fetchSources;
 
@@ -137,7 +137,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         public Input<?> allocateInput(FetchReference fetchReference) {
             FetchSource fs = null;
             int fetchIdx = 0;
-            for (Map.Entry<TableIdent, FetchSource> entry : fetchSources.entrySet()) {
+            for (Map.Entry<RelationName, FetchSource> entry : fetchSources.entrySet()) {
                 if (entry.getKey().equals(fetchReference.ref().ident().tableIdent())) {
                     fs = entry.getValue();
                     for (InputColumn col : fs.fetchIdCols()) {

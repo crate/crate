@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -29,16 +29,16 @@ import java.util.Locale;
 
 public class RelationUnknown extends ResourceUnknownException implements TableScopeException {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
 
     public RelationUnknown(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableName), e);
-        this.tableIdent = TableIdent.fromIndexName(tableName);
+        this.relationName = RelationName.fromIndexName(tableName);
     }
 
-    public RelationUnknown(TableIdent tableIdent) {
-        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", tableIdent));
-        this.tableIdent = tableIdent;
+    public RelationUnknown(RelationName relationName) {
+        super(String.format(Locale.ENGLISH, "Relation '%s' unknown", relationName));
+        this.relationName = relationName;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class RelationUnknown extends ResourceUnknownException implements TableSc
     }
 
     @Override
-    public Collection<TableIdent> getTableIdents() {
-        return Collections.singletonList(tableIdent);
+    public Collection<RelationName> getTableIdents() {
+        return Collections.singletonList(relationName);
     }
 }

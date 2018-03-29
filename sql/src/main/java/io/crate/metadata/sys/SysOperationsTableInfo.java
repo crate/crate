@@ -26,11 +26,11 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
@@ -45,7 +45,7 @@ import java.util.function.Supplier;
 
 public class SysOperationsTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations");
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");

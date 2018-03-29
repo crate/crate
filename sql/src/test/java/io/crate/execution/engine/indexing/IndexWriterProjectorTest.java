@@ -35,8 +35,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.pipeline.TableSettingsResolver;
@@ -75,7 +75,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        TableIdent bulkImportIdent = new TableIdent(sqlExecutor.getDefaultSchema(), "bulk_import");
+        RelationName bulkImportIdent = new RelationName(sqlExecutor.getDefaultSchema(), "bulk_import");
         Settings tableSettings = TableSettingsResolver.get(clusterService().state().getMetaData(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(

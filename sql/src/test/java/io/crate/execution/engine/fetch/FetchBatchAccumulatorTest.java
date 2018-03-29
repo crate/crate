@@ -36,13 +36,10 @@ import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.execution.engine.fetch.FetchBatchAccumulator;
-import io.crate.execution.engine.fetch.FetchOperation;
-import io.crate.execution.engine.fetch.FetchProjectorContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -114,10 +111,10 @@ public class FetchBatchAccumulatorTest {
         TreeMap<Integer, String> readerIndices = new TreeMap<>();
         readerIndices.put(0, "t1");
 
-        Map<String, TableIdent> indexToTable = new HashMap<>(1);
+        Map<String, RelationName> indexToTable = new HashMap<>(1);
         indexToTable.put("t1", USER_TABLE_IDENT);
 
-        Map<TableIdent, FetchSource> tableToFetchSource = new HashMap<>(2);
+        Map<RelationName, FetchSource> tableToFetchSource = new HashMap<>(2);
         FetchSource fetchSource = new FetchSource(Collections.emptyList());
         fetchSource.addFetchIdColumn(new InputColumn(0));
         fetchSource.addRefToFetch(ID);

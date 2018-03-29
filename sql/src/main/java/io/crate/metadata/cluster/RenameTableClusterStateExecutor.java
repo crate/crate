@@ -26,7 +26,7 @@ import io.crate.Constants;
 import io.crate.execution.ddl.RenameTableRequest;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
@@ -79,8 +79,8 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
 
     @Override
     protected ClusterState execute(ClusterState currentState, RenameTableRequest request) throws Exception {
-        TableIdent sourceTableIdent = request.sourceTableIdent();
-        TableIdent targetTableIdent = request.targetTableIdent();
+        RelationName sourceRelationName = request.sourceTableIdent();
+        RelationName targetRelationName = request.targetTableIdent();
         boolean isPartitioned = request.isPartitioned();
 
         MetaData.Builder mdBuilder = null;
@@ -89,28 +89,28 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
 
         IndexTemplateMetaData indexTemplateMetaData = null;
         if (isPartitioned) {
-            indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(currentState.getMetaData(), sourceTableIdent);
+            indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(currentState.getMetaData(), sourceRelationName);
             if (indexTemplateMetaData == null) {
                 throw new IndexTemplateMissingException("Template for partitioned table is missing");
             }
-            validatePartitionedTemplateIsMarkedAsClosed(indexTemplateMetaData, sourceTableIdent);
+            validatePartitionedTemplateIsMarkedAsClosed(indexTemplateMetaData, sourceRelationName);
         }
 
-        logger.info("renaming table '{}' to '{}'", sourceTableIdent.fqn(), targetTableIdent.fqn());
+        logger.info("renaming table '{}' to '{}'", sourceRelationName.fqn(), targetRelationName.fqn());
 
         try {
             Index[] sourceIndices = indexNameExpressionResolver.concreteIndices(currentState, STRICT_INDICES_OPTIONS,
-                sourceTableIdent.indexName());
-            validateAllIndicesAreClosed(currentState, sourceTableIdent, sourceIndices, isPartitioned);
+                sourceRelationName.indexName());
+            validateAllIndicesAreClosed(currentState, sourceRelationName, sourceIndices, isPartitioned);
 
             String[] targetIndices;
             if (isPartitioned) {
-                targetIndices = buildNewPartitionIndexNames(sourceIndices, targetTableIdent);
+                targetIndices = buildNewPartitionIndexNames(sourceIndices, targetRelationName);
                 // change the alias for all partitions
-                currentState = changeAliases(currentState, sourceIndices, sourceTableIdent.indexName(),
-                    targetTableIdent.indexName());
+                currentState = changeAliases(currentState, sourceIndices, sourceRelationName.indexName(),
+                    targetRelationName.indexName());
             } else {
-                targetIndices = new String[]{targetTableIdent.indexName()};
+                targetIndices = new String[]{targetRelationName.indexName()};
             }
 
             MetaData metaData = currentState.getMetaData();
@@ -132,7 +132,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
                 // partition is empty, only template exists
                 mdBuilder = MetaData.builder(currentState.getMetaData());
             }
-            renameTemplate(mdBuilder, indexTemplateMetaData, targetTableIdent);
+            renameTemplate(mdBuilder, indexTemplateMetaData, targetRelationName);
         }
         // The MetaData will always be overridden (and not merged!) when applying it on a cluster state builder.
         // So we must re-build the state with the latest modifications before we pass this state to possible modifiers.
@@ -140,7 +140,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         currentState = ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
 
         // call possible modifiers
-        return ddlClusterStateService.onRenameTable(currentState, sourceTableIdent, targetTableIdent, request.isPartitioned());
+        return ddlClusterStateService.onRenameTable(currentState, sourceRelationName, targetRelationName, request.isPartitioned());
     }
 
     private ClusterState changeAliases(ClusterState currentState, Index[] partitions, String oldAlias, String newAlias) {
@@ -154,7 +154,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
     }
 
     private void validatePartitionedTemplateIsMarkedAsClosed(IndexTemplateMetaData templateMetaData,
-                                                             TableIdent tableIdent) throws Exception {
+                                                             RelationName relationName) throws Exception {
         Map<String, Object> mapping = parseMapping(
             templateMetaData.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).string());
         //noinspection unchecked
@@ -162,8 +162,8 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         assert mapping != null : "parsed mapping must not be null";
 
         if (DocIndexMetaData.isClosed(null, mapping, true) == false) {
-            throw new IllegalStateException("Partitioned table '" + tableIdent.fqn() +
-                                       "' is not closed, cannot perform a rename");
+            throw new IllegalStateException("Partitioned table '" + relationName.fqn() +
+                                            "' is not closed, cannot perform a rename");
         }
     }
 
@@ -194,7 +194,7 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
 
     private static void renameTemplate(MetaData.Builder mdBuilder,
                                        IndexTemplateMetaData sourceTemplateMetaData,
-                                       TableIdent targetIdent) throws Exception {
+                                       RelationName targetIdent) throws Exception {
         String targetTemplateName = PartitionName.templateName(targetIdent.schema(), targetIdent.name());
         String targetTemplatePrefix = PartitionName.templatePrefix(targetIdent.schema(), targetIdent.name());
 
@@ -209,26 +209,26 @@ public class RenameTableClusterStateExecutor extends DDLClusterStateTaskExecutor
         mdBuilder.removeTemplate(sourceTemplateMetaData.getName()).put(newTemplate);
     }
 
-    private static String[] buildNewPartitionIndexNames(Index[] sourceIndices, TableIdent targetTableIdent) {
+    private static String[] buildNewPartitionIndexNames(Index[] sourceIndices, RelationName targetRelationName) {
         String[] newPartitionIndexNames = new String[sourceIndices.length];
         for (int i = 0; i < sourceIndices.length; i++) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i].getName());
-            String targetIndexName = IndexParts.toIndexName(targetTableIdent, partitionName.ident());
+            String targetIndexName = IndexParts.toIndexName(targetRelationName, partitionName.ident());
             newPartitionIndexNames[i] = targetIndexName;
         }
         return newPartitionIndexNames;
     }
 
     private static void validateAllIndicesAreClosed(ClusterState currentState,
-                                                    TableIdent sourceTableIdent,
+                                                    RelationName sourceRelationName,
                                                     Index[] sourceIndices,
                                                     boolean isPartitioned) {
         for (Index index : sourceIndices) {
             final IndexMetaData indexMetaData = currentState.metaData().getIndexSafe(index);
             if (indexMetaData.getState() != IndexMetaData.State.CLOSE) {
-                String msg = "Table '" + sourceTableIdent.fqn() + "' is not closed, cannot perform a rename";
+                String msg = "Table '" + sourceRelationName.fqn() + "' is not closed, cannot perform a rename";
                 if (isPartitioned) {
-                    msg = "Partition '" + index.getName() + "' of table '" + sourceTableIdent.fqn() +
+                    msg = "Partition '" + index.getName() + "' of table '" + sourceRelationName.fqn() +
                           "' is not closed, cannot perform a rename";
                 }
                 throw new IllegalStateException(msg);

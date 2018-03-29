@@ -36,8 +36,8 @@ public class ReferenceTest extends CrateUnitTest {
 
     @Test
     public void testEquals() throws Exception {
-        TableIdent tableIdent = new TableIdent("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         DataType dataType1 = new ArrayType(DataTypes.OBJECT);
         DataType dataType2 = new ArrayType(DataTypes.OBJECT);
         Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1);
@@ -47,8 +47,8 @@ public class ReferenceTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        TableIdent tableIdent = new TableIdent("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         Reference reference = new Reference(referenceIdent,
             RowGranularity.DOC,
             new ArrayType(DataTypes.OBJECT),

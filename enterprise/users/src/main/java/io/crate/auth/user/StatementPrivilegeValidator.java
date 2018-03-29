@@ -76,7 +76,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.sql.tree.SetStatement;
 
 import java.util.Locale;
@@ -318,7 +318,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 if (IndexParts.isPartitioned(indexName)) {
                     tableName = PartitionName.fromIndexOrTemplate(indexName).tableIdent().toString();
                 } else {
-                    tableName = TableIdent.fqnFromIndexName(indexName);
+                    tableName = RelationName.fqnFromIndexName(indexName);
                 }
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DQL,

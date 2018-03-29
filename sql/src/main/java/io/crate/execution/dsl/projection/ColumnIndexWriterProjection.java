@@ -27,7 +27,7 @@ import io.crate.collections.Lists2;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -48,11 +48,11 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
     /**
-     * @param tableIdent                identifying the table to write to
+     * @param relationName                identifying the table to write to
      * @param columns                   the columnReferences of all the columns to be written in order of appearance
      * @param onDuplicateKeyAssignments reference to symbol map used for update on duplicate key
      */
-    public ColumnIndexWriterProjection(TableIdent tableIdent,
+    public ColumnIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> columns,
@@ -64,7 +64,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable Symbol clusteredBySymbol,
                                        Settings settings,
                                        boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
+        super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         this.partitionedBySymbols = partitionedBySymbols;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColsExclPartitionCols = new ArrayList<>(columns.size() - partitionedByColumns.size());

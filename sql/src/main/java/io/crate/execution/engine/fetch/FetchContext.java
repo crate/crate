@@ -29,8 +29,8 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -61,10 +61,10 @@ public class FetchContext extends AbstractExecutionSubContext {
     private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
-    private final TreeMap<Integer, TableIdent> tableIdents = new TreeMap<>();
+    private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
     private final MetaData metaData;
     private final Iterable<? extends Routing> routingIterable;
-    private final Map<TableIdent, Collection<Reference>> toFetch;
+    private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
 
     public FetchContext(FetchPhase phase,
@@ -81,7 +81,7 @@ public class FetchContext extends AbstractExecutionSubContext {
         this.toFetch = new HashMap<>(phase.tableIndices().size());
     }
 
-    public Map<TableIdent, Collection<Reference>> toFetch() {
+    public Map<RelationName, Collection<Reference>> toFetch() {
         return toFetch;
     }
 
@@ -91,13 +91,13 @@ public class FetchContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerPrepare() {
-        HashMap<String, TableIdent> index2TableIdent = new HashMap<>();
-        for (Map.Entry<TableIdent, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
+        HashMap<String, RelationName> index2TableIdent = new HashMap<>();
+        for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().asMap().entrySet()) {
             for (String indexName : entry.getValue()) {
                 index2TableIdent.put(indexName, entry.getKey());
             }
         }
-        Set<TableIdent> tablesWithFetchRefs = new HashSet<>();
+        Set<RelationName> tablesWithFetchRefs = new HashSet<>();
         for (Reference reference : phase.fetchRefs()) {
             tablesWithFetchRefs.add(reference.ident().tableIdent());
         }
@@ -120,8 +120,8 @@ public class FetchContext extends AbstractExecutionSubContext {
                     throw new IndexNotFoundException(indexName);
                 }
                 Index index = indexMetaData.getIndex();
-                TableIdent ident = index2TableIdent.get(indexName);
-                assert ident != null : "no tableIdent found for index " + indexName;
+                RelationName ident = index2TableIdent.get(indexName);
+                assert ident != null : "no relationName found for index " + indexName;
                 tableIdents.put(base, ident);
                 toFetch.put(ident, new ArrayList<>());
                 for (Integer shard : indexShardsEntry.getValue()) {
@@ -180,7 +180,7 @@ public class FetchContext extends AbstractExecutionSubContext {
     }
 
     @Nonnull
-    public TableIdent tableIdent(int readerId) {
+    public RelationName tableIdent(int readerId) {
         return tableIdents.floorEntry(readerId).getValue();
     }
 

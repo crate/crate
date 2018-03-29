@@ -22,15 +22,15 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 
 public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
 
     public String tableName() {
-        return tableIdent.name();
+        return relationName.name();
     }
 
     @Override
@@ -38,15 +38,15 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
         return analyzedStatementVisitor.visitCreateBlobTableStatement(this, context);
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
-    public void table(TableIdent tableIdent, Schemas schemas) {
-        tableIdent.validate();
-        if (schemas.tableExists(tableIdent)) {
-            throw new RelationAlreadyExists(tableIdent);
+    public void table(RelationName relationName, Schemas schemas) {
+        relationName.validate();
+        if (schemas.tableExists(relationName)) {
+            throw new RelationAlreadyExists(relationName);
         }
-        this.tableIdent = tableIdent;
+        this.relationName = relationName;
     }
 }

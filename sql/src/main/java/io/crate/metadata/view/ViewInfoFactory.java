@@ -22,11 +22,11 @@
 
 package io.crate.metadata.view;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.ImplementedBy;
 
 @ImplementedBy(InternalViewInfoFactory.class)
 public interface ViewInfoFactory {
-    ViewInfo create(TableIdent ident, ClusterState state);
+    ViewInfo create(RelationName ident, ClusterState state);
 }

@@ -30,10 +30,10 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
@@ -56,7 +56,7 @@ import java.util.Set;
 
 public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
-    private final TableIdent ident;
+    private final RelationName ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final String index;
@@ -76,7 +76,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         .add(new Tuple<>("last_modified", DataTypes.TIMESTAMP))
         .build();
 
-    public BlobTableInfo(TableIdent ident,
+    public BlobTableInfo(RelationName ident,
                          String index,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
@@ -116,7 +116,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public TableIdent ident() {
+    public RelationName ident() {
         return ident;
     }
 

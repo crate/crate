@@ -23,7 +23,7 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -106,7 +106,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
         }
     }
 
-    private static boolean conflictsWithTable(TableIdent viewName, MetaData indexMetaData) {
+    private static boolean conflictsWithTable(RelationName viewName, MetaData indexMetaData) {
         return indexMetaData.hasIndex(viewName.indexName())
                || indexMetaData.templates().containsKey(PartitionName.templateName(viewName.schema(), viewName.name()));
     }

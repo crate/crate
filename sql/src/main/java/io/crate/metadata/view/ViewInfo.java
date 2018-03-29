@@ -25,8 +25,8 @@ package io.crate.metadata.view;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 
 import java.util.Collection;
@@ -38,11 +38,11 @@ import java.util.Set;
 
 public class ViewInfo implements RelationInfo {
 
-    private final TableIdent ident;
+    private final RelationName ident;
     private final String definition;
     private final List<Reference> columns;
 
-    ViewInfo(TableIdent ident, String definition, List<Reference> columns) {
+    ViewInfo(RelationName ident, String definition, List<Reference> columns) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;
@@ -59,7 +59,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public TableIdent ident() {
+    public RelationName ident() {
         return ident;
     }
 

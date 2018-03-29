@@ -37,7 +37,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
@@ -73,7 +73,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
 
         Reference shardId = new Reference(
-            new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER);
+            new ReferenceIdent(new RelationName("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER);
 
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),

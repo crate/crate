@@ -7,9 +7,9 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateUnitTest;
@@ -26,12 +26,12 @@ public class DocTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         DocTableInfo info = new DocTableInfo(
-            tableIdent,
+            relationName,
             ImmutableList.of(
-                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, DataTypes.OBJECT)
+                new Reference(new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, DataTypes.OBJECT)
             ),
             ImmutableList.of(),
             ImmutableList.of(),
@@ -70,7 +70,7 @@ public class DocTableInfoTest extends CrateUnitTest {
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
 
-        TableIdent dummy = new TableIdent(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
         Reference strictParent = new Reference(
             foobarIdent,

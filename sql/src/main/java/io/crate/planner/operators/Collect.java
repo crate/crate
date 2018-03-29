@@ -50,8 +50,8 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -166,7 +166,7 @@ class Collect extends ZeroInputPlan {
         }
     }
 
-    private static List<Symbol> generateToCollectWithFetch(TableIdent tableIdent,
+    private static List<Symbol> generateToCollectWithFetch(RelationName relationName,
                                                            List<Symbol> toCollect,
                                                            Set<Symbol> usedColumns) {
 
@@ -187,7 +187,7 @@ class Collect extends ZeroInputPlan {
         if (fetchable.isEmpty()) {
             return toCollect;
         }
-        Reference fetchIdRef = DocSysColumns.forTable(tableIdent, DocSysColumns.FETCHID);
+        Reference fetchIdRef = DocSysColumns.forTable(relationName, DocSysColumns.FETCHID);
         ArrayList<Symbol> preFetchSymbols = new ArrayList<>(usedColumns.size() + 1);
         preFetchSymbols.add(fetchIdRef);
         preFetchSymbols.addAll(usedColumns);

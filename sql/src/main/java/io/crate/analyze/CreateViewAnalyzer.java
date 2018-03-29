@@ -27,7 +27,7 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateView;
@@ -44,7 +44,7 @@ public final class CreateViewAnalyzer {
     }
 
     public AnalyzedStatement analyze(CreateView createView, TransactionContext txnCtx, String defaultSchema) {
-        TableIdent name = TableIdent.of(createView.name(), defaultSchema);
+        RelationName name = RelationName.of(createView.name(), defaultSchema);
         name.validate();
         QueriedRelation query = (QueriedRelation) relationAnalyzer.analyzeUnbound(
             createView.query(), txnCtx, ParamTypeHints.EMPTY);

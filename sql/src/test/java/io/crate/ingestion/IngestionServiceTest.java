@@ -22,8 +22,8 @@
 
 package io.crate.ingestion;
 
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.metadata.rule.ingest.IngestRulesMetaData;
@@ -96,9 +96,9 @@ public class IngestionServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOnClusterStateChangeRulesAreRevalidatedAndPushedToListener() {
         when(schemas.tableExists(any())).thenAnswer(invocationOnMock -> {
-            TableIdent tableIdent = (TableIdent) invocationOnMock.getArguments()[0];
+            RelationName relationName = (RelationName) invocationOnMock.getArguments()[0];
             // simulate target table was dropped
-            if (tableIdent.fqn().equals(UNDER_TEST_RULE_TARGET_TABLE)) {
+            if (relationName.fqn().equals(UNDER_TEST_RULE_TARGET_TABLE)) {
                 return false;
             } else {
                 return true;

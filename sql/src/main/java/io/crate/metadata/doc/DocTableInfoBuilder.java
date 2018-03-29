@@ -27,7 +27,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -50,7 +50,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 
 class DocTableInfoBuilder {
 
-    private final TableIdent ident;
+    private final RelationName ident;
     private final ClusterState state;
     private final boolean checkAliasSchema;
     private final Functions functions;
@@ -61,7 +61,7 @@ class DocTableInfoBuilder {
     private static final Logger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
-                        TableIdent ident,
+                        RelationName ident,
                         ClusterState state,
                         IndexNameExpressionResolver indexNameExpressionResolver,
                         boolean checkAliasSchema) {

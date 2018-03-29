@@ -25,7 +25,7 @@ package io.crate.metadata.cluster;
 import io.crate.Constants;
 import io.crate.execution.ddl.AlterTableOperation;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -85,8 +85,8 @@ class DDLClusterStateHelpers {
     }
 
     @Nullable
-    static IndexTemplateMetaData templateMetaData(MetaData metaData, TableIdent tableIdent) {
-        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+    static IndexTemplateMetaData templateMetaData(MetaData metaData, RelationName relationName) {
+        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         return metaData.templates().get(templateName);
     }
 }

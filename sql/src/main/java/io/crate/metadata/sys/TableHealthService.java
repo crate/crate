@@ -29,8 +29,8 @@ import io.crate.action.sql.Session;
 import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -114,14 +114,14 @@ public class TableHealthService extends AbstractComponent {
                 if (tableInfo instanceof DocTableInfo) {
                     return healthFromPartitions(tableInfo.ident(), ((DocTableInfo) tableInfo).partitions().stream());
                 }
-                TableIdent ident = tableInfo.ident();
+                RelationName ident = tableInfo.ident();
                 TableHealth tableHealth = new TableHealth(
                     new BytesRef(ident.name()), new BytesRef(ident.schema()), null, TableHealth.Health.RED, -1, -1);
                 return Stream.of(tableHealth);
             })::iterator;
     }
 
-    private static Stream<TableHealth> healthFromPartitions(TableIdent table, Stream<PartitionName> partitions) {
+    private static Stream<TableHealth> healthFromPartitions(RelationName table, Stream<PartitionName> partitions) {
         BytesRef tableName = new BytesRef(table.name());
         BytesRef tableSchema = new BytesRef(table.schema());
         return partitions
@@ -141,11 +141,11 @@ public class TableHealthService extends AbstractComponent {
         for (Map.Entry<TablePartitionIdent, ShardsInfo> entry : tables.entrySet()) {
             TablePartitionIdent ident = entry.getKey();
             ShardsInfo shardsInfo = entry.getValue();
-            TableIdent tableIdent = new TableIdent(
+            RelationName relationName = new RelationName(
                 BytesRefs.toString(ident.tableSchema), BytesRefs.toString(ident.tableName));
             DocTableInfo tableInfo;
             try {
-                tableInfo = schemas.getTableInfo(tableIdent);
+                tableInfo = schemas.getTableInfo(relationName);
             } catch (RelationUnknown e) {
                 continue;
             }

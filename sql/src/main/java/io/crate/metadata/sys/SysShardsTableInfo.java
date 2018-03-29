@@ -30,11 +30,11 @@ import io.crate.auth.user.User;
 import io.crate.expression.NestableInput;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
@@ -59,7 +59,7 @@ import java.util.TreeMap;
 
 public class SysShardsTableInfo extends StaticTableInfo {
 
-    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "shards");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "shards");
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
@@ -293,7 +293,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {
-                String tableName = TableIdent.fqnFromIndexName(indexName);
+                String tableName = RelationName.fqnFromIndexName(indexName);
                 if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
                     accessibleTables.add(indexName);
                 }

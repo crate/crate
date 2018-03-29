@@ -35,10 +35,10 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -62,7 +62,7 @@ import static io.crate.metadata.functions.params.Param.ANY_ARRAY;
 public class UnnestFunction {
 
     private static final String NAME = "unnest";
-    private static final TableIdent TABLE_IDENT = new TableIdent("", NAME);
+    private static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
     static class UnnestTableFunctionImplementation implements TableFunctionImplementation {
 

@@ -26,8 +26,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
@@ -58,7 +58,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         assertThat(countOperation.count(index, 0, WhereClause.MATCH_ALL), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(new TableIdent(sqlExecutor.getDefaultSchema(), "t"));
+        TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getDefaultSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);

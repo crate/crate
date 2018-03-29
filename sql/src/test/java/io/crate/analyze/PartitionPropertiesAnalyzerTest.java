@@ -24,8 +24,8 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.Assignment;
@@ -53,7 +53,7 @@ public class PartitionPropertiesAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName("doc", "users"),
             new Routing(ImmutableMap.of()))
             .add("name", DataTypes.STRING, null, true)
             .addPrimaryKey("name").build();
@@ -66,7 +66,7 @@ public class PartitionPropertiesAnalyzerTest extends CrateUnitTest {
     public void testPartitionNameOnRegularTable() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("table 'doc.users' is not partitioned");
-        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
+        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName("doc", "users"),
             new Routing(ImmutableMap.of()))
             .add("name", DataTypes.STRING, null, false)
             .addPrimaryKey("name").build();

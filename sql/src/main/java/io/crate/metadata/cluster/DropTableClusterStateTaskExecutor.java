@@ -24,7 +24,7 @@ package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.DropTableRequest;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -52,14 +52,14 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
     @Override
     protected ClusterState execute(ClusterState currentState, DropTableRequest request) throws Exception {
-        TableIdent tableIdent = request.tableIdent();
+        RelationName relationName = request.tableIdent();
         final Set<Index> concreteIndices = new HashSet<>(Arrays.asList(indexNameExpressionResolver.concreteIndices(
-            currentState, IndicesOptions.lenientExpandOpen(), tableIdent.indexName())));
+            currentState, IndicesOptions.lenientExpandOpen(), relationName.indexName())));
         currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);
 
         if (request.isPartitioned()) {
             // delete template
-            String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
             MetaData.Builder metaData = MetaData.builder(currentState.metaData());
             metaData.removeTemplate(templateName);
             currentState = ClusterState.builder(currentState).metaData(metaData).build();

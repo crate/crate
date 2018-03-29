@@ -27,7 +27,7 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -85,7 +85,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         userManager = new UserManagerService(null, null,
             null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
 
-        TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         e = SQLExecutor.builder(clusterService)
             .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent))
             .enableDefaultTables()

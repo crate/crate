@@ -190,18 +190,18 @@ public class Routing implements Writeable {
     /**
      * Return a routing for the given table on the given node id.
      */
-    public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
+    public static Routing forTableOnSingleNode(RelationName relationName, String nodeId) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(tableIdent.fqn(), Collections.emptyList());
+        tableLocation.put(relationName.fqn(), Collections.emptyList());
         locations.put(nodeId, tableLocation);
         return new Routing(locations);
     }
 
-    public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
+    public static Routing forTableOnAllNodes(RelationName relationName, DiscoveryNodes nodes) {
         TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
         Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-            .put(tableIdent.fqn(), Collections.emptyList()).map();
+            .put(relationName.fqn(), Collections.emptyList()).map();
         for (DiscoveryNode node : nodes) {
             nodesMapBuilder.put(node.getId(), tableMap);
         }

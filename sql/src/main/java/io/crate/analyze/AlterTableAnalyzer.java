@@ -24,8 +24,8 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTable;
@@ -48,7 +48,7 @@ public class AlterTableAnalyzer {
 
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
         Table table = node.table();
-        DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, sessionContext.defaultSchema()),
+        DocTableInfo docTableInfo = schemas.getTableInfo(RelationName.of(table, sessionContext.defaultSchema()),
             Operation.ALTER_BLOCKS);
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
@@ -69,11 +69,11 @@ public class AlterTableAnalyzer {
             throw new IllegalArgumentException("Target table name must not include a schema");
         }
 
-        TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent);
-        TableIdent newTableIdent = new TableIdent(tableIdent.schema(), newIdentParts.get(0));
-        newTableIdent.validate();
-        return new AlterTableRenameAnalyzedStatement(tableInfo, newTableIdent);
+        RelationName relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
+        DocTableInfo tableInfo = schemas.getTableInfo(relationName);
+        RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
+        newRelationName.validate();
+        return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
     }
 
     private static TableParameterInfo getTableParameterInfo(Table table,

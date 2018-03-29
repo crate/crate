@@ -22,25 +22,25 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
 public class AlterTableRenameAnalyzedStatement implements DDLStatement {
 
     private final DocTableInfo sourceTableInfo;
-    private final TableIdent targetTableIdent;
+    private final RelationName targetRelationName;
 
-    AlterTableRenameAnalyzedStatement(DocTableInfo sourceTableInfo, TableIdent targetTableIdent) {
+    AlterTableRenameAnalyzedStatement(DocTableInfo sourceTableInfo, RelationName targetRelationName) {
         this.sourceTableInfo = sourceTableInfo;
-        this.targetTableIdent = targetTableIdent;
+        this.targetRelationName = targetRelationName;
     }
 
     public DocTableInfo sourceTableInfo() {
         return sourceTableInfo;
     }
 
-    public TableIdent targetTableIdent() {
-        return targetTableIdent;
+    public RelationName targetTableIdent() {
+        return targetRelationName;
     }
 
     @Override

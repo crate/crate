@@ -24,8 +24,8 @@ package io.crate.execution.dml.delete;
 
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
@@ -62,7 +62,7 @@ import static org.mockito.Mockito.when;
 
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static TableIdent TABLE_IDENT = new TableIdent(Schemas.DOC_SCHEMA_NAME, "characters");
+    private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;

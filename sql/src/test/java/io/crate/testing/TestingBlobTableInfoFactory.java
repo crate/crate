@@ -23,7 +23,7 @@
 package io.crate.testing;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,14 +32,14 @@ import java.util.Map;
 
 class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
 
-    private final Map<TableIdent, BlobTableInfo> tables;
+    private final Map<RelationName, BlobTableInfo> tables;
 
-    TestingBlobTableInfoFactory(Map<TableIdent, BlobTableInfo> blobTables) {
+    TestingBlobTableInfoFactory(Map<RelationName, BlobTableInfo> blobTables) {
         this.tables = blobTables;
     }
 
     @Override
-    public BlobTableInfo create(TableIdent ident, ClusterState state) {
+    public BlobTableInfo create(RelationName ident, ClusterState state) {
         BlobTableInfo blobTableInfo = tables.get(ident);
         if (blobTableInfo == null) {
             throw new RelationUnknown(ident);

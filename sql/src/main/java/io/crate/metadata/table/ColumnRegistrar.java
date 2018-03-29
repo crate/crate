@@ -27,8 +27,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -40,11 +40,11 @@ public class ColumnRegistrar {
     private final ImmutableSortedMap.Builder<ColumnIdent, Reference> infosBuilder;
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder;
 
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
     private final RowGranularity rowGranularity;
 
-    public ColumnRegistrar(TableIdent tableIdent, RowGranularity rowGranularity) {
-        this.tableIdent = tableIdent;
+    public ColumnRegistrar(RelationName relationName, RowGranularity rowGranularity) {
+        this.relationName = relationName;
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
@@ -55,7 +55,7 @@ public class ColumnRegistrar {
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type) {
-        Reference ref = new Reference(new ReferenceIdent(tableIdent, column), rowGranularity, type);
+        Reference ref = new Reference(new ReferenceIdent(relationName, column), rowGranularity, type);
         if (ref.column().isTopLevel()) {
             columnsBuilder.add(ref);
         }

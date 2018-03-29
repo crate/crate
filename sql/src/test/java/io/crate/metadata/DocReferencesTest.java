@@ -29,11 +29,11 @@ import static org.junit.Assert.assertEquals;
 
 public class DocReferencesTest {
 
-    private static final TableIdent tableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "users");
+    private static final RelationName RELATION_ID = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);
-        return new Reference(new ReferenceIdent(tableIdent, columnIdent), RowGranularity.DOC, DataTypes.STRING);
+        return new Reference(new ReferenceIdent(RELATION_ID, columnIdent), RowGranularity.DOC, DataTypes.STRING);
     }
 
     @Test

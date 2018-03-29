@@ -80,10 +80,10 @@ public final class RoutingProvider {
         this.seed = randomSeed;
     }
 
-    public Routing forRandomMasterOrDataNode(TableIdent tableIdent, DiscoveryNodes nodes) {
+    public Routing forRandomMasterOrDataNode(RelationName relationName, DiscoveryNodes nodes) {
         DiscoveryNode localNode = nodes.getLocalNode();
         if (localNode.isMasterNode() || localNode.isDataNode()) {
-            return forTableOnSingleNode(tableIdent, localNode.getId());
+            return forTableOnSingleNode(relationName, localNode.getId());
         }
         ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = nodes.getMasterAndDataNodes();
         int randomIdx = seed % masterAndDataNodes.size();
@@ -91,7 +91,7 @@ public final class RoutingProvider {
         int currIdx = 0;
         while (it.hasNext()) {
             if (currIdx == randomIdx) {
-                return forTableOnSingleNode(tableIdent, it.next().getId());
+                return forTableOnSingleNode(relationName, it.next().getId());
             }
             currIdx++;
         }

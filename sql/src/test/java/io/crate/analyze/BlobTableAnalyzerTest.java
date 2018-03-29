@@ -25,7 +25,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -41,7 +41,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).build();
     }

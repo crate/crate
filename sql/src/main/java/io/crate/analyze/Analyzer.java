@@ -28,8 +28,8 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
@@ -483,9 +483,9 @@ public class Analyzer {
         public AnalyzedStatement visitDropView(DropView dropView, Analysis analysis) {
             // No exists check to avoid stale clusterState race conditions
             String defaultSchema = analysis.sessionContext().defaultSchema();
-            ArrayList<TableIdent> views = new ArrayList<>(dropView.names().size());
+            ArrayList<RelationName> views = new ArrayList<>(dropView.names().size());
             for (QualifiedName qualifiedName : dropView.names()) {
-                views.add(TableIdent.of(qualifiedName, defaultSchema));
+                views.add(RelationName.of(qualifiedName, defaultSchema));
             }
             return new DropViewStmt(views, dropView.ifExists());
         }

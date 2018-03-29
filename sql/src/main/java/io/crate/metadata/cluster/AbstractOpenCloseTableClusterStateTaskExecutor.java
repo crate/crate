@@ -24,7 +24,7 @@ package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.OpenCloseTableOrPartitionRequest;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -84,17 +84,17 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
     }
 
     protected Context prepare(ClusterState currentState, OpenCloseTableOrPartitionRequest request) {
-        TableIdent tableIdent = request.tableIdent();
+        RelationName relationName = request.tableIdent();
         String partitionIndexName = request.partitionIndexName();
         MetaData metaData = currentState.metaData();
-        String indexToResolve = partitionIndexName != null ? partitionIndexName : tableIdent.indexName();
+        String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexName();
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
         String[] concreteIndices = indexNameExpressionResolver.concreteIndexNames(
             currentState, IndicesOptions.lenientExpandOpen(), indexToResolve);
         Set<IndexMetaData> indicesMetaData = DDLClusterStateHelpers.indexMetaDataSetFromIndexNames(metaData, concreteIndices, indexState());
         IndexTemplateMetaData indexTemplateMetaData = null;
         if (partitionIndexName == null) {
-            indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(metaData, tableIdent);
+            indexTemplateMetaData = DDLClusterStateHelpers.templateMetaData(metaData, relationName);
         }
         return new Context(indicesMetaData, indexTemplateMetaData, partitionName);
     }

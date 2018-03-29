@@ -38,10 +38,10 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -65,7 +65,7 @@ public class TestingTableInfo extends DocTableInfo {
 
     private Routing routing;
 
-    public TestingTableInfo(TableIdent ident,
+    public TestingTableInfo(RelationName ident,
                             List<Reference> columns,
                             List<Reference> partitionedByColumns,
                             List<GeneratedReference> generatedColumns,
@@ -100,7 +100,7 @@ public class TestingTableInfo extends DocTableInfo {
         return routing;
     }
 
-    public static Builder builder(TableIdent ident, Routing routing) {
+    public static Builder builder(RelationName ident, Routing routing) {
         return new Builder(ident, routing);
     }
 
@@ -119,12 +119,12 @@ public class TestingTableInfo extends DocTableInfo {
         private final int numberOfShards = 1;
         private final BytesRef numberOfReplicas = new BytesRef("0");
 
-        private final TableIdent ident;
+        private final RelationName ident;
         private final Routing routing;
         private boolean isAlias = false;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
-        public Builder(TableIdent ident, Routing routing) {
+        public Builder(RelationName ident, Routing routing) {
             this.routing = routing;
             this.ident = ident;
         }
@@ -161,7 +161,7 @@ public class TestingTableInfo extends DocTableInfo {
             );
         }
 
-        private static String[] concreteIndices(TableIdent ident, ImmutableList<PartitionName> partitionsList) {
+        private static String[] concreteIndices(RelationName ident, ImmutableList<PartitionName> partitionsList) {
             String[] concreteIndices;
             if (partitionsList.isEmpty()) {
                 concreteIndices = new String[]{ident.indexName()};

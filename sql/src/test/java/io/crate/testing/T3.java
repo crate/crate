@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
@@ -64,7 +64,7 @@ public class T3 {
             ImmutableMap.of("t5", Collections.singletonList(0))));
 
     public static final DocTableInfo T1_INFO =
-        new TestingTableInfo.Builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)
+        new TestingTableInfo.Builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)
         .add("a", DataTypes.STRING)
         .add("x", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
@@ -72,7 +72,7 @@ public class T3 {
     public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
     public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(
-        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t2"), t2Routing)
+        new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), t2Routing)
         .add("b", DataTypes.STRING)
         .add("y", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
@@ -80,14 +80,14 @@ public class T3 {
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
     public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(
-        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t3"), t3Routing)
+        new RelationName(Schemas.DOC_SCHEMA_NAME, "t3"), t3Routing)
         .add("c", DataTypes.STRING)
         .add("z", DataTypes.INTEGER)
         .build();
     public static final TableRelation TR_3 = new TableRelation(T3_INFO);
 
     public static final DocTableInfo T4_INFO = new TestingTableInfo.Builder(
-        new TableIdent(Schemas.DOC_SCHEMA_NAME, "t4"), t4Routing)
+        new RelationName(Schemas.DOC_SCHEMA_NAME, "t4"), t4Routing)
         .add("id", DataTypes.INTEGER)
         .add("obj", DataTypes.OBJECT)
         .add("obj", DataTypes.INTEGER, ImmutableList.of("i"))
@@ -97,7 +97,7 @@ public class T3 {
     public static final TableRelation TR_4 = new TableRelation(T4_INFO);
 
     public static final DocTableInfo T5_INFO =
-        new TestingTableInfo.Builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "t5"), t5Routing)
+        new TestingTableInfo.Builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "t5"), t5Routing)
             .add("i", DataTypes.INTEGER)
             .add("w", DataTypes.LONG)
             .build();

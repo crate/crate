@@ -26,10 +26,10 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,20 +39,20 @@ import java.util.Map;
 
 public class InformationTableInfo extends StaticTableInfo {
 
-    InformationTableInfo(TableIdent ident,
+    InformationTableInfo(RelationName ident,
                          ImmutableList<ColumnIdent> primaryKeyIdentList,
                          Map<ColumnIdent, Reference> references) {
         super(ident, references, null, primaryKeyIdentList);
     }
 
-    InformationTableInfo(TableIdent ident,
+    InformationTableInfo(RelationName ident,
                          ImmutableList<ColumnIdent> primaryKeyIdentList,
                          Map<ColumnIdent, Reference> references,
                          @Nullable ImmutableList<Reference> columns) {
         super(ident, references, columns, primaryKeyIdentList);
     }
 
-    InformationTableInfo(TableIdent ident,
+    InformationTableInfo(RelationName ident,
                          ColumnRegistrar columnRegistrar,
                          ImmutableList<ColumnIdent> primaryKey) {
         super(ident, columnRegistrar, primaryKey);

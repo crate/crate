@@ -31,7 +31,7 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -76,7 +76,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
         rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_000, 0));
         tableStats.updateTableStats(rowCountByTable);
@@ -113,7 +113,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                           "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
         rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(100, 0));
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
@@ -141,7 +141,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                           "join locations on users.id = locations.id");
 
         TableStats tableStats = new TableStats();
-        ObjectObjectHashMap<TableIdent, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
         rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
         rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(100, 0));
         tableStats.updateTableStats(rowCountByTable);

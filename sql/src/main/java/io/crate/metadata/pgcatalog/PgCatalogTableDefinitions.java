@@ -22,7 +22,7 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.protocols.postgres.types.PGTypes;
 
@@ -33,7 +33,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 public class PgCatalogTableDefinitions {
 
-    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions;
+    private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
     public PgCatalogTableDefinitions() {
         tableDefinitions = new HashMap<>(1);
@@ -44,7 +44,7 @@ public class PgCatalogTableDefinitions {
         ));
     }
 
-    public StaticTableDefinition<?> get(TableIdent tableIdent) {
-        return tableDefinitions.get(tableIdent);
+    public StaticTableDefinition<?> get(RelationName relationName) {
+        return tableDefinitions.get(relationName);
     }
 }

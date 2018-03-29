@@ -24,8 +24,8 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -37,42 +37,42 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class TableIdent implements Writeable {
+public final class RelationName implements Writeable {
 
-    private static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
+    private static final Set<String> INVALID_NAME_CHARACTERS = ImmutableSet.of(".");
 
     private final String schema;
     private final String name;
 
-    public static TableIdent of(Table tableNode, String defaultSchema) {
+    public static RelationName of(Table tableNode, String defaultSchema) {
         return of(tableNode.getName(), defaultSchema);
     }
 
-    public static TableIdent of(QualifiedName name, String defaultSchema) {
+    public static RelationName of(QualifiedName name, String defaultSchema) {
         List<String> parts = name.getParts();
         Preconditions.checkArgument(parts.size() < 3,
             "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
         if (parts.size() == 2) {
-            return new TableIdent(parts.get(0), parts.get(1));
+            return new RelationName(parts.get(0), parts.get(1));
         }
-        return new TableIdent(defaultSchema, parts.get(0));
+        return new RelationName(defaultSchema, parts.get(0));
     }
 
-    public static TableIdent fromIndexName(String indexName) {
+    public static RelationName fromIndexName(String indexName) {
         IndexParts indexParts = new IndexParts(indexName);
-        return indexParts.toTableIdent();
+        return indexParts.toRelationName();
     }
 
     public static String fqnFromIndexName(String indexName) {
         return new IndexParts(indexName).toFullyQualifiedName();
     }
 
-    public TableIdent(StreamInput in) throws IOException {
+    public RelationName(StreamInput in) throws IOException {
         schema = in.readString();
         name = in.readString();
     }
 
-    public TableIdent(String schema, String name) {
+    public RelationName(String schema, String name) {
         assert schema != null : "schema name must not be null";
         assert name != null : "table name must not be null";
         this.schema = schema;
@@ -103,16 +103,16 @@ public class TableIdent implements Writeable {
     }
 
     public void validate() throws InvalidSchemaNameException, InvalidRelationName {
-        if (!isValidTableOrSchemaName(schema)) {
+        if (!isValidRelationOrSchemaName(schema)) {
             throw new InvalidSchemaNameException(schema);
         }
-        if (!isValidTableOrSchemaName(name)) {
+        if (!isValidRelationOrSchemaName(name)) {
             throw new InvalidRelationName(this);
         }
     }
 
-    private static boolean isValidTableOrSchemaName(String name) {
-        for (String illegalCharacter : INVALID_TABLE_NAME_CHARACTERS) {
+    private static boolean isValidRelationOrSchemaName(String name) {
+        for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
             if (name.contains(illegalCharacter) || name.length() == 0) {
                 return false;
             }
@@ -131,7 +131,7 @@ public class TableIdent implements Writeable {
         if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
-        TableIdent o = (TableIdent) obj;
+        RelationName o = (RelationName) obj;
         return Objects.equal(schema, o.schema) &&
                Objects.equal(name, o.name);
     }

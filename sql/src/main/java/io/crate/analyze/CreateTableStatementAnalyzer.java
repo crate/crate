@@ -28,8 +28,8 @@ import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -96,8 +96,8 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
 
-        TableIdent tableIdent = getTableIdent(createTable, transactionContext.sessionContext());
-        statement.table(tableIdent, createTable.ifNotExists(), schemas);
+        RelationName relationName = getTableIdent(createTable, transactionContext.sessionContext());
+        statement.table(relationName, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
@@ -109,11 +109,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             true
         );
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
-            createTable.tableElements(), parameters, fulltextAnalyzerResolver, tableIdent, null);
+            createTable.tableElements(), parameters, fulltextAnalyzerResolver, relationName, null);
 
         // validate table elements
         tableElements.finalizeAndValidate(
-            tableIdent,
+            relationName,
             Collections.emptyList(),
             functions,
             parameterContext,
@@ -132,14 +132,14 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         return statement;
     }
 
-    private TableIdent getTableIdent(CreateTable node, SessionContext sessionContext) {
-        TableIdent tableIdent = TableIdent.of(node.name(), sessionContext.defaultSchema());
-        if (READ_ONLY_SCHEMAS.contains(tableIdent.schema())) {
+    private RelationName getTableIdent(CreateTable node, SessionContext sessionContext) {
+        RelationName relationName = RelationName.of(node.name(), sessionContext.defaultSchema());
+        if (READ_ONLY_SCHEMAS.contains(relationName.schema())) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", tableIdent.schema())
+                String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", relationName.schema())
             );
         }
-        return tableIdent;
+        return relationName;
     }
 
     @Override

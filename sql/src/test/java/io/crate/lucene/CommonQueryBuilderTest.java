@@ -27,8 +27,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.ConversionException;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
@@ -69,7 +69,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "test_primitive"), null)
+            DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "test_primitive"), null)
                 .add("x", type)
                 .build();
             TableRelation tableRelation = new TableRelation(tableInfo);

@@ -43,8 +43,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.operator.any.AnyEqOperator;
@@ -200,8 +200,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new TableIdent("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
-        when(tableInfo.ident()).thenReturn(new TableIdent("doc", "t"));
+            new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
+        when(tableInfo.ident()).thenReturn(new RelationName("doc", "t"));
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);
 

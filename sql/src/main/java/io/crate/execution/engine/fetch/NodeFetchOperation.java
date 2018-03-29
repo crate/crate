@@ -36,7 +36,7 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
@@ -151,9 +151,9 @@ public class NodeFetchOperation {
         }
     }
 
-    private HashMap<TableIdent, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
-        HashMap<TableIdent, TableFetchInfo> result = new HashMap<>(fetchContext.toFetch().size());
-        for (Map.Entry<TableIdent, Collection<Reference>> entry : fetchContext.toFetch().entrySet()) {
+    private HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
+        HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchContext.toFetch().size());
+        for (Map.Entry<RelationName, Collection<Reference>> entry : fetchContext.toFetch().entrySet()) {
             TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchContext);
             result.put(entry.getKey(), tableFetchInfo);
         }
@@ -165,7 +165,7 @@ public class NodeFetchOperation {
                          IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
-        HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
+        HashMap<RelationName, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
         final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
@@ -178,7 +178,7 @@ public class NodeFetchOperation {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
 
-            TableIdent ident = fetchContext.tableIdent(readerId);
+            RelationName ident = fetchContext.tableIdent(readerId);
             final TableFetchInfo tfi = tableFetchInfos.get(ident);
             assert tfi != null : "tfi must not be null";
 

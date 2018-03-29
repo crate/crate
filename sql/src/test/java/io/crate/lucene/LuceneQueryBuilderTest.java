@@ -28,8 +28,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
@@ -103,7 +103,7 @@ public abstract class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        DocTableInfo users = TestingTableInfo.builder(new TableIdent(Schemas.DOC_SCHEMA_NAME, "users"), null)
+        DocTableInfo users = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"), null)
             .add("name", DataTypes.STRING)
             .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
             .add("d", DataTypes.DOUBLE)

@@ -43,11 +43,11 @@ import io.crate.expression.reference.sys.node.fs.NodeStatsFsArrayExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsDataExpression;
 import io.crate.expression.reference.sys.node.fs.NodeStatsFsDisksExpression;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
@@ -68,7 +68,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     public static final String SYS_COL_NAME = "_node";
 
-    public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
 
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

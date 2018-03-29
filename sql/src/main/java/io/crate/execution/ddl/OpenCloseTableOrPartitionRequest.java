@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +35,7 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 
-    private TableIdent tableIdent;
+    private RelationName relationName;
     @Nullable
     private String partitionIndexName;
     private boolean openTable = false;
@@ -43,16 +43,16 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     OpenCloseTableOrPartitionRequest() {
     }
 
-    public OpenCloseTableOrPartitionRequest(TableIdent tableIdent,
+    public OpenCloseTableOrPartitionRequest(RelationName relationName,
                                             @Nullable String partitionIndexName,
                                             boolean openTable) {
-        this.tableIdent = tableIdent;
+        this.relationName = relationName;
         this.partitionIndexName = partitionIndexName;
         this.openTable = openTable;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     @Nullable
@@ -67,7 +67,7 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (tableIdent == null) {
+        if (relationName == null) {
             validationException = addValidationError("table ident must not be null", null);
         }
         return validationException;
@@ -76,7 +76,7 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        tableIdent = new TableIdent(in);
+        relationName = new RelationName(in);
         partitionIndexName = in.readOptionalString();
         openTable = in.readBoolean();
     }
@@ -84,7 +84,7 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        tableIdent.writeTo(out);
+        relationName.writeTo(out);
         out.writeOptionalString(partitionIndexName);
         out.writeBoolean(openTable);
     }

@@ -29,7 +29,7 @@ import io.crate.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.expression.Inputs;
 import org.apache.lucene.util.BytesRef;
 
@@ -43,27 +43,27 @@ public class IndexNameResolver {
     private IndexNameResolver() {
     }
 
-    public static Supplier<String> create(TableIdent tableIdent,
+    public static Supplier<String> create(RelationName relationName,
                                           @Nullable String partitionIdent,
                                           @Nullable List<Input<?>> partitionedByInputs) {
         if (partitionIdent == null && (partitionedByInputs == null || partitionedByInputs.isEmpty())) {
-            return forTable(tableIdent);
+            return forTable(relationName);
         }
         if (partitionIdent == null) {
-            return forPartition(tableIdent, partitionedByInputs);
+            return forPartition(relationName, partitionedByInputs);
         }
-        return forPartition(tableIdent, partitionIdent);
+        return forPartition(relationName, partitionIdent);
     }
 
-    public static Supplier<String> forTable(final TableIdent tableIdent) {
-        return tableIdent::indexName;
+    public static Supplier<String> forTable(final RelationName relationName) {
+        return relationName::indexName;
     }
 
-    private static Supplier<String> forPartition(TableIdent tableIdent, String partitionIdent) {
-        return () -> IndexParts.toIndexName(tableIdent, partitionIdent);
+    private static Supplier<String> forPartition(RelationName relationName, String partitionIdent) {
+        return () -> IndexParts.toIndexName(relationName, partitionIdent);
     }
 
-    private static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
+    private static Supplier<String> forPartition(final RelationName relationName, final List<Input<?>> partitionedByInputs) {
         assert partitionedByInputs.size() > 0 : "must have at least 1 partitionedByInput";
         final LoadingCache<List<BytesRef>, String> cache = CacheBuilder.newBuilder()
             .initialCapacity(10)
@@ -71,7 +71,7 @@ public class IndexNameResolver {
             .build(new CacheLoader<List<BytesRef>, String>() {
                 @Override
                 public String load(@Nonnull List<BytesRef> key) throws Exception {
-                    return IndexParts.toIndexName(tableIdent, PartitionName.encodeIdent(key));
+                    return IndexParts.toIndexName(relationName, PartitionName.encodeIdent(key));
                 }
             });
         return () -> {

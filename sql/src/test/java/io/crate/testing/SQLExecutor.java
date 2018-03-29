@@ -54,9 +54,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -178,8 +178,8 @@ public class SQLExecutor {
 
         private final ClusterService clusterService;
         private final Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-        private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
-        private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
+        private final Map<RelationName, DocTableInfo> docTables = new HashMap<>();
+        private final Map<RelationName, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
         private final TestingDocTableInfoFactory testingDocTableInfoFactory;
         private final ViewInfoFactory testingViewInfoFactory;
@@ -402,7 +402,7 @@ public class SQLExecutor {
          * Note that this by-passes the analyzer step and directly operates on the clusterState. So there is no
          * resolve logic for columns (`*` is not resolved to the column names)
          */
-        public Builder addView(TableIdent name, String query) {
+        public Builder addView(RelationName name, String query) {
             ClusterState prevState = clusterService.state();
             ViewsMetaData newViews = ViewsMetaData.addOrReplace(
                 prevState.metaData().custom(ViewsMetaData.TYPE), name, query);

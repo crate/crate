@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
@@ -36,11 +36,11 @@ import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAUL
 
 public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest> implements AckedRequest {
 
-    private TableIdent name;
+    private RelationName name;
     private String query;
     private boolean replaceExisting;
 
-    public CreateViewRequest(TableIdent name, String query, boolean replaceExisting) {
+    public CreateViewRequest(RelationName name, String query, boolean replaceExisting) {
         this.name = name;
         this.query = query;
         this.replaceExisting = replaceExisting;
@@ -54,7 +54,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         return null;
     }
 
-    public TableIdent name() {
+    public RelationName name() {
         return name;
     }
 
@@ -74,7 +74,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        name = new TableIdent(in);
+        name = new RelationName(in);
         query = in.readString();
         replaceExisting = in.readBoolean();
     }

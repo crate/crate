@@ -23,8 +23,8 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.ResourceUnknownException;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DropTable;
@@ -38,11 +38,11 @@ class DropTableAnalyzer {
     }
 
     public DropTableAnalyzedStatement analyze(DropTable node, SessionContext sessionContext) {
-        TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
+        RelationName relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
         DocTableInfo tableInfo = null;
         boolean isNoop = false;
         try {
-            tableInfo = schemas.getTableInfo(tableIdent, Operation.DROP);
+            tableInfo = schemas.getTableInfo(relationName, Operation.DROP);
         } catch (ResourceUnknownException e) {
             if (node.dropIfExists()) {
                 isNoop = true;

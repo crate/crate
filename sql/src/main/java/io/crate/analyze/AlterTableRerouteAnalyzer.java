@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.AlterTableReroute;
@@ -47,7 +47,7 @@ public class AlterTableRerouteAnalyzer {
     public AnalyzedStatement analyze(AlterTableReroute node, Analysis context) {
         // safe to expect a `ShardedTable` since REROUTE operation is not allowed on SYS tables at all.
         ShardedTable tableInfo = schemas.getTableInfo(
-            TableIdent.of(node.table(), context.sessionContext().defaultSchema()),
+            RelationName.of(node.table(), context.sessionContext().defaultSchema()),
             Operation.ALTER_REROUTE);
         return REROUTE_OPTION_VISITOR.process(node.rerouteOption(), new Context(tableInfo, node.table().partitionProperties()));
     }

@@ -23,7 +23,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -45,9 +45,9 @@ public class DDLClusterStateService {
         clusterStateModifiers.add(modifier);
     }
 
-    ClusterState onCloseTable(ClusterState currentState, TableIdent tableIdent) {
+    ClusterState onCloseTable(ClusterState currentState, RelationName relationName) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onCloseTable(clusterState, tableIdent));
+            (modifier, clusterState) -> modifier.onCloseTable(clusterState, relationName));
     }
 
     ClusterState onCloseTablePartition(ClusterState currentState, PartitionName partitionName) {
@@ -55,9 +55,9 @@ public class DDLClusterStateService {
             (modifier, clusterState) -> modifier.onCloseTablePartition(clusterState, partitionName));
     }
 
-    ClusterState onOpenTable(ClusterState currentState, TableIdent tableIdent) {
+    ClusterState onOpenTable(ClusterState currentState, RelationName relationName) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onOpenTable(clusterState, tableIdent));
+            (modifier, clusterState) -> modifier.onOpenTable(clusterState, relationName));
     }
 
     ClusterState onOpenTablePartition(ClusterState currentState, PartitionName partitionName) {
@@ -65,17 +65,17 @@ public class DDLClusterStateService {
             (modifier, clusterState) -> modifier.onOpenTablePartition(clusterState, partitionName));
     }
 
-    ClusterState onDropTable(ClusterState currentState, TableIdent tableIdent) {
+    ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onDropTable(clusterState, tableIdent));
+            (modifier, clusterState) -> modifier.onDropTable(clusterState, relationName));
     }
 
     ClusterState onRenameTable(ClusterState currentState,
-                               TableIdent sourceTableIdent,
-                               TableIdent targetTableIdent,
+                               RelationName sourceRelationName,
+                               RelationName targetRelationName,
                                boolean isPartitioned) {
         return applyOnAllModifiers(currentState,
-            (modifier, clusterState) -> modifier.onRenameTable(clusterState, sourceTableIdent, targetTableIdent, isPartitioned));
+            (modifier, clusterState) -> modifier.onRenameTable(clusterState, sourceRelationName, targetRelationName, isPartitioned));
     }
 
     private ClusterState applyOnAllModifiers(ClusterState currentState,

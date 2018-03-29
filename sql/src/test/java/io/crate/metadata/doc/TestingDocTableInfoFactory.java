@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 
@@ -32,15 +32,15 @@ import java.util.Map;
 
 public class TestingDocTableInfoFactory implements DocTableInfoFactory {
 
-    private final Map<TableIdent, DocTableInfo> tables;
+    private final Map<RelationName, DocTableInfo> tables;
     private final InternalDocTableInfoFactory internalFactory;
 
-    public TestingDocTableInfoFactory(Map<TableIdent, DocTableInfo> tables) {
+    public TestingDocTableInfoFactory(Map<RelationName, DocTableInfo> tables) {
         this.tables = tables;
         this.internalFactory = null;
     }
 
-    public TestingDocTableInfoFactory(Map<TableIdent, DocTableInfo> tables,
+    public TestingDocTableInfoFactory(Map<RelationName, DocTableInfo> tables,
                                       Functions functions,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         this.tables = tables;
@@ -48,7 +48,7 @@ public class TestingDocTableInfoFactory implements DocTableInfoFactory {
     }
 
     @Override
-    public DocTableInfo create(TableIdent ident, ClusterState state) {
+    public DocTableInfo create(RelationName ident, ClusterState state) {
         DocTableInfo tableInfo = tables.get(ident);
         if (tableInfo == null) {
             if (internalFactory == null) {

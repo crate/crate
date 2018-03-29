@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * 1) Class which unpacks and holds the different entities of a CrateDB index name.
- * 2) Static methods to check index names or generate them for TableIdent or PartitionName
+ * 2) Static methods to check index names or generate them for RelationName or PartitionName
  */
 @SuppressWarnings("WeakerAccess")
 public class IndexParts {
@@ -97,8 +97,8 @@ public class IndexParts {
         return partitionIdent != null;
     }
 
-    public TableIdent toTableIdent() {
-        return new TableIdent(schema, table);
+    public RelationName toRelationName() {
+        return new RelationName(schema, table);
     }
 
     public PartitionName toPartitionName() {
@@ -117,13 +117,13 @@ public class IndexParts {
     // Static utility methods
     /////////////////////////
 
-    public static String toIndexName(TableIdent tableIdent, String partitionIdent) {
-        return toIndexName(tableIdent.schema(), tableIdent.name(), partitionIdent);
+    public static String toIndexName(RelationName relationName, String partitionIdent) {
+        return toIndexName(relationName.schema(), relationName.name(), partitionIdent);
     }
 
     public static String toIndexName(PartitionName partitionName) {
-        TableIdent tableIdent = partitionName.tableIdent();
-        return toIndexName(tableIdent.schema(), tableIdent.name(), partitionName.ident());
+        RelationName relationName = partitionName.tableIdent();
+        return toIndexName(relationName.schema(), relationName.name(), partitionName.ident());
     }
 
     /**

@@ -29,9 +29,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.expression.operator.EqOperator;
@@ -52,7 +52,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAllocateRouting() throws Exception {
-        TableIdent custom = new TableIdent("custom", "t1");
+        RelationName custom = new RelationName("custom", "t1");
         TableInfo tableInfo1 =
             TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         TableInfo tableInfo2 =
@@ -83,7 +83,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBuildReaderAllocations() throws Exception {
-        TableIdent custom = new TableIdent("custom", "t1");
+        RelationName custom = new RelationName("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         RoutingBuilder routingBuilder = new RoutingBuilder(clusterService.state(), routingProvider);

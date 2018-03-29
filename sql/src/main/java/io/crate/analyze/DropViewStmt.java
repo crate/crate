@@ -22,21 +22,21 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.List;
 
 public final class DropViewStmt implements AnalyzedStatement {
 
-    private final List<TableIdent> views;
+    private final List<RelationName> views;
     private final boolean ifExists;
 
-    DropViewStmt(List<TableIdent> views, boolean ifExists) {
+    DropViewStmt(List<RelationName> views, boolean ifExists) {
         this.views = views;
         this.ifExists = ifExists;
     }
 
-    public List<TableIdent> views() {
+    public List<RelationName> views() {
         return views;
     }
 

@@ -22,7 +22,7 @@
 
 package io.crate.metadata.table;
 
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.apache.lucene.util.BytesRef;
 
 /**
@@ -54,17 +54,17 @@ public class ConstraintInfo {
     }
 
     private final String constraintName;
-    private final TableIdent tableIdent;
+    private final RelationName relationName;
     private final Constraint constraintType;
 
-    public ConstraintInfo(TableIdent tableIdent, String constraintName, Constraint constraintType) {
-        this.tableIdent = tableIdent;
+    public ConstraintInfo(RelationName relationName, String constraintName, Constraint constraintType) {
+        this.relationName = relationName;
         this.constraintName = constraintName;
         this.constraintType = constraintType;
     }
 
-    public TableIdent tableIdent() {
-        return this.tableIdent;
+    public RelationName tableIdent() {
+        return this.relationName;
     }
 
     public String constraintName() {

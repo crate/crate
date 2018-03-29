@@ -27,7 +27,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
@@ -75,7 +75,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     @Override
-    public BlobTableInfo create(TableIdent ident, ClusterState clusterState) {
+    public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
         IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterState);
         Map<String, Object> mappingMap;
         try {

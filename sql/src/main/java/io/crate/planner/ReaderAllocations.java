@@ -25,7 +25,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.Multimap;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,16 +36,16 @@ public final class ReaderAllocations {
     private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
     private final Map<String, IntSet> nodeReaders = new HashMap<>();
     private final TreeMap<String, Integer> bases;
-    private final Multimap<TableIdent, String> tableIndices;
-    private final Map<String, TableIdent> indicesToIdents;
+    private final Multimap<RelationName, String> tableIndices;
+    private final Map<String, RelationName> indicesToIdents;
 
     ReaderAllocations(TreeMap<String, Integer> bases,
                       Map<String, Map<Integer, String>> shardNodes,
-                      Multimap<TableIdent, String> tableIndices) {
+                      Multimap<RelationName, String> tableIndices) {
         this.bases = bases;
         this.tableIndices = tableIndices;
         this.indicesToIdents = new HashMap<>(tableIndices.values().size());
-        for (Map.Entry<TableIdent, String> entry : tableIndices.entries()) {
+        for (Map.Entry<RelationName, String> entry : tableIndices.entries()) {
             indicesToIdents.put(entry.getValue(), entry.getKey());
         }
         for (Map.Entry<String, Integer> entry : bases.entrySet()) {
@@ -68,7 +68,7 @@ public final class ReaderAllocations {
         }
     }
 
-    public Multimap<TableIdent, String> tableIndices() {
+    public Multimap<RelationName, String> tableIndices() {
         return tableIndices;
     }
 
@@ -84,7 +84,7 @@ public final class ReaderAllocations {
         return bases;
     }
 
-    public Map<String, TableIdent> indicesToIdents() {
+    public Map<String, RelationName> indicesToIdents() {
         return indicesToIdents;
     }
 }

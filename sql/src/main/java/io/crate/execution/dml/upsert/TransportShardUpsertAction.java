@@ -41,10 +41,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -137,7 +137,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
-        DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.fromIndexName(request.index()), Operation.INSERT);
+        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(request.index()), Operation.INSERT);
 
         Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
         if (request.validateConstraints()) {

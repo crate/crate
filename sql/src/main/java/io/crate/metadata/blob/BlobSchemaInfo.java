@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
@@ -67,7 +67,7 @@ public class BlobSchemaInfo implements SchemaInfo {
     }
 
     private BlobTableInfo innerGetTableInfo(String name) {
-        return blobTableInfoFactory.create(new TableIdent(NAME, name), clusterService.state());
+        return blobTableInfoFactory.create(new RelationName(NAME, name), clusterService.state());
     }
 
     @Override

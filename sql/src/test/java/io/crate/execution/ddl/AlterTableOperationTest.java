@@ -23,8 +23,8 @@
 package io.crate.execution.ddl;
 
 import io.crate.Constants;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -79,7 +79,7 @@ public class AlterTableOperationTest extends CrateUnitTest {
             .build();
 
         PutIndexTemplateRequest request = AlterTableOperation.preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new TableIdent(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*",
+            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*",
             logger);
 
         assertThat(request.settings().get(unsupportedSetting), nullValue());

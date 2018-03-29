@@ -78,8 +78,8 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -111,8 +111,8 @@ public class ProjectionToProjectorVisitor
     private final TransportActionProvider transportActionProvider;
     private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
-    private final Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter;
-    private final Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter;
+    private final Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter;
+    private final Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
     @Nullable
@@ -126,8 +126,8 @@ public class ProjectionToProjectorVisitor
                                         TransportActionProvider transportActionProvider,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
-                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
-                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter,
+                                        Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
+                                        Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         Version indexVersionCreated,
                                         BigArrays bigArrays,
                                         @Nullable ShardId shardId) {
@@ -154,8 +154,8 @@ public class ProjectionToProjectorVisitor
                                         TransportActionProvider transportActionProvider,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
-                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
-                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter,
+                                        Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
+                                        Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         BigArrays bigArrays) {
         this(clusterService,
             nodeJobsCounter,
@@ -496,15 +496,15 @@ public class ProjectionToProjectorVisitor
         List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
         List<ColumnIdent> assignmentCols = new ArrayList<>(assignments.size());
 
-        TableIdent tableIdent = null;
+        RelationName relationName = null;
         InputFactory.Context<RowCollectExpression<?, ?>> readCtx = null;
 
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
-            assert tableIdent == null || tableIdent.equals(ref.ident().tableIdent()) : "mixed table assignments found";
-            tableIdent = ref.ident().tableIdent();
+            assert relationName == null || relationName.equals(ref.ident().tableIdent()) : "mixed table assignments found";
+            relationName = ref.ident().tableIdent();
             if (readCtx == null) {
-                StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(tableIdent);
+                StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(relationName);
                 readCtx = inputFactory.ctxForRefs(tableDefinition.getReferenceResolver());
             }
             assignmentCols.add(ref.column());
@@ -512,7 +512,7 @@ public class ProjectionToProjectorVisitor
             valueInputs.add(sourceInput);
         }
 
-        SysRowUpdater<?> rowUpdater = sysUpdaterGetter.apply(tableIdent);
+        SysRowUpdater<?> rowUpdater = sysUpdaterGetter.apply(relationName);
         assert readCtx != null : "readCtx must not be null";
         assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());

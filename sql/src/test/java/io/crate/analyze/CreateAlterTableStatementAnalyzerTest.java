@@ -33,7 +33,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.ParsingException;
@@ -410,9 +410,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithSchemaName() throws Exception {
         CreateTableAnalyzedStatement analysis =
             e.analyze("create table something.foo (id integer primary key)");
-        TableIdent tableIdent = analysis.tableIdent();
-        assertThat(tableIdent.schema(), is("something"));
-        assertThat(tableIdent.name(), is("foo"));
+        RelationName relationName = analysis.tableIdent();
+        assertThat(relationName.schema(), is("something"));
+        assertThat(relationName.name(), is("foo"));
     }
 
     @Test

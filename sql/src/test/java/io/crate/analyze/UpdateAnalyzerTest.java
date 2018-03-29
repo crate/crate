@@ -39,9 +39,9 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -79,21 +79,21 @@ import static org.mockito.Mockito.mock;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private final TableIdent nestedClusteredByTableIdent = new TableIdent("doc", "nestedclustered");
+    private final RelationName nestedClusteredByRelationName = new RelationName("doc", "nestedclustered");
     private final DocTableInfo nestedClusteredByTableInfo = TestingTableInfo.builder(
-        nestedClusteredByTableIdent, SHARD_ROUTING)
+        nestedClusteredByRelationName, SHARD_ROUTING)
         .add("obj", DataTypes.OBJECT, null)
         .add("obj", DataTypes.STRING, Collections.singletonList("name"))
         .add("other_obj", DataTypes.OBJECT, null)
         .clusteredBy("obj.name").build();
 
-    private final TableIdent testAliasTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "alias");
+    private final RelationName testAliasRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "alias");
     private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
-        testAliasTableIdent, new Routing(ImmutableMap.of()))
+        testAliasRelationName, new Routing(ImmutableMap.of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
-    private final TableIdent nestedPk = new TableIdent(Schemas.DOC_SCHEMA_NAME, "t_nested_pk");
+    private final RelationName nestedPk = new RelationName(Schemas.DOC_SCHEMA_NAME, "t_nested_pk");
     private final DocTableInfo tiNestedPk = new TestingTableInfo.Builder(
         nestedPk, SHARD_ROUTING)
         .add("o", DataTypes.OBJECT)
@@ -113,16 +113,16 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(tiNestedPk)
             .addTable("create table bag (id short primary key, ob array(object))");
 
-        TableIdent partedGeneratedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "parted_generated_column");
+        RelationName partedGeneratedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_generated_column");
         TestingTableInfo.Builder partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-            partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            partedGeneratedColumnRelationName, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
         builder.addDocTable(partedGeneratedColumnTableInfo);
 
-        TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(Schemas.DOC_SCHEMA_NAME, "nested_parted_generated_column");
+        RelationName nestedPartedGeneratedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_parted_generated_column");
         TestingTableInfo.Builder nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
-            nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            nestedPartedGeneratedColumnRelationName, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", true);
@@ -204,7 +204,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name='Trillian'");
         assertThat(update.assignmentByTargetCol().size(), is(1));
-        assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new TableIdent(Schemas.DOC_SCHEMA_NAME, "users")));
+        assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "users")));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name(), is("users"));

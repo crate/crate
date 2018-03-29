@@ -25,8 +25,8 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -38,22 +38,22 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private AnalyzedTableElements analyzedTableElements;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
-    private TableIdent tableIdent;
+    private RelationName relationName;
     private boolean noOp = false;
     private boolean ifNotExists = false;
 
     public CreateTableAnalyzedStatement() {
     }
 
-    public void table(TableIdent tableIdent, boolean ifNotExists, Schemas schemas) {
-        tableIdent.validate();
+    public void table(RelationName relationName, boolean ifNotExists, Schemas schemas) {
+        relationName.validate();
         if (ifNotExists) {
-            noOp = schemas.tableExists(tableIdent);
-        } else if (schemas.tableExists(tableIdent)) {
-            throw new RelationAlreadyExists(tableIdent);
+            noOp = schemas.tableExists(relationName);
+        } else if (schemas.tableExists(relationName)) {
+            throw new RelationAlreadyExists(relationName);
         }
         this.ifNotExists = ifNotExists;
-        this.tableIdent = tableIdent;
+        this.relationName = relationName;
     }
 
     public boolean noOp() {
@@ -127,8 +127,8 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         return mapping;
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     public void routing(ColumnIdent routingColumn) {

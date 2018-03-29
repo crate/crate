@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
@@ -82,18 +82,18 @@ public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
 
     public static class RestoreTableInfo {
 
-        private final TableIdent tableIdent;
+        private final RelationName relationName;
         private final PartitionName partitionName;
         private final String partitionTemplate;
 
-        public RestoreTableInfo(TableIdent tableIdent, @Nullable PartitionName partitionName) {
-            this.tableIdent = tableIdent;
+        public RestoreTableInfo(RelationName relationName, @Nullable PartitionName partitionName) {
+            this.relationName = relationName;
             this.partitionName = partitionName;
-            this.partitionTemplate = PartitionName.templateName(tableIdent.schema(), tableIdent().name());
+            this.partitionTemplate = PartitionName.templateName(relationName.schema(), tableIdent().name());
         }
 
-        public TableIdent tableIdent() {
-            return tableIdent;
+        public RelationName tableIdent() {
+            return relationName;
         }
 
         @Nullable

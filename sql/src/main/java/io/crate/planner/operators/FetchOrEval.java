@@ -46,8 +46,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -250,16 +250,16 @@ class FetchOrEval extends OneInputPlan {
 
     private ExecutionPlan planWithFetch(PlannerContext plannerContext, ExecutionPlan executionPlan, List<Symbol> sourceOutputs) {
         executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
-        Map<TableIdent, FetchSource> fetchSourceByTableId = new HashMap<>();
+        Map<RelationName, FetchSource> fetchSourceByTableId = new HashMap<>();
         LinkedHashSet<Reference> allFetchRefs = new LinkedHashSet<>();
 
         Map<DocTableRelation, InputColumn> fetchInputColumnsByTable = buildFetchInputColumnsMap(sourceOutputs);
         BiConsumer<DocTableRelation, Reference> allocateFetchRef = (rel, ref) -> {
-            TableIdent tableIdent = rel.tableInfo().ident();
-            FetchSource fetchSource = fetchSourceByTableId.get(tableIdent);
+            RelationName relationName = rel.tableInfo().ident();
+            FetchSource fetchSource = fetchSourceByTableId.get(relationName);
             if (fetchSource == null) {
                 fetchSource = new FetchSource(rel.tableInfo().partitionedByColumns());
-                fetchSourceByTableId.put(tableIdent, fetchSource);
+                fetchSourceByTableId.put(relationName, fetchSource);
             }
             if (ref.granularity() == RowGranularity.DOC) {
                 allFetchRefs.add(ref);
