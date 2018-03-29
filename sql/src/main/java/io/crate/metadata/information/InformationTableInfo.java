@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -34,23 +33,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.ClusterState;
 
-import javax.annotation.Nullable;
-import java.util.Map;
 
 public class InformationTableInfo extends StaticTableInfo {
-
-    InformationTableInfo(RelationName ident,
-                         ImmutableList<ColumnIdent> primaryKeyIdentList,
-                         Map<ColumnIdent, Reference> references) {
-        super(ident, references, null, primaryKeyIdentList);
-    }
-
-    InformationTableInfo(RelationName ident,
-                         ImmutableList<ColumnIdent> primaryKeyIdentList,
-                         Map<ColumnIdent, Reference> references,
-                         @Nullable ImmutableList<Reference> columns) {
-        super(ident, references, columns, primaryKeyIdentList);
-    }
 
     InformationTableInfo(RelationName ident,
                          ColumnRegistrar columnRegistrar,
