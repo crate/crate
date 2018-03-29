@@ -60,9 +60,14 @@ Breaking Changes
 Changes
 =======
 
+
 - Fixed path of logfile name in rotation pattern in ``log4j2.properties``. It
   now writes into the correct logging directory instead of the parent
   directory.
+
+- Changed primary key constraint of the ``information_schema.columns`` table to
+  ``(TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME)`` for SQL standard
+  compliance.
 
 - Changed primary key of the ``information_schema.tables`` table to
   ``(TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME)`` for SQL standard conformity.

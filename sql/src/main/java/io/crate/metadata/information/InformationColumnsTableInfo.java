@@ -224,7 +224,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         super(
             IDENT,
             columnRegistrar(),
-            ImmutableList.of(Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME)
+            ImmutableList.of(Columns.TABLE_CATALOG, Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME)
         );
     }
 }
