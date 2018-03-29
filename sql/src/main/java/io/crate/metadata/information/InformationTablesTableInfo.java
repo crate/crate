@@ -29,6 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -37,7 +38,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ShardedTable;
-import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.information.TablesSettingsExpression;
 import io.crate.expression.reference.information.TablesVersionExpression;
 import io.crate.types.ArrayType;
@@ -53,7 +53,6 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final String NAME = "tables";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
     static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
     static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
 
@@ -231,8 +230,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG);
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<TableInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<TableInfo>>builder()
+    public static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RelationInfo>>builder()
             .put(InformationTablesTableInfo.Columns.TABLE_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_NAME,
@@ -240,7 +239,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.TABLE_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> TABLE_TYPE))
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.relationType().pretty()))
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
                 () -> RowContextCollectorExpression.forFunction(row -> {
                     if (row instanceof ShardedTable) {

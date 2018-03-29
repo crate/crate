@@ -36,6 +36,9 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.view.ViewInfoFactory;
+import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -45,13 +48,17 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * SchemaInfo for all user tables.
@@ -110,6 +117,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
+    private final ViewInfoFactory viewInfoFactory;
     private final Functions functions;
     private final UserDefinedFunctionService udfService;
 
@@ -126,22 +134,20 @@ public class DocSchemaInfo implements SchemaInfo {
                          ClusterService clusterService,
                          Functions functions,
                          UserDefinedFunctionService udfService,
+                         ViewInfoFactory viewInfoFactory,
                          DocTableInfoFactory docTableInfoFactory) {
         this.functions = functions;
         this.schemaName = schemaName;
         this.clusterService = clusterService;
         this.udfService = udfService;
+        this.viewInfoFactory = viewInfoFactory;
         this.docTableInfoFactory = docTableInfoFactory;
-    }
-
-    private DocTableInfo innerGetTableInfo(String tableName) {
-        return docTableInfoFactory.create(new TableIdent(schemaName, tableName), clusterService.state());
     }
 
     @Override
     public TableInfo getTableInfo(String name) {
         try {
-            return docTableByName.computeIfAbsent(name, this::innerGetTableInfo);
+            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new TableIdent(schemaName, n), clusterService.state()));
         } catch (ResourceUnknownException e) {
             return null;
         }
@@ -149,14 +155,8 @@ public class DocSchemaInfo implements SchemaInfo {
 
     private Collection<String> tableNames() {
         Set<String> tables = new HashSet<>();
-
-        Stream.of(clusterService.state().metaData().getConcreteAllIndices())
-            .filter(NO_BLOB)
-            .map(IndexParts::new)
-            .filter(indexParts -> !indexParts.isPartitioned())
-            .filter(indexParts -> indexParts.matchesSchema(schemaName))
-            .map(IndexParts::getTable)
-            .forEach(tables::add);
+        extractRelationNamesForSchema(Stream.of(clusterService.state().metaData().getConcreteAllIndices()),
+            schemaName, tables);
 
         // Search for partitioned table templates
         Iterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
@@ -177,6 +177,31 @@ public class DocSchemaInfo implements SchemaInfo {
         }
 
         return tables;
+    }
+
+    @Nullable
+    private ViewInfo getViewInfo(String name) {
+        return viewInfoFactory.create(new TableIdent(schemaName, name), clusterService.state());
+    }
+
+    private Collection<String> viewNames() {
+        ViewsMetaData viewMetaData = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+        if (viewMetaData == null) {
+            return Collections.emptySet();
+        }
+        Set<String> views = new HashSet<>();
+        extractRelationNamesForSchema(StreamSupport.stream(viewMetaData.names().spliterator(), false),
+            schemaName, views);
+        return views;
+    }
+
+    private static void extractRelationNamesForSchema(Stream<String> stream, String schema, Set<String> target) {
+        stream.filter(NO_BLOB)
+            .map(IndexParts::new)
+            .filter(indexParts -> !indexParts.isPartitioned())
+            .filter(indexParts -> indexParts.matchesSchema(schema))
+            .map(IndexParts::getTable)
+            .forEach(target::add);
     }
 
     @Override
@@ -248,7 +273,6 @@ public class DocSchemaInfo implements SchemaInfo {
             }
         }
 
-
         // re register UDFs for this schema
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
@@ -294,6 +318,15 @@ public class DocSchemaInfo implements SchemaInfo {
     public Iterable<TableInfo> getTables() {
         return tableNames().stream()
             .map(this::getTableInfo)
+            .filter(Objects::nonNull)
+            ::iterator;
+    }
+
+    @Override
+    public Iterable<ViewInfo> getViews() {
+        return viewNames().stream()
+            .map(this::getViewInfo)
+            .filter(Objects::nonNull)
             ::iterator;
     }
 

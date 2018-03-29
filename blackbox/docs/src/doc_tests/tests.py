@@ -464,7 +464,8 @@ def create_doctest_suite():
                             'general/builtins/table-functions.rst',
                             'admin/system-information.rst',
                             'general/dql/selects.rst',
-                            'interfaces/postgres.rst',):
+                            'interfaces/postgres.rst',
+                            'general/ddl/create-view.rst'):
         s = docsuite(fn, setUp=setUpLocationsAndQuotes)
         s.layer = crate_layer
         tests.append(s)

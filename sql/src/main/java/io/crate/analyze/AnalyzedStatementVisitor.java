@@ -218,4 +218,12 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitInsert(AnalyzedInsertStatement insert, C context) {
         return visitAnalyzedStatement(insert, context);
     }
+
+    public R visitCreateViewStmt(CreateViewStmt createViewStmt, C context) {
+        return visitAnalyzedStatement(createViewStmt, context);
+    }
+
+    public R visitDropView(DropViewStmt dropViewStmt, C context) {
+        return visitAnalyzedStatement(dropViewStmt, context);
+    }
 }

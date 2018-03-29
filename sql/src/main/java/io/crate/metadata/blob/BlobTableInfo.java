@@ -173,13 +173,18 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return tableParameterInfo;
     }
 
-    public Map<String, Object> tableParameters() {
+    public Map<String, Object> parameters() {
         return tableParameters;
     }
 
     @Override
     public Set<Operation> supportedOperations() {
         return Operation.BLOB_OPERATIONS;
+    }
+
+    @Override
+    public RelationType relationType() {
+        return RelationType.BASE_TABLE;
     }
 
     @Override

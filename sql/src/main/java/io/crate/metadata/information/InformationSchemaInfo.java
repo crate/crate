@@ -25,9 +25,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+
+import java.util.Collections;
 
 @Singleton
 public class InformationSchemaInfo implements SchemaInfo {
@@ -40,6 +43,7 @@ public class InformationSchemaInfo implements SchemaInfo {
     public InformationSchemaInfo() {
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(InformationTablesTableInfo.NAME, new InformationTablesTableInfo())
+            .put(InformationViewsTableInfo.NAME, new InformationViewsTableInfo())
             .put(InformationColumnsTableInfo.NAME, new InformationColumnsTableInfo())
             .put(InformationKeyColumnUsageTableInfo.NAME, new InformationKeyColumnUsageTableInfo())
             .put(InformationPartitionsTableInfo.NAME, new InformationPartitionsTableInfo())
@@ -69,6 +73,11 @@ public class InformationSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfoMap.values();
+    }
+
+    @Override
+    public Iterable<ViewInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

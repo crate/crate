@@ -39,7 +39,7 @@ public abstract class StaticTableInfo implements TableInfo {
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKey;
     private final Collection<Reference> columns;
-    protected final Map<ColumnIdent, Reference> columnMap;
+    private final Map<ColumnIdent, Reference> columnMap;
 
     /**
      * @param columns top level columns. If null the values of columnMap are used.
@@ -81,7 +81,7 @@ public abstract class StaticTableInfo implements TableInfo {
     }
 
     @Override
-    public Map<String, Object> tableParameters() {
+    public Map<String, Object> parameters() {
         return Collections.emptyMap();
     }
 
@@ -100,4 +100,8 @@ public abstract class StaticTableInfo implements TableInfo {
         return Operation.SYS_READ_ONLY;
     }
 
+    @Override
+    public RelationType relationType() {
+        return RelationType.BASE_TABLE;
+    }
 }

@@ -29,6 +29,7 @@ import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
@@ -50,6 +51,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -60,6 +62,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
@@ -67,6 +70,7 @@ import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
@@ -85,6 +89,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 @Singleton
@@ -125,15 +130,22 @@ public class Analyzer {
     private final AlterTableRerouteAnalyzer alterTableRerouteAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
     private final AlterUserAnalyzer alterUserAnalyzer;
+    private final CreateViewAnalyzer createViewAnalyzer;
 
+    /**
+     * @param relationAnalyzer is injected because we also need to inject it in
+     *                         {@link io.crate.metadata.view.InternalViewInfoFactory} and we want to keep only a single
+     *                         instance of the class
+     */
     @Inject
     public Analyzer(Schemas schemas,
                     Functions functions,
+                    RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
-        this.relationAnalyzer = new RelationAnalyzer(functions, schemas);
+        this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
@@ -145,6 +157,7 @@ public class Analyzer {
             functions,
             numberOfShards
         );
+        this.createViewAnalyzer = new CreateViewAnalyzer(functions, relationAnalyzer);
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
@@ -460,5 +473,21 @@ public class Analyzer {
             return createIngestionRuleAnalyzer.analyze(node, context);
         }
 
+        @Override
+        public AnalyzedStatement visitCreateView(CreateView createView, Analysis analysis) {
+            return createViewAnalyzer.analyze(
+                createView, analysis.transactionContext(), analysis.sessionContext().defaultSchema());
+        }
+
+        @Override
+        public AnalyzedStatement visitDropView(DropView dropView, Analysis analysis) {
+            // No exists check to avoid stale clusterState race conditions
+            String defaultSchema = analysis.sessionContext().defaultSchema();
+            ArrayList<TableIdent> views = new ArrayList<>(dropView.names().size());
+            for (QualifiedName qualifiedName : dropView.names()) {
+                views.add(TableIdent.of(qualifiedName, defaultSchema));
+            }
+            return new DropViewStmt(views, dropView.ifExists());
+        }
     }
 }

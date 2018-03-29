@@ -23,10 +23,12 @@ package io.crate.metadata.sys;
 
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,6 +75,11 @@ public class SysSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfos.values();
+    }
+
+    @Override
+    public Iterable<ViewInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
@@ -69,6 +70,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -120,7 +122,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
             .build();
     }
 
@@ -1903,7 +1905,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         SQLExecutor sqlExecutor2 = SQLExecutor.builder(clusterService)
             .setDefaultSchema("foo")
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
             .addDocTable(fooTableInfo)
             .build();
         expectedException.expect(UnsupportedOperationException.class);

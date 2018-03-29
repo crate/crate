@@ -136,7 +136,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.TABLE_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().tableIdent().schema()))
             .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> RowContextCollectorExpression.objToBytesRef(r -> InformationTablesTableInfo.TABLE_TYPE))
+                () -> RowContextCollectorExpression.objToBytesRef(r -> RelationType.BASE_TABLE.pretty()))
             .put(InformationTablesTableInfo.Columns.PARTITION_IDENT,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.name().ident()))
             .put(InformationTablesTableInfo.Columns.VALUES, () -> new RowContextCollectorExpression<PartitionInfo, Object>() {

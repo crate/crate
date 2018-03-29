@@ -31,11 +31,13 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nonnull;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
@@ -106,6 +108,11 @@ public class BlobSchemaInfo implements SchemaInfo {
             .map(BlobIndex::stripPrefix)
             .map(this::getTableInfo)
             ::iterator;
+    }
+
+    @Override
+    public Iterable<ViewInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -25,19 +25,14 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterState;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-public interface TableInfo extends Iterable<Reference> {
+public interface TableInfo extends RelationInfo {
 
     /**
      * returns information about a column with the given ident.
@@ -45,15 +40,6 @@ public interface TableInfo extends Iterable<Reference> {
      */
     @Nullable
     Reference getReference(ColumnIdent columnIdent);
-
-    /**
-     * returns the top level columns of this table with predictable order
-     */
-    Collection<Reference> columns();
-
-    RowGranularity rowGranularity();
-
-    TableIdent ident();
 
     /**
      * Retrieve the routing for the table
@@ -67,10 +53,4 @@ public interface TableInfo extends Iterable<Reference> {
                        WhereClause whereClause,
                        RoutingProvider.ShardSelection shardSelection,
                        SessionContext sessionContext);
-
-    List<ColumnIdent> primaryKey();
-
-    Map<String, Object> tableParameters();
-
-    Set<Operation> supportedOperations();
 }

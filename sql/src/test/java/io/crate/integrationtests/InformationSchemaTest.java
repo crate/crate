@@ -33,6 +33,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -48,10 +49,19 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
+    @After
+    public void dropLeftoverViews() {
+        execute("SELECT table_schema, table_name FROM information_schema.tables WHERE table_type = 'VIEW'");
+        for (Object[] row : response.rows()) {
+            logger.info("DROP VIEW {}.{}", row[0], row[1]);
+            execute("DROP VIEW " + String.format("\"%s\".\"%s\"", row[0], row[1]));
+        }
+    }
+
     @Test
     public void testDefaultTables() {
         execute("select * from information_schema.tables order by table_schema, table_name");
-        assertEquals(25L, response.rowCount());
+        assertEquals(26L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| columns| information_schema| BASE TABLE| NULL\n" +
@@ -64,6 +74,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_constraints| information_schema| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_partitions| information_schema| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| tables| information_schema| BASE TABLE| NULL\n" +
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| views| information_schema| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_type| pg_catalog| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| allocations| sys| BASE TABLE| NULL\n" +
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| checks| sys| BASE TABLE| NULL\n" +
@@ -116,15 +127,72 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
+    public void testSelectViewsFromInformationSchema() {
+        execute("CREATE TABLE t1 (id INTEGER, name STRING) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=1)");
+        execute("CREATE VIEW t1_view1 AS SELECT * FROM t1 WHERE name = 'foo'");
+        execute("CREATE VIEW t1_view2 AS SELECT id FROM t1 WHERE name = 'foo'");
+
+        // SELECT information_schema.tables
+        execute("SELECT table_type, table_name, number_of_shards, number_of_replicas " +
+                "FROM information_schema.tables " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("BASE TABLE| t1| 2| 1\n" +
+                                                                    "VIEW| t1_view1| NULL| NULL\n" +
+                                                                    "VIEW| t1_view2| NULL| NULL\n"));
+
+        // SELECT information_schema.views
+        execute("SELECT table_name, view_definition " +
+                "FROM information_schema.views " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
+                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+
+        // SELECT information_schema.columns
+        execute("SELECT table_name, column_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1| id\n" +
+                                                                    "t1| name\n" +
+                                                                    "t1_view1| id\n" +
+                                                                    "t1_view1| name\n" +
+                                                                    "t1_view2| id\n"));
+
+        // After dropping the target table of the view, the view still shows up in information_schema.tables and
+        // information_schema.views,  but not in information_schema.columns, because the SELECT statement could not be
+        // analyzed.
+        execute("DROP TABLE t1");
+
+        execute("SELECT table_name, view_definition " +
+                "FROM information_schema.views " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("t1_view1| SELECT doc.t1.id, doc.t1.name FROM doc.t1 WHERE (doc.t1.name = 'foo')\n" +
+                                                                    "t1_view2| SELECT doc.t1.id FROM doc.t1 WHERE (doc.t1.name = 'foo')\n"));
+
+        execute("SELECT table_name, column_name " +
+                "FROM information_schema.columns " +
+                "WHERE table_name LIKE 't1%' " +
+                "ORDER BY 1, 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(""));
+
+        // Clean up metadata that does not show up in information_schema any more
+        execute("DROP VIEW t1_view1, t1_view2");
+    }
+
+    @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertEquals(25L, response.rowCount());
+        assertEquals(26L, response.rowCount());
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertEquals(26L, response.rowCount());
+        assertEquals(27L, response.rowCount());
     }
 
     @Test
@@ -301,7 +369,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "is_deferrable", "table_catalog", "table_name", "table_schema"));
         execute("SELECT constraint_name, constraint_type, table_name, table_schema FROM " +
                 "information_schema.table_constraints ORDER BY table_schema ASC, table_name ASC");
-        assertEquals(23L, response.rowCount());
+        assertEquals(24L, response.rowCount());
         assertThat(TestingHelpers.printedTable(response.rows()),
             is(
                 "columns_pk| PRIMARY KEY| columns| information_schema\n" +
@@ -317,6 +385,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "schemata_pk| PRIMARY KEY| schemata| information_schema\n" +
                 "sql_features_pk| PRIMARY KEY| sql_features| information_schema\n" +
                 "tables_pk| PRIMARY KEY| tables| information_schema\n" +
+                "views_pk| PRIMARY KEY| views| information_schema\n" +
                 "allocations_pk| PRIMARY KEY| allocations| sys\n" +
                 "checks_pk| PRIMARY KEY| checks| sys\n" +
                 "jobs_pk| PRIMARY KEY| jobs| sys\n" +
@@ -495,7 +564,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(486, response.rowCount());
+        assertEquals(492, response.rowCount());
     }
 
     @Test
@@ -712,7 +781,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(28L, response.rows()[0][0]);
+        assertEquals(29L, response.rows()[0][0]);
     }
 
     @Test

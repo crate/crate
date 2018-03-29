@@ -66,6 +66,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Except;
@@ -87,6 +88,8 @@ import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
@@ -97,6 +100,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+@Singleton
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
@@ -108,6 +112,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
+    @Inject
     public RelationAnalyzer(Functions functions, Schemas schemas) {
         relationNormalizer = new RelationNormalizer(functions);
         this.functions = functions;
@@ -666,18 +671,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
-        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(node, context.sessionContext().defaultSchema()),
-            context.currentOperation());
-        AnalyzedRelation tableRelation;
-        // Dispatching of doc relations is based on the returned class of the schema information.
-        if (tableInfo instanceof DocTableInfo) {
-            tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
+        TableIdent tableIdent = TableIdent.of(node, context.sessionContext().defaultSchema());
+        TableInfo tableInfo = schemas.getTableInfoOrNull(tableIdent, context.currentOperation());
+        final AnalyzedRelation relation;
+        if (tableInfo == null) {
+            String query = schemas.resolveView(tableIdent);
+            if (query == null) {
+                throw new RelationUnknown(new TableIdent(tableIdent.schema(), tableIdent.name()));
+            }
+            relation = process(SqlParser.createStatement(query), context);
+        } else if (tableInfo instanceof DocTableInfo) {
+            // Dispatching of doc relations is based on the returned class of the schema information.
+            relation = new DocTableRelation((DocTableInfo) tableInfo);
         } else {
-            tableRelation = new TableRelation(tableInfo);
+            relation = new TableRelation(tableInfo);
         }
-        context.currentRelationContext().addSourceRelation(
-            tableInfo.ident().schema(), tableInfo.ident().name(), tableRelation);
-        return tableRelation;
+        context.currentRelationContext().addSourceRelation(tableIdent.schema(), tableIdent.name(), relation);
+        return relation;
     }
 
     @Override

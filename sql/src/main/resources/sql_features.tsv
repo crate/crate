@@ -141,7 +141,7 @@ E182	Module language			NO
 F021	Basic information schema			NO		
 F021	Basic information schema	1	COLUMNS view	YES		
 F021	Basic information schema	2	TABLES view	YES		
-F021	Basic information schema	3	VIEWS view	NO		
+F021	Basic information schema	3	VIEWS view	YES		
 F021	Basic information schema	4	TABLE_CONSTRAINTS view	YES		
 F021	Basic information schema	5	REFERENTIAL_CONSTRAINTS view	-		
 F021	Basic information schema	6	CHECK_CONSTRAINTS view	-		

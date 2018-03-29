@@ -388,13 +388,18 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return tableParameterInfo;
     }
 
-    public ImmutableMap<String, Object> tableParameters() {
+    public ImmutableMap<String, Object> parameters() {
         return tableParameters;
     }
 
     @Override
     public Set<Operation> supportedOperations() {
         return supportedOperations;
+    }
+
+    @Override
+    public RelationType relationType() {
+        return RelationType.BASE_TABLE;
     }
 
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {

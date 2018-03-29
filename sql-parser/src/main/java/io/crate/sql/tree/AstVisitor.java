@@ -564,4 +564,12 @@ public abstract class AstVisitor<R, C> {
     public R visitDropIngestRule(DropIngestRule node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitCreateView(CreateView createView, C context) {
+        return visitStatement(createView, context);
+    }
+
+    public R visitDropView(DropView dropView, C context) {
+        return visitStatement(dropView, context);
+    }
 }

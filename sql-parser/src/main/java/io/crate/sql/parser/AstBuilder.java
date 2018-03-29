@@ -68,6 +68,7 @@ import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.DeallocateStatement;
@@ -81,6 +82,7 @@ import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
@@ -174,6 +176,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -222,6 +225,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitCollection(context.crateTableOption(), CrateTableOption.class),
             extractGenericProperties(context.withProperties()),
             notExists);
+    }
+
+    @Override
+    public Node visitCreateView(SqlBaseParser.CreateViewContext ctx) {
+        return new CreateView(
+            getQualifiedName(ctx.qname()),
+            (Query) visit(ctx.query()),
+            ctx.REPLACE() != null
+        );
+    }
+
+    @Override
+    public Node visitDropView(SqlBaseParser.DropViewContext ctx) {
+        return new DropView(getQualifiedNames(ctx.qnames()), ctx.EXISTS() != null);
     }
 
     @Override
@@ -1514,6 +1531,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private QualifiedName getQualifiedName(SqlBaseParser.IdentContext context) {
         return QualifiedName.of(getIdentText(context));
+    }
+
+    private List<QualifiedName> getQualifiedNames(SqlBaseParser.QnamesContext context) {
+        ArrayList<QualifiedName> names = new ArrayList<>(context.qname().size());
+        for (SqlBaseParser.QnameContext qnameContext : context.qname()) {
+            names.add(getQualifiedName(qnameContext));
+        }
+        return names;
     }
 
     private List<String> identsToStrings(List<SqlBaseParser.IdentContext> idents) {

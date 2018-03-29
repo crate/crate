@@ -25,10 +25,12 @@ package io.crate.metadata.pgcatalog;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 
 public class PgCatalogSchemaInfo implements SchemaInfo {
 
@@ -64,6 +66,12 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     @Override
     public Iterable<TableInfo> getTables() {
         return tableInfoMap.values();
+    }
+
+
+    @Override
+    public Iterable<ViewInfo> getViews() {
+        return Collections.emptyList();
     }
 
     @Override

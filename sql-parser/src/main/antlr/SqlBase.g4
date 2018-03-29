@@ -76,6 +76,7 @@ statement
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | DROP INGEST RULE (IF EXISTS)? rule_name=ident                                  #dropIngestRule
+    | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
     | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
       (ON clazz  ( qname (',' qname)* ))?
       TO userNames                                                                   #grantPrivilege
@@ -328,6 +329,10 @@ whenClause
     : WHEN condition=expr THEN result=expr
     ;
 
+qnames
+    : qname (',' qname)*
+    ;
+
 qname
     : ident ('.' ident)*
     ;
@@ -428,6 +433,7 @@ createStmt
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
+    | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
     | CREATE INGEST RULE rule_name=ident
         ON source_ident=ident
         (where)?

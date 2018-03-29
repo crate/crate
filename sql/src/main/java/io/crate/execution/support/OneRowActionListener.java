@@ -45,7 +45,14 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
 
     @Override
     public void onResponse(Response response) {
-        consumer.accept(InMemoryBatchIterator.of(toRowFunction.apply(response), SENTINEL), null);
+        final Row row;
+        try {
+            row = toRowFunction.apply(response);
+        } catch (Exception e) {
+            consumer.accept(null, e);
+            return;
+        }
+        consumer.accept(InMemoryBatchIterator.of(row, SENTINEL), null);
     }
 
     @Override
