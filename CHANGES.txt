@@ -64,6 +64,9 @@ Changes
   now writes into the correct logging directory instead of the parent
   directory.
 
+- Changed primary key of the ``information_schema.tables`` table to
+  ``(TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME)`` for SQL standard conformity.
+
 - Added support for views which can be created using the new ``CREATE VIEW``
   statement and dropped using the ``DROP VIEW`` statement. Views are listed in
   ``information_schema.views`` and they show up in
