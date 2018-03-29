@@ -23,16 +23,13 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.types.DataType;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
 import java.util.Map;
@@ -53,15 +50,16 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
         static final ColumnIdent IS_DETERMINISTIC = new ColumnIdent("is_deterministic");
     }
 
-    public static class References {
-        static final Reference ROUTINE_NAME = info(Columns.ROUTINE_NAME, DataTypes.STRING);
-        static final Reference ROUTINE_TYPE = info(Columns.ROUTINE_TYPE, DataTypes.STRING);
-        static final Reference ROUTINE_SCHEMA = info(Columns.ROUTINE_SCHEMA, DataTypes.STRING);
-        static final Reference SPECIFIC_NAME = info(Columns.SPECIFIC_NAME, DataTypes.STRING);
-        static final Reference ROUTINE_BODY = info(Columns.ROUTINE_BODY, DataTypes.STRING);
-        static final Reference ROUTINE_DEFINITION = info(Columns.ROUTINE_DEFINITION, DataTypes.STRING);
-        static final Reference DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
-        static final Reference IS_DETERMINISTIC = info(Columns.IS_DETERMINISTIC, DataTypes.BOOLEAN);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.ROUTINE_NAME, DataTypes.STRING)
+            .register(Columns.ROUTINE_TYPE, DataTypes.STRING)
+            .register(Columns.ROUTINE_SCHEMA, DataTypes.STRING)
+            .register(Columns.SPECIFIC_NAME, DataTypes.STRING)
+            .register(Columns.ROUTINE_BODY, DataTypes.STRING)
+            .register(Columns.ROUTINE_DEFINITION, DataTypes.STRING)
+            .register(Columns.DATA_TYPE, DataTypes.STRING)
+            .register(Columns.IS_DETERMINISTIC, DataTypes.BOOLEAN);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {
@@ -85,24 +83,11 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
             .build();
     }
 
-    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
-    }
-
     InformationRoutinesTableInfo() {
         super(
             IDENT,
-            ImmutableList.of(),
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
-                .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)
-                .put(Columns.ROUTINE_SCHEMA, References.ROUTINE_SCHEMA)
-                .put(Columns.SPECIFIC_NAME, References.SPECIFIC_NAME)
-                .put(Columns.ROUTINE_BODY, References.ROUTINE_BODY)
-                .put(Columns.ROUTINE_DEFINITION, References.ROUTINE_DEFINITION)
-                .put(Columns.DATA_TYPE, References.DATA_TYPE)
-                .put(Columns.IS_DETERMINISTIC, References.IS_DETERMINISTIC)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of()
         );
     }
 }
