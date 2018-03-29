@@ -369,7 +369,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "is_deferrable", "table_catalog", "table_name", "table_schema"));
         execute("SELECT constraint_name, constraint_type, table_name, table_schema FROM " +
                 "information_schema.table_constraints ORDER BY table_schema ASC, table_name ASC");
-        assertEquals(26L, response.rowCount());
+        assertEquals(27L, response.rowCount());
         assertThat(TestingHelpers.printedTable(response.rows()),
             is(
                 "columns_pk| PRIMARY KEY| columns| information_schema\n" +
@@ -383,6 +383,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema\n" +
                 "ingestion_rules_pk| PRIMARY KEY| ingestion_rules| information_schema\n" +
                 "key_column_usage_pk| PRIMARY KEY| key_column_usage| information_schema\n" +
+                "referential_constraints_pk| PRIMARY KEY| referential_constraints| information_schema\n" +
                 "schemata_pk| PRIMARY KEY| schemata| information_schema\n" +
                 "sql_features_pk| PRIMARY KEY| sql_features| information_schema\n" +
                 "table_partitions_pk| PRIMARY KEY| table_partitions| information_schema\n" +

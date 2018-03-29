@@ -64,6 +64,11 @@ Changes
   now writes into the correct logging directory instead of the parent
   directory.
 
+- Changed primary key constraint of the
+  ``information_schema.referential_constraints`` table to
+  ``(CONSTRAINT_CATALOG, CONSTRAINT_SCHEMA, CONSTRAINT_NAME)`` for SQL
+  compliance.
+
 - Changed primary key constraint of the ``information_schema.table_partitions``
   table to ``(TABLE_SCHEMA, TABLE_NAME, PARTITION_IDENT)`` for SQL compliance.
 

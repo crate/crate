@@ -89,7 +89,7 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
         super(
             IDENT,
             columnRegistrar(),
-            ImmutableList.of()
+            ImmutableList.of(Columns.CONSTRAINT_CATALOG, Columns.CONSTRAINT_SCHEMA, Columns.CONSTRAINT_NAME)
         );
     }
 }
