@@ -55,7 +55,12 @@ public class ColumnRegistrar {
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type) {
-        Reference ref = new Reference(new ReferenceIdent(relationName, column), rowGranularity, type);
+        return register(column, type, true);
+    }
+
+    public ColumnRegistrar register(ColumnIdent column, DataType type, boolean nullable) {
+        Reference ref = new Reference(new ReferenceIdent(relationName, column), rowGranularity, type,
+            ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, nullable);
         if (ref.column().isTopLevel()) {
             columnsBuilder.add(ref);
         }

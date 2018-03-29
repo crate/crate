@@ -23,19 +23,15 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.expression.reference.information.ColumnContext;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.ByteType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -54,9 +50,9 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
 
     public static class Columns {
         static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
         static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
-        public static final ColumnIdent COLUMN_NAME = new ColumnIdent("column_name");
+        static final ColumnIdent COLUMN_NAME = new ColumnIdent("column_name");
         static final ColumnIdent ORDINAL_POSITION = new ColumnIdent("ordinal_position");
         static final ColumnIdent DATA_TYPE = new ColumnIdent("data_type");
         static final ColumnIdent IS_GENERATED = new ColumnIdent("is_generated");
@@ -87,117 +83,118 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         static final ColumnIdent CHECK_ACTION = new ColumnIdent("check_action");
     }
 
-    public static class References {
-        static final Reference TABLE_SCHEMA = info(Columns.TABLE_SCHEMA, DataTypes.STRING, false);
-        public static final Reference TABLE_NAME = info(Columns.TABLE_NAME, DataTypes.STRING, false);
-        static final Reference TABLE_CATALOG = info(Columns.TABLE_CATALOG, DataTypes.STRING, false);
-        public static final Reference COLUMN_NAME = info(Columns.COLUMN_NAME, DataTypes.STRING, false);
-        static final Reference ORDINAL_POSITION = info(Columns.ORDINAL_POSITION, DataTypes.SHORT, false);
-        static final Reference DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING, false);
-        static final Reference IS_GENERATED = info(Columns.IS_GENERATED, DataTypes.BOOLEAN, false);
-        static final Reference IS_NULLABLE = info(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false);
-        static final Reference GENERATION_EXPRESSION = info(Columns.GENERATION_EXPRESSION, DataTypes.STRING, true);
-        static final Reference COLUMN_DEFAULT = info(Columns.COLUMN_DEFAULT, DataTypes.STRING, true);
-        static final Reference CHARACTER_MAXIMUM_LENGTH = info(Columns.CHARACTER_MAXIMUM_LENGTH, DataTypes.INTEGER, true);
-        static final Reference CHARACTER_OCTET_LENGTH = info(Columns.CHARACTER_OCTET_LENGTH, DataTypes.INTEGER, true);
-        static final Reference NUMERIC_PRECISION = info(Columns.NUMERIC_PRECISION, DataTypes.INTEGER, true);
-        static final Reference NUMERIC_PRECISION_RADIX = info(Columns.NUMERIC_PRECISION_RADIX, DataTypes.INTEGER, true);
-        static final Reference NUMERIC_SCALE = info(Columns.NUMERIC_SCALE, DataTypes.INTEGER, true);
-        static final Reference DATETIME_PRECISION = info(Columns.DATETIME_PRECISION, DataTypes.INTEGER, true);
-        static final Reference INTERVAL_TYPE = info(Columns.INTERVAL_TYPE, DataTypes.STRING, true);
-        static final Reference INTERVAL_PRECISION = info(Columns.INTERVAL_PRECISION, DataTypes.INTEGER, true);
-        static final Reference CHARACTER_SET_CATALOG = info(Columns.CHARACTER_SET_CATALOG, DataTypes.STRING, true);
-        static final Reference CHARACTER_SET_SCHEMA = info(Columns.CHARACTER_SET_SCHEMA, DataTypes.STRING, true);
-        static final Reference CHARACTER_SET_NAME = info(Columns.CHARACTER_SET_NAME, DataTypes.STRING, true);
-        static final Reference COLLATION_CATALOG = info(Columns.COLLATION_CATALOG, DataTypes.STRING, true);
-        static final Reference COLLATION_SCHEMA = info(Columns.COLLATION_SCHEMA, DataTypes.STRING, true);
-        static final Reference COLLATION_NAME = info(Columns.COLLATION_NAME, DataTypes.STRING, true);
-        static final Reference DOMAIN_CATALOG = info(Columns.DOMAIN_CATALOG, DataTypes.STRING, true);
-        static final Reference DOMAIN_SCHEMA = info(Columns.DOMAIN_SCHEMA, DataTypes.STRING, true);
-        static final Reference DOMAIN_NAME = info(Columns.DOMAIN_NAME, DataTypes.STRING, true);
-        static final Reference USER_DEFINED_TYPE_CATALOG = info(Columns.USER_DEFINED_TYPE_CATALOG, DataTypes.STRING, true);
-        static final Reference USER_DEFINED_TYPE_SCHEMA = info(Columns.USER_DEFINED_TYPE_SCHEMA, DataTypes.STRING, true);
-        static final Reference USER_DEFINED_TYPE_NAME = info(Columns.USER_DEFINED_TYPE_NAME, DataTypes.STRING, true);
-        static final Reference CHECK_REFERENCES = info(Columns.CHECK_REFERENCES, DataTypes.STRING, true);
-        static final Reference CHECK_ACTION = info(Columns.CHECK_ACTION, DataTypes.INTEGER, true);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.TABLE_SCHEMA, DataTypes.STRING, false)
+            .register(Columns.TABLE_NAME, DataTypes.STRING, false)
+            .register(Columns.TABLE_CATALOG, DataTypes.STRING, false)
+            .register(Columns.COLUMN_NAME, DataTypes.STRING, false)
+            .register(Columns.ORDINAL_POSITION, DataTypes.SHORT, false)
+            .register(Columns.DATA_TYPE, DataTypes.STRING, false)
+            .register(Columns.IS_GENERATED, DataTypes.BOOLEAN, false)
+            .register(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false)
+            .register(Columns.GENERATION_EXPRESSION, DataTypes.STRING)
+            .register(Columns.COLUMN_DEFAULT, DataTypes.STRING)
+            .register(Columns.CHARACTER_MAXIMUM_LENGTH, DataTypes.INTEGER)
+            .register(Columns.CHARACTER_OCTET_LENGTH, DataTypes.INTEGER)
+            .register(Columns.NUMERIC_PRECISION, DataTypes.INTEGER)
+            .register(Columns.NUMERIC_PRECISION_RADIX, DataTypes.INTEGER)
+            .register(Columns.NUMERIC_SCALE, DataTypes.INTEGER)
+            .register(Columns.DATETIME_PRECISION, DataTypes.INTEGER)
+            .register(Columns.INTERVAL_TYPE, DataTypes.STRING)
+            .register(Columns.INTERVAL_PRECISION, DataTypes.INTEGER)
+            .register(Columns.CHARACTER_SET_CATALOG, DataTypes.STRING)
+            .register(Columns.CHARACTER_SET_SCHEMA, DataTypes.STRING)
+            .register(Columns.CHARACTER_SET_NAME, DataTypes.STRING)
+            .register(Columns.COLLATION_CATALOG, DataTypes.STRING)
+            .register(Columns.COLLATION_SCHEMA, DataTypes.STRING)
+            .register(Columns.COLLATION_NAME, DataTypes.STRING)
+            .register(Columns.DOMAIN_CATALOG, DataTypes.STRING)
+            .register(Columns.DOMAIN_SCHEMA, DataTypes.STRING)
+            .register(Columns.DOMAIN_NAME, DataTypes.STRING)
+            .register(Columns.USER_DEFINED_TYPE_CATALOG, DataTypes.STRING)
+            .register(Columns.USER_DEFINED_TYPE_SCHEMA, DataTypes.STRING)
+            .register(Columns.USER_DEFINED_TYPE_NAME, DataTypes.STRING)
+            .register(Columns.CHECK_REFERENCES, DataTypes.STRING)
+            .register(Columns.CHECK_ACTION, DataTypes.INTEGER);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expression() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
-            .put(InformationColumnsTableInfo.Columns.TABLE_SCHEMA,
+            .put(Columns.TABLE_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
-            .put(InformationColumnsTableInfo.Columns.TABLE_NAME,
+            .put(Columns.TABLE_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().name()))
-            .put(InformationColumnsTableInfo.Columns.TABLE_CATALOG,
+            .put(Columns.TABLE_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.ident().tableIdent().schema()))
-            .put(InformationColumnsTableInfo.Columns.COLUMN_NAME,
+            .put(Columns.COLUMN_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.column().sqlFqn()))
-            .put(InformationColumnsTableInfo.Columns.ORDINAL_POSITION,
+            .put(Columns.ORDINAL_POSITION,
                 () -> RowContextCollectorExpression.forFunction(ColumnContext::getOrdinal))
-            .put(InformationColumnsTableInfo.Columns.DATA_TYPE,
+            .put(Columns.DATA_TYPE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> r.info.valueType().getName()))
-            .put(InformationColumnsTableInfo.Columns.COLUMN_DEFAULT,
+            .put(Columns.COLUMN_DEFAULT,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHARACTER_MAXIMUM_LENGTH,
+            .put(Columns.CHARACTER_MAXIMUM_LENGTH,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHARACTER_OCTET_LENGTH,
+            .put(Columns.CHARACTER_OCTET_LENGTH,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.NUMERIC_PRECISION,
+            .put(Columns.NUMERIC_PRECISION,
                 () -> RowContextCollectorExpression.forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
-            .put(InformationColumnsTableInfo.Columns.NUMERIC_PRECISION_RADIX,
+            .put(Columns.NUMERIC_PRECISION_RADIX,
                 () -> RowContextCollectorExpression.forFunction(r -> {
                     if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(r.info.valueType())) {
                         return NUMERIC_PRECISION_RADIX;
                     }
                     return null;
                 }))
-            .put(InformationColumnsTableInfo.Columns.NUMERIC_SCALE,
+            .put(Columns.NUMERIC_SCALE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.DATETIME_PRECISION,
+            .put(Columns.DATETIME_PRECISION,
                 () -> RowContextCollectorExpression.forFunction(r -> {
                     if (r.info.valueType() == DataTypes.TIMESTAMP) {
                         return DATETIME_PRECISION;
                     }
                     return null;
                 }))
-            .put(InformationColumnsTableInfo.Columns.INTERVAL_TYPE,
+            .put(Columns.INTERVAL_TYPE,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.INTERVAL_PRECISION,
+            .put(Columns.INTERVAL_PRECISION,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_CATALOG,
+            .put(Columns.CHARACTER_SET_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_SCHEMA,
+            .put(Columns.CHARACTER_SET_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_NAME,
+            .put(Columns.CHARACTER_SET_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.COLLATION_CATALOG,
+            .put(Columns.COLLATION_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.COLLATION_SCHEMA,
+            .put(Columns.COLLATION_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.COLLATION_NAME,
+            .put(Columns.COLLATION_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.DOMAIN_CATALOG,
+            .put(Columns.DOMAIN_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.DOMAIN_SCHEMA,
+            .put(Columns.DOMAIN_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.DOMAIN_NAME,
+            .put(Columns.DOMAIN_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_CATALOG,
+            .put(Columns.USER_DEFINED_TYPE_CATALOG,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_SCHEMA,
+            .put(Columns.USER_DEFINED_TYPE_SCHEMA,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_NAME,
+            .put(Columns.USER_DEFINED_TYPE_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHECK_REFERENCES,
+            .put(Columns.CHECK_REFERENCES,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.CHECK_ACTION,
+            .put(Columns.CHECK_ACTION,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> null))
-            .put(InformationColumnsTableInfo.Columns.IS_GENERATED,
+            .put(Columns.IS_GENERATED,
                 () -> RowContextCollectorExpression.forFunction(r -> r.info instanceof GeneratedReference))
-            .put(InformationColumnsTableInfo.Columns.IS_NULLABLE,
+            .put(Columns.IS_NULLABLE,
                 () -> RowContextCollectorExpression.forFunction(r ->
                     !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
-            .put(InformationColumnsTableInfo.Columns.GENERATION_EXPRESSION,
+            .put(Columns.GENERATION_EXPRESSION,
                 () -> RowContextCollectorExpression.objToBytesRef(r -> {
                     if (r.info instanceof GeneratedReference) {
                         return BytesRefs.toBytesRef(((GeneratedReference) r.info).formattedGeneratedExpression());
@@ -220,50 +217,14 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         .put(FloatType.ID, 24)
         .put(IntegerType.ID, 32)
         .put(DoubleType.ID, 53)
-        .put(LongType.ID, 64).map();
-
-    private static Reference info(ColumnIdent columnIdent, DataType dataType, Boolean nullable) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, nullable);
-    }
+        .put(LongType.ID, 64)
+        .map();
 
     InformationColumnsTableInfo() {
         super(
             IDENT,
-            ImmutableList.of(Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME),
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.TABLE_SCHEMA, References.TABLE_SCHEMA)
-                .put(Columns.TABLE_NAME, References.TABLE_NAME)
-                .put(Columns.TABLE_CATALOG, References.TABLE_CATALOG)
-                .put(Columns.COLUMN_NAME, References.COLUMN_NAME)
-                .put(Columns.ORDINAL_POSITION, References.ORDINAL_POSITION)
-                .put(Columns.DATA_TYPE, References.DATA_TYPE)
-                .put(Columns.IS_GENERATED, References.IS_GENERATED)
-                .put(Columns.IS_NULLABLE, References.IS_NULLABLE)
-                .put(Columns.GENERATION_EXPRESSION, References.GENERATION_EXPRESSION)
-                .put(Columns.COLUMN_DEFAULT, References.COLUMN_DEFAULT)
-                .put(Columns.CHARACTER_MAXIMUM_LENGTH, References.CHARACTER_MAXIMUM_LENGTH)
-                .put(Columns.CHARACTER_OCTET_LENGTH, References.CHARACTER_OCTET_LENGTH)
-                .put(Columns.NUMERIC_PRECISION, References.NUMERIC_PRECISION)
-                .put(Columns.NUMERIC_PRECISION_RADIX, References.NUMERIC_PRECISION_RADIX)
-                .put(Columns.NUMERIC_SCALE, References.NUMERIC_SCALE)
-                .put(Columns.DATETIME_PRECISION, References.DATETIME_PRECISION)
-                .put(Columns.INTERVAL_TYPE, References.INTERVAL_TYPE)
-                .put(Columns.INTERVAL_PRECISION, References.INTERVAL_PRECISION)
-                .put(Columns.CHARACTER_SET_CATALOG, References.CHARACTER_SET_CATALOG)
-                .put(Columns.CHARACTER_SET_SCHEMA, References.CHARACTER_SET_SCHEMA)
-                .put(Columns.CHARACTER_SET_NAME, References.CHARACTER_SET_NAME)
-                .put(Columns.COLLATION_CATALOG, References.COLLATION_CATALOG)
-                .put(Columns.COLLATION_SCHEMA, References.COLLATION_SCHEMA)
-                .put(Columns.COLLATION_NAME, References.COLLATION_NAME)
-                .put(Columns.DOMAIN_CATALOG, References.DOMAIN_CATALOG)
-                .put(Columns.DOMAIN_SCHEMA, References.DOMAIN_SCHEMA)
-                .put(Columns.DOMAIN_NAME, References.DOMAIN_NAME)
-                .put(Columns.USER_DEFINED_TYPE_CATALOG, References.USER_DEFINED_TYPE_CATALOG)
-                .put(Columns.USER_DEFINED_TYPE_SCHEMA, References.USER_DEFINED_TYPE_SCHEMA)
-                .put(Columns.USER_DEFINED_TYPE_NAME, References.USER_DEFINED_TYPE_NAME)
-                .put(Columns.CHECK_REFERENCES, References.CHECK_REFERENCES)
-                .put(Columns.CHECK_ACTION, References.CHECK_ACTION)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of(Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME)
         );
     }
 }
