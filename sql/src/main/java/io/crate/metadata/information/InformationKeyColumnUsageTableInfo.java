@@ -24,15 +24,12 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
-import io.crate.types.DataType;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
 import static io.crate.metadata.RowContextCollectorExpression.forFunction;
@@ -58,15 +55,16 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
         static final ColumnIdent ORDINAL_POSITION = new ColumnIdent("ordinal_position");
     }
 
-    public static class References {
-        static final Reference CONSTRAINT_CATALOG = createRef(Columns.CONSTRAINT_CATALOG, DataTypes.STRING);
-        static final Reference CONSTRAINT_SCHEMA = createRef(Columns.CONSTRAINT_SCHEMA, DataTypes.STRING);
-        static final Reference CONSTRAINT_NAME = createRef(Columns.CONSTRAINT_NAME, DataTypes.STRING);
-        static final Reference TABLE_CATALOG = createRef(Columns.TABLE_CATALOG, DataTypes.STRING);
-        static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
-        static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
-        static final Reference COLUMN_NAME = createRef(Columns.COLUMN_NAME, DataTypes.STRING);
-        static final Reference ORDINAL_POSITION = createRef(Columns.ORDINAL_POSITION, DataTypes.INTEGER);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.CONSTRAINT_CATALOG, DataTypes.STRING)
+            .register(Columns.CONSTRAINT_SCHEMA, DataTypes.STRING)
+            .register(Columns.CONSTRAINT_NAME, DataTypes.STRING)
+            .register(Columns.TABLE_CATALOG, DataTypes.STRING)
+            .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
+            .register(Columns.TABLE_NAME, DataTypes.STRING)
+            .register(Columns.COLUMN_NAME, DataTypes.STRING)
+            .register(Columns.ORDINAL_POSITION, DataTypes.INTEGER);
     }
 
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
@@ -90,24 +88,11 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
             .build();
     }
 
-    private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
-    }
-
     InformationKeyColumnUsageTableInfo() {
         super(
             IDENT,
-            ImmutableList.of(),
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.CONSTRAINT_CATALOG, References.CONSTRAINT_CATALOG)
-                .put(Columns.CONSTRAINT_SCHEMA, References.CONSTRAINT_SCHEMA)
-                .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
-                .put(Columns.TABLE_CATALOG, References.TABLE_CATALOG)
-                .put(Columns.TABLE_SCHEMA, References.TABLE_SCHEMA)
-                .put(Columns.TABLE_NAME, References.TABLE_NAME)
-                .put(Columns.COLUMN_NAME, References.COLUMN_NAME)
-                .put(Columns.ORDINAL_POSITION, References.ORDINAL_POSITION)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of()
         );
     }
 }
