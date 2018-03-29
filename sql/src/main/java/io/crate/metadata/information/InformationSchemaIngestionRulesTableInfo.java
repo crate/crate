@@ -24,16 +24,13 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IngestionRuleInfo;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.types.DataType;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
 import java.util.Map;
@@ -51,15 +48,13 @@ public class InformationSchemaIngestionRulesTableInfo extends InformationTableIn
         static final ColumnIdent CONDITION = new ColumnIdent("condition");
     }
 
-    public static class References {
-        static final Reference RULE_NAME = info(Columns.RULE_NAME, DataTypes.STRING);
-        static final Reference SOURCE_IDENT = info(Columns.SOURCE_IDENT, DataTypes.STRING);
-        static final Reference TARGET_TABLE = info(Columns.TARGET_TABLE, DataTypes.STRING);
-        static final Reference CONDITION = info(Columns.CONDITION, DataTypes.STRING);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.RULE_NAME, DataTypes.STRING)
+            .register(Columns.SOURCE_IDENT, DataTypes.STRING)
+            .register(Columns.TARGET_TABLE, DataTypes.STRING)
+            .register(Columns.CONDITION, DataTypes.STRING);
     }
-
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
-        Columns.RULE_NAME);
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<IngestionRuleInfo>>builder()
@@ -74,20 +69,11 @@ public class InformationSchemaIngestionRulesTableInfo extends InformationTableIn
             .build();
     }
 
-    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
-    }
-
     InformationSchemaIngestionRulesTableInfo() {
         super(
             IDENT,
-            PRIMARY_KEY,
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.RULE_NAME, References.RULE_NAME)
-                .put(Columns.SOURCE_IDENT, References.SOURCE_IDENT)
-                .put(Columns.TARGET_TABLE, References.TARGET_TABLE)
-                .put(Columns.CONDITION, References.CONDITION)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of(Columns.RULE_NAME)
         );
     }
 }
