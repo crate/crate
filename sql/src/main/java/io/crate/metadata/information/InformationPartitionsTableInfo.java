@@ -138,8 +138,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         super(
             IDENT,
             createColumnRegistrar(),
-            // TODO: add primary key constraint: table_schema, table_name, partition_ident
-            ImmutableList.of()
+            ImmutableList.of(Columns.TABLE_SCHEMA, InformationTablesTableInfo.Columns.TABLE_NAME, Columns.PARTITION_IDENT)
         );
     }
 
