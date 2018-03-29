@@ -23,15 +23,12 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.types.DataType;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
 
 public class InformationReferentialConstraintsTableInfo extends InformationTableInfo {
@@ -51,16 +48,18 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
         static final ColumnIdent DELETE_RULE = new ColumnIdent("delete_rule");
     }
 
-    public static class References {
-        static final Reference CONSTRAINT_CATALOG = createRef(Columns.CONSTRAINT_CATALOG , DataTypes.STRING);
-        static final Reference CONSTRAINT_SCHEMA = createRef(Columns.CONSTRAINT_SCHEMA , DataTypes.STRING);
-        static final Reference CONSTRAINT_NAME = createRef(Columns.CONSTRAINT_NAME , DataTypes.STRING);
-        static final Reference UNIQUE_CONSTRAINT_CATALOG = createRef(Columns.UNIQUE_CONSTRAINT_CATALOG , DataTypes.STRING);
-        static final Reference UNIQUE_CONSTRAINT_SCHEMA = createRef(Columns.UNIQUE_CONSTRAINT_SCHEMA , DataTypes.STRING);
-        static final Reference UNIQUE_CONSTRAINT_NAME = createRef(Columns.UNIQUE_CONSTRAINT_NAME , DataTypes.STRING);
-        static final Reference MATCH_OPTION = createRef(Columns.MATCH_OPTION , DataTypes.STRING);
-        static final Reference UPDATE_RULE = createRef(Columns.UPDATE_RULE , DataTypes.STRING);
-        static final Reference DELETE_RULE = createRef(Columns.DELETE_RULE , DataTypes.STRING);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.CONSTRAINT_CATALOG, DataTypes.STRING)
+            .register(Columns.CONSTRAINT_SCHEMA, DataTypes.STRING)
+            .register(Columns.CONSTRAINT_NAME, DataTypes.STRING)
+            .register(Columns.UNIQUE_CONSTRAINT_CATALOG, DataTypes.STRING)
+            .register(Columns.UNIQUE_CONSTRAINT_SCHEMA, DataTypes.STRING)
+            .register(Columns.UNIQUE_CONSTRAINT_NAME, DataTypes.STRING)
+            .register(Columns.MATCH_OPTION, DataTypes.STRING)
+            .register(Columns.UPDATE_RULE, DataTypes.STRING)
+            .register(Columns.DELETE_RULE, DataTypes.STRING);
+
     }
 
     public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
@@ -86,25 +85,11 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
             .build();
     }
 
-    private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
-    }
-
     InformationReferentialConstraintsTableInfo() {
         super(
             IDENT,
-            ImmutableList.of(),
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.CONSTRAINT_CATALOG, References.CONSTRAINT_CATALOG)
-                .put(Columns.CONSTRAINT_SCHEMA, References.CONSTRAINT_SCHEMA)
-                .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
-                .put(Columns.UNIQUE_CONSTRAINT_CATALOG, References.UNIQUE_CONSTRAINT_CATALOG)
-                .put(Columns.UNIQUE_CONSTRAINT_SCHEMA, References.UNIQUE_CONSTRAINT_SCHEMA)
-                .put(Columns.UNIQUE_CONSTRAINT_NAME, References.UNIQUE_CONSTRAINT_NAME)
-                .put(Columns.MATCH_OPTION, References.MATCH_OPTION)
-                .put(Columns.UPDATE_RULE, References.UPDATE_RULE)
-                .put(Columns.DELETE_RULE, References.DELETE_RULE)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of()
         );
     }
 }
