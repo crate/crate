@@ -23,16 +23,13 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Map;
@@ -46,27 +43,22 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
         static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
     }
 
-    public static class References {
-        static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
-    }
-
     public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
-            .put(InformationSchemataTableInfo.Columns.SCHEMA_NAME,
+            .put(Columns.SCHEMA_NAME,
                 () -> RowContextCollectorExpression.objToBytesRef(SchemaInfo::name)).build();
     }
 
-    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
+    private static ColumnRegistrar columnRegistrar() {
+        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
+            .register(Columns.SCHEMA_NAME, DataTypes.STRING);
     }
 
     InformationSchemataTableInfo() {
         super(
             IDENT,
-            ImmutableList.of(Columns.SCHEMA_NAME),
-            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
-                .build()
+            columnRegistrar(),
+            ImmutableList.of(Columns.SCHEMA_NAME)
         );
     }
 }
