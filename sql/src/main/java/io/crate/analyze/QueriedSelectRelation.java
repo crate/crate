@@ -24,9 +24,9 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -41,8 +41,7 @@ public class QueriedSelectRelation implements QueriedRelation {
 
     private final Fields fields;
     private final QuerySpec querySpec;
-
-    private QueriedRelation subRelation;
+    private final QueriedRelation subRelation;
 
     public QueriedSelectRelation(QueriedRelation subRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
         this.subRelation = subRelation;
@@ -56,10 +55,6 @@ public class QueriedSelectRelation implements QueriedRelation {
 
     public QueriedRelation subRelation() {
         return subRelation;
-    }
-
-    public void subRelation(QueriedRelation subRelation) {
-        this.subRelation = subRelation;
     }
 
     @Override

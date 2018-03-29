@@ -67,7 +67,6 @@ import java.util.Map;
 public class SysNodesTableInfo extends StaticTableInfo {
 
     public static final String SYS_COL_NAME = "_node";
-    static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));

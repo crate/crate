@@ -22,20 +22,12 @@
 
 package io.crate.expression.scalar.conditional;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-
-import java.util.Arrays;
+import io.crate.metadata.FunctionInfo;
 
 public class LeastFunction extends ConditionalCompareFunction {
 
     public static final String NAME = "least";
-
-    public static final FunctionInfo TWO_LONG_INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)), DataTypes.LONG);
 
     private LeastFunction(FunctionInfo info) {
         super(info);
