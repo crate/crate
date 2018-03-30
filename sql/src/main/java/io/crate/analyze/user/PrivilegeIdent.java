@@ -44,8 +44,8 @@ public class PrivilegeIdent implements Writeable {
     }
 
     PrivilegeIdent(StreamInput in) throws IOException {
-        type = Privilege.Type.VALUES.get(in.readInt());
-        clazz = Privilege.Clazz.VALUES.get(in.readInt());
+        type = in.readEnum(Privilege.Type.class);
+        clazz = in.readEnum(Privilege.Clazz.class);
         ident = in.readOptionalString();
     }
 
@@ -64,8 +64,8 @@ public class PrivilegeIdent implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(type.ordinal());
-        out.writeInt(clazz.ordinal());
+        out.writeEnum(type);
+        out.writeEnum(clazz);
         out.writeOptionalString(ident);
     }
 
