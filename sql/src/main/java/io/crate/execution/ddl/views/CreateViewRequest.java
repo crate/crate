@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
@@ -39,11 +40,14 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
     private RelationName name;
     private String query;
     private boolean replaceExisting;
+    @Nullable
+    private String owner;
 
-    public CreateViewRequest(RelationName name, String query, boolean replaceExisting) {
+    public CreateViewRequest(RelationName name, String query, boolean replaceExisting, @Nullable String owner) {
         this.name = name;
         this.query = query;
         this.replaceExisting = replaceExisting;
+        this.owner = owner;
     }
 
     CreateViewRequest() {
@@ -62,8 +66,13 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         return query;
     }
 
-    public boolean replaceExisting() {
+    boolean replaceExisting() {
         return replaceExisting;
+    }
+
+    @Nullable
+    String owner() {
+        return owner;
     }
 
     @Override
@@ -77,6 +86,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         name = new RelationName(in);
         query = in.readString();
         replaceExisting = in.readBoolean();
+        owner = in.readOptionalString();
     }
 
     @Override
@@ -85,5 +95,6 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         name.writeTo(out);
         out.writeString(query);
         out.writeBoolean(replaceExisting);
+        out.writeOptionalString(owner);
     }
 }
