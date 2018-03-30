@@ -24,7 +24,10 @@ package io.crate.analyze;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.auth.user.User;
 import io.crate.metadata.TableIdent;
+
+import javax.annotation.Nullable;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 
@@ -32,12 +35,15 @@ public final class CreateViewStmt implements AnalyzedStatement {
     private final QueriedRelation query;
     private final String formattedQuery;
     private final boolean replaceExisting;
+    @Nullable
+    private final User owner;
 
-    CreateViewStmt(TableIdent name, QueriedRelation query, String formattedQuery, boolean replaceExisting) {
+    CreateViewStmt(TableIdent name, QueriedRelation query, String formattedQuery, boolean replaceExisting, @Nullable User owner) {
         this.name = name;
         this.query = query;
         this.formattedQuery = formattedQuery;
         this.replaceExisting = replaceExisting;
+        this.owner = owner;
     }
 
     public TableIdent name() {
@@ -55,6 +61,11 @@ public final class CreateViewStmt implements AnalyzedStatement {
 
     public boolean replaceExisting() {
         return replaceExisting;
+    }
+
+    @Nullable
+    public User owner() {
+        return owner;
     }
 
     @Override

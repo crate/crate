@@ -93,7 +93,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
                                 MetaData.builder(currentState.metaData())
                                     .putCustom(
                                         ViewsMetaData.TYPE,
-                                        ViewsMetaData.addOrReplace(views, request.name(), request.query()))
+                                        ViewsMetaData.addOrReplace(views, request.name(), request.query(), request.owner()))
                                     .build()
                             ).build();
                     }

@@ -66,6 +66,6 @@ public final class CreateViewAnalyzer {
         if (query.fields().stream().map(Field::outputName).distinct().count() != query.fields().size()) {
             throw new IllegalArgumentException("Query in CREATE VIEW must not have duplicate column names");
         }
-        return new CreateViewStmt(name, query, formattedQuery, createView.replaceExisting());
+        return new CreateViewStmt(name, query, formattedQuery, createView.replaceExisting(), txnCtx.sessionContext().user());
     }
 }

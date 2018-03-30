@@ -158,7 +158,8 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     /**
      * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
      */
-    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, TableIdent name, String query) {
+    public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, TableIdent name, String query, @Nullable String owner) {
+        // TODO: store owner
         HashMap<String, String> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();

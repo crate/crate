@@ -44,6 +44,7 @@ import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
@@ -189,6 +190,7 @@ public class SQLExecutor {
         private final UserDefinedFunctionService udfService;
         private final Random random;
         private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
+        private User user = null;
         private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
         private TableStats tableStats = new TableStats();
@@ -261,6 +263,11 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder setUser(User user) {
+            this.user = user;
+            return this;
+        }
+
         /**
          * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
          * <p>
@@ -330,7 +337,7 @@ public class SQLExecutor {
                     tableStats
                 ),
                 relationAnalyzer,
-                new SessionContext(defaultSchema, null, s -> {}, t -> {}),
+                new SessionContext(defaultSchema, user, s -> {}, t -> {}),
                 random
             );
         }
@@ -405,7 +412,7 @@ public class SQLExecutor {
         public Builder addView(TableIdent name, String query) {
             ClusterState prevState = clusterService.state();
             ViewsMetaData newViews = ViewsMetaData.addOrReplace(
-                prevState.metaData().custom(ViewsMetaData.TYPE), name, query);
+                prevState.metaData().custom(ViewsMetaData.TYPE), name, query, user == null ? null : user.name());
 
             MetaData newMetaData = MetaData.builder(prevState.metaData()).putCustom(ViewsMetaData.TYPE, newViews).build();
             ClusterState newState = ClusterState.builder(prevState)

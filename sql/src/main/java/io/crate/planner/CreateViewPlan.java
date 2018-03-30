@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.CreateViewStmt;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -48,10 +49,12 @@ public final class CreateViewPlan implements Plan {
                         Row params,
                         Map<SelectSymbol, Object> valuesBySubQuery) {
 
+        User owner = createViewStmt.owner();
         CreateViewRequest request = new CreateViewRequest(
             createViewStmt.name(),
             createViewStmt.formattedQuery(),
-            createViewStmt.replaceExisting()
+            createViewStmt.replaceExisting(),
+            owner == null ? null : owner.name()
         );
         dependencies.createViewAction().execute(request, new OneRowActionListener<>(consumer, resp -> {
             if (resp.alreadyExistsFailure()) {
