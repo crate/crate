@@ -41,9 +41,11 @@ import static org.hamcrest.core.IsNull.nullValue;
 public class ViewsMetaDataTest extends CrateUnitTest {
 
     public static ViewsMetaData createMetaData() {
-        Map<String, String> map = ImmutableMap.<String, String>builder()
-            .put("doc.my_view", "SELECT x, y FROM t1 WHERE z = 'a'")
-            .put("my_schema.other_view", "SELECT a, b FROM t2 WHERE c = 1")
+        Map<String, ViewMetaData> map = ImmutableMap.<String, ViewMetaData>builder()
+            .put("doc.my_view",
+                new ViewMetaData("SELECT x, y FROM t1 WHERE z = 'a'", "user_a"))
+            .put("my_schema.other_view",
+                new ViewMetaData("SELECT a, b FROM t2 WHERE c = 1", "user_b"))
             .build();
         return new ViewsMetaData(map);
     }
