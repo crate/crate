@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.auth.user.User;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -39,10 +40,12 @@ import static org.hamcrest.Matchers.is;
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private User testUser = User.of("test_user");
 
     @Before
     public void setUpExecutor() throws IOException {
         e = SQLExecutor.builder(clusterService)
+            .setUser(testUser)
             .addTable("create table t1 (x int)")
             .build();
     }
@@ -53,6 +56,13 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(createView.name(), is(new RelationName(e.getSessionContext().defaultSchema(), "v1")));
         assertThat(createView.query(), isSQL("QueriedTable{DocTableRelation{doc.t1}}"));
+        assertThat(createView.owner(), is(testUser));
+    }
+
+    @Test
+    public void testCreateOrReplaceViewCreatesStatementWithNameAndAnalyzedRelation() {
+        CreateViewStmt createView = e.analyze("create or replace view v1 as select x from t1");
+        assertTrue(createView.replaceExisting());
     }
 
     @Test
