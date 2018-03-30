@@ -43,26 +43,26 @@ import java.util.Objects;
 public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "views";
-    private final Map<String, String> queryByName;
+    private final Map<String, ViewMetaData> viewByName;
 
-    ViewsMetaData(Map<String, String> queryByName) {
-        this.queryByName = queryByName;
+    ViewsMetaData(Map<String, ViewMetaData> viewByName) {
+        this.viewByName = viewByName;
     }
 
     public ViewsMetaData(StreamInput in) throws IOException {
         int numViews = in.readVInt();
-        queryByName = new HashMap<>(numViews);
+        viewByName = new HashMap<>(numViews);
         for (int i = 0; i < numViews; i++) {
-            queryByName.put(in.readString(), in.readString());
+            viewByName.put(in.readString(), new ViewMetaData(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(queryByName.size());
-        for (Map.Entry<String, String> view : queryByName.entrySet()) {
+        out.writeVInt(viewByName.size());
+        for (Map.Entry<String, ViewMetaData> view : viewByName.entrySet()) {
             out.writeString(view.getKey());
-            out.writeString(view.getValue());
+            view.getValue().writeTo(out);
         }
     }
 
@@ -84,22 +84,28 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
      *     {
      *       "views": {
      *         "docs.my_view": {
-     *           "stmt": "select x, y from t1 where z = 'a'"
+     *           "stmt": "select x, y from t1 where z = 'a'",
+     *           "owner": "user_a"
      *         }
      *       }
      *     }
      * </pre>
      *
-     * Where docs.my_view is the full qualified name of the view
-     * and the value of "stmt" is the analyzed SELECT statement.
+     * <ul>
+     *     <li>"docs.my_view" is the full qualified name of the view</li>
+     *     <li>value of "stmt" is the analyzed SELECT statement</li>
+     *     <li>value of "owner" is the name of the user who created the view</li>
+     * </ul>
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(TYPE);
-        for (Map.Entry<String, String> entry : queryByName.entrySet()) {
+        for (Map.Entry<String, ViewMetaData> entry : viewByName.entrySet()) {
+            ViewMetaData view = entry.getValue();
             builder.startObject(entry.getKey());
             {
-                builder.field("stmt", entry.getValue());
+                builder.field("stmt", view.stmt());
+                builder.field("owner", view.owner());
             }
             builder.endObject();
         }
@@ -108,19 +114,29 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     public static ViewsMetaData fromXContent(XContentParser parser) throws IOException {
-        Map<String, String> views = new HashMap<>();
+        Map<String, ViewMetaData> views = new HashMap<>();
 
         if (parser.nextToken() == XContentParser.Token.FIELD_NAME && parser.currentName().equals(TYPE)) {
             if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
                 while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                     String viewName = parser.currentName();
                     if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
+                        String stmt = null;
+                        String owner = null;
                         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             if ("stmt".equals(parser.currentName())) {
                                 parser.nextToken();
-                                views.put(viewName, parser.text());
+                                stmt = parser.text();
+                            }
+                            if ("owner".equals(parser.currentName())) {
+                                parser.nextToken();
+                                owner = parser.textOrNull();
                             }
                         }
+                        if (stmt == null) {
+                            throw new ElasticsearchParseException("failed to parse views, expected field 'stmt' in object");
+                        }
+                        views.put(viewName, new ViewMetaData(stmt, owner));
                     }
                 }
             }
@@ -139,42 +155,41 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         if (o == null || getClass() != o.getClass()) return false;
 
         ViewsMetaData that = (ViewsMetaData) o;
-        return queryByName.equals(that.queryByName);
+        return viewByName.equals(that.viewByName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(queryByName);
+        return Objects.hash(viewByName);
     }
 
     public boolean contains(String name) {
-        return queryByName.containsKey(name);
+        return viewByName.containsKey(name);
     }
 
     public Iterable<String> names() {
-        return queryByName.keySet();
+        return viewByName.keySet();
     }
 
     /**
      * @return A copy of the ViewsMetaData with the new view added (or replaced in case it already existed)
      */
     public static ViewsMetaData addOrReplace(@Nullable ViewsMetaData prevViews, RelationName name, String query, @Nullable String owner) {
-        // TODO: store owner
-        HashMap<String, String> queryByName;
+        HashMap<String, ViewMetaData> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();
         } else {
-            queryByName = new HashMap<>(prevViews.queryByName);
+            queryByName = new HashMap<>(prevViews.viewByName);
         }
-        queryByName.put(name.fqn(), query);
+        queryByName.put(name.fqn(), new ViewMetaData(query, owner));
         return new ViewsMetaData(queryByName);
     }
 
     public RemoveResult remove(List<RelationName> names) {
-        HashMap<String, String> updatedQueryByName = new HashMap<>(this.queryByName);
+        HashMap<String, ViewMetaData> updatedQueryByName = new HashMap<>(this.viewByName);
         ArrayList<RelationName> missing = new ArrayList<>(names.size());
         for (RelationName name : names) {
-            String removed = updatedQueryByName.remove(name.fqn());
+            ViewMetaData removed = updatedQueryByName.remove(name.fqn());
             if (removed == null) {
                 missing.add(name);
             }
@@ -184,7 +199,11 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
 
     @Nullable
     public String getStatement(RelationName name) {
-        return queryByName.get(name.fqn());
+        ViewMetaData view = viewByName.get(name.fqn());
+        if (view == null) {
+            return null;
+        }
+        return view.stmt();
     }
 
     public class RemoveResult {
