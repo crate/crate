@@ -143,7 +143,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
         // "Tell" the browser to open the credentials popup
         // It helps to avoid custom login page in AdminUI
-        response.headers().set(HttpHeaderNames.WWW_AUTHENTICATE, WWW_AUTHENTICATE_REALM_MESSAGE);
+        response.headers()
+            .set(HttpHeaderNames.WWW_AUTHENTICATE, WWW_AUTHENTICATE_REALM_MESSAGE)
+            .set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
         channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
