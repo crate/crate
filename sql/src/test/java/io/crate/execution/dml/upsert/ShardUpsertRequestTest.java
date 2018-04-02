@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -58,7 +59,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            false,
+            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             assignmentColumns,
             missingAssignmentColumns,
@@ -70,6 +71,11 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         request.add(123, new ShardUpsertRequest.Item(
             "99",
             null,
+            new Object[]{99, new BytesRef("Marvin")},
+            null));
+        request.add(42, new ShardUpsertRequest.Item(
+            "99",
+            new Symbol[0],
             new Object[]{99, new BytesRef("Marvin")},
             null));
         request.add(5, new ShardUpsertRequest.Item(

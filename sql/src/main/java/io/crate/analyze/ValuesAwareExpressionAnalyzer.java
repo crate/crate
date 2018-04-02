@@ -79,7 +79,7 @@ import java.util.function.Function;
 public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     private final ValuesResolver valuesResolver;
-    private final Insert.DuplicateKeyType duplicateKeyType;
+    private final Insert.DuplicateKeyContext.Type duplicateKeyType;
 
     /**
      * used to resolve the argument column in VALUES (&lt;argumentColumn&gt;) to the literal or reference
@@ -94,7 +94,7 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
                                   Function<ParameterExpression, Symbol> convertParamFunction,
                                   FieldProvider fieldProvider,
                                   ValuesResolver valuesResolver,
-                                  Insert.DuplicateKeyType duplicateKeyType) {
+                                  Insert.DuplicateKeyContext.Type duplicateKeyType) {
         super(functions, transactionContext, convertParamFunction, fieldProvider, null);
         this.valuesResolver = valuesResolver;
         this.duplicateKeyType = duplicateKeyType;
@@ -104,7 +104,7 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
         List<String> parts = node.getName().getParts();
         if (parts.get(0).equals("values")) {
-            if (duplicateKeyType != Insert.DuplicateKeyType.ON_DUPLICATE_KEY_UPDATE) {
+            if (duplicateKeyType != Insert.DuplicateKeyContext.Type.ON_DUPLICATE_KEY_UPDATE) {
                 throw new UnsupportedOperationException("Can't use VALUES outside ON DUPLICATE KEY UPDATE col = VALUES(..)");
             }
             Expression expression = node.getArguments().get(0);

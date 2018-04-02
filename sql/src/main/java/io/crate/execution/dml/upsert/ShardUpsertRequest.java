@@ -44,11 +44,17 @@ import java.util.UUID;
 
 public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
-    private boolean continueOnError = false;
-    private boolean overwriteDuplicates = false;
-    private Boolean isRawSourceInsert = null;
+    public enum DuplicateKeyAction {
+        UPDATE_OR_FAIL,
+        OVERWRITE,
+        IGNORE
+    }
+
+    private DuplicateKeyAction duplicateKeyAction;
+    private boolean continueOnError;
+    private Boolean isRawSourceInsert;
     private boolean validateConstraints = true;
-    private boolean isRetry = false;
+    private boolean isRetry;
 
     /**
      * List of column names used on update
@@ -98,12 +104,12 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return insertColumns;
     }
 
-    public boolean overwriteDuplicates() {
-        return overwriteDuplicates;
+    public DuplicateKeyAction duplicateKeyAction() {
+        return duplicateKeyAction;
     }
 
-    public ShardUpsertRequest overwriteDuplicates(boolean overwriteDuplicates) {
-        this.overwriteDuplicates = overwriteDuplicates;
+    public ShardUpsertRequest duplicateKeyAction(DuplicateKeyAction duplicateKeyAction) {
+        this.duplicateKeyAction = duplicateKeyAction;
         return this;
     }
 
@@ -165,7 +171,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
         }
         continueOnError = in.readBoolean();
-        overwriteDuplicates = in.readBoolean();
+        duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
         validateConstraints = in.readBoolean();
 
         int numItems = in.readVInt();
@@ -193,7 +199,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             out.writeVInt(0);
         }
         out.writeBoolean(continueOnError);
-        out.writeBoolean(overwriteDuplicates);
+        out.writeVInt(duplicateKeyAction.ordinal());
         out.writeBoolean(validateConstraints);
 
         out.writeVInt(items.size());
@@ -215,7 +221,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         if (!super.equals(o)) return false;
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
-               overwriteDuplicates == items.overwriteDuplicates &&
+               duplicateKeyAction == items.duplicateKeyAction &&
                validateConstraints == items.validateConstraints &&
                Objects.equal(isRawSourceInsert, items.isRawSourceInsert) &&
                Arrays.equals(updateColumns, items.updateColumns) &&
@@ -225,7 +231,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(super.hashCode(), continueOnError, overwriteDuplicates, isRawSourceInsert, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
+        return Objects.hashCode(super.hashCode(), continueOnError, duplicateKeyAction, isRawSourceInsert, validateConstraints, updateColumns, insertColumns, insertValuesStreamer);
     }
 
     /**
@@ -285,8 +291,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
         public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super(in);
-            int assignmentsSize = in.readVInt();
-            if (assignmentsSize > 0) {
+            if (in.readBoolean()) {
+                int assignmentsSize = in.readVInt();
                 updateAssignments = new Symbol[assignmentsSize];
                 for (int i = 0; i < assignmentsSize; i++) {
                     updateAssignments[i] = Symbols.fromStream(in);
@@ -308,12 +314,13 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
             if (updateAssignments != null) {
+                out.writeBoolean(true);
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {
                     Symbols.toStream(updateAssignment, out);
                 }
             } else {
-                out.writeVInt(0);
+                out.writeBoolean(false);
             }
             // Stream References
             if (insertValues != null) {
@@ -337,7 +344,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     public static class Builder {
 
         private final TimeValue timeout;
-        private final boolean overwriteDuplicates;
+        private final DuplicateKeyAction duplicateKeyAction;
         private final boolean continueOnError;
         @Nullable
         private final String[] assignmentsColumns;
@@ -347,33 +354,33 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private boolean validateGeneratedColumns;
 
         public Builder(TimeValue timeout,
-                       boolean overwriteDuplicates,
+                       DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        UUID jobId) {
-            this(timeout, overwriteDuplicates, continueOnError, assignmentsColumns, missingAssignmentsColumns, jobId, true);
+            this(timeout, duplicateKeyAction, continueOnError, assignmentsColumns, missingAssignmentsColumns, jobId, true);
         }
 
-        public Builder(boolean overwriteDuplicates,
+        public Builder(DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        UUID jobId,
                        boolean validateGeneratedColumns) {
-            this(ReplicationRequest.DEFAULT_TIMEOUT, overwriteDuplicates, continueOnError,
+            this(ReplicationRequest.DEFAULT_TIMEOUT, duplicateKeyAction, continueOnError,
                 assignmentsColumns, missingAssignmentsColumns, jobId, validateGeneratedColumns);
         }
 
         public Builder(TimeValue timeout,
-                       boolean overwriteDuplicates,
+                       DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
                        @Nullable Reference[] missingAssignmentsColumns,
                        UUID jobId,
                        boolean validateGeneratedColumns) {
             this.timeout = timeout;
-            this.overwriteDuplicates = overwriteDuplicates;
+            this.duplicateKeyAction = duplicateKeyAction;
             this.continueOnError = continueOnError;
             this.assignmentsColumns = assignmentsColumns;
             this.missingAssignmentsColumns = missingAssignmentsColumns;
@@ -390,7 +397,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 jobId)
                 .timeout(timeout)
                 .continueOnError(continueOnError)
-                .overwriteDuplicates(overwriteDuplicates)
+                .duplicateKeyAction(duplicateKeyAction)
                 .validateConstraints(validateGeneratedColumns);
         }
     }

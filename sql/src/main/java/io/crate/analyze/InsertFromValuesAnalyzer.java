@@ -60,9 +60,9 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.BytesRefs;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -160,9 +160,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             exprAnalyzer.copyForOperation(Operation.UPDATE),
             txnCtx,
             typeHints,
-            insert.getDuplicateKeyType(),
-            insert.onDuplicateKeyAssignments(),
-            insert.getConstraintColumns());
+            insert.getDuplicateKeyContext());
         return new AnalyzedInsertStatement(rows, onDuplicateKeyAssignments);
     }
 
@@ -175,8 +173,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         final FieldProvider fieldProvider;
-        if (node.getDuplicateKeyType() == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
-            verifyOnConflictTargets(node.getConstraintColumns(), tableInfo);
+        if (node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {
+            verifyOnConflictTargets(node.getDuplicateKeyContext().getConstraintColumns(), tableInfo);
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(tableRelation), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(tableRelation);
@@ -189,10 +187,13 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             convertParamFunction,
             fieldProvider,
             valuesResolver,
-            node.getDuplicateKeyType());
+            node.getDuplicateKeyContext().getType());
+
+        final boolean ignoreDuplicateKeys =
+            node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
-            tableInfo, analysis.parameterContext().numBulkParams());
+            tableInfo, analysis.parameterContext().numBulkParams(), ignoreDuplicateKeys);
         handleInsertColumns(node, node.maxValuesLength(), statement);
 
         Set<Reference> allReferencedReferences = new HashSet<>();
@@ -227,7 +228,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 valuesResolver,
                 valuesAwareExpressionAnalyzer,
                 valuesList,
-                node.onDuplicateKeyAssignments(),
+                node.getDuplicateKeyContext().getAssignments(),
                 statement,
                 analysis.parameterContext(),
                 refToLiteral);
@@ -273,7 +274,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                ValuesResolver valuesResolver,
                                ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                                ValuesList node,
-                               List<Assignment> assignments,
+                               List<Assignment> onDuplicateKeyAssignments,
                                InsertFromValuesAnalyzedStatement statement,
                                ParameterContext parameterContext,
                                ReferenceToLiteralConverter refToLiteral) {
@@ -296,7 +297,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         valuesResolver,
                         valuesAwareExpressionAnalyzer,
                         node,
-                        assignments,
+                        onDuplicateKeyAssignments,
                         statement,
                         refToLiteral,
                         numPks,
@@ -314,7 +315,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     valuesResolver,
                     valuesAwareExpressionAnalyzer,
                     node,
-                    assignments,
+                    onDuplicateKeyAssignments,
                     statement,
                     refToLiteral,
                     numPks,
@@ -335,7 +336,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ValuesResolver valuesResolver,
                            ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                            ValuesList node,
-                           List<Assignment> assignments,
+                           List<Assignment> onDuplicateKeyAssignments,
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter refToLiteral,
                            int numPrimaryKeys,
@@ -404,13 +405,13 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             }
         }
 
-        if (!assignments.isEmpty()) {
+        if (!onDuplicateKeyAssignments.isEmpty()) {
             valuesResolver.insertValues = insertValues;
             valuesResolver.columns = context.columns();
-            Symbol[] onDupKeyAssignments = new Symbol[assignments.size()];
-            valuesResolver.assignmentColumns = new ArrayList<>(assignments.size());
-            for (int i = 0; i < assignments.size(); i++) {
-                Assignment assignment = assignments.get(i);
+            Symbol[] onDupKeyAssignments = new Symbol[onDuplicateKeyAssignments.size()];
+            valuesResolver.assignmentColumns = new ArrayList<>(onDuplicateKeyAssignments.size());
+            for (int i = 0; i < onDuplicateKeyAssignments.size(); i++) {
+                Assignment assignment = onDuplicateKeyAssignments.get(i);
                 Reference columnName = tableRelation.resolveField(
                     (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
                 assert columnName != null : "columnName must not be null";

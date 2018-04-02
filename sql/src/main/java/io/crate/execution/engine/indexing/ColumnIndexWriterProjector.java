@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.data.BatchIterator;
@@ -70,6 +71,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       List<Reference> columnReferences,
                                       List<Input<?>> insertInputs,
                                       List<? extends CollectExpression<Row, ?>> collectExpressions,
+                                      boolean ignoreDuplicateKeys,
                                       @Nullable Map<Reference, Symbol> updateAssignments,
                                       int bulkActions,
                                       boolean autoCreateIndices,
@@ -91,7 +93,7 @@ public class ColumnIndexWriterProjector implements Projector {
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            false, // overwriteDuplicates
+            ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
             columnReferences.toArray(new Reference[columnReferences.size()]),

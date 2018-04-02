@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.execution.dsl.projection.builder.InputColumns;
+import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -36,8 +38,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.expression.scalar.SubscriptObjectFunction;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -57,7 +57,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
 
     private final DocTableInfo targetTable;
     private final QueriedRelation subQueryRelation;
-
+    private final boolean ignoreDuplicateKeys;
     @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> targetColumns;
@@ -69,9 +69,11 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     public InsertFromSubQueryAnalyzedStatement(QueriedRelation subQueryRelation,
                                                DocTableInfo tableInfo,
                                                List<Reference> targetColumns,
+                                               boolean ignoreDuplicateKeys,
                                                @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
+        this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColumns = targetColumns;
         Map<ColumnIdent, Integer> columnPositions = toPositionMap(targetColumns);
@@ -188,6 +190,10 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    public boolean isIgnoreDuplicateKeys() {
+        return ignoreDuplicateKeys;
     }
 
     @Nullable

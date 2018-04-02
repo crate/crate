@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.inject.internal.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -36,19 +36,20 @@ public final class AnalyzedInsertStatement implements AnalyzedStatement {
     private List<List<Symbol>> rows;
     @Nullable
     private AnalyzedStatement subRelation;
+
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
 
     private AnalyzedInsertStatement(Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
     }
 
-    AnalyzedInsertStatement(List<List<Symbol>> rows,
+    AnalyzedInsertStatement(@Nullable List<List<Symbol>> rows,
                             Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this(onDuplicateKeyAssignments);
         this.rows = rows;
     }
 
-    AnalyzedInsertStatement(AnalyzedStatement subRelation,
+    AnalyzedInsertStatement(@Nullable AnalyzedStatement subRelation,
                             Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this(onDuplicateKeyAssignments);
         this.subRelation = subRelation;

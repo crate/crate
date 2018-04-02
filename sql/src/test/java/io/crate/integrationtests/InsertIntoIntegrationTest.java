@@ -747,6 +747,48 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromValuesOnConflictDoNothing() {
+        execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
+        execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
+
+        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT DO NOTHING");
+        assertThat(response.rowCount(), is(0L));
+        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO NOTHING");
+        assertThat(response.rowCount(), is(0L));
+        // the statement below also succeeds without ON CONFLICT DO NOTHING because we allow errors for multiple values
+        execute("insert into t1 (id, other) values (1, 'updated'), (3, 'new') ON CONFLICT DO NOTHING");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("select id, other from t1 order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1| test\n" +
+            "2| test2\n" +
+            "3| new\n")
+        );
+    }
+
+    @Test
+    public void testInsertFromQueryOnConflictDoNothing() {
+        execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
+        execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
+
+        // these statements succeed even without ON CONFLICT DO NOTHING because we allow errors for subqueries
+        execute("insert into t1 (id, other) (select * from unnest([1, 4], ['updated', 'another'])) ON CONFLICT DO NOTHING");
+        assertThat(response.rowCount(), is(1L));
+        execute("insert into t1 (id, other) (select * from unnest([1, 4], ['updated', 'another'])) ON CONFLICT (id) DO NOTHING");
+        assertThat(response.rowCount(), is(0L));
+        refresh();
+
+        execute("select id, other from t1 order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1| test\n" +
+            "2| test2\n" +
+            "4| another\n")
+        );
+    }
+
+    @Test
     public void testInsertFromSubQueryWithVersion() throws Exception {
         execute("create table users (name string) clustered into 1 shards");
 

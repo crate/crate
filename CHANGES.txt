@@ -73,6 +73,9 @@ Changes
   ``information_schema.views`` and they show up in
   ``information_schema.tables`` as well as ``information_schema.columns``
 
+- Added support for ``INSERT INTO ... ON CONFLICT DO NOTHING``. The statement
+  ignores insert values which would cause duplicate keys.
+
 - Arrays can now contain mixed types if they're safely convertible. JSON
   libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
   caused an error because of the strict type match we enforced before.

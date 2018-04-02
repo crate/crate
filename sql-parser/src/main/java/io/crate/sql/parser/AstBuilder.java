@@ -432,43 +432,56 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             throw e;
         }
 
-        final Insert.DuplicateKeyType duplicateKeyType;
-        final List<SqlBaseParser.AssignmentContext> assignment;
-        final List<String> conflictColumns;
-        if (context.onDuplicate() != null) {
-            duplicateKeyType = Insert.DuplicateKeyType.ON_DUPLICATE_KEY_UPDATE;
-            assignment = context.onDuplicate().assignment();
-            conflictColumns = Collections.emptyList();
-        } else if (context.onConflict() != null) {
-            if (context.onConflict().NOTHING() != null) {
-                throw new UnsupportedOperationException("ON CONFLICT DO NOTHING is not implemented yet.");
-            }
-            duplicateKeyType = Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET;
-            assignment = context.onConflict().assignment();
-            conflictColumns = context.onConflict().conflictTarget().qname().stream()
-                .map(RuleContext::getText).collect(toList());
-        } else {
-            duplicateKeyType = Insert.DuplicateKeyType.NONE;
-            assignment = Collections.emptyList();
-            conflictColumns = Collections.emptyList();
-        }
-
         if (context.insertSource().VALUES() != null) {
             return new InsertFromValues(
                 table,
                 visitCollection(context.insertSource().values(), ValuesList.class),
                 columns,
-                duplicateKeyType,
-                visitCollection(assignment, Assignment.class),
-                conflictColumns);
+                createDuplicateKeyContext(context));
         }
         return new InsertFromSubquery(
             table,
             (Query) visit(context.insertSource().query()),
             columns,
-            duplicateKeyType,
-            visitCollection(assignment, Assignment.class),
-            conflictColumns);
+            createDuplicateKeyContext(context));
+    }
+
+    /**
+     * Creates a {@link io.crate.sql.tree.Insert.DuplicateKeyContext} based on the Insert
+     */
+    private Insert.DuplicateKeyContext createDuplicateKeyContext(SqlBaseParser.InsertContext context) {
+        if (context.onDuplicate() != null) {
+            return new Insert.DuplicateKeyContext(
+                Insert.DuplicateKeyContext.Type.ON_DUPLICATE_KEY_UPDATE,
+                visitCollection(context.onDuplicate().assignment(), Assignment.class),
+                Collections.emptyList());
+        } else if (context.onConflict() != null) {
+            SqlBaseParser.OnConflictContext onConflictContext = context.onConflict();
+            final List<String> conflictColumns;
+            if (onConflictContext.conflictTarget() != null) {
+                conflictColumns = onConflictContext.conflictTarget().qname().stream()
+                    .map(RuleContext::getText)
+                    .collect(toList());
+            } else {
+                conflictColumns = Collections.emptyList();
+            }
+            if (onConflictContext.NOTHING() != null) {
+                return new Insert.DuplicateKeyContext(
+                    Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING,
+                    Collections.emptyList(),
+                    conflictColumns);
+            } else {
+                if (conflictColumns == null) {
+                    throw new IllegalStateException("ON CONFLICT <conflict_target> <- conflict_target missing");
+                }
+                return new Insert.DuplicateKeyContext(
+                    Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET,
+                    visitCollection(onConflictContext.assignment(), Assignment.class),
+                    conflictColumns);
+            }
+        } else {
+            return Insert.DuplicateKeyContext.NONE;
+        }
     }
 
     @Override

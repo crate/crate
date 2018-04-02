@@ -54,6 +54,7 @@ import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -303,6 +304,16 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
+    public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
+        InsertFromSubQueryAnalyzedStatement statement =
+            e.analyze("insert into users (id, name) (select 1, 'Jon') on conflict DO NOTHING");
+        Map<Reference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
+        assertThat(statement.isIgnoreDuplicateKeys(), is(true));
+        assertThat(duplicateKeyAssignments, is(notNullValue()));
+        assertThat(duplicateKeyAssignments.size(), is(0));
+    }
+
+    @Test
     public void testMissingPrimaryKey() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Column \"id\" is required but is missing from the insert statement");
@@ -346,7 +357,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testFromQueryWithMissingConflictTarget() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:63: no viable alternative at input 'on conflict do'");
+        expectedException.expectMessage("line 1:66: mismatched input 'update' expecting 'NOTHING'");
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set name = excluded.name");
     }
 }

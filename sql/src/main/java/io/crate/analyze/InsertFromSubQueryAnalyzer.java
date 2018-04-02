@@ -123,9 +123,7 @@ class InsertFromSubQueryAnalyzer {
             typeHints,
             txnCtx,
             new NameFieldProvider(tableRelation),
-            insert.getDuplicateKeyType(),
-            insert.onDuplicateKeyAssignments(),
-            insert.getConstraintColumns()
+            insert.getDuplicateKeyContext()
         );
 
         return new AnalyzedInsertStatement(subQueryRelation, onDuplicateKeyAssignments);
@@ -151,15 +149,17 @@ class InsertFromSubQueryAnalyzer {
             analysis.parameterContext(),
             analysis.transactionContext(),
             fieldProvider,
-            node.getDuplicateKeyType(),
-            node.onDuplicateKeyAssignments(),
-            node.getConstraintColumns()
+            node.getDuplicateKeyContext()
         );
+
+        final boolean ignoreDuplicateKeys =
+            node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
 
         return new InsertFromSubQueryAnalyzedStatement(
             source,
             tableInfo,
             targetColumns,
+            ignoreDuplicateKeys,
             onDuplicateKeyAssignments);
     }
 
@@ -241,27 +241,26 @@ class InsertFromSubQueryAnalyzer {
                                                        ExpressionAnalyzer exprAnalyzer,
                                                        TransactionContext txnCtx,
                                                        Function<ParameterExpression, Symbol> paramConverter,
-                                                       Insert.DuplicateKeyType duplicateKeyType,
-                                                       List<Assignment> assignments,
-                                                       List<String> constraintColumns) {
-        if (assignments.isEmpty()) {
+                                                       Insert.DuplicateKeyContext duplicateKeyContext) {
+        if (duplicateKeyContext.getAssignments().isEmpty()) {
             return Collections.emptyMap();
         }
+
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
         ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
         final FieldProvider fieldProvider;
-        if (duplicateKeyType == Insert.DuplicateKeyType.ON_CONFLICT_DO_UPDATE_SET) {
-            InsertFromValuesAnalyzer.verifyOnConflictTargets(constraintColumns, targetTable.tableInfo());
+        if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {
+            InsertFromValuesAnalyzer.verifyOnConflictTargets(duplicateKeyContext.getConstraintColumns(), targetTable.tableInfo());
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(targetTable), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(targetTable);
         }
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            functions, txnCtx, paramConverter, fieldProvider, valuesResolver, duplicateKeyType);
+            functions, txnCtx, paramConverter, fieldProvider, valuesResolver, duplicateKeyContext.getType());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
 
-        HashMap<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
-        for (Assignment assignment : assignments) {
+        Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
+        for (Assignment assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = requireNonNull(
                 targetTable.resolveField((Field) exprAnalyzer.convert(assignment.columnName(), exprCtx)),
                 "resolveField must work on a field that was just resolved"
@@ -282,18 +281,15 @@ class InsertFromSubQueryAnalyzer {
                                                             java.util.function.Function<ParameterExpression, Symbol> parameterContext,
                                                             TransactionContext transactionContext,
                                                             FieldProvider fieldProvider,
-                                                            Insert.DuplicateKeyType duplicateKeyType,
-                                                            List<Assignment> assignments,
-                                                            List<String> constraintColumns) {
-        if (assignments.isEmpty()) {
+                                                            Insert.DuplicateKeyContext duplicateKeyContext) {
+        if (duplicateKeyContext.getAssignments().isEmpty()) {
             return Collections.emptyMap();
         }
 
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, parameterContext, fieldProvider, null, Operation.UPDATE);
 
-        return getUpdateAssignments(
-            functions, tableRelation, targetColumns, expressionAnalyzer, transactionContext, parameterContext,
-            duplicateKeyType, assignments, constraintColumns);
+        return getUpdateAssignments(functions, tableRelation, targetColumns, expressionAnalyzer,
+            transactionContext, parameterContext, duplicateKeyContext);
     }
 }

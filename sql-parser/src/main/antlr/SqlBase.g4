@@ -402,7 +402,7 @@ onDuplicate
    ;
 
 onConflict
-   : ON CONFLICT conflictTarget DO NOTHING
+   : ON CONFLICT conflictTarget? DO NOTHING
    | ON CONFLICT conflictTarget DO UPDATE SET assignment (',' assignment)*
    ;
 

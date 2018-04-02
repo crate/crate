@@ -44,6 +44,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private List<Symbol> columnSymbols;
     private List<Reference> targetColsExclPartitionCols;
+    private boolean ignoreDuplicateKeys;
     @Nullable
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
@@ -56,6 +57,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> columns,
+                                       boolean ignoreDuplicateKeys,
                                        @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<ColumnIdent> partitionedByColumns,
@@ -66,6 +68,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        boolean autoCreateIndices) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         this.partitionedBySymbols = partitionedBySymbols;
+        this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.targetColsExclPartitionCols = new ArrayList<>(columns.size() - partitionedByColumns.size());
         this.columnSymbols = new ArrayList<>(columns.size() - partitionedBySymbols.size());
@@ -93,6 +96,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
 
+        ignoreDuplicateKeys = in.readBoolean();
         if (in.readBoolean()) {
             int mapSize = in.readVInt();
             onDuplicateKeyAssignments = new HashMap<>(mapSize);
@@ -108,6 +112,10 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public List<Reference> columnReferences() {
         return targetColsExclPartitionCols;
+    }
+
+    public boolean isIgnoreDuplicateKeys() {
+        return ignoreDuplicateKeys;
     }
 
     public Map<Reference, Symbol> onDuplicateKeyAssignments() {
@@ -179,6 +187,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
 
+        out.writeBoolean(ignoreDuplicateKeys);
         if (onDuplicateKeyAssignments == null) {
             out.writeBoolean(false);
         } else {

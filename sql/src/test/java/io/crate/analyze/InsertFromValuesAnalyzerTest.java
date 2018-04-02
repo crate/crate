@@ -62,6 +62,8 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -1052,7 +1054,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertFromValuesWithMissingConflictTarget() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:47: no viable alternative at input 'on conflict do'");
+        expectedException.expectMessage("line 1:50: mismatched input 'update' expecting 'NOTHING'");
         e.analyze("insert into users (id) values (1) on conflict do update set name = excluded.name");
     }
 
@@ -1165,6 +1167,14 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for id: Updating a clustered-by column is not supported");
         e.analyze("update users_clustered_by_only set id = 10");
+    }
+
+    @Test
+    public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
+        InsertFromValuesAnalyzedStatement statement =
+            e.analyze("insert into users (id, name) values (1, 'Jon') on conflict DO NOTHING");
+        assertThat(statement.isIgnoreDuplicateKeys(), is(true));
+        assertThat(statement.onDuplicateKeyAssignments(), is(empty()));
     }
 
     @Test

@@ -24,15 +24,11 @@ package io.crate.execution.engine.pipeline;
 
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dml.SysUpdateProjector;
 import io.crate.execution.dml.delete.ShardDeleteRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
@@ -69,12 +65,16 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
-import io.crate.execution.jobs.NodeJobsCounter;
-import io.crate.execution.TransportActionProvider;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.ValueSymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -392,6 +392,7 @@ public class ProjectionToProjectorVisitor
             projection.columnReferences(),
             insertInputs,
             ctx.expressions(),
+            projection.isIgnoreDuplicateKeys(),
             projection.onDuplicateKeyAssignments(),
             projection.bulkActions(),
             projection.autoCreateIndices(),
@@ -410,7 +411,7 @@ public class ProjectionToProjectorVisitor
         checkShardLevel("Update projection can only be executed on a shard");
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            false,
+            ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             projection.assignmentsColumns(),
             null,

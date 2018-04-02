@@ -78,7 +78,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestStatementBuilder {
 
@@ -784,12 +783,8 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
 
-        try {
-            printStatement("insert into t (a, b) values (1, 2) on conflict (a,b) do nothing");
-            fail("Should have failed to parse statement.");
-        } catch (UnsupportedOperationException e) {
-            // this is what we want
-        }
+        printStatement("insert into t (a, b) values (1, 2) on conflict do nothing");
+        printStatement("insert into t (a, b) values (1, 2) on conflict (a,b) do nothing");
         printStatement("insert into t (a, b) values (1, 2) on conflict (a) do update set b = b + 1");
         printStatement("insert into t (a, b, c) values (1, 2, 3) on conflict (a, b) do update set a = a + 1, b = 3");
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = 4");
@@ -797,7 +792,7 @@ public class TestStatementBuilder {
 
         InsertFromValues insert = (InsertFromValues) SqlParser.createStatement(
                 "insert into test_generated_column (id, ts) values (?, ?) on duplicate key update ts = ?");
-        Assignment onDuplicateAssignment = insert.onDuplicateKeyAssignments().get(0);
+        Assignment onDuplicateAssignment = insert.getDuplicateKeyContext().getAssignments().get(0);
         assertThat(onDuplicateAssignment.expression(), instanceOf(ParameterExpression.class));
         assertThat(onDuplicateAssignment.expressions().get(0).toString(), is("$3"));
 

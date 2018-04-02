@@ -312,6 +312,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             analysis.numBulkResponses(),
             tableInfo.isPartitioned(),
             analysis.bulkIndices(),
+            analysis.isIgnoreDuplicateKeys(),
             onDuplicateKeyAssignmentsColumns,
             analysis.columns().toArray(new Reference[analysis.columns().size()])
         );

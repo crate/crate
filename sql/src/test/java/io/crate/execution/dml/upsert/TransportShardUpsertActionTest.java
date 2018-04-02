@@ -25,6 +25,7 @@ package io.crate.execution.dml.upsert;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -204,7 +205,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            false,
+            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
             new Reference[]{ID_REF},
@@ -223,7 +224,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            false,
+            DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
             new Reference[]{ID_REF},
@@ -451,7 +452,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            false,
+            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
             new Reference[]{ID_REF},
@@ -470,7 +471,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            false,
+            DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
             new Reference[]{ID_REF},

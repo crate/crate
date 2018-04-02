@@ -36,6 +36,7 @@ import java.util.Map;
 
 public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedStatement {
 
+    private final boolean ignoreDuplicateKeys;
     private final List<Symbol[]> onDuplicateKeyAssignments = new ArrayList<>();
     private final List<String[]> onDuplicateKeyAssignmentsColumns = new ArrayList<>();
     private final List<Object[]> sourceMaps = new ArrayList<>();
@@ -49,8 +50,9 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     private int numAddedGeneratedColumns = 0;
 
-    public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, int numBulkResponses) {
+    public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, int numBulkResponses, boolean ignoreDuplicateKeys) {
         this.numBulkResponses = numBulkResponses;
+        this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         super.tableInfo(tableInfo);
         if (tableInfo.isPartitioned()) {
             for (Map<String, String> partitionMap : partitionMaps) {
@@ -117,6 +119,10 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         } else {
             routingValues.add(clusteredByValue);
         }
+    }
+
+    public boolean isIgnoreDuplicateKeys() {
+        return ignoreDuplicateKeys;
     }
 
     public void addOnDuplicateKeyAssignments(Symbol[] assignments) {

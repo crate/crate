@@ -21,11 +21,11 @@
 
 package io.crate.planner.node.dml;
 
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.upsert.LegacyUpsertByIdTask;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -109,6 +109,8 @@ public class LegacyUpsertById implements Plan {
     private final List<Item> items;
     private final List<Integer> bulkIndices;
 
+    private final boolean ignoreDuplicateKeys;
+
     @Nullable
     private final String[] updateColumns;
     @Nullable
@@ -117,14 +119,20 @@ public class LegacyUpsertById implements Plan {
     public LegacyUpsertById(int numBulkResponses,
                             boolean isPartitioned,
                             List<Integer> bulkIndices,
+                            boolean ignoreDuplicateKeys,
                             @Nullable String[] updateColumns,
                             @Nullable Reference[] insertColumns) {
         this.numBulkResponses = numBulkResponses;
         this.isPartitioned = isPartitioned;
         this.bulkIndices = bulkIndices;
+        this.ignoreDuplicateKeys = ignoreDuplicateKeys;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
+    }
+
+    public boolean isIgnoreDuplicateKeys() {
+        return ignoreDuplicateKeys;
     }
 
     @Nullable
@@ -152,7 +160,7 @@ public class LegacyUpsertById implements Plan {
     public void add(String index,
                     String id,
                     String routing,
-                    Symbol[] updateAssignments,
+                    @Nullable Symbol[] updateAssignments,
                     @Nullable Long version,
                     @Nullable Object[] insertValues) {
         items.add(new Item(index, id, routing, updateAssignments, version, insertValues));

@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -64,7 +65,7 @@ public class UpdateByIdTask {
         createBuilder = (continueOnError) ->
             new ShardUpsertRequest.Builder(
                 ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
-                false,
+                DuplicateKeyAction.UPDATE_OR_FAIL,
                 continueOnError,
                 assignments.targetNames(),
                 null, // missing assignments are for INSERT .. ON DUPLICATE KEY UPDATE

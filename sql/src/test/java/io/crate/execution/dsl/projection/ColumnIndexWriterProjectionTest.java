@@ -80,6 +80,7 @@ public class ColumnIndexWriterProjectionTest {
             null,
             primaryKeys,
             targetColumns,
+            false,
             null,
             primaryKeySymbols,
             partitionedByColumns,

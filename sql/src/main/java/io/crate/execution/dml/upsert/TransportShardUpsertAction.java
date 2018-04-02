@@ -23,6 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.ConstraintsValidator;
@@ -32,6 +33,7 @@ import io.crate.data.Row;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.JobContextService;
 import io.crate.expression.InputFactory;
@@ -163,7 +165,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.insertValues() != null, // try insert first
                     notUsedNonGeneratedColumns,
                     0);
-                shardResponse.add(location);
+                if (translogLocation != null) {
+                    shardResponse.add(location);
+                }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
                     Throwables.propagate(e);
@@ -217,6 +221,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
 
+    @Nullable
     protected Translog.Location indexItem(DocTableInfo tableInfo,
                                           ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
@@ -234,7 +239,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }
-            if (request.overwriteDuplicates()) {
+            if (request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE) {
                 version = Versions.MATCH_ANY;
             }
         } else {
@@ -258,7 +263,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Exception failure = indexResult.getFailure();
         if (failure != null) {
             if (failure instanceof VersionConflictEngineException) {
-                if (item.updateAssignments() != null) {
+                if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
+                    // on conflict do nothing
+                    item.source(null);
+                    return null;
+                }
+                Symbol[] updateAssignments = item.updateAssignments();
+                if (updateAssignments != null && updateAssignments.length > 0) {
                     if (tryInsertFirst) {
                         // insert failed, document already exists, try update
                         return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
@@ -354,8 +365,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         GetResult getResult = getDocument(indexShard, request, item);
 
-        List<Input<?>> updateInputs = resolveSymbols(GetResultRefResolver.INSTANCE,
-            getResult, Arrays.asList(item.updateAssignments()), item.insertValues());
+        List<Input<?>> updateInputs = resolveSymbols(
+            GetResultRefResolver.INSTANCE,
+            getResult,
+            Arrays.asList(Preconditions.checkNotNull(item.updateAssignments(),
+                "Update assignments must not be null at this point.")),
+            item.insertValues());
 
         Map<String, Object> pathsToUpdate = new LinkedHashMap<>();
         Map<String, Object> updatedGeneratedColumns = new LinkedHashMap<>();

@@ -29,6 +29,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardResponse;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.metadata.IndexParts;
 import io.crate.execution.support.RetryListener;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
@@ -108,7 +109,7 @@ public class LegacyUpsertByIdTask {
 
         reqBuilder = new ShardUpsertRequest.Builder(
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            false,
+            upsertById.isIgnoreDuplicateKeys() ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),
             upsertById.insertColumns(),

@@ -107,20 +107,6 @@ In the above statement, if ``col1`` had a primary key constraint and the value
 ``1`` already existed for ``col1``, no insert would be performed. The conflict
 target after ``ON CONFLICT`` is optional.
 
-``ON CONFLICT DO NOTHING``
---------------------------
-
-When ``ON CONFLICT DO NOTHING`` is specified, rows which caused a duplicate
-key conflict will not be inserted. No exception will be thrown. For example:
-
-::
-
-     INSERT INTO t (col1, col2) VALUES (1, 42)
-     ON CONFLICT DO NOTHING
-
-In the above statement, if ``col1`` had a primary key constraint and the value
-``1`` already existed for ``col1``, no insert would be performed.
-
 Insert From Dynamic Queries Constraints
 ---------------------------------------
 

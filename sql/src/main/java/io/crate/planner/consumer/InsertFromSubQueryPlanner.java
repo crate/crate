@@ -67,6 +67,7 @@ public final class InsertFromSubQueryPlanner {
             null,
             statement.tableInfo().primaryKey(),
             statement.columns(),
+            statement.isIgnoreDuplicateKeys(),
             statement.onDuplicateKeyAssignments(),
             statement.primaryKeySymbols(),
             statement.tableInfo().partitionedBy(),
