@@ -22,14 +22,12 @@
 
 package io.crate.analyze.user;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 public class Privilege implements Writeable {
@@ -37,25 +35,19 @@ public class Privilege implements Writeable {
     public enum State {
         GRANT,
         DENY,
-        REVOKE;
-
-        public static final List<State> VALUES = ImmutableList.copyOf(values());
+        REVOKE
     }
 
     public enum Type {
         DQL,
         DML,
-        DDL;
-
-        public static final List<Type> VALUES = ImmutableList.copyOf(values());
+        DDL
     }
 
     public enum Clazz {
         CLUSTER,
         SCHEMA,
-        TABLE;
-
-        public static final List<Clazz> VALUES = ImmutableList.copyOf(values());
+        TABLE
     }
 
 
@@ -70,7 +62,7 @@ public class Privilege implements Writeable {
     }
 
     public Privilege(StreamInput in) throws IOException {
-        state = State.VALUES.get(in.readInt());
+        state = in.readEnum(State.class);
         ident = new PrivilegeIdent(in);
         grantor = in.readString();
     }
@@ -111,7 +103,7 @@ public class Privilege implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(state.ordinal());
+        out.writeEnum(state);
         ident.writeTo(out);
         out.writeString(grantor);
     }

@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.collections.Lists2;
@@ -50,6 +51,7 @@ class PrivilegesAnalyzer {
 
     private final Schemas schemas;
     private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
+    private static final List<Privilege.Type> POSSIBLE_PRIVILEGE_TYPES = ImmutableList.copyOf(Privilege.Type.values());
 
     PrivilegesAnalyzer(Schemas schemas) {
         this.schemas = schemas;
@@ -94,7 +96,7 @@ class PrivilegesAnalyzer {
     private static Collection<Privilege.Type> getPrivilegeTypes(boolean all, List<String> typeNames) {
         Collection<Privilege.Type> privilegeTypes;
         if (all) {
-            privilegeTypes = Privilege.Type.VALUES;
+            privilegeTypes = POSSIBLE_PRIVILEGE_TYPES;
         } else {
             privilegeTypes = parsePrivilegeTypes(typeNames);
         }
@@ -148,7 +150,7 @@ class PrivilegesAnalyzer {
                     "Unknown privilege type '%s'", typeName));
             }
             //noinspection PointlessBooleanExpression
-            if (Privilege.Type.VALUES.contains(privilegeType) == false) {
+            if (POSSIBLE_PRIVILEGE_TYPES.contains(privilegeType) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Unknown privilege type '%s'", typeName));
             }
