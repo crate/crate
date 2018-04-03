@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.collections.Lists2;
@@ -367,8 +368,17 @@ class FetchOrEval extends OneInputPlan {
         Symbol old;
         do {
             old = mapped;
-            if (old instanceof Field && ((Field) old).relation() instanceof QueriedDocTable) {
-                return ((QueriedDocTable) ((Field) old).relation()).tableRelation();
+            if (old instanceof Field) {
+                Field field = (Field) old;
+                AnalyzedRelation relation;
+                if (field.relation() instanceof AnalyzedView) {
+                    relation = ((AnalyzedView) field.relation()).relation();
+                } else {
+                    relation = field.relation();
+                }
+                if (relation instanceof QueriedDocTable) {
+                    return ((QueriedDocTable) relation).tableRelation();
+                }
             }
         } while ((mapped = source.expressionMapping().get(old)) != null);
         throw new IllegalStateException("Couldn't retrieve DocTableRelation from " + output);
