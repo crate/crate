@@ -56,11 +56,11 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         if (meta == null) {
             return null;
         }
-        String statement = meta.getStatement(ident);
-        if (statement == null) {
+        ViewMetaData view = meta.getView(ident);
+        if (view == null) {
             return null;
         }
-        Statement parsedStmt = SqlParser.createStatement(statement);
+        Statement parsedStmt = SqlParser.createStatement(view.stmt());
         List<Reference> columns;
         try {
             AnalyzedRelation relation = analyzerProvider.get()
@@ -74,6 +74,6 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
             // because the underlying table of the view could not be found.
             columns = Collections.emptyList();
         }
-        return new ViewInfo(ident, statement, columns);
+        return new ViewInfo(ident, view.stmt(), columns);
     }
 }

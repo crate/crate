@@ -23,10 +23,10 @@
 package io.crate.execution.dsl.projection;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
 import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -45,7 +45,7 @@ public class EvalProjection extends Projection {
 
     public EvalProjection(List<Symbol> outputs) {
         assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
-            : "EvalProjection doesn't support Field or Reference symbols";
+            : "EvalProjection doesn't support Field or Reference symbols, got: " + outputs;
         this.outputs = outputs;
     }
 

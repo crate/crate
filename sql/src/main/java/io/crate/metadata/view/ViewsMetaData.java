@@ -198,12 +198,8 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     @Nullable
-    public String getStatement(RelationName name) {
-        ViewMetaData view = viewByName.get(name.fqn());
-        if (view == null) {
-            return null;
-        }
-        return view.stmt();
+    public ViewMetaData getView(RelationName name) {
+        return viewByName.get(name.fqn());
     }
 
     public class RemoveResult {

@@ -82,4 +82,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitOrderedLimitedRelation(OrderedLimitedRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
+
+    public R visitView(AnalyzedView analyzedView, C context) {
+        return analyzedView.relation().accept(this, context);
+    }
 }

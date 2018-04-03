@@ -39,6 +39,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewMetaData;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -301,15 +302,15 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws SchemaUnknownException if the view was not found and no such schema exists
      */
     @Nullable
-    public String resolveView(RelationName relationName) {
+    public ViewMetaData resolveView(RelationName relationName) {
         ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-        String query = views == null ? null : views.getStatement(relationName);
-        if (query == null) {
+        ViewMetaData view = views == null ? null : views.getView(relationName);
+        if (view == null) {
             if (!schemas.containsKey(relationName.schema())) {
                 throw new SchemaUnknownException(relationName.schema());
             }
             return null;
         }
-        return query;
+        return view;
     }
 }
