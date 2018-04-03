@@ -40,6 +40,7 @@ import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
@@ -452,6 +453,18 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitBegin(AnalyzedBegin analyzedBegin, User user) {
+            return null;
+        }
+
+        @Override
+        public Void visitCreateViewStmt(CreateViewStmt createViewStmt, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.DDL,
+                Privilege.Clazz.SCHEMA,
+                createViewStmt.name().schema(),
+                user
+            );
+            visitRelation(createViewStmt.query(), user, Privilege.Type.DQL);
             return null;
         }
     }

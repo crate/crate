@@ -421,6 +421,13 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         analyze("explain copy users from 'file:///tmp'");
         assertAskedForTable(Privilege.Type.DML, "doc.users");
     }
+
+    @Test
+    public void testUserWithDDLCanCreateViewOnTablesWhereDQLPermissionsAreAvailable() {
+        analyze("create view xx.v1 as select * from doc.users");
+        assertAskedForSchema(Privilege.Type.DDL, "xx");
+        assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
 }
 
 

@@ -53,3 +53,11 @@ operations.
 .. SEEALSO::
 
     :ref:`ref-drop-view`
+
+
+Privileges (Enterprise only)
+============================
+
+Regular users need to have ``DDL`` permissions on the schema in which the view
+is being created. In addition the user creating the view requires ``DQL``
+permissions on all relations that occur within the views query definition.
