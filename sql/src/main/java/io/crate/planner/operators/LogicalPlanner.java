@@ -31,6 +31,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -227,6 +228,9 @@ public class LogicalPlanner {
                                                         SubqueryPlanner subqueryPlanner,
                                                         FetchMode fetchMode,
                                                         SessionContext sessionContext) {
+        if (queriedRelation instanceof AnalyzedView) {
+            queriedRelation = ((AnalyzedView) queriedRelation).relation();
+        }
         if (queriedRelation instanceof QueriedTableRelation) {
             return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
         }

@@ -34,7 +34,10 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testViewCanBeCreatedSelectedAndThenDropped() throws Exception {
-        execute("create view v1 as select 1 from sys.cluster");
+        execute("create table t1 (x int)");
+        execute("insert into t1 (x) values (1)");
+        execute("refresh table t1");
+        execute("create view v1 as select * from t1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
