@@ -26,12 +26,12 @@ import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.user.SecureHash;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -198,7 +198,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         if (user.isSuperUser()) {
             return BYPASS_AUTHORIZATION_CHECKS;
         }
-        return new StatementPrivilegeValidator(user);
+        return new StatementPrivilegeValidator(this, user);
     }
 
     @Override

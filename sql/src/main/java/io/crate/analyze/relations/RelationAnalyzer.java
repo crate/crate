@@ -678,13 +678,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (tableInfo == null) {
             ViewMetaData view = schemas.resolveView(relationName);
             if (view == null) {
-                throw new RelationUnknown(new RelationName(relationName.schema(), relationName.name()));
+                throw new RelationUnknown(relationName);
             }
             AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
             if (!(resolvedView instanceof QueriedRelation)) {
                 throw new IllegalArgumentException("View must be a top-level SELECT statement, got: " + view.stmt());
             }
-            relation = new AnalyzedView(view.owner(), (QueriedRelation) resolvedView);
+            relation = new AnalyzedView(relationName, view.owner(), (QueriedRelation) resolvedView);
         } else if (tableInfo instanceof DocTableInfo) {
             // Dispatching of doc relations is based on the returned class of the schema information.
             relation = new DocTableRelation((DocTableInfo) tableInfo);
