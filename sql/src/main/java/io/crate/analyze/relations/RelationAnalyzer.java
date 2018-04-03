@@ -64,6 +64,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.metadata.view.ViewMetaData;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
@@ -675,11 +676,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         TableInfo tableInfo = schemas.getTableInfoOrNull(relationName, context.currentOperation());
         final AnalyzedRelation relation;
         if (tableInfo == null) {
-            String query = schemas.resolveView(relationName);
-            if (query == null) {
+            ViewMetaData view = schemas.resolveView(relationName);
+            if (view == null) {
                 throw new RelationUnknown(new RelationName(relationName.schema(), relationName.name()));
             }
-            relation = process(SqlParser.createStatement(query), context);
+            AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
+            if (!(resolvedView instanceof QueriedRelation)) {
+                throw new IllegalArgumentException("View must be a top-level SELECT statement, got: " + view.stmt());
+            }
+            relation = new AnalyzedView(view.owner(), (QueriedRelation) resolvedView);
         } else if (tableInfo instanceof DocTableInfo) {
             // Dispatching of doc relations is based on the returned class of the schema information.
             relation = new DocTableRelation((DocTableInfo) tableInfo);
