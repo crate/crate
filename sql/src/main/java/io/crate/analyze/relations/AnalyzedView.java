@@ -27,6 +27,7 @@ import io.crate.analyze.QuerySpec;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.Path;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -35,11 +36,13 @@ import java.util.List;
 
 public final class AnalyzedView implements QueriedRelation {
 
+    private final RelationName name;
     private final String owner;
     private final QueriedRelation relation;
     private final Fields fields;
 
-    public AnalyzedView(String owner, QueriedRelation relation) {
+    public AnalyzedView(RelationName name, String owner, QueriedRelation relation) {
+        this.name = name;
         this.owner = owner;
         this.fields = new Fields(relation.fields().size());
         this.relation = relation;
@@ -54,6 +57,10 @@ public final class AnalyzedView implements QueriedRelation {
 
     public QueriedRelation relation() {
         return relation;
+    }
+
+    public RelationName name() {
+        return name;
     }
 
     @Override
