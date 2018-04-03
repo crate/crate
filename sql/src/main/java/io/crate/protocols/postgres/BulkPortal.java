@@ -48,6 +48,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -113,6 +114,14 @@ class BulkPortal extends AbstractPortal {
                        @Nullable AnalyzedStatement analyzedStatement,
                        List<Object> params,
                        @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+        if (!this.query.equals(query)) {
+            throw new IllegalStateException(
+                String.format(Locale.ENGLISH,
+                    "Bulk portal doesn't expect the query to change.\n" +
+                    "Old query: %s\n" +
+                    "New query: %s\n",
+                    this.query, query));
+        }
         this.bulkArgs.add(params);
         return this;
     }
