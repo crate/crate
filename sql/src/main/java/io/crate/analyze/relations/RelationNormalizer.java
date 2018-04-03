@@ -95,7 +95,7 @@ public final class RelationNormalizer {
             if (newSubRelation == view.relation()) {
                 return view;
             }
-            return new AnalyzedView(view.owner(), (QueriedRelation) newSubRelation);
+            return new AnalyzedView(view.name(), view.owner(), (QueriedRelation) newSubRelation);
         }
 
         @Override
