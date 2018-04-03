@@ -39,6 +39,7 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -106,6 +107,7 @@ public class CrateDB extends EnvironmentAwareCommand {
         } else {
             confPath = Paths.get(crateHomePath, "config");
         }
+        System.setProperty("log4j.configurationFile", confPath + File.separator + "log4j2.properties");
         return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, confPath);
     }
 
