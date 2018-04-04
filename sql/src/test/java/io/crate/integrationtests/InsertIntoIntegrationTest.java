@@ -680,6 +680,34 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromValuesOnDuplicateKey() {
+        execute("create table t1 (id integer primary key, other string) clustered into 1 shards");
+        execute("insert into t1 (id, other) values (1, 'test'), (2, 'test2')");
+
+        execute("insert into t1 (id, other) values (1, 'updated') ON CONFLICT (id) DO UPDATE SET other = 'updated'");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+
+        execute("select id, other from t1 order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1| updated\n" +
+            "2| test2\n")
+        );
+
+        execute("insert into t1 (id, other) values (1, 'updated_again'), (3, 'new') ON CONFLICT (id) DO UPDATE SET other = excluded.other");
+        assertThat(response.rowCount(), is(2L));
+        refresh();
+
+        execute("select id, other from t1 order by id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "1| updated_again\n" +
+            "2| test2\n" +
+            "3| new\n")
+        );
+    }
+
+
+    @Test
     public void testInsertFromQueryOnDuplicateKey() throws Exception {
         setup.setUpCharacters();
         waitNoPendingTasksOnAll();
