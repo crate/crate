@@ -56,7 +56,9 @@ public class HashJoinOperation implements CompletionListenable {
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
                              long estimatedRowSizeForLeft,
-                             long numberOfRowsForLeft) {
+                             long numberOfRowsForLeft,
+                             int limit,
+                             boolean isOrdered) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -72,7 +74,9 @@ public class HashJoinOperation implements CompletionListenable {
                         rowAccounting,
                         circuitBreaker,
                         estimatedRowSizeForLeft,
-                        numberOfRowsForLeft
+                        numberOfRowsForLeft,
+                        limit,
+                        isOrdered
                     ), completionFuture);
                     nlResultConsumer.accept(joinIterator, null);
                 } else {
@@ -119,7 +123,9 @@ public class HashJoinOperation implements CompletionListenable {
                                                              RowAccounting rowAccounting,
                                                              CircuitBreaker circuitBreaker,
                                                              long estimatedRowSizeForLeft,
-                                                             long numberOfRowsForLeft) {
+                                                             long numberOfRowsForLeft,
+                                                             int limit,
+                                                             boolean isOrdered) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator<>(
             new RamAccountingBatchIterator<>(left, rowAccounting),
@@ -130,6 +136,8 @@ public class HashJoinOperation implements CompletionListenable {
             hashBuilderForRight,
             circuitBreaker,
             estimatedRowSizeForLeft,
-            numberOfRowsForLeft);
+            numberOfRowsForLeft,
+            limit,
+            isOrdered);
     }
 }

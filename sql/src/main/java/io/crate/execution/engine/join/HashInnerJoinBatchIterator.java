@@ -92,6 +92,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
+    private final int limit;
+    private final boolean isOrdered;
 
     private IntObjectHashMap<List<Object[]>> buffer;
     private int blockSize;
@@ -107,7 +109,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       Function<R, Integer> hashBuilderForRight,
                                       CircuitBreaker cicuitBreaker,
                                       long estimatedRowSizeForLeft,
-                                      long numberOfRowsForLeft) {
+                                      long numberOfRowsForLeft,
+                                      int limit,
+                                      boolean isOrdered) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
@@ -115,6 +119,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.circuitBreaker = cicuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
+
+        this.limit = limit;
+        this.isOrdered = isOrdered;
         recreateBuffer();
         this.activeIt = left;
     }
@@ -158,7 +165,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft);
+        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, limit, isOrdered);
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
     }
@@ -166,13 +173,22 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     @VisibleForTesting
     static int calculateBlockSize(CircuitBreaker circuitBreaker,
                                   long estimatedRowSizeForLeft,
-                                  long numberOfRowsForLeft) {
+                                  long numberOfRowsForLeft,
+                                  int limit,
+                                  boolean isOrdered) {
         if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
             return DEFAULT_BLOCK_SIZE;
         }
 
         int blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
         blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
+        // we can encounter joins which with explicit limit statement but without any order by clause.
+        // in this case if the limit is much lower than the default block size we'll try to keep the block size
+        // smaller than what the given node can handle (imagine a node which can load the entire left side in memory
+        // so the block size could be in the range of millions - the table row count - but the join has `limit 100`)
+        if (isOrdered == false && limit > 0 && limit <= DEFAULT_BLOCK_SIZE) {
+            blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
+        }
 
         // In case no mem available from circuit breaker then still allocate a small blockSize,
         // so that at least some rows (min 1) from the left side could be processed and
