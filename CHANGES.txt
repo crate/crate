@@ -60,6 +60,10 @@ Breaking Changes
 Changes
 =======
 
+- Fixed path of logfile name in rotation pattern in ``log4j2.properties``. It
+  now writes into the correct logging directory instead of the parent
+  directory.
+
 - Added support for views which can be created using the new ``CREATE VIEW``
   statement and dropped using the ``DROP VIEW`` statement. Views are listed in
   ``information_schema.views`` and they show up in
