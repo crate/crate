@@ -339,13 +339,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         QueriedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
-            if (source instanceof DocTableRelation) {
-                relation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
-            } else if (source instanceof TableRelation) {
-                relation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
-            } else {
-                assert source instanceof QueriedRelation : "expecting relation to be an instance of QueriedRelation";
+
+            if (source instanceof QueriedRelation) {
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
+            } else {
+                relation = new QueriedTable<>((AbstractTableRelation<?>) source, selectAnalysis.outputNames(), querySpec);
             }
         } else {
             relation = new MultiSourceSelect(

@@ -21,24 +21,95 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
-public class QueriedTable extends QueriedTableRelation<TableRelation> {
+public final class QueriedTable<TR extends AbstractTableRelation> implements QueriedRelation {
 
-    public QueriedTable(TableRelation tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
-        super(tableRelation, paths, querySpec);
+    private final TR tableRelation;
+    private final QuerySpec querySpec;
+    private final Fields fields;
+
+    public QueriedTable(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+        this.tableRelation = tableRelation;
+        this.querySpec = querySpec;
+        this.fields = new Fields(outputNames.size());
+        Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
+        for (Path path : outputNames) {
+            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+        }
     }
 
-    public QueriedTable(TableRelation tableRelation, QuerySpec querySpec) {
-        super(tableRelation, querySpec);
+    public QueriedTable(TR tableRelation, QuerySpec querySpec) {
+        this(tableRelation, Relations.namesFromOutputs(querySpec.outputs()), querySpec);
+    }
+
+    public QuerySpec querySpec() {
+        return querySpec;
+    }
+
+    public TR tableRelation() {
+        return tableRelation;
     }
 
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedTable(this, context);
+    }
+
+    @Nullable
+    @Override
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
+        }
+        return fields.get(path);
+    }
+
+    @Override
+    public List<Field> fields() {
+        return fields.asList();
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        return tableRelation.getQualifiedName();
+    }
+
+    @Override
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
+        tableRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public String toString() {
+        return "QueriedTable{" + tableRelation + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        QueriedTable<?> that = (QueriedTable<?>) o;
+
+        return tableRelation.equals(that.tableRelation);
+    }
+
+    @Override
+    public int hashCode() {
+        return tableRelation.hashCode();
     }
 }

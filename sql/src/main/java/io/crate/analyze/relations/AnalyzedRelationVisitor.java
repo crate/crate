@@ -39,12 +39,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "relation \"%s\" is not supported", relation));
     }
 
-    public R visitQueriedTable(QueriedTable table, C context) {
-        return visitQueriedRelation(table, context);
-    }
-
-    public R visitQueriedDocTable(QueriedDocTable table, C context) {
-        return visitQueriedRelation(table, context);
+    public R visitQueriedTable(QueriedTable<?> queriedTable, C context) {
+        return visitQueriedRelation(queriedTable, context);
     }
 
     public R visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, C context) {

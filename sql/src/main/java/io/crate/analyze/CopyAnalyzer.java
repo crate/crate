@@ -30,15 +30,15 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.ValueSymbolVisitor;
-import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.ValueSymbolVisitor;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -56,7 +56,6 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
@@ -247,8 +246,9 @@ class CopyAnalyzer {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
 
-        QueriedDocTable subRelation = new QueriedDocTable(tableRelation, querySpec);
-        return new CopyToAnalyzedStatement(subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
+        QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(tableRelation, querySpec);
+        return new CopyToAnalyzedStatement(
+            subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }
 
     private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {

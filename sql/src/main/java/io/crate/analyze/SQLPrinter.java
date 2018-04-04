@@ -25,7 +25,6 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.expression.symbol.Field;
@@ -66,17 +65,13 @@ public final class SQLPrinter {
             this.symbolPrinter = symbolPrinter;
         }
 
-        @Override
-        public Void visitQueriedTable(QueriedTable table, StringBuilder sb) {
-            return simpleSelect(table, sb);
-        }
 
         @Override
-        public Void visitQueriedDocTable(QueriedDocTable table, StringBuilder sb) {
-            return simpleSelect(table, sb);
+        public Void visitQueriedTable(QueriedTable<?> queriedTable, StringBuilder sb) {
+            return simpleSelect(queriedTable, sb);
         }
 
-        private Void simpleSelect(QueriedTableRelation<?> relation, StringBuilder sb) {
+        private Void simpleSelect(QueriedTable<?> relation, StringBuilder sb) {
             sb.append("SELECT ");
             addOutputs(relation, sb);
             addFrom(sb, relation);
@@ -192,7 +187,7 @@ public final class SQLPrinter {
             }
         }
 
-        private void addFrom(StringBuilder sb, QueriedTableRelation<?> relation) {
+        private void addFrom(StringBuilder sb, QueriedTable<?> relation) {
             sb.append(" FROM ");
             AbstractTableRelation<?> tableRelation = relation.tableRelation();
             if (tableRelation instanceof TableFunctionRelation) {

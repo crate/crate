@@ -21,16 +21,15 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.PartitionUnknownException;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
-import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -142,7 +141,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithColumnList() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users (id, name) to DIRECTORY '/tmp'");
-        assertThat(analysis.subQueryRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(analysis.subQueryRelation(), instanceOf(QueriedTable.class));
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.outputs().size(), is(2));
         assertThat(querySpec.outputs().get(0), isReference("_doc['id']"));

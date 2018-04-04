@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.sql.tree.QualifiedName;
@@ -87,7 +87,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().get(1), isField("(xi + 1)"));
 
         assertThat(
-            ((QueriedDocTable) relation.subRelation()).tableRelation().tableInfo(),
+            ((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(),
             is(T1_INFO)
         );
     }
@@ -260,7 +260,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("a1"));
         assertThat(relation.fields().get(1), isField("a2"));
-        assertThat(((QueriedDocTable) relation.subRelation()).tableRelation().tableInfo(), is(T1_INFO));
+        assertThat(((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(), is(T1_INFO));
     }
 
     @Test
@@ -275,6 +275,6 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().get(3), isField("iii"));
         assertThat(relation.fields().get(4), isField("abs(x)"));
         assertThat(relation.fields().get(5), isField("absx"));
-        assertThat(((QueriedDocTable) relation.subRelation()).tableRelation().tableInfo(), is(T1_INFO));
+        assertThat(((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(), is(T1_INFO));
     }
 }

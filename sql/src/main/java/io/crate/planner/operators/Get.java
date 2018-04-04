@@ -23,8 +23,8 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.PKLookupPhase;
@@ -58,7 +58,7 @@ public class Get extends ZeroInputPlan {
     final DocKeys docKeys;
     final long estimatedSizePerRow;
 
-    Get(QueriedDocTable table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
+    Get(QueriedTable<DocTableRelation> table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
         super(outputs, Collections.singletonList(table.tableRelation()));
         this.tableRelation = table.tableRelation();
         this.docKeys = docKeys;

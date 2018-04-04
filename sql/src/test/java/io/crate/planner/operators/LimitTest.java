@@ -22,15 +22,15 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.expression.symbol.Literal;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.Literal;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;
@@ -48,7 +48,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .build();
-        QueriedDocTable queriedDocTable = e.analyze("select name from users");
+        QueriedTable queriedDocTable = e.analyze("select name from users");
 
         LogicalPlan plan = Limit.create(
             Limit.create(

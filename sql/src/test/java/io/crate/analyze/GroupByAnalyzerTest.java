@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ColumnUnknownException;
@@ -262,7 +261,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.querySpec(),
             isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) ORDER BY doc.users.max(id)"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
     }
@@ -276,7 +275,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) " +
                   "ORDER BY doc.users.max(id) LIMIT 5 OFFSET 10"));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
-        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
     }

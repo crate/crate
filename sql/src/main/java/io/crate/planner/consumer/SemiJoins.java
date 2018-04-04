@@ -25,7 +25,7 @@ package io.crate.planner.consumer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -149,8 +149,8 @@ final class SemiJoins {
 
     @Nullable
     private static AnalyzedRelation getSource(QueriedRelation rel) {
-        if (rel instanceof QueriedTableRelation) {
-            return ((QueriedTableRelation) rel).tableRelation();
+        if (rel instanceof QueriedTable) {
+            return ((QueriedTable) rel).tableRelation();
         }
         // TODO: support other cases as well
         return null;

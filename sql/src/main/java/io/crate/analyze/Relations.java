@@ -23,12 +23,10 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Lists;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -63,19 +61,13 @@ class Relations {
                                              AnalyzedRelation relation,
                                              QuerySpec querySpec) {
         QueriedRelation newRelation;
-        if (relation instanceof DocTableRelation) {
-            DocTableRelation tableRelation = (DocTableRelation) relation;
+        if (relation instanceof AbstractTableRelation) {
+            AbstractTableRelation<?> tableRelation = (AbstractTableRelation<?>) relation;
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
                 functions, RowGranularity.CLUSTER, null, tableRelation);
 
-            newRelation = new QueriedDocTable(
+            newRelation = new QueriedTable<>(
                 tableRelation, querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
-        } else if (relation instanceof TableRelation) {
-            TableRelation tableRelation = (TableRelation) relation;
-            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, null, tableRelation);
-            newRelation = new QueriedTable(
-                (TableRelation) relation, querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, transactionContext)));
         } else {
             newRelation = new QueriedSelectRelation(
                 ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);

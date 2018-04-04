@@ -26,13 +26,16 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedUpdateStatement;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.RowN;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -40,9 +43,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -200,9 +200,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
         QueriedRelation rel = e.analyze(stmt, args);
-        if (rel instanceof QueriedDocTable) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-                getFunctions(), ((QueriedDocTable) rel).tableRelation());
+        if (rel instanceof QueriedTable && ((QueriedTable) rel).tableRelation() instanceof DocTableRelation) {
+            DocTableRelation docTableRelation = (DocTableRelation) ((QueriedTable) rel).tableRelation();
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(getFunctions(), docTableRelation);
             return whereClauseAnalyzer.analyze(rel.where().query(), transactionContext);
         }
         return rel.where();

@@ -44,11 +44,11 @@ import java.util.Objects;
  *     |        relation: TableRelation[t1]
  *     |
  *     |
- *     QueriedTableRelation[t1]
+ *     QueriedTable[t1]
  *      fields(): [
  *          Field
  *            path: x
- *            relation: QueriedTableRelation
+ *            relation: QueriedTable
  *      ]
  * </pre>
  *

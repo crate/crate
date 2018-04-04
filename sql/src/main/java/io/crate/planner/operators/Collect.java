@@ -24,12 +24,11 @@ package io.crate.planner.operators;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -90,20 +89,20 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 class Collect extends ZeroInputPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
-    final QueriedTableRelation relation;
+    final QueriedTable relation;
     WhereClause where;
 
     final TableInfo tableInfo;
     private final long numExpectedRows;
     private final long estimatedRowSize;
 
-    public static LogicalPlan.Builder create(QueriedTableRelation relation,
+    public static LogicalPlan.Builder create(QueriedTable relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
         if (where.docKeys().isPresent() && !((DocTableInfo) relation.tableRelation().tableInfo()).isAlias()) {
             DocKeys docKeys = where.docKeys().get();
             return ((tableStats, usedBeforeNextFetch) ->
-                        new Get(((QueriedDocTable) relation), docKeys, toCollect, tableStats));
+                        new Get(((QueriedTable) relation), docKeys, toCollect, tableStats));
         }
         return (tableStats, usedColumns) -> new Collect(
             relation,
@@ -114,7 +113,7 @@ class Collect extends ZeroInputPlan {
             tableStats.estimatedSizePerRow(relation.tableRelation().tableInfo().ident()));
     }
 
-    private Collect(QueriedTableRelation relation,
+    private Collect(QueriedTable relation,
                     List<Symbol> toCollect,
                     WhereClause where,
                     Set<Symbol> usedBeforeNextFetch,
@@ -134,7 +133,7 @@ class Collect extends ZeroInputPlan {
         this.tableInfo = relation.tableRelation().tableInfo();
     }
 
-    private Collect(QueriedTableRelation relation,
+    private Collect(QueriedTable relation,
                     List<Symbol> outputs,
                     WhereClause where,
                     long numExpectedRows,

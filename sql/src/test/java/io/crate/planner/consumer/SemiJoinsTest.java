@@ -24,7 +24,7 @@ package io.crate.planner.consumer;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
@@ -89,7 +89,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMakeJoinConditionWith() throws Exception {
-        QueriedTableRelation relation = executor.analyze("select * from t1 where a in (select 'foo')");
+        QueriedTable relation = executor.analyze("select * from t1 where a in (select 'foo')");
         Function query = (Function) relation.querySpec().where().query();
 
         SelectSymbol subquery = SemiJoins.getSubqueryOrNull(query.arguments().get(1));

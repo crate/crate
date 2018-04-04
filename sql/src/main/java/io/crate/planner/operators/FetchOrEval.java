@@ -24,11 +24,11 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FetchPhase;
@@ -376,8 +376,9 @@ class FetchOrEval extends OneInputPlan {
                 } else {
                     relation = field.relation();
                 }
-                if (relation instanceof QueriedDocTable) {
-                    return ((QueriedDocTable) relation).tableRelation();
+                if (relation instanceof QueriedTable
+                    && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
+                    return ((DocTableRelation) ((QueriedTable) relation).tableRelation());
                 }
             }
         } while ((mapped = source.expressionMapping().get(old)) != null);
@@ -399,8 +400,8 @@ class FetchOrEval extends OneInputPlan {
                 return new InputColumn(idx, sourceOutputs.get(idx).valueType());
             }
             AnalyzedRelation relation = f.relation();
-            if (relation instanceof QueriedDocTable) {
-                DocTableRelation docTableRelation = ((QueriedDocTable) relation).tableRelation();
+            if (relation instanceof QueriedTable && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
+                DocTableRelation docTableRelation = ((DocTableRelation) ((QueriedTable) relation).tableRelation());
 
                 Symbol symbol = expressionMapping.get(f);
                 return RefReplacer.replaceRefs(symbol, ref -> {

@@ -29,7 +29,7 @@ import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
@@ -231,8 +231,8 @@ public class LogicalPlanner {
         if (queriedRelation instanceof AnalyzedView) {
             queriedRelation = ((AnalyzedView) queriedRelation).relation();
         }
-        if (queriedRelation instanceof QueriedTableRelation) {
-            return Collect.create((QueriedTableRelation) queriedRelation, toCollect, where);
+        if (queriedRelation instanceof QueriedTable) {
+            return Collect.create((QueriedTable) queriedRelation, toCollect, where);
         }
         if (queriedRelation instanceof MultiSourceSelect) {
             return JoinPlanBuilder.createNodes((MultiSourceSelect) queriedRelation, where, subqueryPlanner, sessionContext);

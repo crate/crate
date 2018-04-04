@@ -99,37 +99,33 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, TransactionContext context) {
+        public AnalyzedRelation visitQueriedTable(QueriedTable<?> queriedTable,
+                                                  TransactionContext tnxCtx) {
+            AbstractTableRelation<?> tableRelation = queriedTable.tableRelation();
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, null, table.tableRelation());
-            return new QueriedTable(
-                table.tableRelation(),
-                table.fields(),
-                table.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, context))
-            );
-        }
+                functions, RowGranularity.CLUSTER, null, tableRelation);
 
-        @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, TransactionContext tnxCtx) {
-            DocTableRelation docTableRelation = table.tableRelation();
-            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, null, docTableRelation);
-
-            DocTableInfo tableInfo = docTableRelation.tableInfo;
-            QuerySpec normalizedQS = table.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx));
+            QuerySpec normalizedQS = queriedTable.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx));
             WhereClause where = normalizedQS.where();
-            if (where.hasQuery()) {
-                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                    normalizer, where.query(), tableInfo, tnxCtx);
-                WhereClauseValidator.validate(detailedQuery.query());
-                where = new WhereClause(
-                    detailedQuery.query(),
-                    detailedQuery.docKeys().orElse(null),
-                    where.partitions(),
-                    detailedQuery.clusteredBy()
-                );
+            if (tableRelation instanceof DocTableRelation) {
+                DocTableInfo tableInfo = ((DocTableRelation) tableRelation).tableInfo();
+                if (where.hasQuery()) {
+                    WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
+                        normalizer, where.query(), tableInfo, tnxCtx);
+                    WhereClauseValidator.validate(detailedQuery.query());
+                    where = new WhereClause(
+                        detailedQuery.query(),
+                        detailedQuery.docKeys().orElse(null),
+                        where.partitions(),
+                        detailedQuery.clusteredBy()
+                    );
+                }
             }
-            return new QueriedDocTable(docTableRelation, table.fields(), normalizedQS.where(where));
+            return new QueriedTable<>(
+                tableRelation,
+                queriedTable.fields(),
+                normalizedQS.where(where)
+            );
         }
 
         @Override

@@ -24,9 +24,11 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
@@ -118,15 +120,17 @@ public final class InsertFromSubQueryPlanner {
     private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {
 
         @Override
-        public Void visitQueriedDocTable(QueriedDocTable table, Void context) {
+        public Void visitQueriedTable(QueriedTable<?> table, Void context) {
             if (table.hasAggregates() || !table.groupBy().isEmpty()) {
                 return null;
             }
-
-            List<Symbol> outputs = table.outputs();
-            assert table.orderBy() == null : "insert from subquery with order by is not supported";
-            for (int i = 0; i < outputs.size(); i++) {
-                outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
+            AbstractTableRelation tableRelation = table.tableRelation();
+            if (tableRelation instanceof DocTableRelation) {
+                List<Symbol> outputs = table.outputs();
+                assert table.orderBy() == null : "insert from subquery with order by is not supported";
+                for (int i = 0; i < outputs.size(); i++) {
+                    outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
+                }
             }
             return null;
         }

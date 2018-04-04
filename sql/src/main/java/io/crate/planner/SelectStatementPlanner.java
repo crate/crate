@@ -28,7 +28,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.operators.LogicalPlan;
@@ -88,17 +87,11 @@ public class SelectStatementPlanner {
             return invokeLogicalPlanner(relation, context);
         }
 
-        @Override
-        public LogicalPlan visitQueriedTable(QueriedTable table, Context context) {
-            context.plannerContext.applySoftLimit(table.querySpec());
-            return super.visitQueriedTable(table, context);
-        }
 
         @Override
-        public LogicalPlan visitQueriedDocTable(QueriedDocTable table, Context context) {
-            QuerySpec querySpec = table.querySpec();
-            context.plannerContext.applySoftLimit(querySpec);
-            return invokeLogicalPlanner(table, context);
+        public LogicalPlan visitQueriedTable(QueriedTable<?> queriedTable, Context context) {
+            context.plannerContext.applySoftLimit(queriedTable.querySpec());
+            return invokeLogicalPlanner(queriedTable, context);
         }
 
         @Override

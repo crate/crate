@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
@@ -67,8 +66,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(orderedLimitedRelation.childRelation(), instanceOf(UnionSelect.class));
         UnionSelect tableUnion = (UnionSelect) orderedLimitedRelation.childRelation();
-        assertThat(tableUnion.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.left(), instanceOf(QueriedTable.class));
+        assertThat(tableUnion.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion.querySpec(),
             isSQL("SELECT UnionSelect.id, UnionSelect.text"));
         assertThat(tableUnion.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
@@ -93,7 +92,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(orderedLimitedRelation.childRelation(), instanceOf(UnionSelect.class));
         UnionSelect tableUnion1 = (UnionSelect) orderedLimitedRelation.childRelation();
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion1.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion1.querySpec(),
             isSQL("SELECT UnionSelect.id, UnionSelect.text"));
         assertThat(tableUnion1.right().querySpec(), isSQL("SELECT doc.users.id, doc.users.name"));
@@ -101,8 +100,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         assertThat(tableUnion2.querySpec(),
             isSQL("SELECT UnionSelect.id, UnionSelect.text"));
-        assertThat(tableUnion2.left(), instanceOf(QueriedDocTable.class));
-        assertThat(tableUnion2.right(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.left(), instanceOf(QueriedTable.class));
+        assertThat(tableUnion2.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion2.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion2.right().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
     }

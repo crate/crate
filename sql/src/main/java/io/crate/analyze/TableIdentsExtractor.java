@@ -25,7 +25,6 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
@@ -162,13 +161,8 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitQueriedTable(QueriedTable table, Void context) {
-            return Collections.singletonList(table.tableRelation.tableInfo().ident());
-        }
-
-        @Override
-        public Collection<RelationName> visitQueriedDocTable(QueriedDocTable table, Void context) {
-            return process(table.tableRelation(), context);
+        public Collection<RelationName> visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
+            return process(queriedTable.tableRelation(), context);
         }
 
         @Override

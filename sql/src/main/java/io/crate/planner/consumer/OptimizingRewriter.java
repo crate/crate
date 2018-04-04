@@ -26,7 +26,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
@@ -72,13 +71,8 @@ public final class OptimizingRewriter {
         }
 
         @Override
-        public QueriedRelation visitQueriedTable(QueriedTable table, Void context) {
-            return maybeApplySemiJoinRewrite(table);
-        }
-
-        @Override
-        public QueriedRelation visitQueriedDocTable(QueriedDocTable table, Void context) {
-            return maybeApplySemiJoinRewrite(table);
+        public QueriedRelation visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
+            return maybeApplySemiJoinRewrite(queriedTable);
         }
 
         private QueriedRelation maybeApplySemiJoinRewrite(QueriedRelation queriedRelation) {

@@ -24,10 +24,9 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.execution.dsl.projection.WriterProjection;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -36,7 +35,7 @@ import java.util.Map;
 
 public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
 
-    private final QueriedDocTable subQueryRelation;
+    private final QueriedTable<?> subQueryRelation;
     private final boolean columnsDefined;
     @Nullable
     private final WriterProjection.CompressionType compressionType;
@@ -51,7 +50,7 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
-    public CopyToAnalyzedStatement(QueriedDocTable subQueryRelation,
+    public CopyToAnalyzedStatement(QueriedTable<?> subQueryRelation,
                                    Settings settings,
                                    Symbol uri,
                                    @Nullable WriterProjection.CompressionType compressionType,
@@ -68,7 +67,7 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
         this.overwrites = MoreObjects.firstNonNull(overwrites, ImmutableMap.<ColumnIdent, Symbol>of());
     }
 
-    public QueriedDocTable subQueryRelation() {
+    public QueriedTable<?> subQueryRelation() {
         return subQueryRelation;
     }
 
