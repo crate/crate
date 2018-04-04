@@ -51,6 +51,7 @@ import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.user.Privilege.Clazz.CLUSTER;
 import static io.crate.analyze.user.Privilege.Clazz.SCHEMA;
 import static io.crate.analyze.user.Privilege.Clazz.TABLE;
+import static io.crate.analyze.user.Privilege.Clazz.VIEW;
 import static io.crate.analyze.user.Privilege.State.DENY;
 import static io.crate.analyze.user.Privilege.State.GRANT;
 import static io.crate.analyze.user.Privilege.State.REVOKE;
@@ -73,6 +74,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private static final DocTableInfoFactory CUSTOM_SCHEMA_TABLE_FACTORY = new TestingDocTableInfoFactory(
         ImmutableMap.of(CUSTOM_SCHEMA_IDENT, CUSTOM_SCHEMA_INFO));
 
+    private static final RelationName CUSTOM_SCHEMA_VIEW = new RelationName("my_schema", "locations_view");
+
     private SQLExecutor e;
     private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
@@ -81,6 +84,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         e = SQLExecutor.builder(clusterService).enableDefaultTables()
             .addSchema(new DocSchemaInfo(CUSTOM_SCHEMA_IDENT.schema(), clusterService, getFunctions(),
                 new UserDefinedFunctionService(clusterService, getFunctions()), (ident, state) -> null, CUSTOM_SCHEMA_TABLE_FACTORY))
+            .addView(CUSTOM_SCHEMA_VIEW, "Select * from my_schema.locations limit 2")
             .build();
     }
 
@@ -129,6 +133,18 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
+    public void testGrantPrivilegesToUsersOnViews() {
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
+        assertThat(analysis.userNames(), contains("user1", "user2"));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
+            privilegeOf(GRANT, DML, TABLE, "doc.t2"),
+            privilegeOf(GRANT, DQL, TABLE, "doc.locations"),
+            privilegeOf(GRANT, DML, TABLE, "doc.locations"))
+        );
+    }
+
+    @Test
     public void testRevokePrivilegesFromUsersOnCluster() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
@@ -159,6 +175,18 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             privilegeOf(REVOKE, DML, TABLE, "doc.t2"),
             privilegeOf(REVOKE, DQL, TABLE, "doc.locations"),
             privilegeOf(REVOKE, DML, TABLE, "doc.locations"))
+        );
+    }
+
+    @Test
+    public void testRevokePrivilegesFromUsersOnViews() {
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On view doc.t2, locations FROM user1, user2");
+        assertThat(analysis.userNames(), contains("user1", "user2"));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(REVOKE, DQL, VIEW, "doc.t2"),
+            privilegeOf(REVOKE, DML, VIEW, "doc.t2"),
+            privilegeOf(REVOKE, DQL, VIEW, "doc.locations"),
+            privilegeOf(REVOKE, DML, VIEW, "doc.locations"))
         );
     }
 
@@ -228,6 +256,26 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     }
 
+    @Test
+    public void testGrantRevokeAllPrivilegesOnViews() {
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On view my_schema.locations_view TO user1");
+        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(GRANT, DQL, VIEW, "my_schema.locations_view"),
+            privilegeOf(GRANT, DML, VIEW, "my_schema.locations_view"),
+            privilegeOf(GRANT, DDL, VIEW, "my_schema.locations_view"))
+        );
+
+        analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES On view my_schema.locations_view FROM user1");
+        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(REVOKE, DQL, VIEW, "my_schema.locations_view"),
+            privilegeOf(REVOKE, DML, VIEW, "my_schema.locations_view"),
+            privilegeOf(REVOKE, DDL, VIEW, "my_schema.locations_view"))
+        );
+
+    }
+
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
@@ -265,6 +313,12 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         analyzePrivilegesStatement("Grant DQL on table doc.hoichi to user1");
     }
 
+    @Test
+    public void testGrantToUnknownViewThrowsException() {
+        expectedException.expect(RelationUnknown.class);
+        expectedException.expectMessage("Relation 'doc.hoichi' unknown");
+        analyzePrivilegesStatement("Grant DQL on view doc.hoichi to user1");
+    }
 
     @Test
     public void testGrantOnInformationSchemaTableThrowsException() {
@@ -278,11 +332,24 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.tables FROM user1");
     }
 
+
+    @Test
+    public void testRevokeOnInformationSchemaViewDoNotThrowException() {
+        analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.views FROM user1");
+    }
+
     @Test
     public void testDenyOnInformationSchemaTableThrowsException() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
         analyzePrivilegesStatement("DENY DQL ON TABLE information_schema.tables TO user1");
+    }
+
+    @Test
+    public void testDenyOnInformationSchemaViewThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("DENY DQL ON TABLE information_schema.views TO user1");
     }
 
     @Test

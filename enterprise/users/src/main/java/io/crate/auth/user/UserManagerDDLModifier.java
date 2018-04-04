@@ -24,19 +24,21 @@ import io.crate.metadata.cluster.DDLClusterStateModifier;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 
+import java.util.List;
+
 public class UserManagerDDLModifier implements DDLClusterStateModifier {
 
     @Override
     public ClusterState onDropTable(ClusterState currentState, RelationName relationName) {
-        MetaData currentMetaData = currentState.metaData();
-        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+        return dropPrivilegesForTableOrView(currentState, relationName);
+    }
 
-        if (dropPrivileges(mdBuilder, relationName) == false) {
-            // if nothing is affected, don't modify the state and just return the given currentState
-            return currentState;
+    @Override
+    public ClusterState onDropView(ClusterState currentState, List<RelationName> relationNames) {
+        for (RelationName relationName : relationNames) {
+            currentState = dropPrivilegesForTableOrView(currentState, relationName);
         }
-
-        return ClusterState.builder(currentState).metaData(mdBuilder).build();
+        return currentState;
     }
 
     @Override
@@ -52,12 +54,24 @@ public class UserManagerDDLModifier implements DDLClusterStateModifier {
         return currentState;
     }
 
+    private ClusterState dropPrivilegesForTableOrView(ClusterState currentState, RelationName relationName) {
+        MetaData currentMetaData = currentState.metaData();
+        MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
+
+        if (dropPrivileges(mdBuilder, relationName) == false) {
+            // if nothing is affected, don't modify the state and just return the given currentState
+            return currentState;
+        }
+
+        return ClusterState.builder(currentState).metaData(mdBuilder).build();
+    }
+
     private static boolean dropPrivileges(MetaData.Builder mdBuilder, RelationName relationName) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
             (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
 
-        long affectedRows = newMetaData.dropTablePrivileges(relationName.fqn());
+        long affectedRows = newMetaData.dropTableOrViewPrivileges(relationName.fqn());
         mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
         return affectedRows > 0L;
     }

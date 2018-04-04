@@ -18,13 +18,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.auth.user.UserManagerService;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
 import org.junit.After;
 import org.junit.Before;
@@ -76,6 +76,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @After
     public void dropUsers() {
         executeAsSuperuser("drop user " + TEST_USERNAME);
+        executeAsSuperuser("drop view if exists v1, my_schema.v2, other_schema.v3");
     }
 
     @Test
@@ -200,6 +201,10 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create table my_schema.t2 (x int primary key) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("create table other_schema.t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
+        executeAsSuperuser("create view v1 as Select * from my_schema.t2");
+        executeAsSuperuser("create view my_schema.v2 as Select * from other_schema.t3");
+        executeAsSuperuser("create view other_schema.v3 as Select * from t1");
+
         executeAsSuperuser("create function my_schema.foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
         executeAsSuperuser("create function other_func(long)" +
@@ -208,22 +213,31 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
         executeAsSuperuser("grant dml on table my_schema.t2 to " + TEST_USERNAME);
         executeAsSuperuser("grant dql on schema my_schema to " + TEST_USERNAME);
+        executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
 
         execute("select schema_name from information_schema.schemata order by schema_name", null, testUserSession());
         assertThat(printedTable(response.rows()), is("my_schema\n"));
         execute("select table_name from information_schema.tables order by table_name", null, testUserSession());
         assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n"));
+                                                     "t2\n" +
+                                                     "v1\n" +
+                                                     "v2\n"));
         execute("select table_name from information_schema.table_partitions order by table_name", null, testUserSession());
         assertThat(printedTable(response.rows()), is("t1\n" +
                                                      "t1\n"));
         execute("select table_name from information_schema.columns order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n"));
+        assertThat(printedTable(response.rows()),  is("t1\n" +
+                                                      "t2\n" +
+                                                      "v1\n" +
+                                                      "v2\n"));
         execute("select table_name from information_schema.table_constraints order by table_name", null, testUserSession());
         assertThat(printedTable(response.rows()), is("t2\n"));
         execute("select routine_schema from information_schema.routines order by routine_schema", null, testUserSession());
         assertThat(printedTable(response.rows()), is("my_schema\n"));
+
+        execute("select table_name from information_schema.views order by table_name", null, testUserSession());
+        assertThat(printedTable(response.rows()), is("v1\n" +
+                                                     "v2\n"));
     }
 
     @Test
@@ -263,6 +277,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
         execute("select * from t1", null, testUserSession());
+    }
+
+    @Test
+    public void testDropViewRemovesPrivileges() {
+        executeAsSuperuser("create view doc.v1 as select 1");
+        executeAsSuperuser("grant dql on view v1 to "+ TEST_USERNAME);
+
+        executeAsSuperuser("drop view v1");
+        ensureYellow();
+
+        executeAsSuperuser("create view doc.v1 as select 1");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
+        execute("select * from v1", null, testUserSession());
     }
 
     @Test

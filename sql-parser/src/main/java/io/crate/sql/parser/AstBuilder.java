@@ -191,6 +191,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private static final String CLUSTER = "CLUSTER";
     private static final String SCHEMA = "SCHEMA";
     private static final String TABLE = "TABLE";
+    private static final String VIEW = "VIEW";
 
 
     @Override
@@ -1680,6 +1681,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return SCHEMA;
             case SqlBaseLexer.TABLE:
                 return TABLE;
+            case SqlBaseLexer.VIEW:
+                return VIEW;
             default:
                 throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
 
