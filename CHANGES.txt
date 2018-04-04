@@ -60,32 +60,13 @@ Breaking Changes
 Changes
 =======
 
+- Changed the primary key constraints of the information schema tables
+  ``table_constraints``, ``referential_constraints``, ``table_partitions``,
+  ``key_column_usage``, ``columns``, and ``tables`` to be SQL compliant.
+
 - Fixed path of logfile name in rotation pattern in ``log4j2.properties``. It
   now writes into the correct logging directory instead of the parent
   directory.
-
-- Changed primary key constraint of the
-  ``information_schema.table_constraints`` table to ``(CONSTRAINT_CATALOG,
-  CONSTRAINT_SCHEMA, CONSTRAINT_NAME)`` for SQL compliance.
-
-- Changed primary key constraint of the
-  ``information_schema.referential_constraints`` table to
-  ``(CONSTRAINT_CATALOG, CONSTRAINT_SCHEMA, CONSTRAINT_NAME)`` for SQL
-  compliance.
-
-- Changed primary key constraint of the ``information_schema.table_partitions``
-  table to ``(TABLE_SCHEMA, TABLE_NAME, PARTITION_IDENT)`` for SQL compliance.
-
-- Changed primary key constraint of the ``information_schema.key_column_usage``
-  table to ``(CONSTRAINT_CATALOG, CONSTRAINT_SCHEMA, CONSTRAINT_NAME,
-  COLUMN_NAME)`` for SQL standard compliance.
-
-- Changed primary key constraint of the ``information_schema.columns`` table to
-  ``(TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME)`` for SQL standard
-  compliance.
-
-- Changed primary key of the ``information_schema.tables`` table to
-  ``(TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME)`` for SQL standard conformity.
 
 - Added support for views which can be created using the new ``CREATE VIEW``
   statement and dropped using the ``DROP VIEW`` statement. Views are listed in
