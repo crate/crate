@@ -575,8 +575,8 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         public Void visitView(AnalyzedView analyzedView, RelationContext context) {
             Privileges.ensureUserHasPrivilege(
                 context.type,
-                Privilege.Clazz.SCHEMA, // change to VIEW once we've View level permissions
-                analyzedView.name().schema(),
+                Privilege.Clazz.VIEW,
+                analyzedView.name().toString(),
                 context.user
             );
             User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());

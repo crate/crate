@@ -23,6 +23,7 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -44,13 +45,16 @@ import java.util.List;
 
 public final class TransportDropViewAction extends TransportMasterNodeAction<DropViewRequest, DropViewResponse> {
 
+    private final DDLClusterStateService ddlClusterStateService;
+
     @Inject
     public TransportDropViewAction(Settings settings,
                                    TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
                                    ActionFilters actionFilters,
-                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   IndexNameExpressionResolver indexNameExpressionResolver,
+                                   DDLClusterStateService ddlClusterStateService) {
         super(settings,
             "crate/sql/views/drop",
             transportService,
@@ -59,6 +63,7 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
             actionFilters,
             indexNameExpressionResolver,
             DropViewRequest::new);
+        this.ddlClusterStateService = ddlClusterStateService;
     }
 
     @Override
@@ -91,6 +96,7 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                         // We missed a view -> This is an error case so we must not update the cluster state
                         return currentState;
                     }
+                    currentState = ddlClusterStateService.onDropView(currentState, request.names());
                     return ClusterState.builder(currentState)
                         .metaData(
                             MetaData.builder(currentState.metaData())
