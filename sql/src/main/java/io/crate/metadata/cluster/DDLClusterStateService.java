@@ -78,6 +78,11 @@ public class DDLClusterStateService {
             (modifier, clusterState) -> modifier.onRenameTable(clusterState, sourceRelationName, targetRelationName, isPartitioned));
     }
 
+    public ClusterState onDropView(ClusterState currentState, List<RelationName> relationNames) {
+        return applyOnAllModifiers(currentState,
+            (modifier, clusterState) -> modifier.onDropView(clusterState, relationNames));
+    }
+
     private ClusterState applyOnAllModifiers(ClusterState currentState,
                                              BiFunction<DDLClusterStateModifier, ClusterState, ClusterState> function) {
         for (DDLClusterStateModifier modifier : clusterStateModifiers) {

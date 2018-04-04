@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.collections.Lists2;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -109,6 +110,16 @@ class PrivilegesAnalyzer {
         });
     }
 
+    private void validateViewNames(List<String> viewNames) {
+        viewNames.forEach(t -> {
+            RelationName ident = RelationName.fromIndexName(t);
+            validateSchemaName(ident.schema());
+            if (schemas.resolveView(ident) == null) {
+                throw new RelationUnknown(ident);
+            }
+        });
+    }
+
     private void validateSchemaNames(List<String> schemaNames) {
         schemaNames.forEach(this::validateSchemaName);
     }
@@ -132,6 +143,8 @@ class PrivilegesAnalyzer {
             validateSchemaNames(idents);
         } else if (Privilege.Clazz.TABLE.equals(clazz)) {
             validateTableNames(idents);
+        } else if (Privilege.Clazz.VIEW.equals(clazz)) {
+            validateViewNames(idents);
         }
 
         return idents;

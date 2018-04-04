@@ -34,6 +34,8 @@ import java.util.Objects;
 
 public class Privilege implements Writeable {
 
+    // Order of the enum values is important because the ordinal is used for serialization!
+
     public enum State {
         GRANT,
         DENY,
@@ -53,7 +55,8 @@ public class Privilege implements Writeable {
     public enum Clazz {
         CLUSTER,
         SCHEMA,
-        TABLE;
+        TABLE,
+        VIEW;
 
         public static final List<Clazz> VALUES = ImmutableList.copyOf(values());
     }

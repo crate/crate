@@ -150,6 +150,11 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         assertThat(validationCallArguments, matcher);
     }
 
+    @SuppressWarnings("unchecked")
+    private void assertAskedForView(Privilege.Type type, String ident) {
+        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.VIEW, ident, user.name()));
+        assertThat(validationCallArguments, matcher);
+    }
 
     @Test
     public void testSuperUserByPassesValidation() throws Exception {
@@ -457,7 +462,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     @Test
     public void testQueryOnViewRequiresOwnerToHavePrivilegesOnInvolvedRelations() {
         analyze("select * from xx.v1");
-        assertAskedForSchema(Privilege.Type.DQL, "xx");
+        assertAskedForView(Privilege.Type.DQL, "xx.v1");
         assertAskedForTable(Privilege.Type.DQL, "doc.t1", superUser);
     }
 }

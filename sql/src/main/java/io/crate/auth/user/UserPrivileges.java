@@ -39,6 +39,7 @@ class UserPrivileges implements Iterable<Privilege> {
     private final boolean anyClusterPrivilege;
     private final Map<String, Boolean> anySchemaPrivilege = new HashMap<>();
     private final Map<String, Boolean> anyTablePrivilege = new HashMap<>();
+    private final Map<String, Boolean> anyViewPrivilege = new HashMap<>();
 
     UserPrivileges(Collection<Privilege> privileges) {
         privilegeByIdent = new HashMap<>(privileges.size());
@@ -56,6 +57,9 @@ class UserPrivileges implements Iterable<Privilege> {
                         break;
                     case TABLE:
                         anyTablePrivilege.put(privilegeIdent.ident(), true);
+                        break;
+                    case VIEW:
+                        anyViewPrivilege.put(privilegeIdent.ident(), true);
                         break;
                     default:
                         throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
@@ -91,6 +95,16 @@ class UserPrivileges implements Iterable<Privilege> {
                     }
                 }
                 break;
+            case VIEW:
+                foundPrivilege = hasAnyViewPrivilege(ident);
+                if (foundPrivilege == false) {
+                    String schemaIdent = new IndexParts(ident).getSchema();
+                    foundPrivilege = hasAnySchemaPrivilege(schemaIdent);
+                    if (foundPrivilege == false) {
+                        foundPrivilege = hasAnyClusterPrivilege();
+                    }
+                }
+                break;
             default:
                 throw new IllegalStateException("Unsupported privilege class=" + clazz);
         }
@@ -112,6 +126,7 @@ class UserPrivileges implements Iterable<Privilege> {
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     break;
                 case TABLE:
+                case VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
                     foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
@@ -150,6 +165,10 @@ class UserPrivileges implements Iterable<Privilege> {
 
     private boolean hasAnyTablePrivilege(String ident) {
         return anyTablePrivilege.get(ident) != null;
+    }
+
+    private boolean hasAnyViewPrivilege(String ident) {
+        return anyViewPrivilege.get(ident) != null;
     }
 
     @Override

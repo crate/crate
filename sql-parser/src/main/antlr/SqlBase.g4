@@ -606,6 +606,7 @@ userNames
 clazz
     : SCHEMA
     | TABLE
+    | VIEW
     ;
 
 nonReserved

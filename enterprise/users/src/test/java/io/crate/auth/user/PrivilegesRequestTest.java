@@ -35,7 +35,10 @@ public class PrivilegesRequestTest extends CrateUnitTest {
         List<String> users = Lists.newArrayList("ford", "arthur");
         List<Privilege> privileges = Lists.newArrayList(
             new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, null, "crate"),
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, null, "crate"),
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, null, "crate")
         );
         PrivilegesRequest r1 = new PrivilegesRequest(users, privileges);
 
