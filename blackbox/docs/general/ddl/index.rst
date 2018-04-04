@@ -23,5 +23,5 @@ Data Definition
    fulltext-indices
    analyzers
    show-create-table
-   create-view
+   views
    alter-table
