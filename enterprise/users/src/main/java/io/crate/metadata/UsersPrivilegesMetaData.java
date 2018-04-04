@@ -167,20 +167,21 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
         return affectedCount;
     }
 
-    public long dropTablePrivileges(String tableIdent) {
+    public long dropTableOrViewPrivileges(String tableOrViewIdent) {
         long affectedPrivileges = 0L;
         for (Set<Privilege> privileges : usersPrivileges.values()) {
             Iterator<Privilege> privilegeIterator = privileges.iterator();
             while (privilegeIterator.hasNext()) {
                 Privilege privilege = privilegeIterator.next();
                 PrivilegeIdent privilegeIdent = privilege.ident();
-                if (privilegeIdent.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                Privilege.Clazz clazz = privilegeIdent.clazz();
+                if (clazz.equals(Privilege.Clazz.TABLE) == false && clazz.equals(Privilege.Clazz.VIEW) == false) {
                     continue;
                 }
 
                 String ident = privilegeIdent.ident();
                 assert ident != null : "ident must not be null for privilege class 'TABLE'";
-                if (ident.equals(tableIdent)) {
+                if (ident.equals(tableOrViewIdent)) {
                     privilegeIterator.remove();
                     affectedPrivileges++;
                 }
