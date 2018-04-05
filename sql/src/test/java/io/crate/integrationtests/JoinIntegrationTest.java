@@ -812,7 +812,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (a) values (0), (1), (1), (2), (2), (4)");
         execute("insert into t2 (x) values (1), (3), (3), (4), (4)");
         execute("refresh table t1, t2");
-        execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1  order by a, x");
+        execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| 1\n" +
                "1| 1\n" +

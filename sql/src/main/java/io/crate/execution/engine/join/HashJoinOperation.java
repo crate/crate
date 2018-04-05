@@ -57,8 +57,7 @@ public class HashJoinOperation implements CompletionListenable {
                              CircuitBreaker circuitBreaker,
                              long estimatedRowSizeForLeft,
                              long numberOfRowsForLeft,
-                             int limit,
-                             boolean isOrdered) {
+                             int rowsToBeConsumed) {
 
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
@@ -77,8 +76,7 @@ public class HashJoinOperation implements CompletionListenable {
                             circuitBreaker,
                             estimatedRowSizeForLeft,
                             numberOfRowsForLeft,
-                            limit,
-                            isOrdered
+                        rowsToBeConsumed
                         ), completionFuture);
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
@@ -129,8 +127,7 @@ public class HashJoinOperation implements CompletionListenable {
                                                              CircuitBreaker circuitBreaker,
                                                              long estimatedRowSizeForLeft,
                                                              long numberOfRowsForLeft,
-                                                             int limit,
-                                                             boolean isOrdered) {
+                                                             int rowsToBeConsumed) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator<>(
             new RamAccountingBatchIterator<>(left, rowAccounting),
@@ -142,7 +139,6 @@ public class HashJoinOperation implements CompletionListenable {
             circuitBreaker,
             estimatedRowSizeForLeft,
             numberOfRowsForLeft,
-            limit,
-            isOrdered);
+            rowsToBeConsumed);
     }
 }

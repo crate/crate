@@ -92,8 +92,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
-    private final int limit;
-    private final boolean isOrdered;
+    private final int rowsToBeConsumed;
 
     private IntObjectHashMap<List<Object[]>> buffer;
     private int blockSize;
@@ -110,8 +109,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       CircuitBreaker cicuitBreaker,
                                       long estimatedRowSizeForLeft,
                                       long numberOfRowsForLeft,
-                                      int limit,
-                                      boolean isOrdered) {
+                                      int rowsToBeConsumed) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
@@ -119,9 +117,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.circuitBreaker = cicuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
         this.numberOfRowsForLeft = numberOfRowsForLeft;
-
-        this.limit = limit;
-        this.isOrdered = isOrdered;
+        this.rowsToBeConsumed = rowsToBeConsumed;
         recreateBuffer();
         this.activeIt = left;
     }
@@ -165,7 +161,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, limit, isOrdered);
+        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, rowsToBeConsumed);
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
     }
@@ -174,8 +170,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     static int calculateBlockSize(CircuitBreaker circuitBreaker,
                                   long estimatedRowSizeForLeft,
                                   long numberOfRowsForLeft,
-                                  int limit,
-                                  boolean isOrdered) {
+                                  int rowsToBeConsumed) {
         if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
             return DEFAULT_BLOCK_SIZE;
         }
@@ -186,7 +181,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         // in this case if the limit is much lower than the default block size we'll try to keep the block size
         // smaller than what the given node can handle (imagine a node which can load the entire left side in memory
         // so the block size could be in the range of millions - the table row count - but the join has `limit 100`)
-        if (isOrdered == false && limit > 0 && limit <= DEFAULT_BLOCK_SIZE) {
+        // as we will likely need to consume a smaller number of rows
+        if (rowsToBeConsumed > 0 && rowsToBeConsumed <= DEFAULT_BLOCK_SIZE) {
             blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
         }
 

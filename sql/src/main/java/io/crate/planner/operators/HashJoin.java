@@ -180,7 +180,8 @@ class HashJoin extends TwoInputPlan {
             hashInputs.v2(),
             Symbols.typeView(leftLogicalPlan.outputs()),
             leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows());
+            leftLogicalPlan.numExpectedRows(),
+            getRowsToBeConsumed(limit, order));
         return new Join(
             joinPhase,
             leftExecutionPlan,
@@ -191,6 +192,14 @@ class HashJoin extends TwoInputPlan {
             outputs.size(),
             null
         );
+    }
+
+    private int getRowsToBeConsumed(int limit, @Nullable OrderBy order) {
+        if (order != null || limit == NO_LIMIT) {
+            return Integer.MAX_VALUE;
+        } else {
+            return limit;
+        }
     }
 
     private Tuple<List<Symbol>, List<Symbol>> extractHashJoinInputsFromJoinSymbolsAndSplitPerSide(boolean switchedTables) {
