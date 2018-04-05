@@ -45,7 +45,7 @@ public class Build {
                 props.load(inputStream);
             }
             hash = props.getProperty("hash", hash);
-            if (!hash.equals("NA")) {
+            if (hash.length() >= 7) {
                 hashShort = hash.substring(0, 7);
             }
             String gitTimestampRaw = props.getProperty("timestamp");
