@@ -73,10 +73,7 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
                             getHashBuilderFromSymbols(inputFactory, joinRightInputs),
                             rowAccounting,
-                            circuitBreaker,
-                            estimatedRowSizeForLeft,
-                            numberOfRowsForLeft,
-                        rowsToBeConsumed
+                            new BlockSizeCalculator(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, rowsToBeConsumed)
                         ), completionFuture);
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
@@ -124,10 +121,7 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Function<Row, Integer> hashBuilderForLeft,
                                                              Function<Row, Integer> hashBuilderForRight,
                                                              RowAccounting rowAccounting,
-                                                             CircuitBreaker circuitBreaker,
-                                                             long estimatedRowSizeForLeft,
-                                                             long numberOfRowsForLeft,
-                                                             int rowsToBeConsumed) {
+                                                             BlockSizeCalculator blockSizeCalculator) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator<>(
             new RamAccountingBatchIterator<>(left, rowAccounting),
@@ -136,9 +130,6 @@ public class HashJoinOperation implements CompletionListenable {
             joinCondition,
             hashBuilderForLeft,
             hashBuilderForRight,
-            circuitBreaker,
-            estimatedRowSizeForLeft,
-            numberOfRowsForLeft,
-            rowsToBeConsumed);
+            blockSizeCalculator);
     }
 }

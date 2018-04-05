@@ -23,20 +23,18 @@
 package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
-import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.join.ElementCombiner;
 import io.crate.data.join.JoinBatchIterator;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * <pre>
@@ -78,9 +76,6 @@ import java.util.function.Predicate;
  */
 public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends JoinBatchIterator<L, R, C> {
 
-    @VisibleForTesting
-    static final int DEFAULT_BLOCK_SIZE = Paging.PAGE_SIZE;
-
     private final Predicate<C> joinCondition;
 
     /**
@@ -89,10 +84,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
     private final Function<L, Integer> hashBuilderForLeft;
     private final Function<R, Integer> hashBuilderForRight;
-    private final CircuitBreaker circuitBreaker;
-    private final long estimatedRowSizeForLeft;
-    private final long numberOfRowsForLeft;
-    private final int rowsToBeConsumed;
+    private final Supplier<Integer> blockSizeSupplier;
 
     private IntObjectHashMap<List<Object[]>> buffer;
     private int blockSize;
@@ -106,18 +98,12 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                                       Predicate<C> joinCondition,
                                       Function<L, Integer> hashBuilderForLeft,
                                       Function<R, Integer> hashBuilderForRight,
-                                      CircuitBreaker cicuitBreaker,
-                                      long estimatedRowSizeForLeft,
-                                      long numberOfRowsForLeft,
-                                      int rowsToBeConsumed) {
+                                      Supplier<Integer> blockSizeSupplier) {
         super(left, right, combiner);
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
         this.hashBuilderForRight = hashBuilderForRight;
-        this.circuitBreaker = cicuitBreaker;
-        this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
-        this.numberOfRowsForLeft = numberOfRowsForLeft;
-        this.rowsToBeConsumed = rowsToBeConsumed;
+        this.blockSizeSupplier = blockSizeSupplier;
         recreateBuffer();
         this.activeIt = left;
     }
@@ -161,41 +147,9 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     }
 
     private void recreateBuffer() {
-        blockSize = calculateBlockSize(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft, rowsToBeConsumed);
+        blockSize = blockSizeSupplier.get();
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
-    }
-
-    @VisibleForTesting
-    static int calculateBlockSize(CircuitBreaker circuitBreaker,
-                                  long estimatedRowSizeForLeft,
-                                  long numberOfRowsForLeft,
-                                  int rowsToBeConsumed) {
-        if (statisticsUnavailable(circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)) {
-            return DEFAULT_BLOCK_SIZE;
-        }
-
-        int blockSize = (int) Math.min(Integer.MAX_VALUE, (circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
-        blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
-        // we can encounter joins which with explicit limit statement but without any order by clause.
-        // in this case if the limit is much lower than the default block size we'll try to keep the block size
-        // smaller than what the given node can handle (imagine a node which can load the entire left side in memory
-        // so the block size could be in the range of millions - the table row count - but the join has `limit 100`)
-        // as we will likely need to consume a smaller number of rows
-        if (rowsToBeConsumed > 0 && rowsToBeConsumed <= DEFAULT_BLOCK_SIZE) {
-            blockSize = Math.min(DEFAULT_BLOCK_SIZE, blockSize);
-        }
-
-        // In case no mem available from circuit breaker then still allocate a small blockSize,
-        // so that at least some rows (min 1) from the left side could be processed and
-        // a CircuitBreakerException can be triggered.
-        return blockSize <= 0 ? 10 : blockSize;
-    }
-
-    private static boolean statisticsUnavailable(CircuitBreaker circuitBreaker,
-                                          long estimatedRowSizeForLeft,
-                                          long numberOfRowsForLeft) {
-        return estimatedRowSizeForLeft <= 0 || numberOfRowsForLeft <= 0 || circuitBreaker.getLimit() == -1;
     }
 
     private boolean buildBufferAndMatchRight() {
