@@ -50,6 +50,7 @@ public class InformationViewsTableInfo extends InformationTableInfo {
         static final ColumnIdent VIEW_DEFINITION = new ColumnIdent("view_definition");
         static final ColumnIdent CHECK_OPTION = new ColumnIdent("check_option");
         static final ColumnIdent IS_UPDATABLE = new ColumnIdent("is_updatable");
+        static final ColumnIdent OWNER = new ColumnIdent("owner");
     }
 
     private static ColumnRegistrar buildColumnRegistrar() {
@@ -59,7 +60,8 @@ public class InformationViewsTableInfo extends InformationTableInfo {
             .register(Columns.TABLE_NAME, DataTypes.STRING)
             .register(Columns.VIEW_DEFINITION, DataTypes.STRING)
             .register(Columns.CHECK_OPTION, DataTypes.STRING)
-            .register(Columns.IS_UPDATABLE, DataTypes.BOOLEAN);
+            .register(Columns.IS_UPDATABLE, DataTypes.BOOLEAN)
+            .register(Columns.OWNER, DataTypes.STRING);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ViewInfo>> expressions() {
@@ -76,6 +78,7 @@ public class InformationViewsTableInfo extends InformationTableInfo {
                 () -> RowContextCollectorExpression.forFunction(r -> CHECK_OPTION_NONE))
             .put(Columns.IS_UPDATABLE,
                 () -> RowContextCollectorExpression.forFunction(r -> false))
+            .put(Columns.OWNER, () -> RowContextCollectorExpression.objToBytesRef(ViewInfo::owner))
             .build();
     }
 
