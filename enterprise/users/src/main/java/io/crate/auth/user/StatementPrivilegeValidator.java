@@ -49,6 +49,7 @@ import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
@@ -470,6 +471,19 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 user
             );
             visitRelation(createViewStmt.query(), user, Privilege.Type.DQL);
+            return null;
+        }
+
+        @Override
+        public Void visitDropView(DropViewStmt dropViewStmt, User user) {
+            for (RelationName name : dropViewStmt.views()) {
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.DDL,
+                    Privilege.Clazz.VIEW,
+                    name.toString(),
+                    user
+                );
+            }
             return null;
         }
     }

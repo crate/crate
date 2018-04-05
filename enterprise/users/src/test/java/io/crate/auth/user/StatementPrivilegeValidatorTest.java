@@ -465,6 +465,12 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         assertAskedForView(Privilege.Type.DQL, "xx.v1");
         assertAskedForTable(Privilege.Type.DQL, "doc.t1", superUser);
     }
+
+    @Test
+    public void testDroppingAViewRequiresDDLPermissionOnView() {
+        analyze("drop view xx.v1");
+        assertAskedForView(Privilege.Type.DDL, "xx.v1");
+    }
 }
 
 
