@@ -74,6 +74,6 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
             // because the underlying table of the view could not be found.
             columns = Collections.emptyList();
         }
-        return new ViewInfo(ident, view.stmt(), columns);
+        return new ViewInfo(ident, view.stmt(), columns, view.owner());
     }
 }

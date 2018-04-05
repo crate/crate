@@ -29,6 +29,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,11 +42,13 @@ public class ViewInfo implements RelationInfo {
     private final RelationName ident;
     private final String definition;
     private final List<Reference> columns;
+    private final String owner;
 
-    ViewInfo(RelationName ident, String definition, List<Reference> columns) {
+    ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
         this.ident = ident;
         this.definition = definition;
         this.columns = columns;
+        this.owner = owner;
     }
 
     @Override
@@ -95,5 +98,10 @@ public class ViewInfo implements RelationInfo {
 
     public String definition() {
         return definition;
+    }
+
+    @Nullable
+    public String owner() {
+        return owner;
     }
 }
