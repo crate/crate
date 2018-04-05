@@ -43,7 +43,7 @@ public class CreateBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStateme
     }
 
     public void table(RelationName relationName, Schemas schemas) {
-        relationName.validate();
+        relationName.ensureValidForRelationCreation();
         if (schemas.tableExists(relationName)) {
             throw new RelationAlreadyExists(relationName);
         }

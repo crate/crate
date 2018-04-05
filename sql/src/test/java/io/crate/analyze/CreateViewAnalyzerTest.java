@@ -24,12 +24,14 @@ package io.crate.analyze;
 
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -79,5 +81,23 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Query cannot be used in a VIEW");
         e.analyze("create view v1 as select t1.x, t1.x as y from t1, t1 as t2");
+    }
+
+    @Test
+    public void testCreatingAViewInReadOnlySchemaIsProhibited() {
+        for (String schema : Schemas.READ_ONLY_SCHEMAS) {
+            try {
+                e.analyze(String.format(Locale.ENGLISH, "create view %s.v1 as select 1", schema));
+                fail("creating a view in read-only schema must fail");
+            } catch (Exception e) {
+                assertThat(e.getMessage(), is("Cannot create relation in read-only schema: " + schema));
+            }
+        }
+    }
+
+    @Test
+    public void testCreatingAViewInBlobSchemaIsProhibited() {
+        expectedException.expect(UnsupportedOperationException.class);
+        e.analyze("create view blob.v1 as select 1");
     }
 }

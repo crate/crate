@@ -24,6 +24,7 @@ package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -33,6 +34,7 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
@@ -49,6 +51,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -60,6 +63,13 @@ import java.util.regex.Pattern;
 
 @Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
+
+    public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
+        SysSchemaInfo.NAME,
+        InformationSchemaInfo.NAME,
+        PgCatalogSchemaInfo.NAME
+    );
+
 
     private static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
 

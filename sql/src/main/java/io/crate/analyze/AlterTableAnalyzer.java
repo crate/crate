@@ -72,7 +72,7 @@ public class AlterTableAnalyzer {
         RelationName relationName = RelationName.of(node.table(), sessionContext.defaultSchema());
         DocTableInfo tableInfo = schemas.getTableInfo(relationName);
         RelationName newRelationName = new RelationName(relationName.schema(), newIdentParts.get(0));
-        newRelationName.validate();
+        newRelationName.ensureValidForRelationCreation();
         return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
     }
 

@@ -40,7 +40,6 @@ import java.util.Set;
 public final class RelationName implements Writeable {
 
     private static final Set<String> INVALID_NAME_CHARACTERS = ImmutableSet.of(".");
-
     private final String schema;
     private final String name;
 
@@ -102,12 +101,15 @@ public final class RelationName implements Writeable {
         return fqn();
     }
 
-    public void validate() throws InvalidSchemaNameException, InvalidRelationName {
+    public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
         if (!isValidRelationOrSchemaName(schema)) {
             throw new InvalidSchemaNameException(schema);
         }
         if (!isValidRelationOrSchemaName(name)) {
             throw new InvalidRelationName(this);
+        }
+        if (Schemas.READ_ONLY_SCHEMAS.contains(schema)) {
+            throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
         }
     }
 

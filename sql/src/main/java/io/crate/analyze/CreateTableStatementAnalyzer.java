@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
@@ -31,9 +29,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateTable;
@@ -43,7 +38,6 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.PartitionedBy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -55,12 +49,6 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final Functions functions;
     private final NumberOfShards numberOfShards;
-
-    public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
-        SysSchemaInfo.NAME,
-        InformationSchemaInfo.NAME,
-        PgCatalogSchemaInfo.NAME
-    );
 
     static class Context {
 
@@ -95,8 +83,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
                                                 TransactionContext transactionContext) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
-
-        RelationName relationName = getTableIdent(createTable, transactionContext.sessionContext());
+        RelationName relationName = RelationName.of(createTable.name(), transactionContext.sessionContext().defaultSchema());
         statement.table(relationName, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,
@@ -130,16 +117,6 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             process(option, context);
         }
         return statement;
-    }
-
-    private RelationName getTableIdent(CreateTable node, SessionContext sessionContext) {
-        RelationName relationName = RelationName.of(node.name(), sessionContext.defaultSchema());
-        if (READ_ONLY_SCHEMAS.contains(relationName.schema())) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", relationName.schema())
-            );
-        }
-        return relationName;
     }
 
     @Override

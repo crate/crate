@@ -27,13 +27,14 @@ import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidRelationName;
+import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.ParsingException;
@@ -84,12 +85,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void testCreateTableInSystemSchemas() throws Exception {
-        for (String schema : CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS) {
+    public void testCreateTableInSystemSchemasIsProhibited() throws Exception {
+        for (String schema : Schemas.READ_ONLY_SCHEMAS) {
             try {
                 e.analyze(String.format("CREATE TABLE %s.%s (ordinal INTEGER, name STRING)", schema, "my_table"));
+                fail("create table in read-only schema must fail");
             } catch (IllegalArgumentException e) {
-                assertThat(e.getLocalizedMessage(), startsWith("Cannot create table in read-only schema"));
+                assertThat(e.getLocalizedMessage(), startsWith("Cannot create relation in read-only schema: " + schema));
             }
         }
     }

@@ -31,7 +31,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
@@ -752,7 +751,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Random random = RandomizedContext.current().getRandom();
         while (true) {
             String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
-            if (!CreateTableStatementAnalyzer.READ_ONLY_SCHEMAS.contains(schemaName) &&
+            if (!Schemas.READ_ONLY_SCHEMAS.contains(schemaName) &&
                 !Identifiers.isKeyWord(schemaName)) {
                 return schemaName;
             }
