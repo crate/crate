@@ -1052,6 +1052,29 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
+    public void testInsertFromValuesWithInvalidConflictTargetDoNothing() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id) values (1) on conflict (id2) DO NOTHING");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetDoNothingNotMatchingPK() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        e.analyze("insert into users (id) values (1) on conflict (id, id2) DO NOTHING");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetDoNothingNotMatchingMultiplePKs() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        e.analyze("insert into three_pk (a, b, c) values (1, 2, 3) " +
+                  "on conflict (a, b) DO NOTHING");
+    }
+
+
+    @Test
     public void testInsertFromValuesWithMissingConflictTarget() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:50: mismatched input 'update' expecting 'NOTHING'");
@@ -1172,6 +1195,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
         InsertFromValuesAnalyzedStatement statement =
+            e.analyze("insert into users (id, name) values (1, 'Jon') on conflict (id) DO NOTHING");
+        assertThat(statement.isIgnoreDuplicateKeys(), is(true));
+        assertThat(statement.onDuplicateKeyAssignments(), is(empty()));
+        // also test without the optional conflict target
+        statement =
             e.analyze("insert into users (id, name) values (1, 'Jon') on conflict DO NOTHING");
         assertThat(statement.isIgnoreDuplicateKeys(), is(true));
         assertThat(statement.onDuplicateKeyAssignments(), is(empty()));

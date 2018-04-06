@@ -55,6 +55,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.Insert.DuplicateKeyContext.Type;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ValuesList;
@@ -172,9 +173,12 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
+        Insert.DuplicateKeyContext duplicateKeyContext = node.getDuplicateKeyContext();
+
+        verifyOnConflictTargets(duplicateKeyContext, tableInfo);
+
         final FieldProvider fieldProvider;
-        if (node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {
-            verifyOnConflictTargets(node.getDuplicateKeyContext().getConstraintColumns(), tableInfo);
+        if (duplicateKeyContext.getType() == Type.ON_CONFLICT_DO_UPDATE_SET) {
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(tableRelation), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(tableRelation);
@@ -187,10 +191,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             convertParamFunction,
             fieldProvider,
             valuesResolver,
-            node.getDuplicateKeyContext().getType());
+            duplicateKeyContext.getType());
 
         final boolean ignoreDuplicateKeys =
-            node.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
+            duplicateKeyContext.getType() == Type.ON_CONFLICT_DO_NOTHING;
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
             tableInfo, analysis.parameterContext().numBulkParams(), ignoreDuplicateKeys);
@@ -228,7 +232,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 valuesResolver,
                 valuesAwareExpressionAnalyzer,
                 valuesList,
-                node.getDuplicateKeyContext().getAssignments(),
+                duplicateKeyContext.getAssignments(),
                 statement,
                 analysis.parameterContext(),
                 refToLiteral);
@@ -611,7 +615,11 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    static void verifyOnConflictTargets(List<String> constraintColumns, DocTableInfo docTableInfo) {
+    static void verifyOnConflictTargets(Insert.DuplicateKeyContext duplicateKeyContext, DocTableInfo docTableInfo) {
+        List<String> constraintColumns = duplicateKeyContext.getConstraintColumns();
+        if (constraintColumns.isEmpty()) {
+            return;
+        }
         List<ColumnIdent> pkColumnIdents = docTableInfo.primaryKey();
         if (constraintColumns.size() != pkColumnIdents.size()) {
             throw new IllegalArgumentException(

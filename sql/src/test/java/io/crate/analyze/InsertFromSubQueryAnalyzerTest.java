@@ -360,4 +360,27 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         expectedException.expectMessage("line 1:66: mismatched input 'update' expecting 'NOTHING'");
         e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict do update set name = excluded.name");
     }
+
+    @Test
+    public void testFromQueryWithInvalidConflictTargetDoNothing() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Conflict target ([id2]) did not match the primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id2) DO NOTHING");
+    }
+
+    @Test
+    public void testFromQueryWithConflictTargetDoNothingNotMatchingPK() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([id, id2]) did not match the number of primary key columns ([id])");
+        e.analyze("insert into users (id, name) (select 1, 'Arthur') on conflict (id, id2) DO NOTHING");
+    }
+
+    @Test
+    public void testInsertFromValuesWithConflictTargetDoNothingNotMatchingMultiplePKs() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Number of conflict targets ([a, b]) did not match the number of primary key columns ([a, b, c])");
+        e.analyze("insert into three_pk (a, b, c) (select 1, 2, 3) " +
+                  "on conflict (a, b) DO NOTHING");
+    }
+
 }

@@ -66,6 +66,7 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static io.crate.analyze.InsertFromValuesAnalyzer.verifyOnConflictTargets;
 import static java.util.Objects.requireNonNull;
 
 class InsertFromSubQueryAnalyzer {
@@ -142,6 +143,8 @@ class InsertFromSubQueryAnalyzer {
 
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
         validateColumnsAndAddCastsIfNecessary(targetColumns, source.outputs());
+
+        verifyOnConflictTargets(node.getDuplicateKeyContext(), tableInfo);
 
         Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
@@ -250,7 +253,6 @@ class InsertFromSubQueryAnalyzer {
         ValuesResolver valuesResolver = new ValuesResolver(targetTable, targetCols);
         final FieldProvider fieldProvider;
         if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {
-            InsertFromValuesAnalyzer.verifyOnConflictTargets(duplicateKeyContext.getConstraintColumns(), targetTable.tableInfo());
             fieldProvider = new ExcludedFieldProvider(new NameFieldProvider(targetTable), valuesResolver);
         } else {
             fieldProvider = new NameFieldProvider(targetTable);
