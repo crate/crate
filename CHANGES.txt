@@ -151,6 +151,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause a NullPointerException to be thrown when 
+  executing an ``EXPLAIN`` statement for a ``CROSS JOIN``.
+
 - Do not allow renaming a table when connected to a read-only node.
 
 - Fixed an issue that would cause a ClassCastException to be thrown instead of

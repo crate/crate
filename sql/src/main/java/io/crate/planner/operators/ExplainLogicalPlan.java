@@ -172,12 +172,15 @@ public class ExplainLogicalPlan {
 
         @Override
         public ImmutableMap.Builder<String, Object> visitNestedLoopJoin(NestedLoopJoin logicalPlan, Context context) {
-            return createMap(logicalPlan, createSubMap()
+            ImmutableMap.Builder<String, Object> mapBuilder = createMap(logicalPlan, createSubMap()
                 .put("left", explainMap(logicalPlan.lhs, context))
                 .put("right", explainMap(logicalPlan.rhs, context))
-                .put("joinType", logicalPlan.joinType())
-                .put("joinCondition",
-                    SymbolPrinter.INSTANCE.printQualified(logicalPlan.joinCondition())));
+                .put("joinType", logicalPlan.joinType()));
+
+            if (logicalPlan.joinCondition() != null) {
+                mapBuilder.put("joinCondition", SymbolPrinter.INSTANCE.printQualified(logicalPlan.joinCondition()));
+            }
+            return mapBuilder;
         }
 
         @Override
