@@ -93,11 +93,15 @@ When a privilege is assigned on a certain level, the privilege will propagate
 down the hierarchy. Privileges defined on a lower level will always override
 those from a higher level. For example::
 
+This statement will grant ``DQL`` privilege to user riley on all the tables
+and functions of the ``doc`` schema::
+
     cr> GRANT DQL ON SCHEMA doc TO riley;
     GRANT OK, 1 row affected (... sec)
 
-This statement will grant ``DQL`` privilege to user riley on all the tables
-and functions of the ``doc`` schema::
+This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema
+table ``doc.accounting``. However, user riley, will still have ``DQL``
+privilege on all the other tables of the ``doc`` schema::
 
     cr> DENY DQL ON TABLE doc.accounting TO riley;
     DENY OK, 1 row affected (... sec)
@@ -108,10 +112,6 @@ and functions of the ``doc`` schema::
     implicitly. Therefore, when ``GRANT``, ``DENY`` or ```REVOKE`` are invoked
     on a schema level, CrateDB takes the schema name provided without further
     validation.
-
-This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema
-table ``doc.accounting``. However, user riley, will still have ``DQL``
-privilege on all the other tables of the ``doc`` schema.
 
 .. NOTE::
 
