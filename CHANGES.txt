@@ -21,3 +21,5 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would cause a NullPointerException to be thrown when 
+  executing an ``EXPLAIN`` statement for a ``CROSS JOIN``.
