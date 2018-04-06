@@ -539,6 +539,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
+        // disable hash joins otherwise it will be a distributed join and the plan differs
+        e.getSessionContext().setHashJoinEnabled(false);
         QueryThenFetch qtf = e.plan("select u1.text, u2.text " +
                                   "from users u1 left join users u2 on u1.id = u2.id " +
                                   "where u2.name = 'Arthur'" +

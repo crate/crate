@@ -51,7 +51,6 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -184,23 +183,21 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testJoinOnSubSelectsWithLimitAndOffset() throws Exception {
-        Join nl = e.plan("select * from " +
+        Join join = e.plan("select * from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
                          "join" +
                          " (select i from t2 order by b limit 5 offset 5) t2 " +
                          "on t1.i = t2.i");
-        assertThat(nl.joinPhase().projections().size(), is(1));
-        assertThat(nl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
-        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
+        assertThat(join.joinPhase().projections().size(), is(1));
+        assertThat(join.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
 
-        Collect left = (Collect) nl.left();
+        Collect left = (Collect) join.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(left.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[null]}"));
         assertThat(left.collectPhase().projections(), contains(
             isTopN(10, 2)
         ));
-        Collect right = (Collect) nl.right();
+        Collect right = (Collect) join.right();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.b"));
         assertThat(right.collectPhase().projections(), contains(
@@ -212,16 +209,14 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testJoinWithAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
-        Join nl = e.plan("select t1.a, count(*) from " +
+        Join join = e.plan("select t1.a, count(*) from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
                          "join" +
                          " (select i from t2 order by i desc limit 5 offset 5) t2 " +
                          "on t1.i = t2.i " +
                          "group by t1.a");
-        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
-        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
 
-        Collect left = (Collect) nl.left();
+        Collect left = (Collect) join.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
@@ -231,7 +226,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
 
 
-        Collect right = (Collect) nl.right();
+        Collect right = (Collect) join.right();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
         assertThat(right.collectPhase().projections(), contains(
@@ -239,7 +234,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
 
 
-        List<Projection> nlProjections = nl.joinPhase().projections();
+        List<Projection> nlProjections = join.joinPhase().projections();
         assertThat(nlProjections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(GroupProjection.class)
@@ -249,16 +244,13 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testJoinWithGlobalAggregationOnSubSelectsWithLimitAndOffset() throws Exception {
-        Join nl = e.plan("select count(*) from " +
+        Join join = e.plan("select count(*) from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
                          "join" +
                          " (select i from t2 order by i desc limit 5 offset 5) t2 " +
                          "on t1.i = t2.i");
 
-        assertThat(nl.joinPhase().leftMergePhase(), nullValue());
-        assertThat(nl.joinPhase().rightMergePhase(), nullValue());
-
-        Collect left = (Collect) nl.left();
+        Collect left = (Collect) join.left();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
@@ -267,16 +259,14 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class)
         ));
 
-
-        Collect right = (Collect) nl.right();
+        Collect right = (Collect) join.right();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
         assertThat(right.collectPhase().projections(), contains(
             isTopN(5, 5)
         ));
 
-
-        List<Projection> nlProjections = nl.joinPhase().projections();
+        List<Projection> nlProjections = join.joinPhase().projections();
         assertThat(nlProjections, contains(
             instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class)
