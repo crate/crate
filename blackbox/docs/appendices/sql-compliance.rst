@@ -57,12 +57,6 @@ Alter Table
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
 :ref:`ref-alter-table`).
 
-Insert, Update, and Delete
-==========================
-
-The keyword :ref:`on_duplicate_key_update`, when used in insert statements to
-perform an upsert, is an alternative to ``ON CONFLICT`` in standard SQL.
-
 System Information Tables
 =========================
 
