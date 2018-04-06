@@ -138,6 +138,13 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         assertThat(calculateBlockSize(circuitBreaker, 10, 10, -1, false), is(10));
     }
 
+    @Test
+    public void testCalculationOfBlockSizeWithIntegerOverflow() {
+        when(circuitBreaker.getLimit()).thenReturn(Integer.MAX_VALUE + 1L);
+        when(circuitBreaker.getUsed()).thenReturn(0L);
+        assertThat(calculateBlockSize(circuitBreaker, 1, 1, -1, false), is(1));
+    }
+
     private class TestRamAccountingBatchIterator extends RamAccountingBatchIterator<Row> {
 
         private int countCallsForReleaseMem = 0;

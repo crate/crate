@@ -180,7 +180,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             return DEFAULT_BLOCK_SIZE;
         }
 
-        int blockSize = (int) ((circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
+        int blockSize = (int) Math.min(Integer.MAX_VALUE, (circuitBreaker.getLimit() - circuitBreaker.getUsed()) / estimatedRowSizeForLeft);
         blockSize = (int) Math.min(numberOfRowsForLeft, blockSize);
         // we can encounter joins which with explicit limit statement but without any order by clause.
         // in this case if the limit is much lower than the default block size we'll try to keep the block size
@@ -193,7 +193,7 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         // In case no mem available from circuit breaker then still allocate a small blockSize,
         // so that at least some rows (min 1) from the left side could be processed and
         // a CircuitBreakerException can be triggered.
-        return blockSize == 0 ? 10 : blockSize;
+        return blockSize <= 0 ? 10 : blockSize;
     }
 
     private static boolean statisticsUnavailable(CircuitBreaker circuitBreaker,

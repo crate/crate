@@ -63,22 +63,27 @@ public class HashJoinOperation implements CompletionListenable {
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
                 if (failure == null) {
-                    BatchIterator<Row> joinIterator = new ListenableBatchIterator<>(createHashJoinIterator(
-                        leftBatchIterator.join(),
-                        numLeftCols,
-                        rightBatchIterator.join(),
-                        numRightCols,
-                        joinPredicate,
-                        getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
-                        getHashBuilderFromSymbols(inputFactory, joinRightInputs),
-                        rowAccounting,
-                        circuitBreaker,
-                        estimatedRowSizeForLeft,
-                        numberOfRowsForLeft,
-                        limit,
-                        isOrdered
-                    ), completionFuture);
-                    nlResultConsumer.accept(joinIterator, null);
+                    BatchIterator<Row> joinIterator;
+                    try {
+                        joinIterator = new ListenableBatchIterator<>(createHashJoinIterator(
+                            leftBatchIterator.join(),
+                            numLeftCols,
+                            rightBatchIterator.join(),
+                            numRightCols,
+                            joinPredicate,
+                            getHashBuilderFromSymbols(inputFactory, joinLeftInputs),
+                            getHashBuilderFromSymbols(inputFactory, joinRightInputs),
+                            rowAccounting,
+                            circuitBreaker,
+                            estimatedRowSizeForLeft,
+                            numberOfRowsForLeft,
+                            limit,
+                            isOrdered
+                        ), completionFuture);
+                        nlResultConsumer.accept(joinIterator, null);
+                    } catch (Exception e) {
+                        nlResultConsumer.accept(null, e);
+                    }
                 } else {
                     nlResultConsumer.accept(null, failure);
                 }
