@@ -1,3 +1,5 @@
+.. _views:
+
 =====
 Views
 =====
@@ -39,24 +41,26 @@ Once created, views can be used instead of a table in a statement::
     SELECT 3 rows in set (... sec)
 
 
+.. _views_enterprise:
+
 Privileges (Enterprise only)
 ----------------------------
 
 In order to be able to query data from a view, a user needs to have ``DQL``
-privileges on a view.
-This is the case if the user has ``DQL`` privileges on a cluster level, or on
-the schema in which the view is contained.
+privileges on a view. DQL privileges can be granted on a cluster level, on the
+schema in which the view is contained, or the view itself. Privileges on
+relations accessed by the view are not necessary.
 
-In addition to that, the **owner**, that is the user that created the view,
-needs to have ``DQL`` privileges on all relations occurring within the views
+However, it is required, at all time, that the **owner** (the user who created
+the view), has ``DQL`` privileges on all relations occurring within the view's
 query definition.
 
 A common use case for this is to give users access to a subset of a table
-without exposing the table itself as well.
+without exposing the table itself as well. If the owner ``DQL`` permissions
+on the underlying relations, a user who has access to the view will no longer
+be able to query it.
 
-This means if the owner looses the permissions on the underlying relations, a
-user that has access to the view will no longer be able to query it.
-
+See also :ref:`administration-privileges`.
 
 Dropping Views
 ==============

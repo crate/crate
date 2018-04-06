@@ -58,10 +58,10 @@ and ``DELETE`` statements, on the object for which the privilege applies.
 
 Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
 this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
-``CREATE FUNCTION``, ``DROP FUNCTION``, ``CREATE REPOSITORY``,
-``DROP REPOSITORY``, ``CREATE SNAPSHOT``, ``DROP SNAPSHOT``,
-``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the object for which the
-privilege applies.
+``CREATE VIEW``, ``DROP VIEW``,``CREATE FUNCTION``, ``DROP FUNCTION``,
+``CREATE REPOSITORY``, ``DROP REPOSITORY``, ``CREATE SNAPSHOT``,
+``DROP SNAPSHOT``, ``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the
+object for which the privilege applies.
 
 .. _hierarchical_privileges_inheritance:
 
@@ -76,22 +76,34 @@ Hierarchical Inheritance of Privileges
     CREATE OK, 1 row affected (... sec)
 
     cr> create table if not exists doc.accounting (
-    ...   first_column integer primary key,
-    ...   second_column string,
-    ...   third_column timestamp,
-    ...   fourth_column object(strict) as (
-    ...     key string,
-    ...     value string
-    ...   )
-    ... ) clustered by (first_column) into 5 shards;
+    ...   id integer primary key,
+    ...   name string,
+    ...   joined timestamp
+    ... ) clustered by (id);
     CREATE OK, 1 row affected (... sec)
 
+    cr> INSERT INTO doc.accounting
+    ...   (id, name, joined)
+    ...   VALUES (1, 'Jon', 0);
+    INSERT OK, 1 row affected (... sec)
+
+    cr> REFRESH table doc.accounting
+    REFRESH OK, 1 row affected (... sec)
+
 Privileges can be managed on three different levels, namely: ``CLUSTER``,
-``SCHEMA`` and ``TABLE``.
+``SCHEMA``, and ``TABLE``/``VIEW``.
 
 When a privilege is assigned on a certain level, the privilege will propagate
 down the hierarchy. Privileges defined on a lower level will always override
-those from a higher level. For example::
+those from a higher level:
+
+.. code-block:: none
+
+    cluster
+      ||
+    schema
+     /  \
+  table view
 
 This statement will grant ``DQL`` privilege to user riley on all the tables
 and functions of the ``doc`` schema::
@@ -117,6 +129,32 @@ privilege on all the other tables of the ``doc`` schema::
 
     Privileges can be managed on all schemas and tables of the cluster,
     except the ``information_schema``.
+
+Views are on the same hierarchy with tables, i.e. a privilege on a view
+is gained through a ``GRANT`` on either the view itself, the schema the view
+belongs to, or a cluster-wide privilege. Privileges on relations which are
+referenced in the view do not grant any privileges on the view itself. On the
+contrary, even if the user does not have any privileges on a view's referenced
+relations but on the view itself, the user can still access the relations
+through the view. For example::
+
+    cr> CREATE VIEW first_customer as SELECT * from doc.accounting ORDER BY id LIMIT 1
+    CREATE OK, 1 row affected (... sec)
+
+Previously we had issued a ``DENY`` for user ``riley`` on ``doc.accounting``
+but we can still access it through the view because we have access to it
+through the ``doc`` schema::
+
+    cr> SELECT id from first_customer;
+    +----+
+    | id |
+    +----+
+    |  1 |
+    +----+
+    SELECT 1 row in set (... sec)
+
+For more information regarding views, please see the
+:ref:`views page <views_enterprise>`.
 
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
@@ -302,4 +340,7 @@ was granted or denied.
     DROP OK, 1 row affected (... sec)
 
     cr> DROP TABLE IF EXISTS doc.books;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP VIEW first_customer;
     DROP OK, 1 row affected (... sec)
