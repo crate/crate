@@ -22,12 +22,15 @@ tqdm.monitor_interval = 0
 
 
 QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
-    'CREATE INDEX.*',                        # CREATE INDEX is not supported, but raises SQLParseException
+    # CREATE INDEX is not supported, but raises SQLParseException
+    'CREATE INDEX.*',
     '.*BETWEEN.*NULL.*',
-    'SELECT - SUM \\( col1 \\) \\* \\+ col1 FROM tab0 cor0 GROUP BY col1, col1', # Result is not deterministic
+    # Result is not deterministic
+    'SELECT - SUM \\( col1 \\) \\* \\+ col1 FROM tab0 cor0 GROUP BY col1, col1',
 ]]
 
 varchar_to_string = partial(re.compile('VARCHAR\(\d+\)').sub, 'STRING')
+text_to_string = partial(re.compile('TEXT').sub, 'STRING')
 real_to_double = partial(re.compile('REAL').sub, 'DOUBLE')
 
 
@@ -51,8 +54,7 @@ class Statement:
         self.query = '\n'.join(cmd[1:])
 
     def execute(self, cursor):
-        stmt = varchar_to_string(self.query)
-        stmt = real_to_double(stmt)
+        stmt = real_to_double(text_to_string(varchar_to_string(self.query)))
         try:
             cursor.execute(stmt)
         except psycopg2.Error as e:
@@ -259,17 +261,23 @@ def _exec_on_crate(cmd):
 
 
 def _refresh_tables(cursor):
-    cursor.execute("select table_name from information_schema.tables where table_schema = 'doc'")
+    cursor.execute("select table_name from information_schema.tables "
+                   "where table_type = 'BASE TABLE' and table_schema = 'doc'")
     rows = cursor.fetchall()
     for (table,) in rows:
         cursor.execute('refresh table ' + table)
 
 
-def _drop_tables(cursor):
-    cursor.execute("select table_name from information_schema.tables where table_schema = 'doc'")
-    rows = cursor.fetchall()
-    for (table, ) in rows:
+def _drop_relations(cursor):
+    cursor.execute("select table_name from information_schema.tables "
+                   "where table_type = 'BASE TABLE' and table_schema = 'doc'")
+    for (table,) in cursor.fetchall():
         cursor.execute('drop table ' + table)
+    cursor.execute("select table_name from information_schema.tables "
+                   "where table_type = 'VIEW' and table_schema = 'doc'")
+    views = [row[0] for row in cursor.fetchall()]
+    if views:
+        cursor.execute('drop view ' + ', '.join(views))
 
 
 def get_logger(level, filename=None):
@@ -314,7 +322,7 @@ def run_file(filename, host, port, log_level, log_file, failfast):
                 logger.warn('%s; %s', s_or_q.query, e, extra=attr)
     finally:
         fh.close()
-        _drop_tables(cursor)
+        _drop_relations(cursor)
         cursor.close()
         conn.close()
 

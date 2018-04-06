@@ -25,6 +25,8 @@ FILE_WHITELIST = [re.compile(o) for o in [
     'select[1-5].test',
     'random/select/slt_good_\d+.test',
     'random/groupby/slt_good_\d+.test',
+    'evidence/slt_lang_createview\.test',
+    'evidence/slt_lang_dropview\.test'
 ]]
 
 log = logging.getLogger('crate.testing.layer')
@@ -67,9 +69,9 @@ def test_suite():
         settings={
             'psql.port': CRATE_PSQL_PORT,
             # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-            "cluster.routing.allocation.disk.watermark.low" : "100k",
-            "cluster.routing.allocation.disk.watermark.high" : "10k",
-            "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
+            "cluster.routing.allocation.disk.watermark.low": "100k",
+            "cluster.routing.allocation.disk.watermark.high": "10k",
+            "cluster.routing.allocation.disk.watermark.flood_stage": "1k",
         }
     )
     suite.layer = crate_layer
