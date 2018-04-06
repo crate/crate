@@ -60,6 +60,9 @@ Breaking Changes
 Changes
 =======
 
+- Introduced a new VIEW privilege class which is used when granting/denying
+  access on views.
+
 - Changed the primary key constraints of the information schema tables
   ``table_constraints``, ``referential_constraints``, ``table_partitions``,
   ``key_column_usage``, ``columns``, and ``tables`` to be SQL compliant.
