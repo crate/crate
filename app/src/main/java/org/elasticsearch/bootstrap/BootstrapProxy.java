@@ -40,7 +40,6 @@ import org.elasticsearch.common.PidFile;
 import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.logging.ESLoggerFactory;
-import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.IfConfig;
 import org.elasticsearch.common.settings.Settings;
@@ -51,7 +50,6 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -59,7 +57,6 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -232,20 +229,13 @@ public class BootstrapProxy {
      */
     public static void init(final boolean foreground,
                             final boolean quiet,
-                            Environment initialEnv) throws BootstrapException, NodeValidationException, UserException {
+                            Environment environment) throws BootstrapException, NodeValidationException, UserException {
         // force the class initializer for BootstrapInfo to run before
         // the security manager is installed
         BootstrapInfo.init();
 
         INSTANCE = new BootstrapProxy();
 
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(
-            initialEnv.settings(), Collections.emptyMap(), initialEnv.configFile());
-        try {
-            LogConfigurator.configure(environment);
-        } catch (IOException e) {
-            throw new BootstrapException(e);
-        }
         if (environment.pidFile() != null) {
             try {
                 PidFile.create(environment.pidFile(), true);

@@ -26,7 +26,9 @@ import com.google.common.base.Charsets;
 import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
+import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
@@ -55,39 +57,44 @@ import static org.elasticsearch.transport.TcpTransport.PORT;
 
 public class CrateSettingsPreparer {
 
-    public static Environment prepareEnvironment(Settings input, Map<String, String> cmdLineSettings, Path configPath) {
-        Settings.Builder newSettings = Settings.builder();
-        newSettings.put(input);
-        newSettings.putProperties(cmdLineSettings, Function.identity());
-        newSettings.replacePropertyPlaceholders();
-        Environment env = new Environment(newSettings.build(), configPath);
+    public static Environment prepareEnvironment(Map<String, String> cmdLineSettings, Path configPath) throws UserException {
+        Settings.Builder settingsBuilder = Settings.builder();
+        settingsBuilder.putProperties(cmdLineSettings, Function.identity());
+        settingsBuilder.replacePropertyPlaceholders();
+        Environment env = new Environment(settingsBuilder.build(), configPath);
 
-        newSettings = Settings.builder();
+        try {
+            // Logging needs to be initialized before any Crate logging code runs
+            LogConfigurator.registerErrorListener();
+            LogConfigurator.configure(env);
+        } catch (IOException e) {
+            throw new UserException(1, "Couldn't read log4j2.properties configuration file.", e);
+        }
+
         Path path = env.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
             try {
-                newSettings.loadFromPath(path);
+                settingsBuilder.loadFromPath(path);
             } catch (IOException e) {
                 throw new SettingsException("Failed to load settings from " + path.toString(), e);
             }
         }
 
-        // override settings with cmdline settings
-        newSettings.put(input);
-        newSettings.putProperties(cmdLineSettings, Function.identity());
-        newSettings.replacePropertyPlaceholders();
+        // Override settings with settings from the command-line
+        settingsBuilder.putProperties(cmdLineSettings, Function.identity());
+        settingsBuilder.replacePropertyPlaceholders();
 
-        validateKnownSettings(newSettings);
-        applyCrateDefaults(newSettings);
+        validateKnownSettings(settingsBuilder);
+        applyCrateDefaults(settingsBuilder);
 
-        env = new Environment(newSettings.build(), env.configFile());
+        env = new Environment(settingsBuilder.build(), env.configFile());
 
         // we put back the path.logs so we can use it in the logging configuration file
-        newSettings.put(
+        settingsBuilder.put(
             Environment.PATH_LOGS_SETTING.getKey(),
             env.logsFile().toAbsolutePath().normalize().toString());
 
-        return new Environment(newSettings.build(), env.configFile());
+        return new Environment(settingsBuilder.build(), env.configFile());
     }
 
     static void validateKnownSettings(Settings.Builder builder) {

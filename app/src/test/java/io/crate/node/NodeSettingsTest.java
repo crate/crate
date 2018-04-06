@@ -37,13 +37,14 @@ import org.junit.rules.TemporaryFolder;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -74,6 +75,8 @@ public class NodeSettingsTest extends CrateUnitTest {
             yaml.dump(pathSettings, writer);
         }
 
+        new FileOutputStream(new File(config.getPath(), "log4j2.properties")).close();
+
         return config.toPath();
     }
 
@@ -87,15 +90,14 @@ public class NodeSettingsTest extends CrateUnitTest {
         }
         tmp.create();
         Path configPath = createConfigPath();
-        Settings settings = Settings.builder()
-            .put("node.name", "node-test")
-            .put("node.data", true)
-            .put(PATH_HOME_SETTING.getKey(), configPath)
-            // Avoid connecting to other test nodes
-            .put("discovery.type", "single-node")
-            .build();
+        Map<String, String> settings = new HashMap<>();
+        settings.put("node.name", "node-test");
+        settings.put("node.data", "true");
+        settings.put(PATH_HOME_SETTING.getKey(), configPath.toString());
+        // Avoid connecting to other test nodes
+        settings.put("discovery.type", "single-node");
 
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(settings, Collections.emptyMap(), configPath);
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(settings, configPath);
         node = new CrateNode(environment);
         node.start();
         client = node.client();

@@ -39,7 +39,6 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -90,9 +89,9 @@ public class CrateDB extends EnvironmentAwareCommand {
     }
 
     @Override
-    protected Environment createEnv(Terminal terminal, Map<String, String> settings) {
+    protected Environment createEnv(Terminal terminal, Map<String, String> cmdLineSettings) throws UserException {
         // 1) Check that path.home is set on the command-line (mandatory)
-        String crateHomePath = settings.get("path.home");
+        String crateHomePath = cmdLineSettings.get("path.home");
         if (crateHomePath == null) {
             throw new IllegalArgumentException("Please set the environment variable CRATE_HOME or " +
                                                "use -Cpath.home on the command-line.");
@@ -100,15 +99,14 @@ public class CrateDB extends EnvironmentAwareCommand {
         // 2) Remove path.conf from command-line settings but use it as a conf path if exists
         //    We need to remove it, because it was removed in ES6, but we want to keep the ability
         //    to set it as CLI argument and keep backwards compatibility.
-        String confPathCLI = settings.remove("path.conf");
+        String confPathCLI = cmdLineSettings.remove("path.conf");
         final Path confPath;
         if (confPathCLI != null) {
             confPath = Paths.get(confPathCLI);
         } else {
             confPath = Paths.get(crateHomePath, "config");
         }
-        System.setProperty("log4j.configurationFile", confPath + File.separator + "log4j2.properties");
-        return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, confPath);
+        return CrateSettingsPreparer.prepareEnvironment(cmdLineSettings, confPath);
     }
 
     @Override

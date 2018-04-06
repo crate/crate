@@ -105,7 +105,7 @@ public class CrateSettingsPreparerTest {
         settings.put("stats.enabled", "false");
         settings.put("cluster.name", "clusterNameOverridden");
         settings.put("path.logs", "/some/other/path");
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
         // Overriding value from crate.yml
         assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(false));
         // Value kept from crate.yml
@@ -123,7 +123,7 @@ public class CrateSettingsPreparerTest {
         settings.put("path.home", home.toString());
         Path config = PathUtils.get(getClass().getResource("config_custom").toURI());
         settings.put("path.conf", config.toString());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
         // Values from crate.yml
         assertThat(finalSettings.get("cluster.name"), is("custom"));
         // path.logs is not set in config_custom/crate.yml
@@ -137,7 +137,7 @@ public class CrateSettingsPreparerTest {
         settings.put("path.home", ".");
         settings.put("cluster.name", "clusterName");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
         assertThat(finalSettings.get("cluster.name"), is("clusterName"));
     }
 
@@ -147,7 +147,7 @@ public class CrateSettingsPreparerTest {
         settings.put("path.home", ".");
         settings.put("cluster.name", "elasticsearch");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
+        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
         assertThat(finalSettings.get("cluster.name"), is("crate"));
     }
 
@@ -160,6 +160,6 @@ public class CrateSettingsPreparerTest {
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage("Failed to load settings from");
         expectedException.expectCause(Matchers.hasProperty("message", containsString("Duplicate field 'stats.enabled'")));
-        CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config).settings();
+        CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
     }
 }
