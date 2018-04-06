@@ -321,4 +321,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
         return view;
     }
+
+    /**
+     * Performs a lookup to see if a view with the relationName exists.
+     */
+    public boolean viewExists(RelationName relationName) {
+        ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
+        return views != null && views.getView(relationName) != null;
+    }
 }

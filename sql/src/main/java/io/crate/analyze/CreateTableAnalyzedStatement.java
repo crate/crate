@@ -47,9 +47,11 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     public void table(RelationName relationName, boolean ifNotExists, Schemas schemas) {
         relationName.ensureValidForRelationCreation();
-        if (ifNotExists) {
-            noOp = schemas.tableExists(relationName);
-        } else if (schemas.tableExists(relationName)) {
+        boolean tableExists = schemas.tableExists(relationName);
+        boolean viewExists = schemas.viewExists(relationName);
+        if (ifNotExists && !viewExists) {
+            noOp = tableExists;
+        } else if (tableExists || viewExists) {
             throw new RelationAlreadyExists(relationName);
         }
         this.ifNotExists = ifNotExists;

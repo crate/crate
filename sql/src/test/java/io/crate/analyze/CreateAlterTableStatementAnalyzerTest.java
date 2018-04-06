@@ -1024,4 +1024,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         expectedException.expectMessage("Invalid storage option \"columnstore\" for data type \"integer\"");
         e.analyze("create table columnstore_disabled (s int STORAGE WITH (columnstore = false))");
     }
+
+    @Test
+    public void testCreateTableFailsIfNameConflictsWithView() {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addView(RelationName.fromIndexName("v1"), "Select * from t1")
+            .build();
+        expectedException.expect(RelationAlreadyExists.class);
+        expectedException.expectMessage("Relation 'doc.v1' already exists");
+        executor.analyze("create table v1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+    }
 }
