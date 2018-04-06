@@ -30,6 +30,8 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.udf.UserDefinedFunctionMetaData;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.metadata.view.ViewsMetaData;
+import io.crate.metadata.view.ViewsMetaDataTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -53,6 +55,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -116,7 +119,7 @@ public class SchemasTest {
     }
 
     @Test
-    public void testSchemasFromUDF() throws Exception {
+    public void testSchemasFromUDF() {
         MetaData metaData = MetaData.builder()
             .putCustom(
                 UserDefinedFunctionsMetaData.TYPE,
@@ -125,7 +128,17 @@ public class SchemasTest {
                         "burlesque", "Hello, World!Q")
                 )
             ).build();
-        assertThat(Schemas.getNewCurrentSchemas(metaData), contains("doc", "new_schema"));
+        assertThat(Schemas.getNewCurrentSchemas(metaData), containsInAnyOrder("doc", "new_schema"));
+    }
+
+    @Test
+    public void testSchemasFromViews() {
+        MetaData metaData = MetaData.builder()
+            .putCustom(
+                ViewsMetaData.TYPE,
+                ViewsMetaDataTest.createMetaData()
+            ).build();
+        assertThat(Schemas.getNewCurrentSchemas(metaData), containsInAnyOrder("doc", "my_schema"));
     }
 
 

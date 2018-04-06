@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.StreamSupport;
 
 
 @Singleton
@@ -211,6 +212,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             udfMetaData.functionsMetaData()
                 .stream()
                 .map(UserDefinedFunctionMetaData::schema)
+                .forEach(schemas::add);
+        }
+        ViewsMetaData viewsMetaData = metaData.custom(ViewsMetaData.TYPE);
+        if (viewsMetaData != null) {
+            StreamSupport.stream(viewsMetaData.names().spliterator(), false)
+                .map(IndexParts::new)
+                .map(IndexParts::getSchema)
                 .forEach(schemas::add);
         }
         return schemas;
