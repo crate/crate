@@ -260,22 +260,28 @@ def _exec_on_crate(cmd):
     return True
 
 
-def _refresh_tables(cursor):
-    cursor.execute("select table_name from information_schema.tables "
-                   "where table_type = 'BASE TABLE' and table_schema = 'doc'")
+def _refresh_tables(cursor, schema):
+    cursor.execute(
+        "select table_name from information_schema.tables "
+        "where table_type = 'BASE TABLE' and table_schema = %s",
+        (schema,))
     rows = cursor.fetchall()
     for (table,) in rows:
         cursor.execute('refresh table ' + table)
 
 
-def _drop_relations(cursor):
-    cursor.execute("select table_name from information_schema.tables "
-                   "where table_type = 'BASE TABLE' and table_schema = 'doc'")
+def _drop_relations(cursor, schema):
+    cursor.execute(
+        "select table_name from information_schema.tables "
+        "where table_type = 'BASE TABLE' and table_schema = %s",
+        (schema,))
     for (table,) in cursor.fetchall():
         cursor.execute('drop table ' + table)
-    cursor.execute("select table_name from information_schema.tables "
-                   "where table_type = 'VIEW' and table_schema = 'doc'")
-    views = [row[0] for row in cursor.fetchall()]
+    cursor.execute(
+        "select table_name from information_schema.tables "
+        "where table_type = 'VIEW' and table_schema = %s",
+        (schema,))
+    views = [f'"schema"."{row[0]}"' for row in cursor.fetchall()]
     if views:
         cursor.execute('drop view ' + ', '.join(views))
 
@@ -290,9 +296,10 @@ def get_logger(level, filename=None):
     return logger
 
 
-def run_file(filename, host, port, log_level, log_file, failfast):
+def run_file(filename, host, port, log_level, log_file, failfast, schema):
     logger = get_logger(log_level, log_file)
-    conn = psycopg2.connect("host=" + host + " port=" + port + " user=crate dbname='doc'")
+    conn = psycopg2.connect(
+        f'host={host} port={port} user=crate dbname={schema}')
     cursor = conn.cursor()
     fh = open(filename, 'r', encoding='utf-8')
     commands = get_commands(fh)
@@ -306,7 +313,7 @@ def run_file(filename, host, port, log_level, log_file, failfast):
             s_or_q = parse_cmd(cmd)
             if not dml_done and isinstance(s_or_q, Query):
                 dml_done = True
-                _refresh_tables(cursor)
+                _refresh_tables(cursor, schema)
             try:
                 s_or_q.execute(cursor)
             except psycopg2.Error as e:
@@ -322,7 +329,7 @@ def run_file(filename, host, port, log_level, log_file, failfast):
                 logger.warn('%s; %s', s_or_q.query, e, extra=attr)
     finally:
         fh.close()
-        _drop_relations(cursor)
+        _drop_relations(cursor, schema)
         cursor.close()
         conn.close()
 

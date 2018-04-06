@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
+
 import os
 import re
 import faulthandler
 import logging
-import unittest
 import pathlib
-from functools import partial
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path, project_root
 from crate.testing.layer import CrateLayer
@@ -35,32 +36,18 @@ ch.setLevel(logging.ERROR)
 log.addHandler(ch)
 
 
-class TestMaker(type):
-
-    def __new__(cls, name, bases, attrs):
-        for filename in tests_path.glob('**/*.test'):
-            filepath = tests_path / filename
-            relpath = str(filepath.relative_to(tests_path))
-            if not any(p.match(str(relpath)) for p in FILE_WHITELIST):
-                continue
-            attrs['test_' + relpath] = partial(
-                run_file,
-                filename=str(filepath),
-                host='localhost',
-                port=str(CRATE_PSQL_PORT),
-                log_level=logging.WARNING,
-                log_file='sqllogic.log',
-                failfast=True
-            )
-        return type.__new__(cls, name, bases, attrs)
+def merge_logfiles(logfiles):
+    with open('sqllogic.log', 'w') as fw:
+        for logfile in logfiles:
+            with open(logfile, 'r') as fr:
+                content = fr.read()
+                if content:
+                    fw.write(logfile + '\n')
+                    fw.write(content)
+            os.remove(logfile)
 
 
-class SqlLogicTest(unittest.TestCase, metaclass=TestMaker):
-    pass
-
-
-def test_suite():
-    suite = unittest.TestSuite(unittest.makeSuite(SqlLogicTest))
+def main():
     crate_layer = CrateLayer(
         'crate-sqllogic',
         crate_home=crate_path(),
@@ -74,5 +61,37 @@ def test_suite():
             "cluster.routing.allocation.disk.watermark.flood_stage": "1k",
         }
     )
-    suite.layer = crate_layer
-    return suite
+    crate_layer.start()
+    logfiles = []
+    try:
+        with ProcessPoolExecutor() as executor:
+            futures = []
+            for i, filename in enumerate(tests_path.glob('**/*.test')):
+                filepath = tests_path / filename
+                relpath = str(filepath.relative_to(tests_path))
+                if not any(p.match(str(relpath)) for p in FILE_WHITELIST):
+                    continue
+
+                logfile = f'sqllogic-{os.path.basename(relpath)}-{i}.log'
+                logfiles.append(logfile)
+                future = executor.submit(
+                    run_file,
+                    filename=str(filepath),
+                    host='localhost',
+                    port=str(CRATE_PSQL_PORT),
+                    log_level=logging.WARNING,
+                    log_file=logfile,
+                    failfast=True,
+                    schema=f'x{i}'
+                )
+                futures.append(future)
+            for future in as_completed(futures):
+                future.result()
+    finally:
+        crate_layer.stop()
+        # instead of having dozens file merge to one which is in gitignore
+        merge_logfiles(logfiles)
+
+
+if __name__ == "__main__":
+    main()
