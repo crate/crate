@@ -30,9 +30,9 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
-import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.support.RetryListener;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -63,7 +63,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -85,7 +84,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Executor executor;
     private final int bulkSize;
     private final UUID jobId;
-    private final BiFunction<ShardId, String, TReq> requestFactory;
+    private final Function<ShardId, TReq> requestFactory;
     private final BulkRequestExecutor<TReq> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
     private final BulkShardCreationLimiter<TReq, TItem> bulkShardCreationLimiter;
@@ -99,7 +98,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                                   UUID jobId,
                                   RowShardResolver rowShardResolver,
                                   Function<String, TItem> itemFactory,
-                                  BiFunction<ShardId, String, TReq> requestFactory,
+                                  Function<ShardId, TReq> requestFactory,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Supplier<String> indexNameResolver,
                                   boolean autoCreateIndices,

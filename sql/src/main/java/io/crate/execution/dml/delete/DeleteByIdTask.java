@@ -22,12 +22,12 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
-import io.crate.metadata.Functions;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.metadata.Functions;
 import io.crate.planner.node.dml.DeleteById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.unit.TimeValue;
@@ -80,8 +80,8 @@ public class DeleteByIdTask {
         }
 
         @Override
-        public ShardDeleteRequest newRequest(ShardId shardId, String routing) {
-            ShardDeleteRequest request = new ShardDeleteRequest(shardId, routing, jobId);
+        public ShardDeleteRequest newRequest(ShardId shardId) {
+            ShardDeleteRequest request = new ShardDeleteRequest(shardId, jobId);
             request.timeout(requestTimeout);
             return request;
         }

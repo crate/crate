@@ -29,21 +29,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item> {
 
     final Map<String, List<ItemAndRouting<TItem>>> itemsByMissingIndex = new HashMap<>();
     final Map<ShardLocation, TReq> itemsByShard = new HashMap<>();
 
-    private final BiFunction<ShardId, String, TReq> requestFactory;
+    private final Function<ShardId, TReq> requestFactory;
 
     private int location = -1;
 
     /**
-     * @param requestFactory function to create a request, will receive the indexName and routing
+     * @param requestFactory function to create a request
      */
-    public ShardedRequests(BiFunction<ShardId, String, TReq> requestFactory) {
+    public ShardedRequests(Function<ShardId, TReq> requestFactory) {
         this.requestFactory = requestFactory;
     }
 
@@ -52,10 +52,10 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         items.add(new ItemAndRouting<>(item, routing));
     }
 
-    public void add(TItem item, ShardLocation shardLocation, String routing) {
+    public void add(TItem item, ShardLocation shardLocation) {
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
-            req = requestFactory.apply(shardLocation.shardId, routing);
+            req = requestFactory.apply(shardLocation.shardId);
             itemsByShard.put(shardLocation, req);
         }
         location++;

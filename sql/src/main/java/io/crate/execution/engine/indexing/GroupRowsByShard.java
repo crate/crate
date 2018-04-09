@@ -85,7 +85,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         if (shardLocation == null) {
             shardedRequests.add(item, indexName, routing);
         } else {
-            shardedRequests.add(item, shardLocation, routing);
+            shardedRequests.add(item, shardLocation);
         }
     }
 
@@ -137,7 +137,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRouting.item, shardLocation, itemAndRouting.routing);
+                requests.add(itemAndRouting.item, shardLocation);
                 it.remove();
             }
             if (items.isEmpty()) {

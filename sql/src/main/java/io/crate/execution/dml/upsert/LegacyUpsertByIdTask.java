@@ -30,9 +30,9 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.metadata.IndexParts;
-import io.crate.execution.support.RetryListener;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.execution.support.RetryListener;
+import io.crate.metadata.IndexParts;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.Logger;
@@ -309,7 +309,7 @@ public class LegacyUpsertByIdTask {
 
             ShardUpsertRequest request = requestsByShard.get(shardId);
             if (request == null) {
-                request = reqBuilder.newRequest(shardId, item.routing());
+                request = reqBuilder.newRequest(shardId);
                 requestsByShard.put(shardId, request);
             }
             request.add(i,

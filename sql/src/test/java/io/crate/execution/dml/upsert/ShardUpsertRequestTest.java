@@ -65,7 +65,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
             missingAssignmentColumns,
             jobId,
             false
-        ).newRequest(shardId, "42");
+        ).newRequest(shardId);
         request.validateConstraints(false);
 
         request.add(123, new ShardUpsertRequest.Item(

@@ -23,7 +23,6 @@
 package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -31,6 +30,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -66,7 +66,7 @@ public class ShardRequestExecutor<Req> {
 
     public interface RequestGrouper<R> {
 
-        R newRequest(ShardId shardId, String routing);
+        R newRequest(ShardId shardId);
 
         /**
          * (optional): bind the parameters.
@@ -156,7 +156,7 @@ public class ShardRequestExecutor<Req> {
             }
             Req request = requests.get(shardId);
             if (request == null) {
-                request = grouper.newRequest(shardId, routing);
+                request = grouper.newRequest(shardId);
                 requests.put(shardId, request);
             }
             Long version = docKey.version(functions, parameters, valuesBySubQuery).orElse(null);

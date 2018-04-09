@@ -39,7 +39,7 @@ public class ShardDeleteRequestTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         UUID jobId = UUID.randomUUID();
-        ShardDeleteRequest request = new ShardDeleteRequest(shardId, "42", jobId);
+        ShardDeleteRequest request = new ShardDeleteRequest(shardId, jobId);
 
         request.add(123, new ShardDeleteRequest.Item("99"));
         request.add(5, new ShardDeleteRequest.Item("42"));

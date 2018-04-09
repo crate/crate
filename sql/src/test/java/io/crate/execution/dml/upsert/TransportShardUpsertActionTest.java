@@ -211,7 +211,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             UUID.randomUUID(),
             false
-        ).newRequest(shardId, null);
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
@@ -230,7 +230,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             UUID.randomUUID(),
             false
-        ).newRequest(shardId, null);
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
@@ -458,7 +458,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             UUID.randomUUID(),
             false
-        ).newRequest(shardId, null);
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
@@ -477,7 +477,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             new Reference[]{ID_REF},
             UUID.randomUUID(),
             false
-        ).newRequest(shardId, null);
+        ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         reset(indexShard);

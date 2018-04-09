@@ -85,6 +85,7 @@ import io.crate.types.StringType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -424,7 +425,7 @@ public class ProjectionToProjectorVisitor
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
-            () -> builder.newRequest(shardId, null),
+            () -> builder.newRequest(shardId),
             id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion()),
             transportActionProvider.transportShardUpsertAction()::execute
         );
@@ -435,10 +436,7 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
         checkShardLevel("Delete projection can only be executed on a shard");
-        ShardDeleteRequest.Builder builder = new ShardDeleteRequest.Builder(
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
-            context.jobId
-        );
+        TimeValue reqTimeout = ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings);
 
         ShardDMLExecutor<ShardDeleteRequest, ShardDeleteRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
             ShardDMLExecutor.DEFAULT_BULK_SIZE,
@@ -447,7 +445,7 @@ public class ProjectionToProjectorVisitor
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
-            () -> builder.newRequest(shardId),
+            () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
             transportActionProvider.transportShardDeleteAction()::execute
         );

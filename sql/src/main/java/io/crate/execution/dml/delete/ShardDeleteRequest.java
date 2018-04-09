@@ -23,10 +23,8 @@
 package io.crate.execution.dml.delete;
 
 import io.crate.execution.dml.ShardRequest;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -39,8 +37,8 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     public ShardDeleteRequest() {
     }
 
-    public ShardDeleteRequest(ShardId shardId, @Nullable String routing, UUID jobId) {
-        super(shardId, routing, jobId);
+    public ShardDeleteRequest(ShardId shardId, UUID jobId) {
+        super(shardId, jobId);
     }
 
     void skipFromLocation(int location) {
@@ -91,24 +89,4 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
             super(id);
         }
     }
-
-    public static class Builder {
-
-        private final TimeValue timeout;
-        private final UUID jobId;
-
-        public Builder(TimeValue timeout, UUID jobId) {
-            this.timeout = timeout;
-            this.jobId = jobId;
-        }
-
-        public ShardDeleteRequest newRequest(ShardId shardId) {
-            return new ShardDeleteRequest(
-                shardId,
-                null,
-                jobId)
-                .timeout(timeout);
-        }
-    }
-
 }

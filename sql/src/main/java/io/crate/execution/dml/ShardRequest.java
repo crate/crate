@@ -26,7 +26,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.Constants;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -43,19 +42,14 @@ import java.util.UUID;
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
     extends ReplicatedWriteRequest<T> implements Iterable<I> {
 
-    @Nullable
-    private String routing;
     private UUID jobId;
     protected List<I> items;
 
     public ShardRequest() {
     }
 
-    public ShardRequest(ShardId shardId,
-                        @Nullable String routing,
-                        UUID jobId) {
+    public ShardRequest(ShardId shardId, UUID jobId) {
         setShardId(shardId);
-        this.routing = routing;
         this.jobId = jobId;
         this.index = shardId.getIndexName();
         items = new ArrayList<>();
@@ -79,11 +73,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return Constants.DEFAULT_MAPPING_TYPE;
     }
 
-    @Nullable
-    public String routing() {
-        return routing;
-    }
-
     public UUID jobId() {
         return jobId;
     }
@@ -91,7 +80,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        routing = in.readOptionalString();
         jobId = new UUID(in.readLong(), in.readLong());
     }
 
@@ -105,7 +93,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalString(routing);
         out.writeLong(jobId.getMostSignificantBits());
         out.writeLong(jobId.getLeastSignificantBits());
     }
@@ -115,14 +102,13 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
-        return Objects.equal(routing, that.routing) &&
-               Objects.equal(jobId, that.jobId) &&
+        return Objects.equal(jobId, that.jobId) &&
                Objects.equal(items, that.items);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(routing, jobId, shardId(), items);
+        return Objects.hashCode(jobId, shardId(), items);
     }
 
     /**

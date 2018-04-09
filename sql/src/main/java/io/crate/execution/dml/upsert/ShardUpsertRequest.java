@@ -80,9 +80,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private ShardUpsertRequest(ShardId shardId,
                                @Nullable String[] updateColumns,
                                @Nullable Reference[] insertColumns,
-                               @Nullable String routing,
                                UUID jobId) {
-        super(shardId, routing, jobId);
+        super(shardId, jobId);
         assert updateColumns != null || insertColumns != null
             : "Missing updateAssignments, whether for update nor for insert";
         this.updateColumns = updateColumns;
@@ -388,12 +387,11 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.validateGeneratedColumns = validateGeneratedColumns;
         }
 
-        public ShardUpsertRequest newRequest(ShardId shardId, String routing) {
+        public ShardUpsertRequest newRequest(ShardId shardId) {
             return new ShardUpsertRequest(
                 shardId,
                 assignmentsColumns,
                 missingAssignmentsColumns,
-                routing,
                 jobId)
                 .timeout(timeout)
                 .continueOnError(continueOnError)

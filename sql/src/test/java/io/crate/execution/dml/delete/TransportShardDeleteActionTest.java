@@ -95,7 +95,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowExceptionAndMustMarkItemPosition() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
-        final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
+        final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
         TransportWriteAction.WritePrimaryResult<ShardDeleteRequest, ShardResponse> result =
@@ -108,7 +108,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
     @Test
     public void testReplicaOperationWillSkipItemsFromMarkedPositionOn() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
-        final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
+        final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
         request.skipFromLocation(1);
 

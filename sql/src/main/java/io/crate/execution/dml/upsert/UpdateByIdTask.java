@@ -22,16 +22,16 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.expression.symbol.Assignments;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dml.ShardRequestExecutor;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.expression.symbol.Assignments;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpdateById;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
@@ -115,8 +115,8 @@ public class UpdateByIdTask {
         }
 
         @Override
-        public ShardUpsertRequest newRequest(ShardId shardId, String routing) {
-            return requestBuilder.newRequest(shardId, routing);
+        public ShardUpsertRequest newRequest(ShardId shardId) {
+            return requestBuilder.newRequest(shardId);
         }
 
         @Override
