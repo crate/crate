@@ -49,6 +49,7 @@ import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
@@ -66,6 +67,7 @@ import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -84,30 +86,34 @@ import java.util.Locale;
 
 class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
-    private static final StatementVisitor VISITOR = new StatementVisitor();
-
+    private final UserLookup userLookup;
     private final User user;
 
-    StatementPrivilegeValidator(User user) {
+    StatementPrivilegeValidator(UserLookup userLookup, User user) {
+        this.userLookup = userLookup;
         this.user = user;
     }
 
     @Override
     public void ensureStatementAuthorized(AnalyzedStatement statement) {
-        VISITOR.process(statement, user);
+        new StatementVisitor(userLookup).process(statement, user);
+    }
+
+    private static void throwUnauthorized(String userName) {
+        throw new UnauthorizedException(
+            String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", userName));
     }
 
     private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
 
-        private static final RelationVisitor RELATION_VISITOR = new RelationVisitor();
+        private final RelationVisitor relationVisitor;
 
-        private static void throwUnauthorized(User user) {
-            throw new UnauthorizedException(
-                String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", user.name()));
+        public StatementVisitor(UserLookup userLookup) {
+            this.relationVisitor = new RelationVisitor(userLookup);
         }
 
         private void visitRelation(AnalyzedRelation relation, User user, Privilege.Type type) {
-            RELATION_VISITOR.process(relation, new RelationContext(user, type));
+            relationVisitor.process(relation, new RelationContext(user, type));
         }
 
 
@@ -118,7 +124,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         protected Void visitCreateUserStatement(CreateUserAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
@@ -126,38 +132,38 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         public Void visitAlterUserStatement(AlterUserAnalyzedStatement analysis, User user) {
             // user is allowed to change it's own properties
             if (!analysis.userName().equals(user.name())) {
-                throwUnauthorized(user);
+                throwUnauthorized(user.name());
             }
             return null;
         }
 
         @Override
         protected Void visitDropUserStatement(DropUserAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
         @Override
         public Void visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
         @Override
         public Void visitCreateIngestRuleStatement(CreateIngestionRuleAnalysedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
         @Override
         public Void visitDropIngestRuleStatement(DropIngestionRuleAnalysedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
         @Override
         public Void visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
@@ -308,7 +314,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
@@ -353,7 +359,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         @Override
         public Void visitSetStatement(SetAnalyzedStatement analysis, User user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
-                throwUnauthorized(user);
+                throwUnauthorized(user.name());
                 return null;
             }
             return null;
@@ -381,7 +387,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitKillAnalyzedStatement(KillAnalyzedStatement analysis, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
@@ -442,7 +448,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, User user) {
-            throwUnauthorized(user);
+            throwUnauthorized(user.name());
             return null;
         }
 
@@ -467,11 +473,24 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
             visitRelation(createViewStmt.query(), user, Privilege.Type.DQL);
             return null;
         }
+
+        @Override
+        public Void visitDropView(DropViewStmt dropViewStmt, User user) {
+            for (RelationName name : dropViewStmt.views()) {
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.DDL,
+                    Privilege.Clazz.VIEW,
+                    name.toString(),
+                    user
+                );
+            }
+            return null;
+        }
     }
 
     private static class RelationContext {
 
-        private final User user;
+        private User user;
         private final Privilege.Type type;
 
         RelationContext(User user, Privilege.Type type) {
@@ -482,6 +501,12 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
 
     private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
+
+        private final UserLookup userLookup;
+
+        public RelationVisitor(UserLookup userLookup) {
+            this.userLookup = userLookup;
+        }
 
         @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
@@ -558,6 +583,26 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
             return process(relation.subRelation(), context);
+        }
+
+        @Override
+        public Void visitView(AnalyzedView analyzedView, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                context.type,
+                Privilege.Clazz.VIEW,
+                analyzedView.name().toString(),
+                context.user
+            );
+            User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
+            if (owner == null) {
+                throw new UnauthorizedException(
+                    "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
+            }
+            User currentUser = context.user;
+            context.user = owner;
+            process(analyzedView.relation(), context);
+            context.user = currentUser;
+            return null;
         }
     }
 }

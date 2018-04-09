@@ -71,7 +71,10 @@ Changes
 - Added support for views which can be created using the new ``CREATE VIEW``
   statement and dropped using the ``DROP VIEW`` statement. Views are listed in
   ``information_schema.views`` and they show up in
-  ``information_schema.tables`` as well as ``information_schema.columns``
+  ``information_schema.tables`` as well as ``information_schema.columns``.
+
+- Enterprise: Added the VIEW privilege class which can be used to grant/deny
+  access to views.
 
 - Added support for ``INSERT INTO ... ON CONFLICT DO NOTHING``. The statement
   ignores insert values which would cause duplicate keys.

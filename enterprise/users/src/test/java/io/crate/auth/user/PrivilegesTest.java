@@ -52,5 +52,6 @@ public class PrivilegesTest extends CrateUnitTest {
         //ensureUserHasPrivilege will not throw an exception if the schema is `information_schema`
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, "information_schema", user);
         Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.table", user);
+        Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, "information_schema.views", user);
     }
 }

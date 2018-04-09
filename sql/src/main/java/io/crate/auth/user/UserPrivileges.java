@@ -35,19 +35,18 @@ import java.util.Map;
 
 class UserPrivileges implements Iterable<Privilege> {
 
-    private final Iterable<Privilege> privileges;
-    private final Map<PrivilegeIdent, Privilege> privilegesMap;
+    private final Map<PrivilegeIdent, Privilege> privilegeByIdent;
     private final boolean anyClusterPrivilege;
     private final Map<String, Boolean> anySchemaPrivilege = new HashMap<>();
     private final Map<String, Boolean> anyTablePrivilege = new HashMap<>();
+    private final Map<String, Boolean> anyViewPrivilege = new HashMap<>();
 
     UserPrivileges(Collection<Privilege> privileges) {
-        this.privileges = privileges;
-        privilegesMap = new HashMap<>(privileges.size());
+        privilegeByIdent = new HashMap<>(privileges.size());
         boolean anyClusterPrivilege = false;
         for (Privilege privilege : privileges) {
             PrivilegeIdent privilegeIdent = privilege.ident();
-            this.privilegesMap.put(privilegeIdent, privilege);
+            privilegeByIdent.put(privilegeIdent, privilege);
             if (privilege.state() != Privilege.State.DENY) {
                 switch (privilegeIdent.clazz()) {
                     case CLUSTER:
@@ -58,6 +57,9 @@ class UserPrivileges implements Iterable<Privilege> {
                         break;
                     case TABLE:
                         anyTablePrivilege.put(privilegeIdent.ident(), true);
+                        break;
+                    case VIEW:
+                        anyViewPrivilege.put(privilegeIdent.ident(), true);
                         break;
                     default:
                         throw new IllegalStateException("Unsupported privilege class=" + privilegeIdent.clazz());
@@ -93,6 +95,16 @@ class UserPrivileges implements Iterable<Privilege> {
                     }
                 }
                 break;
+            case VIEW:
+                foundPrivilege = hasAnyViewPrivilege(ident);
+                if (foundPrivilege == false) {
+                    String schemaIdent = new IndexParts(ident).getSchema();
+                    foundPrivilege = hasAnySchemaPrivilege(schemaIdent);
+                    if (foundPrivilege == false) {
+                        foundPrivilege = hasAnyClusterPrivilege();
+                    }
+                }
+                break;
             default:
                 throw new IllegalStateException("Unsupported privilege class=" + clazz);
         }
@@ -107,17 +119,18 @@ class UserPrivileges implements Iterable<Privilege> {
     boolean matchPrivilege(@Nullable Privilege.Type type,
                            Privilege.Clazz clazz,
                            @Nullable String ident) {
-        Privilege foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, clazz, ident));
+        Privilege foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, clazz, ident));
         if (foundPrivilege == null) {
             switch (clazz) {
                 case SCHEMA:
-                    foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     break;
                 case TABLE:
+                case VIEW:
                     String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
+                    foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.SCHEMA, schemaIdent));
                     if (foundPrivilege == null) {
-                        foundPrivilege = privilegesMap.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
+                        foundPrivilege = privilegeByIdent.get(new PrivilegeIdent(type, Privilege.Clazz.CLUSTER, null));
                     }
                     break;
                 default:
@@ -139,7 +152,7 @@ class UserPrivileges implements Iterable<Privilege> {
     @Nonnull
     @Override
     public Iterator<Privilege> iterator() {
-        return privileges.iterator();
+        return privilegeByIdent.values().iterator();
     }
 
     private boolean hasAnyClusterPrivilege() {
@@ -154,17 +167,24 @@ class UserPrivileges implements Iterable<Privilege> {
         return anyTablePrivilege.get(ident) != null;
     }
 
+    private boolean hasAnyViewPrivilege(String ident) {
+        return anyViewPrivilege.get(ident) != null;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         UserPrivileges that = (UserPrivileges) o;
-        return privileges.equals(that.privileges);
+        return privilegeByIdent.equals(that.privilegeByIdent);
     }
 
     @Override
     public int hashCode() {
-        return privileges.hashCode();
+        return privilegeByIdent.hashCode();
     }
 
+    public int size() {
+        return privilegeByIdent.size();
+    }
 }

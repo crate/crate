@@ -90,6 +90,15 @@ public final class RelationNormalizer {
         }
 
         @Override
+        public AnalyzedRelation visitView(AnalyzedView view, TransactionContext context) {
+            AnalyzedRelation newSubRelation = process(view.relation(), context);
+            if (newSubRelation == view.relation()) {
+                return view;
+            }
+            return new AnalyzedView(view.name(), view.owner(), (QueriedRelation) newSubRelation);
+        }
+
+        @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, TransactionContext context) {
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
                 functions, RowGranularity.CLUSTER, null, table.tableRelation());

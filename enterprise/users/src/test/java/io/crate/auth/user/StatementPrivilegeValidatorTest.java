@@ -44,7 +44,9 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import static io.crate.auth.user.UserManagerService.CRATE_USER;
@@ -59,6 +61,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     private User user;
     private SQLExecutor e;
     private UserManager userManager;
+    private User superUser;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
@@ -82,13 +85,31 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
                 return true;
             }
         };
+        superUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of(), null) {
+            @Override
+            public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+                validationCallArguments.add(Lists.newArrayList(type, clazz, ident, superUser.name()));
+                return true;
+            }
+        };
         userManager = new UserManagerService(null, null,
-            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
+            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService()) {
+            @Nullable
+            @Override
+            public User findUser(String userName) {
+                if ("crate".equals(userName)) {
+                    return superUser;
+                }
+                return super.findUser(userName);
+            }
+        };
 
         RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         e = SQLExecutor.builder(clusterService)
             .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent))
             .enableDefaultTables()
+            .setUser(superUser)
+            .addView(new RelationName("xx", "v1"), "select * from t1")
             .build();
     }
 
@@ -121,10 +142,19 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     @SuppressWarnings("unchecked")
     private void assertAskedForTable(Privilege.Type type, String ident) {
+        assertAskedForTable(type, ident, user);
+    }
+
+    private void assertAskedForTable(Privilege.Type type, String ident, User user) {
         Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.TABLE, ident, user.name()));
         assertThat(validationCallArguments, matcher);
     }
 
+    @SuppressWarnings("unchecked")
+    private void assertAskedForView(Privilege.Type type, String ident) {
+        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(type, Privilege.Clazz.VIEW, ident, user.name()));
+        assertThat(validationCallArguments, matcher);
+    }
 
     @Test
     public void testSuperUserByPassesValidation() throws Exception {
@@ -427,6 +457,19 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         analyze("create view xx.v1 as select * from doc.users");
         assertAskedForSchema(Privilege.Type.DDL, "xx");
         assertAskedForTable(Privilege.Type.DQL, "doc.users");
+    }
+
+    @Test
+    public void testQueryOnViewRequiresOwnerToHavePrivilegesOnInvolvedRelations() {
+        analyze("select * from xx.v1");
+        assertAskedForView(Privilege.Type.DQL, "xx.v1");
+        assertAskedForTable(Privilege.Type.DQL, "doc.t1", superUser);
+    }
+
+    @Test
+    public void testDroppingAViewRequiresDDLPermissionOnView() {
+        analyze("drop view xx.v1");
+        assertAskedForView(Privilege.Type.DDL, "xx.v1");
     }
 }
 

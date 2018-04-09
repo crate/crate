@@ -62,6 +62,12 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
     private static final Privilege GRANT_TABLE_DDL =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, "testSchema.test2", "crate");
+    private static final Privilege GRANT_VIEW_DQL =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.VIEW, "testSchema.view1", "crate");
+    private static final Privilege GRANT_VIEW_DDL =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.VIEW, "testSchema.view2", "crate");
+    private static final Privilege GRANT_VIEW_DML =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.VIEW, "view3", "crate");
     private static final Privilege GRANT_SCHEMA_DML =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
 
@@ -79,7 +85,8 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         }
         usersPrivileges.put(USER_WITHOUT_PRIVILEGES, new HashSet<>());
         usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Collections.singletonList(DENY_DQL)));
-        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL)));
+        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(
+            Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL, GRANT_VIEW_DQL, GRANT_VIEW_DML, GRANT_VIEW_DDL)));
 
         return new UsersPrivilegesMetaData(usersPrivileges);
     }
@@ -228,12 +235,24 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testDropTablePrivileges() {
-        long affectedPrivileges = usersPrivilegesMetaData.dropTablePrivileges(GRANT_TABLE_DQL.ident().ident());
+        long affectedPrivileges = usersPrivilegesMetaData.dropTableOrViewPrivileges(GRANT_TABLE_DQL.ident().ident());
         assertThat(affectedPrivileges, is(1L));
 
         Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
             .filter(p -> p.ident().ident().equals("testSchema.test"))
+            .findAny();
+        assertThat(sourcePrivilege.isPresent(), is(false));
+    }
+
+    @Test
+    public void testDropViewPrivileges() {
+        long affectedPrivileges = usersPrivilegesMetaData.dropTableOrViewPrivileges(GRANT_VIEW_DQL.ident().ident());
+        assertThat(affectedPrivileges, is(1L));
+
+        Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
+            .filter(p -> p.ident().ident().equals("testSchema.view1"))
             .findAny();
         assertThat(sourcePrivilege.isPresent(), is(false));
     }

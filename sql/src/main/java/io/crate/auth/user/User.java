@@ -41,9 +41,10 @@ public class User {
     private final String name;
     private final Set<Role> roles;
     private final UserPrivileges privileges;
+    @Nullable
     private final SecureHash password;
 
-    User(String name, Set<Role> roles, Set<Privilege> privileges, SecureHash password) {
+    User(String name, Set<Role> roles, Set<Privilege> privileges, @Nullable SecureHash password) {
         this.roles = roles;
         this.name = name;
         this.privileges = new UserPrivileges(privileges);
@@ -116,5 +117,10 @@ public class User {
     @Override
     public int hashCode() {
         return Objects.hash(name, roles, privileges);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" + name + '}';
     }
 }

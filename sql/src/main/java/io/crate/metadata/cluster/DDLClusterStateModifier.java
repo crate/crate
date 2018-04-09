@@ -26,6 +26,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
 
+import java.util.List;
+
 /**
  * Components can implement this interface to hook into DDL statement which are resulting in a changed cluster state.
  * Every implementation must register itself at {@link DDLClusterStateService#addModifier(DDLClusterStateModifier)}.
@@ -78,6 +80,13 @@ public interface DDLClusterStateModifier {
                                        RelationName sourceRelationName,
                                        RelationName targetRelationName,
                                        boolean isPartitionedTable) {
+        return currentState;
+    }
+
+    /**
+     * Called while a view is dropped.
+     */
+    default ClusterState onDropView(ClusterState currentState, List<RelationName> relationNames) {
         return currentState;
     }
 }

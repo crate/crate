@@ -49,12 +49,14 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationTablesTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::relations,
-            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn())
+                         // we also need to check for views which have privileges set
+                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
             InformationTablesTableInfo.expressions()
         ));
         tableDefinitions.put(InformationViewsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::views,
-            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
             InformationViewsTableInfo.expressions()
         ));
         tableDefinitions.put(InformationPartitionsTableInfo.IDENT, new StaticTableDefinition<>(
@@ -64,7 +66,9 @@ public class InformationSchemaTableDefinitions {
         ));
         tableDefinitions.put(InformationColumnsTableInfo.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
-            (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn()),
+            (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
+                         // we also need to check for views which have privileges set
+                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn()),
             InformationColumnsTableInfo.expression()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
