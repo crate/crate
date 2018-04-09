@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
@@ -127,24 +128,33 @@ class HashJoin extends TwoInputPlan {
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
         ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
-        Collection<String> nlExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
 
+        boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
+        boolean isDistributed =
+            hasDocTables && (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
+
+        Collection<String> joinExecutionNodes = ImmutableSet.of(plannerContext.handlerNode());
         MergePhase leftMerge = null;
         MergePhase rightMerge = null;
-        leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
-        if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, leftResultDesc, false)) {
-            leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, nlExecutionNodes);
+
+        if (isDistributed) {
+            // always execute on the left side, the larger branch
+            leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+            joinExecutionNodes = leftResultDesc.nodeIds();
+        } else {
+            leftExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            if (JoinOperations.isMergePhaseNeeded(joinExecutionNodes, leftResultDesc, false)) {
+                leftMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, leftResultDesc, joinExecutionNodes);
+            }
         }
-        if (nlExecutionNodes.size() == 1
-            && nlExecutionNodes.equals(rightResultDesc.nodeIds())
+
+        if (joinExecutionNodes.size() == 1
+            && joinExecutionNodes.equals(rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
-            // if the left and the right plan are executed on the same single node the mergePhase
-            // should be omitted. This is the case if the left and right table have only one shards which
-            // are on the same node
             rightExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
         } else {
-            if (JoinOperations.isMergePhaseNeeded(nlExecutionNodes, rightResultDesc, false)) {
-                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, nlExecutionNodes);
+            if (JoinOperations.isMergePhaseNeeded(joinExecutionNodes, rightResultDesc, isDistributed)) {
+                rightMerge = JoinOperations.buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
             }
             rightExecutionPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
         }
@@ -161,20 +171,20 @@ class HashJoin extends TwoInputPlan {
         // and must produce outputs that match the order of the original outputs, because a "parent" (eg. GROUP BY)
         // operator of the join expects the original outputs order.
         List<Symbol> projectionOutputs = InputColumns.create(
-                outputs,
-                new InputColumns.SourceSymbols(joinOutputs));
+            outputs,
+            new InputColumns.SourceSymbols(joinOutputs));
 
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            "hash-join",
+            isDistributed ? "distributed-hash-join" : "hash-join",
             // JoinPhase ctor wants at least one projection
             Collections.singletonList(new EvalProjection(projectionOutputs)),
             leftMerge,
             rightMerge,
             leftLogicalPlan.outputs().size(),
             rightLogicalPlan.outputs().size(),
-            nlExecutionNodes,
+            joinExecutionNodes,
             joinConditionInput,
             hashInputs.v1(),
             hashInputs.v2(),
