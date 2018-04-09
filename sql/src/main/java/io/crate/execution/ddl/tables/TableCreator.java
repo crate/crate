@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import com.google.common.base.Joiner;
 import io.crate.Constants;

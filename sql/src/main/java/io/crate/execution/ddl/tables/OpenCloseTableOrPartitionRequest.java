@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -28,29 +28,40 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
-public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
+public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 
     private RelationName relationName;
-    private boolean isPartitioned;
+    @Nullable
+    private String partitionIndexName;
+    private boolean openTable = false;
 
-    public DropTableRequest() {
+    OpenCloseTableOrPartitionRequest() {
     }
 
-    public DropTableRequest(RelationName relationName, boolean isPartitioned) {
+    public OpenCloseTableOrPartitionRequest(RelationName relationName,
+                                            @Nullable String partitionIndexName,
+                                            boolean openTable) {
         this.relationName = relationName;
-        this.isPartitioned = isPartitioned;
+        this.partitionIndexName = partitionIndexName;
+        this.openTable = openTable;
     }
 
     public RelationName tableIdent() {
         return relationName;
     }
 
-    public boolean isPartitioned() {
-        return isPartitioned;
+    @Nullable
+    public String partitionIndexName() {
+        return partitionIndexName;
+    }
+
+    boolean isOpenTable() {
+        return openTable;
     }
 
     @Override
@@ -66,13 +77,15 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         relationName = new RelationName(in);
-        isPartitioned = in.readBoolean();
+        partitionIndexName = in.readOptionalString();
+        openTable = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        out.writeBoolean(isPartitioned);
+        out.writeOptionalString(partitionIndexName);
+        out.writeBoolean(openTable);
     }
 }

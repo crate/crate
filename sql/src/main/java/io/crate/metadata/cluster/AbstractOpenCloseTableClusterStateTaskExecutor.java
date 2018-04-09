@@ -22,7 +22,7 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.OpenCloseTableOrPartitionRequest;
+import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.action.support.IndicesOptions;

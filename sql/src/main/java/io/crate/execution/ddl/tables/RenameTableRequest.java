@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -28,47 +28,42 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
-public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
+public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
-    private RelationName relationName;
-    @Nullable
-    private String partitionIndexName;
-    private boolean openTable = false;
+    private RelationName sourceRelationName;
+    private RelationName targetRelationName;
+    private boolean isPartitioned;
 
-    OpenCloseTableOrPartitionRequest() {
+    RenameTableRequest() {
     }
 
-    public OpenCloseTableOrPartitionRequest(RelationName relationName,
-                                            @Nullable String partitionIndexName,
-                                            boolean openTable) {
-        this.relationName = relationName;
-        this.partitionIndexName = partitionIndexName;
-        this.openTable = openTable;
+    public RenameTableRequest(RelationName sourceRelationName, RelationName targetRelationName, boolean isPartitioned) {
+        this.sourceRelationName = sourceRelationName;
+        this.targetRelationName = targetRelationName;
+        this.isPartitioned = isPartitioned;
     }
 
-    public RelationName tableIdent() {
-        return relationName;
+    public RelationName sourceTableIdent() {
+        return sourceRelationName;
     }
 
-    @Nullable
-    public String partitionIndexName() {
-        return partitionIndexName;
+    public RelationName targetTableIdent() {
+        return targetRelationName;
     }
 
-    boolean isOpenTable() {
-        return openTable;
+    public boolean isPartitioned() {
+        return isPartitioned;
     }
 
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (relationName == null) {
-            validationException = addValidationError("table ident must not be null", null);
+        if (sourceRelationName == null || targetRelationName == null) {
+            validationException = addValidationError("source and target table ident must not be null", null);
         }
         return validationException;
     }
@@ -76,16 +71,16 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        relationName = new RelationName(in);
-        partitionIndexName = in.readOptionalString();
-        openTable = in.readBoolean();
+        sourceRelationName = new RelationName(in);
+        targetRelationName = new RelationName(in);
+        isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        relationName.writeTo(out);
-        out.writeOptionalString(partitionIndexName);
-        out.writeBoolean(openTable);
+        sourceRelationName.writeTo(out);
+        targetRelationName.writeTo(out);
+        out.writeBoolean(isPartitioned);
     }
 }

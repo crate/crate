@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -32,27 +32,21 @@ import java.io.IOException;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 
-public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
+public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
-    private RelationName sourceRelationName;
-    private RelationName targetRelationName;
+    private RelationName relationName;
     private boolean isPartitioned;
 
-    RenameTableRequest() {
+    public DropTableRequest() {
     }
 
-    public RenameTableRequest(RelationName sourceRelationName, RelationName targetRelationName, boolean isPartitioned) {
-        this.sourceRelationName = sourceRelationName;
-        this.targetRelationName = targetRelationName;
+    public DropTableRequest(RelationName relationName, boolean isPartitioned) {
+        this.relationName = relationName;
         this.isPartitioned = isPartitioned;
     }
 
-    public RelationName sourceTableIdent() {
-        return sourceRelationName;
-    }
-
-    public RelationName targetTableIdent() {
-        return targetRelationName;
+    public RelationName tableIdent() {
+        return relationName;
     }
 
     public boolean isPartitioned() {
@@ -62,8 +56,8 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (sourceRelationName == null || targetRelationName == null) {
-            validationException = addValidationError("source and target table ident must not be null", null);
+        if (relationName == null) {
+            validationException = addValidationError("table ident must not be null", null);
         }
         return validationException;
     }
@@ -71,16 +65,14 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        sourceRelationName = new RelationName(in);
-        targetRelationName = new RelationName(in);
+        relationName = new RelationName(in);
         isPartitioned = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        sourceRelationName.writeTo(out);
-        targetRelationName.writeTo(out);
+        relationName.writeTo(out);
         out.writeBoolean(isPartitioned);
     }
 }

@@ -20,8 +20,9 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
+import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 import org.elasticsearch.action.support.ActionFilters;

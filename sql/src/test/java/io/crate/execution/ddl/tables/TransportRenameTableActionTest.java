@@ -20,8 +20,10 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
+import io.crate.execution.ddl.tables.RenameTableRequest;
+import io.crate.execution.ddl.tables.TransportRenameTableAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.test.ESIntegTestCase;

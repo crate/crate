@@ -22,9 +22,9 @@
 
 package io.crate.execution;
 
-import io.crate.execution.ddl.TransportDropTableAction;
-import io.crate.execution.ddl.TransportOpenCloseTableOrPartitionAction;
-import io.crate.execution.ddl.TransportRenameTableAction;
+import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
+import io.crate.execution.ddl.tables.TransportRenameTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;

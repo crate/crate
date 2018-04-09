@@ -25,7 +25,7 @@ package io.crate.planner;
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
-import io.crate.execution.ddl.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;

@@ -23,7 +23,7 @@
 package io.crate.metadata.cluster;
 
 import io.crate.Constants;
-import io.crate.execution.ddl.AlterTableOperation;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;

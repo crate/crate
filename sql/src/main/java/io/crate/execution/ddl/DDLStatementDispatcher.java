@@ -52,6 +52,8 @@ import io.crate.analyze.RerouteRetryFailedAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
+import io.crate.execution.ddl.tables.AlterTableOperation;
+import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.metadata.Functions;
 import io.crate.expression.udf.UserDefinedFunctionDDLClient;
 import io.crate.auth.user.UserManager;

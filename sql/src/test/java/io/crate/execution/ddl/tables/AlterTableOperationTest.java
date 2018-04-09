@@ -20,9 +20,10 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import io.crate.Constants;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;

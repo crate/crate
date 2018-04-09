@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.execution.ddl;
+package io.crate.execution.ddl.tables;
 
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -28,12 +28,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class RenameTableResponse extends AcknowledgedResponse {
+public class OpenCloseTableOrPartitionResponse extends AcknowledgedResponse {
 
-    public RenameTableResponse() {
+    OpenCloseTableOrPartitionResponse() {
     }
 
-    public RenameTableResponse(boolean acknowledged) {
+    OpenCloseTableOrPartitionResponse(boolean acknowledged) {
         super(acknowledged);
     }
 
