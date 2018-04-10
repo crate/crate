@@ -345,6 +345,8 @@ This can also be done when using a query instead of values::
    cr> drop table uservisits2
     DROP OK, 1 row affected (... sec)
 
+.. _dml_updating_data:
+
 Updating Data
 =============
 
@@ -371,6 +373,8 @@ increment a number like this::
     If the same documents are updated concurrently an VersionConflictException
     might occur. CrateDB contains a retry logic that tries to resolve the
     conflict automatically.
+
+.. _dml_deleting_data:
 
 Deleting Data
 =============

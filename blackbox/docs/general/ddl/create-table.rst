@@ -1,3 +1,5 @@
+.. _sql_ddl_create:
+
 ===============
 Creating Tables
 ===============
@@ -34,6 +36,8 @@ prevents the generation of an error if the specified table does not exist::
 
     cr> drop table if exists my_table;
     DROP OK, 0 rows affected (... sec)
+
+.. _sql_ddl_schemas:
 
 Schemas
 =======
