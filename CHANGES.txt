@@ -60,6 +60,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for ordering on analysed or partitioned columns.
+
 - Changed the primary key constraints of the information schema tables
   ``table_constraints``, ``referential_constraints``, ``table_partitions``,
   ``key_column_usage``, ``columns``, and ``tables`` to be SQL compliant.

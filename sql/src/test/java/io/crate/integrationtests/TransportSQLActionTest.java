@@ -27,7 +27,6 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLBulkResponse;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.support.WriteRequest;
@@ -53,6 +52,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -1110,7 +1110,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         }
 
         execute("select name from test order by id asc");
-        assertEquals("Earth\nSaturn\nMoon\nMars\n", TestingHelpers.printedTable(response.rows()));
+        assertEquals("Earth\nSaturn\nMoon\nMars\n", printedTable(response.rows()));
 
         // test bulk update-by-id
         bulkResp = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
@@ -1344,7 +1344,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String expectedOrderBy =
             "2\n" +
             "1\n";
-        assertEquals(expectedOrderBy, TestingHelpers.printedTable(response.rows()));
+        assertEquals(expectedOrderBy, printedTable(response.rows()));
 
         // aggregation (max())
         String stmtAggregate = "SELECT i, max(distance(p, 'POINT(30.0 30.0)')) " +
@@ -1353,7 +1353,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute(stmtAggregate);
         assertThat(response.rowCount(), is(1L));
         String expectedAggregate = "1| 2296582.8899438097\n";
-        assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
+        assertEquals(expectedAggregate, printedTable(response.rows()));
 
         Double[] row;
         // queries
@@ -1385,7 +1385,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(row[1], is(20.0d));
 
         execute("select p from t where distance(p, 'POINT (10 20)') = 152354.3209044634");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("[11.0, 21.0]\n"));
     }
 
@@ -1424,7 +1424,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testTwoSubStrOnSameColumn() throws Exception {
         execute("select substr(name, 0, 4), substr(name, 4, 8) from sys.cluster");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("SUIT| TE-CHILD\n"));
+        assertThat(printedTable(response.rows()), is("SUIT| TE-CHILD\n"));
     }
 
 
@@ -1437,7 +1437,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select i, i%3 from t order by i%3, l");
         assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "-1| -1\n" +
             "1| 1\n" +
             "10| 1\n" +
@@ -1555,22 +1555,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(_doc2.get("id"), "3");
 
         execute("select name, kind from locations where id in (2,3) order by id");
-        assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +
-                                                                   "Galactic Sector QQ7 Active J Gamma| Galaxy\n");
+        assertEquals(printedTable(response.rows()), "Outer Eastern Rim| Galaxy\n" +
+                                                    "Galactic Sector QQ7 Active J Gamma| Galaxy\n");
 
         execute("select name, kind, _id from locations where id in (2,3) order by id");
-        assertEquals(TestingHelpers.printedTable(response.rows()), "Outer Eastern Rim| Galaxy| 2\n" +
-                                                                   "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
+        assertEquals(printedTable(response.rows()), "Outer Eastern Rim| Galaxy| 2\n" +
+                                                    "Galactic Sector QQ7 Active J Gamma| Galaxy| 3\n");
 
         execute("select _raw, id from locations where id in (2,3) order by id");
-        assertEquals(TestingHelpers.printedTable(response.rows()), "{\"id\":\"2\",\"name\":\"Outer Eastern Rim\"," +
-                                                                   "\"date\":308534400000,\"kind\":\"Galaxy\",\"position\":2,\"description\":\"The Outer Eastern Rim " +
-                                                                   "of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed " +
-                                                                   "civilisations.\",\"race\":null}| 2\n" +
-                                                                   "{\"id\":\"3\",\"name\":\"Galactic Sector QQ7 Active J Gamma\",\"date\":1367366400000," +
-                                                                   "\"kind\":\"Galaxy\",\"position\":4,\"description\":\"Galactic Sector QQ7 Active J Gamma contains " +
-                                                                   "the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains." +
-                                                                   "\",\"race\":null}| 3\n");
+        assertEquals(printedTable(response.rows()), "{\"id\":\"2\",\"name\":\"Outer Eastern Rim\"," +
+                                                    "\"date\":308534400000,\"kind\":\"Galaxy\",\"position\":2,\"description\":\"The Outer Eastern Rim " +
+                                                    "of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed " +
+                                                    "civilisations.\",\"race\":null}| 2\n" +
+                                                    "{\"id\":\"3\",\"name\":\"Galactic Sector QQ7 Active J Gamma\",\"date\":1367366400000," +
+                                                    "\"kind\":\"Galaxy\",\"position\":4,\"description\":\"Galactic Sector QQ7 Active J Gamma contains " +
+                                                    "the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains." +
+                                                    "\",\"race\":null}| 3\n");
     }
 
     @Test
@@ -1728,9 +1728,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // cast is added to have a to_int(2) after the subquery is inserted
         // this causes a normalization on the map-side which used to remove the order by
         execute("select cast((select 2) as integer) * x from t order by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("6\n" +
                "10\n" +
                "20\n"));
+    }
+
+    @Test
+    public void testOrderOnAnalyzedColumn() {
+        execute("create table t (text string index using fulltext) with (number_of_replicas = 0)");
+        execute("insert into t (text) values ('Hello World'), ('The End')");
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select text from t order by 1 desc").rows()),
+            is("The End\n" +
+               "Hello World\n")
+        );
     }
 }

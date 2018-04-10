@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -222,8 +221,5 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
             return allocatedFields.get(field.path());
         }
         return null;
-    }
-
-    public void validateOrderBy(@Nullable OrderBy orderBy) {
     }
 }

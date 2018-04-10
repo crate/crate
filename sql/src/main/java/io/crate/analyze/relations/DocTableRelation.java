@@ -22,15 +22,10 @@
 package io.crate.analyze.relations;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Path;
@@ -42,33 +37,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
-
-    private static final SortValidator SORT_VALIDATOR = new SortValidator();
-
-    private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
-
-        @Override
-        public Void visitFunction(Function symbol, DocTableRelation context) {
-            for (Symbol arg : symbol.arguments()) {
-                process(arg, context);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, DocTableRelation context) {
-            if (context.tableInfo.partitionedBy().contains(symbol.column())) {
-                throw new UnsupportedOperationException(
-                    SymbolFormatter.format(
-                        "cannot use partitioned column %s in ORDER BY clause", symbol));
-            } else if (symbol.indexType() == Reference.IndexType.ANALYZED) {
-                throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
-            }
-            return null;
-        }
-    }
-
 
     public DocTableRelation(DocTableInfo tableInfo) {
         super(tableInfo);
@@ -142,14 +110,6 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     private void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
         if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
             throw new ColumnValidationException(columnUpdated.toString(), tableInfo.ident(), errorMessage);
-        }
-    }
-
-    public void validateOrderBy(@Nullable OrderBy orderBy) {
-        if (orderBy != null) {
-            for (Symbol symbol : orderBy.orderBySymbols()) {
-                SORT_VALIDATOR.process(symbol, this);
-            }
         }
     }
 }

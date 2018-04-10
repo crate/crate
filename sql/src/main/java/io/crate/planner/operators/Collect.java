@@ -51,6 +51,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -206,24 +207,9 @@ class Collect extends ZeroInputPlan {
                                Row params,
                                Map<SelectSymbol, Object> subQueryValues) {
         RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryValues);
-        relation.tableRelation().validateOrderBy(order);
-
-        // The order by symbols may contain additional scalars that are not in the outputs. If that is the
-        // case it is not possible to put the OrderBy on the CollectPhase, because we cannot create the PositionalOrderBy.
-        // PositionalOrderBy does not support scalar evaluation. We don't set the orderBy here - which causes the Order operator
-        // to add itself as projection.
-        // TODO: Could we support this by extending the outputs of the collectPhase?
-        final PositionalOrderBy positionalOrderBy;
-        if (order == null) {
-            positionalOrderBy = null;
-        } else {
-            int[] positions = OrderByPositionVisitor.orderByPositionsOrNull(order.orderBySymbols(), outputs);
-            if (positions == null) {
-                positionalOrderBy = null;
-            } else {
-                collectPhase.orderBy(order);
-                positionalOrderBy = new PositionalOrderBy(positions, order.reverseFlags(), order.nullsFirst());
-            }
+        PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
+        if (positionalOrderBy != null) {
+            collectPhase.orderBy(order);
         }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
@@ -235,6 +221,44 @@ class Collect extends ZeroInputPlan {
             limitAndOffset,
             positionalOrderBy
         );
+    }
+
+    private static boolean noLuceneSortSupport(OrderBy order) {
+        for (Symbol sortKey : order.orderBySymbols()) {
+            if (SymbolVisitors.any(Collect::isPartitionColOrAnalyzed, sortKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPartitionColOrAnalyzed(Symbol s) {
+        // 1) partition columns are normalized on shard to literal, but lucene sort doesn't support literals
+        // 2) no docValues or field data for analyzed columns -> can't sort on lucene level
+        return s instanceof Reference &&
+               (((Reference) s).granularity() == RowGranularity.PARTITION
+                || ((Reference) s).indexType() == Reference.IndexType.ANALYZED);
+    }
+
+    @Nullable
+    private static PositionalOrderBy getPositionalOrderBy(@Nullable OrderBy order, List<Symbol> outputs) {
+        if (order == null) {
+            return null;
+        }
+        // The order by symbols may contain additional scalars that are not in the outputs. If that is the
+        // case it is not possible to put the OrderBy on the CollectPhase, because we cannot create the PositionalOrderBy.
+        // PositionalOrderBy does not support scalar evaluation. We don't set the orderBy here - which causes the Order operator
+        // to add itself as projection.
+        // TODO: Could we support this by extending the outputs of the collectPhase?
+        int[] positions = OrderByPositionVisitor.orderByPositionsOrNull(order.orderBySymbols(), outputs);
+        if (positions == null) {
+            return null;
+        } else if (noLuceneSortSupport(order)) {
+            // force use of separate order projection
+            return null;
+        } else {
+            return new PositionalOrderBy(positions, order.reverseFlags(), order.nullsFirst());
+        }
     }
 
     private static void maybeApplyPageSize(int limit, @Nullable Integer pageSizeHint, RoutedCollectPhase collectPhase) {

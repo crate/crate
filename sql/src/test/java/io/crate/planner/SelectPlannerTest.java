@@ -401,36 +401,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void testSelectPartitionedTableOrderByPartitionedColumn() throws Exception {
-        e.plan("select name from parted order by date");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
     public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
         e.plan("select name from parted order by year(date)");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectOrderByPartitionedNestedColumn() throws Exception {
-        e.plan("select id from multi_parted order by obj['name']");
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testSelectOrderByPartitionedNestedColumnInFunction() throws Exception {
-        e.plan("select id from multi_parted order by format('abc %s', obj['name'])");
     }
 
     @Test(expected = UnsupportedFeatureException.class)
     public void testQueryRequiresScalar() throws Exception {
         // only scalar functions are allowed on system tables because we have no lucene queries
         e.plan("select * from sys.shards where match(table_name, 'characters')");
-    }
-
-    @Test
-    public void testOrderByOnAnalyzed() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'text': sorting on analyzed/fulltext columns is not possible");
-        e.plan("select text from users u order by 1");
     }
 
     @Test

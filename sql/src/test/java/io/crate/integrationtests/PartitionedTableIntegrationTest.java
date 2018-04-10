@@ -2173,4 +2173,18 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select count(*) from t where t > 1000");
         assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
     }
+
+    @Test
+    public void testOrderingOnPartitionColumn() {
+        execute("create table t (x int, p int) partitioned by (p) " +
+                "clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into t (p, x) values (1, 1), (1, 2), (2, 1)");
+        execute("refresh table t");
+        assertThat(
+            printedTable(execute("select p, x from t order by p desc, x asc").rows()),
+            is("2| 1\n" +
+               "1| 1\n" +
+               "1| 2\n")
+        );
+    }
 }
