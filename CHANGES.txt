@@ -132,7 +132,7 @@ Changes
 - ``ALTER TABLE <name> OPEN`` will now wait for all shards to become active
   before returning to be consistent with the behaviour of other statements.
 
-- CrateDB is now based on Elasticsearch 6.1.3 and Lucene 7.1.0.
+- CrateDB is now based on Elasticsearch 6.1.4 and Lucene 7.1.0.
 
 - Added a new ``bengali`` language analyzer and a ``bengali_normalization``
   token filter.
