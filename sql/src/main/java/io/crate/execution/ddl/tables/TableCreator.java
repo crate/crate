@@ -34,14 +34,10 @@ import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -66,20 +62,17 @@ public class TableCreator {
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-    private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportCreateTableAction transportCreateTableAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
 
     @Inject
     public TableCreator(ClusterService clusterService,
                         IndexNameExpressionResolver indexNameExpressionResolver,
-                        TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                        TransportCreateIndexAction transportCreateIndexAction,
+                        TransportCreateTableAction transportCreateIndexAction,
                         TransportDeleteIndexAction transportDeleteIndexAction) {
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportCreateTableAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
     }
 
@@ -112,37 +105,26 @@ public class TableCreator {
     }
 
     private void createTable(final CompletableFuture<Long> result, final CreateTableAnalyzedStatement statement) {
+        final CreateTableRequest createTableRequest;
         if (statement.templateName() != null) {
-            transportPutIndexTemplateAction.execute(createTemplateRequest(statement), new ActionListener<PutIndexTemplateResponse>() {
-                @Override
-                public void onResponse(PutIndexTemplateResponse response) {
-                    if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
-                    }
-                    result.complete(SUCCESS_RESULT);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    setException(result, e, statement);
-                }
-            });
+            createTableRequest = new CreateTableRequest(createTemplateRequest(statement));
         } else {
-            transportCreateIndexAction.execute(createIndexRequest(statement), new ActionListener<CreateIndexResponse>() {
-                @Override
-                public void onResponse(CreateIndexResponse response) {
-                    if (!response.isAcknowledged()) {
-                        warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
-                    }
-                    result.complete(SUCCESS_RESULT);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    setException(result, e, statement);
-                }
-            });
+            createTableRequest = new CreateTableRequest(createIndexRequest(statement));
         }
+        transportCreateTableAction.execute(createTableRequest, new ActionListener<CreateTableResponse>() {
+            @Override
+            public void onResponse(CreateTableResponse response) {
+                if (!response.isAllShardsAcked()) {
+                    warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
+                }
+                result.complete(SUCCESS_RESULT);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                setException(result, e, statement);
+            }
+        });
     }
 
 

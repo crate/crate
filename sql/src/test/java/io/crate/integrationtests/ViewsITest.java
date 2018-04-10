@@ -88,6 +88,30 @@ public class ViewsITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateTableFailsIfNameConflictsWithView() throws Exception {
+        // First plan the create table which should conflict with the view,
+        PlanForNode viewConflictingTableCreation =
+            plan("create table v4 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        // then create the actual view. This way we circumvent the analyzer check for existing views.
+        execute("create view v4 as select 1");
+
+        expectedException.expectMessage("Relation '" + sqlExecutor.getDefaultSchema() + ".v4' already exists");
+        execute(viewConflictingTableCreation).getResult();
+    }
+
+    @Test
+    public void testCreatePartitionedTableFailsIfNameConflictsWithView() throws Exception {
+        // First plan the create table which should conflict with the view,
+        PlanForNode viewConflictingTableCreation =
+            plan("create table v5 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        // then create the actual view. This way we circumvent the analyzer check for existing views.
+        execute("create view v5 as select 1");
+
+        expectedException.expectMessage("Relation '" + sqlExecutor.getDefaultSchema() + ".v5' already exists");
+        execute(viewConflictingTableCreation).getResult();
+    }
+
+    @Test
     public void testDropViewFailsIfViewIsMissing() {
         expectedException.expectMessage("Relations not found: " + sqlExecutor.getDefaultSchema() + ".v1");
         execute("drop view v1");
