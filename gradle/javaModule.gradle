@@ -110,7 +110,7 @@ test {
     }
 
     jacoco {
-        enabled = JavaVersion.current() <= JavaVersion.VERSION_1_9
+        enabled = true;
     }
 
     // ES testing framework adds the resources target build paths to the classpath of the tests,
