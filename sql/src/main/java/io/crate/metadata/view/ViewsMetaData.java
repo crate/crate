@@ -164,11 +164,7 @@ public class ViewsMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
     }
 
     public boolean contains(RelationName relationName) {
-        return contains(relationName.fqn());
-    }
-
-    public boolean contains(String name) {
-        return viewByName.containsKey(name);
+        return viewByName.containsKey(relationName.fqn());
     }
 
     public Iterable<String> names() {

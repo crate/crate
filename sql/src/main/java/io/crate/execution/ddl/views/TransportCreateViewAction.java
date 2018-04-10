@@ -112,7 +112,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
     }
 
     private static boolean conflictsWithView(CreateViewRequest request, ViewsMetaData views) {
-        return !request.replaceExisting() && views != null && views.contains(request.name().fqn());
+        return !request.replaceExisting() && views != null && views.contains(request.name());
     }
 
     @Override

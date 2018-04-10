@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
@@ -41,13 +42,13 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
-            assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v1"), is(true));
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getDefaultSchema() + ".v1")), is(true));
         }
         assertThat(printedTable(execute("select * from v1").rows()), is("1\n"));
         execute("drop view v1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
-            assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v1"), is(false));
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getDefaultSchema() + ".v1")), is(false));
         }
     }
 
@@ -60,7 +61,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
-            assertThat(views.contains(sqlExecutor.getDefaultSchema() + ".v2"), is(true));
+            assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getDefaultSchema() + ".v2")), is(true));
         }
     }
 
