@@ -156,7 +156,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         PageResultListener listener = mock(PageResultListener.class);
-        ctx.setBucket(0, Bucket.EMPTY, true, listener);
+        ctx.setBucket(0, Bucket.EMPTY, false, listener);
         ctx.failure(1, new Exception("dummy"));
 
         verify(listener, times(1)).needMore(false);

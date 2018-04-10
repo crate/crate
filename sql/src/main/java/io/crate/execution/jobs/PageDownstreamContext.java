@@ -138,6 +138,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
         if (shouldTriggerConsumer) {
             mergeAndTriggerConsumer();
+        } else if (isLast) {
+            // release listener early here, otherwise other upstreams will be blocked
+            // e.g. if 2 downstream contexts are used in the chain
+            //      Phase -> DistributingDownstream -> Phase -> DistributingDownstream
+            pageResultListener.needMore(false);
         }
     }
 
