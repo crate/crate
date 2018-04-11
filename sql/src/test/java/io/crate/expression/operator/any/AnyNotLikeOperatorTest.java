@@ -21,148 +21,90 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.data.Input;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
-import io.crate.expression.predicate.NotPredicate;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import java.util.Arrays;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
-import static org.hamcrest.Matchers.is;
-
-public class AnyNotLikeOperatorTest extends CrateUnitTest {
-
-    private static Symbol normalizeSymbol(String pattern, String... expressions) {
-        Literal patternLiteral = Literal.of(pattern);
-        Object[] value = new Object[expressions.length];
-        for (int i = 0; i < expressions.length; i++) {
-            value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
-        }
-        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
-        AnyNotLikeOperator impl = (AnyNotLikeOperator) new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-            Arrays.asList(patternLiteral.valueType(), valuesLiteral.valueType())
-        );
-
-        Function function = new Function(
-            impl.info(),
-            Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
-        );
-        return impl.normalizeSymbol(function, new TransactionContext(SessionContext.create()));
-    }
-
-    private Boolean anyNotLikeNormalize(String pattern, String... expressions) {
-        return (Boolean) ((Literal) normalizeSymbol(pattern, expressions)).value();
-    }
-
-    private Boolean anyNotLike(String pattern, String... expressions) {
-        Literal patternLiteral = Literal.of(pattern);
-        Object[] value = new Object[expressions.length];
-        for (int i = 0; i < expressions.length; i++) {
-            value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
-        }
-        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
-        AnyNotLikeOperator impl = (AnyNotLikeOperator) new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-            Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
-        );
-
-        return impl.evaluate(patternLiteral, valuesLiteral);
-    }
+public class AnyNotLikeOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSingleSymbolEqual() {
-        assertFalse(anyNotLikeNormalize("foo", "foo"));
-        assertTrue(anyNotLikeNormalize("notFoo", "foo"));
+        assertNormalize("'foo' not like any (['foo'])", isLiteral(false));
+        assertNormalize("'notFoo' not like any (['foo'])", isLiteral(true));
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMore() {
         // Following tests: wildcard: '%' ... zero or more characters (0...N)
-        assertFalse(anyNotLikeNormalize("%bar", "foobar", "bar"));
-        assertFalse(anyNotLikeNormalize("%bar", "bar"));
-        assertTrue(anyNotLikeNormalize("%bar", "ar", "car"));
-        assertTrue(anyNotLikeNormalize("foo%", "foobar", "kuhbar"));
-        assertTrue(anyNotLikeNormalize("foo%", "foo", "kuh"));
-        assertTrue(anyNotLikeNormalize("foo%", "fo", "kuh"));
-        assertFalse(anyNotLikeNormalize("%oob%", "foobar"));
+        assertNormalize("'%bar' not like any (['foobar', 'bar'])", isLiteral(false));
+        assertNormalize("'%bar' not like any (['bar'])", isLiteral(false));
+        assertNormalize("'%bar' not like any (['ar', 'car'])", isLiteral(true));
+        assertNormalize("'foo%' not like any (['foobar', 'kuhbar'])", isLiteral(true));
+        assertNormalize("'foo%' not like any (['foo', 'kuh'])", isLiteral(true));
+        assertNormalize("'foo%' not like any (['fo', 'kuh'])", isLiteral(true));
+        assertNormalize("'%oob%' not like any (['foobar'])", isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolLikeExactlyOne() {
         // Following tests: wildcard: '_' ... any single character (exactly one)
-        assertFalse(anyNotLikeNormalize("_ar", "bar"));
-        assertTrue(anyNotLikeNormalize("_bar", "bar"));
-        assertFalse(anyNotLikeNormalize("fo_", "foo", "for"));
-        assertTrue(anyNotLikeNormalize("foo_", "foo", "foot"));
-        assertTrue(anyNotLikeNormalize("foo_", "foo"));
-        assertFalse(anyNotLikeNormalize("_o_", "foo"));
-        assertTrue(anyNotLikeNormalize("_foobar_", "foobar"));
+        assertNormalize("'_ar' not like any (['bar'])", isLiteral(false));
+        assertNormalize("'_bar' not like any (['bar'])", isLiteral(true));
+        assertNormalize("'fo_' not like any (['foo', 'for'])", isLiteral(false));
+        assertNormalize("'foo_' not like any (['foo', 'foot'])", isLiteral(true));
+        assertNormalize("'foo_' not like any (['foo'])", isLiteral(true));
+        assertNormalize("'_o_' not like any (['foo'])", isLiteral(false));
+        assertNormalize("'_foobar_' not like any (['foobar'])", isLiteral(true));
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        assertTrue(anyNotLikeNormalize("%o_ar", "foobar", "foobaz"));
-        assertFalse(anyNotLikeNormalize("%a_", "foobar"));
-        assertFalse(anyNotLikeNormalize("%o_a%", "foobar"));
-        assertFalse(anyNotLikeNormalize("%i%m%", "Lorem ipsum dolor..."));
-        assertFalse(anyNotLikeNormalize("%%%sum%%", "Lorem ipsum dolor..."));
-        assertTrue(anyNotLikeNormalize("%i%m", "Lorem ipsum dolor..."));
+        assertNormalize("'%o_ar' not like any (['foobar', 'foobaz'])", isLiteral(true));
+        assertNormalize("'%a_' not like any (['foobar'])", isLiteral(false));
+        assertNormalize("'%o_a%' not like any (['foobar'])", isLiteral(false));
+        assertNormalize("'%i%m%' not like any (['Lorem ipsum dolor...'])", isLiteral(false));
+        assertNormalize("'%%%sum%%' not like any (['Lorem ipsum dolor...'])", isLiteral(false));
+        assertNormalize("'%i%m' not like any (['Lorem ipsum dolor...'])", isLiteral(true));
     }
 
     @Test
     public void testEvaluateStraight() throws Exception {
-        assertTrue(anyNotLike("foo", "foo", "koo", "doo"));
-        assertFalse(anyNotLike("foo", "foo"));
-        assertFalse(anyNotLike("foo"));
-        assertTrue(anyNotLike("foo", "koo", "doo"));
+        assertEvaluate("'foo' not like any (['foo', 'koo', 'doo'])", true);
+        assertEvaluate("'foo' not like any (['foo'])", false);
+        assertEvaluate("'foo' not like any ([])", false);
+        assertEvaluate("'foo' not like any (['koo', 'doo'])", true);
     }
+
 
     @Test
     public void testEvaluateLikeMixed() {
-        assertTrue(anyNotLike("%o_ar", "foobar", "foobaz"));
-        assertFalse(anyNotLike("%a_", "foobar"));
-        assertFalse(anyNotLike("%o_a%", "foobar"));
-        assertFalse(anyNotLike("%i%m%", "Lorem ipsum dolor..."));
-        assertFalse(anyNotLike("%%%sum%%", "Lorem ipsum dolor..."));
-        assertTrue(anyNotLike("%i%m", "Lorem ipsum dolor..."));
+        assertEvaluate("'%o_ar' not like any (['foobar', 'foobaz'])", true);
+        assertEvaluate("'%a_' not like any (['foobar'])", false);
+        assertEvaluate("'%o_a%' not like any (['foobar'])", false);
+        assertEvaluate("'%i%m%' not like any (['Lorem ipsum dolor..'])", false);
+        assertEvaluate("'%%%sum%%' not like any (['Lorem ipsum dolor...'])", false);
+        assertEvaluate("'%i%m' not like any (['Lorem ipsum dolor...'])", true);
     }
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertNull(anyNotLike(null, (String) null));
-        assertNull(anyNotLike("foo", (String) null));
-        assertNull(anyNotLike(null, "bar"));
+        assertEvaluate("null not like any ([null])", null);
+        assertEvaluate("'foo' not like any ([null])", null);
+        assertEvaluate("null not like any (['bar'])", null);
     }
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {
-        assertNull(anyNotLikeNormalize(null, (String) null));
-        assertNull(anyNotLikeNormalize("foo", (String) null));
-        assertNull(anyNotLikeNormalize(null, "bar"));
+        assertNormalize("null not like any ([null])", isLiteral(null));
+        assertNormalize("'foo' not like any ([null])", isLiteral(null));
+        assertNormalize("null not like any (['bar'])", isLiteral(null));
     }
 
     @Test
     public void testNegateNotLike() throws Exception {
-        Literal patternLiteral = Literal.of("A");
-        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING),
-            new Object[]{new BytesRef("A"), new BytesRef("B")});
-        FunctionImplementation impl = new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
-            Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
-        );
-        Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
-        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new TransactionContext(SessionContext.create()));
-        assertThat(normalized.value(), is(true));
-        assertThat(new NotPredicate().evaluate(normalized), is(false));
+        assertEvaluate("not 'A' not like any (['A', 'B'])", false);
     }
-
 }
