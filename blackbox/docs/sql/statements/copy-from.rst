@@ -113,7 +113,7 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 If ``accesskey`` and ``secretkey`` are ommited, CrateDB attempts to load the
 credentials from the environment or Java settings.
 
-Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY``
+Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``
 
 Java System Properties - ``aws.accessKeyId`` and ``aws.secretKey``
 
