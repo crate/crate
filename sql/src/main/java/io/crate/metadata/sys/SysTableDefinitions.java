@@ -61,7 +61,7 @@ public class SysTableDefinitions {
                                TableHealthService tableHealthService) {
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
-            SysJobsTableInfo.expressions()
+            SysJobsTableInfo.expressions(clusterService::localNode)
         ));
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.jobsLog()),

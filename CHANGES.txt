@@ -63,6 +63,9 @@ Breaking Changes
 Changes
 =======
 
+- Display the node information (name and id) of jobs in the ``sys.jobs``
+  table.
+
 - Table functions no longer require any permissions to be used. (Enterprise
   only)
 

@@ -46,7 +46,7 @@ public class SysJobsTest extends SQLTransportIntegrationTest {
 
         for (Object[] objects : response.rows()) {
             assertNotNull(objects[0]);
-            statements.add((String) objects[2]);
+            statements.add((String) objects[3]);
         }
         assertTrue(statements.contains(stmt));
     }
