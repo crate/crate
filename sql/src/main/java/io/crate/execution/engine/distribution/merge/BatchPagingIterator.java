@@ -100,6 +100,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     public void close() {
         if (!closed) {
             closed = true;
+            pagingIterator.finish(); // release resource, specially possible ram accounted bytes
             closeCallback.run();
         }
     }

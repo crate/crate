@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 public class BatchPagingIteratorTest {
 
 
@@ -67,5 +70,54 @@ public class BatchPagingIteratorTest {
         );
         // must not throw an exception
         iterator.completeLoad(new IllegalStateException("Dummy"));
+    }
+
+    @Test
+    public void testFinishPagingIteratorOnClose() {
+        TestPagingIterator pagingIterator = new TestPagingIterator();
+        BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
+            pagingIterator,
+            exhaustedIt -> false,
+            () -> true,
+            () -> { }
+        );
+
+        iterator.close();
+        assertThat(pagingIterator.finishedCalled, is(true));
+    }
+
+    private static class TestPagingIterator implements PagingIterator<Integer, Row> {
+
+        boolean finishedCalled = false;
+
+        @Override
+        public void merge(Iterable<? extends KeyIterable<Integer, Row>> keyIterables) {
+
+        }
+
+        @Override
+        public void finish() {
+            finishedCalled = true;
+        }
+
+        @Override
+        public Integer exhaustedIterable() {
+            return null;
+        }
+
+        @Override
+        public Iterable<Row> repeat() {
+            return null;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Row next() {
+            return null;
+        }
     }
 }
