@@ -63,6 +63,9 @@ Breaking Changes
 Changes
 =======
 
+- Table functions no longer require any permissions to be used. (Enterprise
+  only)
+
 - Added support for ordering on analysed or partitioned columns.
 
 - Changed the primary key constraints of the information schema tables

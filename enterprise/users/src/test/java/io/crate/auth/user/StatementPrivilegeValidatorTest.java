@@ -471,6 +471,11 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         analyze("drop view xx.v1");
         assertAskedForView(Privilege.Type.DDL, "xx.v1");
     }
-}
 
+    @Test
+    public void testTableFunctionsDoNotRequireAnyPermissions() {
+        analyze("select 1");
+        assertThat(validationCallArguments.size(), is(0));
+    }
+}
 
