@@ -22,17 +22,11 @@
 
 package io.crate.expression.operator;
 
+import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyGtOperator;
-import io.crate.expression.operator.any.AnyGteOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
-import io.crate.expression.operator.any.AnyLtOperator;
-import io.crate.expression.operator.any.AnyLteOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyNotLikeOperator;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -67,14 +61,8 @@ public class OperatorModule extends AbstractModule {
         RegexpMatchOperator.register(this);
         RegexpMatchCaseInsensitiveOperator.register(this);
 
-        AnyEqOperator.register(this);
-        AnyNeqOperator.register(this);
-        AnyGteOperator.register(this);
-        AnyGtOperator.register(this);
-        AnyLteOperator.register(this);
-        AnyLtOperator.register(this);
+        AnyOperators.register(this);
         AnyLikeOperator.register(this);
-        AnyNotLikeOperator.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

@@ -24,17 +24,17 @@ package io.crate.analyze.where;
 
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.exceptions.VersionInvalidException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.GteOperator;
+import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.GteOperator;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.sql.tree.ComparisonExpression;
 
 import java.util.Locale;
@@ -67,7 +67,8 @@ public final class WhereClauseValidator {
         private static final Set<String> SCORE_ALLOWED_COMPARISONS = ImmutableSet.of(GteOperator.NAME);
 
         private static final String _VERSION = "_version";
-        private static final Set<String> VERSION_ALLOWED_COMPARISONS = ImmutableSet.of(EqOperator.NAME, AnyEqOperator.NAME);
+        private static final Set<String> VERSION_ALLOWED_COMPARISONS = ImmutableSet.of(
+            EqOperator.NAME, AnyOperators.Names.NEQ);
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
             "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",

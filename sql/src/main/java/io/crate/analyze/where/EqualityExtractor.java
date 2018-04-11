@@ -24,6 +24,9 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.Operators;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -35,9 +38,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.Operators;
-import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -331,7 +331,7 @@ public class EqualityExtractor {
             }
 
             public EqProxy add(Function compared) {
-                if (compared.info().ident().name().equals(AnyEqOperator.NAME)) {
+                if (compared.info().ident().name().equals(AnyOperators.Names.EQ)) {
                     AnyEqProxy anyEqProxy = new AnyEqProxy(compared, proxies);
                     for (EqProxy proxiedProxy : anyEqProxy) {
                         if (!proxies.containsKey(proxiedProxy.origin())) {
@@ -406,7 +406,7 @@ public class EqualityExtractor {
                         return comparison.add(function);
                     }
                 }
-            } else if (functionName.equals(AnyEqOperator.NAME) &&
+            } else if (functionName.equals(AnyOperators.Names.EQ) &&
                        function.arguments().get(1).symbolType().isValueSymbol()) {
                 // ref = any ([1,2,3])
                 if (function.arguments().get(0) instanceof Reference) {

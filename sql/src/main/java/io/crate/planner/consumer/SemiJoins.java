@@ -32,6 +32,10 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
+import io.crate.expression.operator.OrOperator;
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.FuncReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -44,10 +48,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
-import io.crate.expression.operator.OrOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyOperator;
-import io.crate.expression.predicate.NotPredicate;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
@@ -283,7 +283,7 @@ final class SemiJoins {
             /* Cannot rewrite a `op ANY subquery` expression into a semi-join if it's beneath a OR because
              * `op ANY subquery` has different semantics in case of NULL values than a semi-join would have
              */
-            if (funcName.equals(OrOperator.NAME) || funcName.equals(AnyNeqOperator.NAME)) {
+            if (funcName.equals(OrOperator.NAME) || funcName.equals(AnyOperators.Names.NEQ)) {
                 context.candidates.clear();
                 context.notPredicate = null;
                 return false;

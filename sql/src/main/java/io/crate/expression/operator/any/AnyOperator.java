@@ -21,17 +21,15 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.expression.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.data.Input;
+import io.crate.expression.operator.Operator;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.expression.operator.Operator;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
@@ -40,16 +38,15 @@ import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import io.crate.types.SingleColumnTableType;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntPredicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
-public abstract class AnyOperator extends Operator<Object> {
+public final class AnyOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "any_";
 
@@ -62,26 +59,15 @@ public abstract class AnyOperator extends Operator<Object> {
         return Operator.PREFIX + functionName.substring(OPERATOR_PREFIX.length());
     }
 
+    private FunctionInfo functionInfo;
+    private final IntPredicate cmpIsMatch;
+
     /**
-     * called inside {@link #normalizeSymbol(Function, TransactionContext)}
-     * in order to interpret the result of compareTo
-     * <p>
-     * subclass has to implement this to evaluate the -1, 0, 1 to boolean
-     * e.g. for Lt  -1 is true, 0 and 1 is false.
-     *
-     * @param comparisonResult the result of someLiteral.compareTo(otherLiteral)
-     * @return true/false
-     * @see io.crate.expression.operator.CmpOperator#compare(int)
+     * @param cmpIsMatch predicate to test if a comparison (-1, 0, 1) should be considered a match
      */
-    protected abstract boolean compare(int comparisonResult);
-
-    protected FunctionInfo functionInfo;
-
-    protected AnyOperator() {
-    }
-
-    protected AnyOperator(FunctionInfo functionInfo) {
+    AnyOperator(FunctionInfo functionInfo, IntPredicate cmpIsMatch) {
         this.functionInfo = functionInfo;
+        this.cmpIsMatch = cmpIsMatch;
     }
 
     @Override
@@ -90,7 +76,7 @@ public abstract class AnyOperator extends Operator<Object> {
     }
 
     @SuppressWarnings("unchecked")
-    protected Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
+    private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
         boolean anyNulls = false;
         if (left instanceof Comparable) {
             for (Object elem : rightIterable) {
@@ -100,13 +86,13 @@ public abstract class AnyOperator extends Operator<Object> {
                 }
                 assert left.getClass().equals(elem.getClass()) : "class of left must be equal to the class of right";
 
-                if (compare(((Comparable) left).compareTo(elem))) {
+                if (cmpIsMatch.test(((Comparable) left).compareTo(elem))) {
                     return true;
                 }
             }
         } else if (left instanceof Map) {
             for (Object elem : rightIterable) {
-                if (compare(Objects.compare((Map) left, (Map) elem, MapComparator.getInstance()))) {
+                if (cmpIsMatch.test(Objects.compare((Map) left, (Map) elem, MapComparator.getInstance()))) {
                     return true;
                 }
             }
@@ -120,31 +106,20 @@ public abstract class AnyOperator extends Operator<Object> {
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";
 
-        Object value = args[0].value();
-        Object collectionReference = args[1].value();
-
-        if (collectionReference == null || value == null) {
+        Object item = args[0].value();
+        Object items = args[1].value();
+        if (items == null || item == null) {
             return null;
         }
-        Iterable<?> rightIterable;
-        rightIterable = collectionValueToIterable(collectionReference);
-        return doEvaluate(value, rightIterable);
+        return doEvaluate(item, collectionValueToIterable(items));
     }
 
-    public static Iterable<?> collectionValueToIterable(Object collectionRef) throws IllegalArgumentException {
-        if (collectionRef instanceof Object[]) {
-            return Arrays.asList((Object[]) collectionRef);
-        } else if (collectionRef instanceof Collection) {
-            return (Collection<?>) collectionRef;
-        } else {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "cannot cast %s to Iterable", collectionRef));
-        }
-    }
+    public static final class AnyResolver extends BaseFunctionResolver {
 
-    public abstract static class AnyResolver extends BaseFunctionResolver {
+        private final String name;
+        private final IntPredicate cmpIsMatch;
 
-        AnyResolver() {
+        AnyResolver(String name, IntPredicate cmpIsMatch) {
             super(FuncParams.builder(
                 Param.ANY,
                 Param.of(
@@ -153,11 +128,9 @@ public abstract class AnyOperator extends Operator<Object> {
                     new SingleColumnTableType(DataTypes.UNDEFINED))
                     .withInnerType(Param.ANY))
                 .build());
+            this.name = name;
+            this.cmpIsMatch = cmpIsMatch;
         }
-
-        public abstract FunctionImplementation newInstance(FunctionInfo info);
-
-        public abstract String name();
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -166,7 +139,11 @@ public abstract class AnyOperator extends Operator<Object> {
                 "The inner type of the array/set passed to ANY must match its left expression");
             checkArgument(!innerType.equals(DataTypes.OBJECT),
                 "ANY on object arrays is not supported");
-            return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
+
+            return new AnyOperator(
+                new FunctionInfo(new FunctionIdent(name, dataTypes), BooleanType.INSTANCE),
+                cmpIsMatch
+            );
         }
     }
 }

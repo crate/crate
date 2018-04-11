@@ -32,6 +32,9 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.RowN;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -39,9 +42,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -637,14 +637,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String s = sb.toString();
 
         WhereClause whereClause = analyzeSelectWhere(s);
-        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME,
+        assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ,
             ImmutableList.<DataType>of(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))));
     }
 
     @Test
     public void testInNormalizedToAnyWithScalars() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where id in (null, 1+2, 3+4, abs(-99))");
-        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME));
+        assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ));
         assertThat(whereClause.docKeys().isPresent(), is(true));
         assertThat(whereClause.docKeys().get(), containsInAnyOrder(isNullDocKey(), isDocKey("3"), isDocKey("7"), isDocKey("99")));
     }
@@ -652,19 +652,19 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyEqConvertableArrayTypeLiterals() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name = any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(AnyOperators.Names.EQ, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 
     @Test
     public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 
     @Test
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.NAME, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 
     @Test

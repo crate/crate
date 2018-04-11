@@ -31,14 +31,17 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.LtOperator;
+import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.any.AnyOperators;
+import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.operator.EqOperator;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -47,9 +50,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
-import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.FunctionCall;
@@ -355,12 +355,12 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInAny() throws Exception {
         Symbol s = expressions.asSymbol("5 = ANY(?)");
-        assertThat(s, isFunction(AnyEqOperator.NAME, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(AnyOperators.Names.EQ, isLiteral(5L), instanceOf(ParameterSymbol.class)));
     }
 
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s, isFunction(AnyLikeOperator.NAME, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(AnyLikeOperator.LIKE, isLiteral(5L), instanceOf(ParameterSymbol.class)));
     }
 }
