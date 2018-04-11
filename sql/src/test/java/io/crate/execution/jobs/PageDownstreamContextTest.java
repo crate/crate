@@ -21,12 +21,17 @@
 
 package io.crate.execution.jobs;
 
+import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
@@ -40,6 +45,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -220,6 +226,24 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ));
     }
 
+    @Test
+    public void testBatchIteratorIsCompletedExceptionallyIfMergeBucketFails() throws Exception {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+
+        PageBucketReceiver ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
+
+        PageResultListener pageResultListener = mock(PageResultListener.class);
+        Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
+        ctx.setBucket(0, bucket, false, pageResultListener);
+        ctx.setBucket(1, bucket, false, pageResultListener);
+        ctx.setBucket(0, bucket, true, pageResultListener);
+        ctx.setBucket(1, bucket, true, pageResultListener);
+
+        expectedException.expect(RuntimeException.class);
+        expectedException.expectMessage("raised on merge");
+        batchConsumer.getResult();
+    }
+
     private static class CheckPageResultListener implements PageResultListener {
 
         private boolean needMoreResult;
@@ -227,6 +251,53 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         @Override
         public void needMore(boolean needMore) {
             needMoreResult = needMore;
+        }
+    }
+
+    private static class FailOnMergePagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
+
+        private Iterator<TRow> iterator = Collections.emptyIterator();
+        private final ImmutableList.Builder<KeyIterable<TKey, TRow>> iterables = ImmutableList.builder();
+        private final int mergesCallCountUntilError;
+        private int mergesCallCount = 0;
+
+        public FailOnMergePagingIterator(int mergesCallCountUntilError) {
+            this.mergesCallCountUntilError = mergesCallCountUntilError;
+        }
+
+        @Override
+        protected Iterator<TRow> delegate() {
+            return iterator;
+        }
+
+        @Override
+        public void merge(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
+            if (++mergesCallCount == mergesCallCountUntilError) {
+                throw new RuntimeException("raised on merge");
+            }
+            Iterable<TRow> concat = Iterables.concat(iterables);
+
+            if (iterator.hasNext()) {
+                iterator = Iterators.concat(iterator, concat.iterator());
+            } else {
+                iterator = concat.iterator();
+            }
+
+        }
+
+        @Override
+        public void finish() {
+
+        }
+
+        @Override
+        public TKey exhaustedIterable() {
+            return null;
+        }
+
+        @Override
+        public Iterable<TRow> repeat() {
+            return null;
         }
     }
 }

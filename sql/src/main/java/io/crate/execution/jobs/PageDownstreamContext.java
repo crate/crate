@@ -171,6 +171,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             mergeBuckets();
         } catch (Throwable t) {
             innerKill(t);
+            // the iterator already returned it's loadNextBatch future, we must complete it exceptionally
+            batchPagingIterator.completeLoad(t);
             return;
         }
         if (allUpstreamsExhausted()) {
