@@ -372,7 +372,8 @@ configuration file.
   | *Default:*  ``not set``
   | *Runtime:*  ``no``
 
-Currently there are two other discovery types: via DNS and via EC2 API.
+Currently there are three other discovery types: via DNS, via EC2 API and via
+Microsoft Azure mechanisms.
 
 When a node starts up with one of these discovery types enabled, it performs a
 lookup using the settings for the specified mechanism listed below. The hosts
@@ -382,15 +383,10 @@ unicast hosts for node discovery.
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see `Cluster Meta Data`).
 
-**discovery.type**
-  | *Default:*   ``not set``
-  | *Runtime:*   ``no``
-  | *Allowed Values:*  ``zen``, ``ec2``
-
 **discovery.zen.hosts_provider**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
-  | *Allowed Values:* ``srv``, ``azure``
+  | *Allowed Values:* ``srv``, ``ec2``, ``azure``
 
 See also: `Discovery`_.
 
@@ -435,7 +431,8 @@ Discovery on Amazon EC2
 ```````````````````````
 
 CrateDB has built-in support for discovery via the EC2 API. To enable EC2
-discovery the ``discovery.type`` setting needs to be set to ``ec2``.
+discovery the ``discovery.zen.hosts_provider`` settings needs to be set to
+``ec2``.
 
 **cloud.aws.access_key**
   | *Runtime:*  ``no``
@@ -508,7 +505,8 @@ Discovery on Microsoft Azure
 ````````````````````````````
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
-To enable Azure discovery set the ``discovery.zen.hosts_provider`` setting to ``azure``.
+To enable Azure discovery set the ``discovery.zen.hosts_provider`` setting to
+``azure``.
 
 **cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``

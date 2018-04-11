@@ -532,7 +532,7 @@ auth:
 # SRV DNS records.
 
 # To enable SRV discovery you need to set the discovery type to 'srv'.
-#discovery.type: srv
+#discovery.zen.hosts_provider: srv
 
 # Service discovery requires a query that is used to look up SRV records,
 # this is usually in the format _service._protocol.fqdn
@@ -544,7 +544,7 @@ auth:
 # AWS EC2 API.
 
 # To enable EC2 discovery you need to set the discovery type to 'ec2'.
-#discovery.type: ec2
+#discovery.zen.hosts_provider: ec2
 
 # There are multiple ways to filter EC2 instances:
 #
@@ -587,7 +587,7 @@ auth:
 # the Azure API.
 
 # To enable Azure discovery you need to set the discovery type to 'azure'.
-#discovery.type: azure
+#discovery.zen.hosts_provider: azure
 
 # You should provide resource group name of your instances
 #cloud.azure.management.resourcegroup.name: myrg

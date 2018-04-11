@@ -57,6 +57,9 @@ Breaking Changes
   `node['id']` and `node['name']`. In order to get all information a join query
   can be used with `sys.nodes`.
 
+- ``discovery.type`` setting has been removed. To enable EC2 discovery
+  `discovery.zen.hosts_provider`` setting needs to be set to ``ec2``.
+
 Changes
 =======
 
@@ -156,7 +159,7 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that would cause a NullPointerException to be thrown when 
+- Fixed an issue that would cause a NullPointerException to be thrown when
   executing an ``EXPLAIN`` statement for a ``CROSS JOIN``.
 
 - Do not allow renaming a table when connected to a read-only node.
