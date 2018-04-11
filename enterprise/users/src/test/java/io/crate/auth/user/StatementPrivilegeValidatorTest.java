@@ -26,11 +26,11 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -418,6 +418,11 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         analyze("explain copy users from 'file:///tmp'");
         assertAskedForTable(Privilege.Type.DML, "doc.users");
     }
-}
 
+    @Test
+    public void testTableFunctionsDoNotRequireAnyPermissions() {
+        analyze("select 1");
+        assertThat(validationCallArguments.size(), is(0));
+    }
+}
 

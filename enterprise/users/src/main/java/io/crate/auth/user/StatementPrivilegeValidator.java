@@ -538,11 +538,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, RelationContext context) {
-            Privileges.ensureUserHasPrivilege(
-                context.type,
-                Privilege.Clazz.TABLE,
-                tableFunctionRelation.tableInfo().ident().toString(),
-                context.user);
+            // Any user can execute table functions; Queries like `select 1` might be used to do simple connection checks
             return null;
         }
 

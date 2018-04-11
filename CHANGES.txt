@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+- Table functions no longer require any permissions to be used. (Enterprise
+  only)
+
 Fixes
 =====
 
