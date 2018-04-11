@@ -36,7 +36,7 @@ import io.crate.expression.operator.LikeOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -444,7 +444,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testWhereInSelect() throws Exception {
         QueriedRelation relation = analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
         Function whereClause = (Function) relation.querySpec().where().query();
-        assertThat(whereClause.info().ident().name(), is(AnyEqOperator.NAME));
+        assertThat(whereClause.info().ident().name(), is(AnyOperators.Names.EQ));
     }
 
     @Test
@@ -906,7 +906,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "select * from users where 5 = ANY (friends['id'])");
         assertThat(relation.querySpec().where().hasQuery(), is(true));
         Function anyFunction = (Function) relation.querySpec().where().query();
-        assertThat(anyFunction.info().ident().name(), is(AnyEqOperator.NAME));
+        assertThat(anyFunction.info().ident().name(), is(AnyOperators.Names.EQ));
         assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType(DataTypes.LONG)));
         assertThat(anyFunction.arguments().get(0), isLiteral(5L));
     }
@@ -1313,7 +1313,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Function havingFunction = (Function) relation.querySpec().having().query();
 
         // assert that the in was converted to or
-        assertThat(havingFunction.info().ident().name(), is(AnyEqOperator.NAME));
+        assertThat(havingFunction.info().ident().name(), is(AnyOperators.Names.EQ));
     }
 
     @Test

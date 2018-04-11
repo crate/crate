@@ -22,10 +22,10 @@
 package io.crate.expression.operator.any;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.operator.input.ObjectInput;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -38,13 +38,13 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
 
     private Boolean anyEq(Object value, Object arrayExpr) {
-
-        AnyEqOperator anyEqOperator = new AnyEqOperator(
+        AnyOperator anyOperator = new AnyOperator(
             new FunctionInfo(
                 new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
-                DataTypes.BOOLEAN)
+                DataTypes.BOOLEAN),
+            cmp -> cmp == 0
         );
-        return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
+        return anyOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
     }
 
     @Test

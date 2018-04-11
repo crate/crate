@@ -48,15 +48,8 @@ import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyGtOperator;
-import io.crate.expression.operator.any.AnyGteOperator;
 import io.crate.expression.operator.any.AnyLikeOperator;
-import io.crate.expression.operator.any.AnyLtOperator;
-import io.crate.expression.operator.any.AnyLteOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyNotLikeOperator;
-import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.predicate.NotPredicate;
@@ -362,7 +355,7 @@ public class LuceneQueryBuilder {
              * converts Strings to BytesRef on the fly
              */
             static Iterable<?> toIterable(Object value) {
-                return Iterables.transform(AnyOperator.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
+                return Iterables.transform(AnyOperators.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
                     @Nullable
                     @Override
                     public Object apply(@Nullable Object input) {
@@ -539,14 +532,14 @@ public class LuceneQueryBuilder {
                  */
                 private final Set<String> STRICT_3VL_FUNCTIONS =
                     ImmutableSet.of(
-                        AnyEqOperator.NAME,
-                        AnyNeqOperator.NAME,
-                        AnyGteOperator.NAME,
-                        AnyGtOperator.NAME,
-                        AnyLikeOperator.NAME,
-                        AnyNotLikeOperator.NAME,
-                        AnyLteOperator.NAME,
-                        AnyLtOperator.NAME,
+                        AnyOperators.Names.EQ,
+                        AnyOperators.Names.NEQ,
+                        AnyOperators.Names.GTE,
+                        AnyOperators.Names.GT,
+                        AnyOperators.Names.LTE,
+                        AnyOperators.Names.LT,
+                        AnyLikeOperator.LIKE,
+                        AnyLikeOperator.NOT_LIKE,
                         CoalesceFunction.NAME);
 
                 private boolean isStrictThreeValuedLogicFunction(Function symbol) {
@@ -1156,14 +1149,14 @@ public class LuceneQueryBuilder {
                 .put(NotPredicate.NAME, new NotQuery())
                 .put(IsNullPredicate.NAME, new IsNullQuery())
                 .put(MatchPredicate.NAME, new ToMatchQuery())
-                .put(AnyEqOperator.NAME, new AnyEqQuery())
-                .put(AnyNeqOperator.NAME, new AnyNeqQuery())
-                .put(AnyLtOperator.NAME, new AnyRangeQuery("gt", "lt"))
-                .put(AnyLteOperator.NAME, new AnyRangeQuery("gte", "lte"))
-                .put(AnyGteOperator.NAME, new AnyRangeQuery("lte", "gte"))
-                .put(AnyGtOperator.NAME, new AnyRangeQuery("lt", "gt"))
-                .put(AnyLikeOperator.NAME, new AnyLikeQuery())
-                .put(AnyNotLikeOperator.NAME, new AnyNotLikeQuery())
+                .put(AnyOperators.Names.EQ, new AnyEqQuery())
+                .put(AnyOperators.Names.NEQ, new AnyNeqQuery())
+                .put(AnyOperators.Names.LT, new AnyRangeQuery("gt", "lt"))
+                .put(AnyOperators.Names.LTE, new AnyRangeQuery("gte", "lte"))
+                .put(AnyOperators.Names.GTE, new AnyRangeQuery("lte", "gte"))
+                .put(AnyOperators.Names.GT, new AnyRangeQuery("lt", "gt"))
+                .put(AnyLikeOperator.LIKE, new AnyLikeQuery())
+                .put(AnyLikeOperator.NOT_LIKE, new AnyNotLikeQuery())
                 .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
                 .put(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
                 .build();
