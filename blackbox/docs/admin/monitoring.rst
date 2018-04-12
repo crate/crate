@@ -142,12 +142,28 @@ NodeStatus MBean
 
 The ``NodeStatus`` JMX MBean exposes the status of the current node as boolean values.
 
-Metrics can be accessed using the JMX MBean object name
+NodeStatus can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=NodeStatus`` and the following attributes:
 
  - ``Ready``
 
    Defines if the node is able to process SQL statements.
+
+NodeInfo MBean
+--------------
+
+The ``NodeInfo`` JMX MBean exposes information about the current node;
+
+NodeInfo can be accessed using the JMX MBean object name
+``io.crate.monitoring:type=NodeInfo`` and the following attributes:
+
+ - ``NodeId``
+
+   Provides the unique identifier of the node in the cluster
+
+ - ``NodeName``
+
+   Provides the human friendly name of the node
 
 Exposing JMX via HTTP
 =====================

@@ -149,6 +149,31 @@ class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
                                  "Expected: True, Got: {}".format(value))
 
 
+class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
+
+    JMX_PORT = GLOBAL_PORT_POOL.get()
+    CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+
+    def test_mbean_node_name(self):
+        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
+        nodeName, _ = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeInfo',
+            'NodeName'
+        )
+
+        if not nodeName:
+            raise AssertionError("The mbean attribute NodeName returned and empty string")
+
+    def test_mbean_node_id(self):
+        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
+        nodeId, _ = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeInfo',
+            'NodeId'
+        )
+
+        if not nodeId:
+            raise AssertionError("The mbean attribute NodeId returned and empty string")
+
 def test_suite():
     suite = unittest.TestSuite()
     s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
@@ -172,6 +197,9 @@ def test_suite():
     suite.addTest(s)
 
     s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeStatusIntegrationTest))
+    suite.addTest(s)
+
+    s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeInfoIntegrationTest))
     suite.addTest(s)
 
     s = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))

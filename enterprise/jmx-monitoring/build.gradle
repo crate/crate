@@ -9,4 +9,5 @@ dependencies {
     compile project(':sql')
 
     testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
 }

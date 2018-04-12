@@ -162,6 +162,9 @@ Changes
 - Implemented a `Ready` node status JMX metric expressing if the node is ready
   for processing SQL statements.
 
+- Implemented a `NodeInfo` JMX MBean to expose useful information (id, name)
+  about the node.
+
 Fixes
 =====
 
