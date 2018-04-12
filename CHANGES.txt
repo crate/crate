@@ -165,6 +165,8 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that caused ``ANY`` to not work correctly on nested arrays.
+
 - Fixed an issue that would cause a NullPointerException to be thrown when
   executing an ``EXPLAIN`` statement for a ``CROSS JOIN``.
 

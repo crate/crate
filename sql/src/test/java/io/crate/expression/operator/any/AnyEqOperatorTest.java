@@ -27,7 +27,6 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
     private Boolean anyEq(Object value, Object arrayExpr) {
         AnyOperator anyOperator = new AnyOperator(
             new FunctionInfo(
-                new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
+                new FunctionIdent("any_=", Arrays.asList(DataTypes.OBJECT, new ArrayType(DataTypes.OBJECT))),
                 DataTypes.BOOLEAN),
             cmp -> cmp == 0
         );
@@ -110,5 +109,15 @@ public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot cast bar to Iterable");
         anyEq(1, "bar");
+    }
+
+    @Test
+    public void testArrayEqAnyNestedArrayMatches() {
+        assertNormalize("['foo', 'bar'] = ANY([ ['foobar'], ['foo', 'bar'], [] ])", isLiteral(true));
+    }
+
+    @Test
+    public void testArrayEqAnyNestedArrayDoesNotMatch() {
+        assertNormalize("['foo', 'bar'] = ANY([ ['foobar'], ['foo', 'ar'], [] ])", isLiteral(false));
     }
 }

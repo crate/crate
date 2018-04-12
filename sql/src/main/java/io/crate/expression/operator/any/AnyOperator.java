@@ -21,7 +21,6 @@
 
 package io.crate.expression.operator.any;
 
-import io.crate.core.collections.MapComparator;
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.metadata.BaseFunctionResolver;
@@ -39,8 +38,6 @@ import io.crate.types.SetType;
 import io.crate.types.SingleColumnTableType;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.IntPredicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -59,8 +56,9 @@ public final class AnyOperator extends Operator<Object> {
         return Operator.PREFIX + functionName.substring(OPERATOR_PREFIX.length());
     }
 
-    private FunctionInfo functionInfo;
+    private final FunctionInfo functionInfo;
     private final IntPredicate cmpIsMatch;
+    private final DataType leftType;
 
     /**
      * @param cmpIsMatch predicate to test if a comparison (-1, 0, 1) should be considered a match
@@ -68,6 +66,7 @@ public final class AnyOperator extends Operator<Object> {
     AnyOperator(FunctionInfo functionInfo, IntPredicate cmpIsMatch) {
         this.functionInfo = functionInfo;
         this.cmpIsMatch = cmpIsMatch;
+        this.leftType = functionInfo.ident().argumentTypes().get(0);
     }
 
     @Override
@@ -76,25 +75,15 @@ public final class AnyOperator extends Operator<Object> {
     }
 
     @SuppressWarnings("unchecked")
-    private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
+    private Boolean doEvaluate(Object left, Iterable<?> rightValues) {
         boolean anyNulls = false;
-        if (left instanceof Comparable) {
-            for (Object elem : rightIterable) {
-                if (elem == null) {
-                    anyNulls = true;
-                    continue;
-                }
-                assert left.getClass().equals(elem.getClass()) : "class of left must be equal to the class of right";
-
-                if (cmpIsMatch.test(((Comparable) left).compareTo(elem))) {
-                    return true;
-                }
+        for (Object rightValue : rightValues) {
+            if (rightValue == null) {
+                anyNulls = true;
+                continue;
             }
-        } else if (left instanceof Map) {
-            for (Object elem : rightIterable) {
-                if (cmpIsMatch.test(Objects.compare((Map) left, (Map) elem, MapComparator.getInstance()))) {
-                    return true;
-                }
+            if (cmpIsMatch.test(leftType.compareValueTo(left, rightValue))) {
+                return true;
             }
         }
         return anyNulls ? null : false;
