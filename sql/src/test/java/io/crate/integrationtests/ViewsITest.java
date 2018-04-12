@@ -26,12 +26,27 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Test;
+
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 public class ViewsITest extends SQLTransportIntegrationTest {
+
+    @After
+    public void dropViews() {
+        execute("SELECT table_schema || '.' || table_name FROM information_schema.views");
+        if (response.rows().length > 0) {
+            String views = Stream.of(response.rows())
+                .map(row -> String.valueOf(row[0]))
+                .collect(Collectors.joining(", "));
+            execute(String.format("DROP VIEW %s", views));
+        }
+    }
 
     @Test
     public void testViewCanBeCreatedSelectedAndThenDropped() throws Exception {
@@ -50,6 +65,16 @@ public class ViewsITest extends SQLTransportIntegrationTest {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getDefaultSchema() + ".v1")), is(false));
         }
+    }
+
+    @Test
+    public void testViewCanBeUsedForJoins() {
+        execute("CREATE TABLE t1 (x INTEGER, a STRING)");
+        execute("INSERT INTO t1 (x, a) VALUES (1, 'foo')");
+        execute("REFRESH TABLE t1");
+        execute("CREATE VIEW v1 AS select * FROM t1");
+        execute("CREATE VIEW v2 AS select * FROM t1");
+        assertThat(printedTable(execute("SELECT * FROM v1 INNER JOIN v2 ON v1.x = v2.x").rows()), is("foo| 1| foo| 1\n"));
     }
 
     @Test

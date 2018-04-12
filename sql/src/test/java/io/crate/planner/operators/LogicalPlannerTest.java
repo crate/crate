@@ -30,6 +30,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -59,6 +60,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
+            .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
+            .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")
             .build();
         tableStats = new TableStats();
     }
@@ -267,6 +270,32 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     }
 
+    @Test
+    public void testPlanOfJoinedViewsHasBoundaryWithViewOutputs() {
+        LogicalPlan plan = plan("SELECT v2.x, v2.a, v3.x, v3.a " +
+                              "FROM v2 " +
+                              "  INNER JOIN v3 " +
+                              "  ON v2.x= v3.x");
+        assertThat(plan, isPlan("FetchOrEval[x, a, x, a]\n" +
+                                "HashJoin[\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                                "    --- INNER ---\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Boundary[_fetchid, x]\n" +
+                                "    FetchOrEval[_fetchid, x]\n" +
+                                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                                "]\n"));
+    }
+
     public static LogicalPlan plan(String statement,
                                    SQLExecutor sqlExecutor,
                                    ClusterService clusterService,
@@ -282,13 +311,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {
         return new FeatureMatcher<LogicalPlan, String>(equalTo(expectedPlan), "same output", "output ") {
 
-
             @Override
             protected String featureValueOf(LogicalPlan actual) {
                 Printer printer = new Printer(new SymbolPrinter(functions));
                 return printer.printPlan(actual);
             }
         };
+    }
+
+    public String printPlan(LogicalPlan plan) {
+        Printer printer = new Printer(new SymbolPrinter(sqlExecutor.functions()));
+        return printer.printPlan(plan);
     }
 
     private Matcher<LogicalPlan> isPlan(String expectedPlan) {
@@ -313,7 +346,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             }
             sb.append(start);
         }
-
 
         private String printPlan(LogicalPlan plan) {
             if (plan instanceof RootRelationBoundary) {

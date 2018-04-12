@@ -32,6 +32,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class AnalyzedView implements QueriedRelation {
@@ -40,6 +41,7 @@ public final class AnalyzedView implements QueriedRelation {
     private final String owner;
     private final QueriedRelation relation;
     private final Fields fields;
+    private final QuerySpec querySpec;
 
     public AnalyzedView(RelationName name, String owner, QueriedRelation relation) {
         this.name = name;
@@ -49,6 +51,8 @@ public final class AnalyzedView implements QueriedRelation {
         for (Field field : relation.fields()) {
             fields.add(field, new Field(this, field, field.valueType()));
         }
+        querySpec = new QuerySpec()
+            .outputs(new ArrayList<>(relation.fields()));
     }
 
     public String owner() {
@@ -65,7 +69,7 @@ public final class AnalyzedView implements QueriedRelation {
 
     @Override
     public QuerySpec querySpec() {
-        return relation.querySpec();
+        return this.querySpec;
     }
 
     @Override
