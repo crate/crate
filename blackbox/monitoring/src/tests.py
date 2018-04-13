@@ -34,6 +34,10 @@ from crate.testing.layer import CrateLayer
 from subprocess import PIPE, Popen
 from urllib.request import urlretrieve
 
+JMX_PORT = GLOBAL_PORT_POOL.get()
+CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
+JMX_PORT_ENTERPRISE_DISABLED = GLOBAL_PORT_POOL.get()
+
 JMX_OPTS = '''
      -Dcom.sun.management.jmxremote
      -Dcom.sun.management.jmxremote.port={}
@@ -90,22 +94,22 @@ class JmxTermClient(object):
 
 class MonitoringIntegrationTest(unittest.TestCase):
 
-    JMX_PORT = GLOBAL_PORT_POOL.get()
-    CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-
     def test_mbean_select_frq_attribute(self):
-        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
-        conn = connect('localhost:{}'
-                       .format(MonitoringIntegrationTest.CRATE_HTTP_PORT))
+        jmx_client = JmxTermClient(JMX_PORT)
+        conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
         c = conn.cursor()
 
         to_sleep = 0.2
         while True:
             c.execute("select 1")
-            value, _ = jmx_client.query_jmx(
+            value, exception = jmx_client.query_jmx(
                 'io.crate.monitoring:type=QueryStats',
                 'SelectQueryFrequency'
             )
+
+            if exception:
+                raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
+
             if float(value) > 0.0:
                 break
             if to_sleep > 30:
@@ -117,14 +121,16 @@ class MonitoringIntegrationTest(unittest.TestCase):
 
 class MonitoringSettingIntegrationTest(unittest.TestCase):
 
-    JMX_PORT = GLOBAL_PORT_POOL.get()
-
     def test_enterprise_setting_disabled(self):
-        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
-        value, _ = jmx_client.query_jmx(
+        jmx_client = JmxTermClient(JMX_PORT_ENTERPRISE_DISABLED)
+        value, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=QueryStats',
             'SelectQueryFrequency'
         )
+
+        if exception:
+            raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
+
         try:
             float(value)
             raise AssertionError('''The JMX monitoring is enabled.''')
@@ -134,57 +140,62 @@ class MonitoringSettingIntegrationTest(unittest.TestCase):
 
 class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
 
-    JMX_PORT = GLOBAL_PORT_POOL.get()
-    CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-
     def test_mbean_select_ready(self):
-        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
-        value, _ = jmx_client.query_jmx(
+        jmx_client = JmxTermClient(JMX_PORT)
+        value, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeStatus',
             'Ready'
         )
-        value = bool(value)
-        if value is not True:
-            raise AssertionError("The mbean attribute has not produced the expected result. " +
-                                 "Expected: True, Got: {}".format(value))
+
+        if exception:
+            raise AssertionError("Unable to get attribute NodeStatus.Ready"  + str(exception))
+
+        value = str(value, 'utf-8').rstrip('\n')
+        if value != 'true':
+            raise AssertionError("The mbean attribute  NodeStatus.Ready has not produced the expected result. " +
+                                 "Expected: true, Got: {}".format(value))
 
 
 class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
 
-    JMX_PORT = GLOBAL_PORT_POOL.get()
-    CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-
     def test_mbean_node_name(self):
-        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
-        nodeName, _ = jmx_client.query_jmx(
+        jmx_client = JmxTermClient(JMX_PORT)
+        nodeName, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeName'
         )
 
-        if not nodeName:
-            raise AssertionError("The mbean attribute NodeName returned and empty string")
+        if exception:
+            raise AssertionError("Unable to get attribute NodeInfo.NodeName: "  + str(exception))
+
+        nodeName = str(nodeName, 'utf-8').rstrip('\n')
+        if nodeName != 'crate-enterprise':
+            raise AssertionError("The mbean attribute NodeName has not produced the expected result. " +
+                                 "Expected: 'crate-enterprise', Got: {}".format(nodeName))
 
     def test_mbean_node_id(self):
-        jmx_client = JmxTermClient(MonitoringIntegrationTest.JMX_PORT)
-        nodeId, _ = jmx_client.query_jmx(
+        jmx_client = JmxTermClient(JMX_PORT)
+        nodeId, exception = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeId'
         )
 
+        if exception:
+            raise AssertionError("Unable to get attribute NodeInfo.NodeName: "  + str(exception))
+
+        nodeId = str(nodeId, 'utf-8').rstrip('\n')
         if not nodeId:
             raise AssertionError("The mbean attribute NodeId returned and empty string")
 
 def test_suite():
-    suite = unittest.TestSuite()
-    s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
-    s.layer = CrateLayer(
+    crateLayer = CrateLayer(
         'crate-enterprise',
         crate_home=crate_path(),
-        port=MonitoringIntegrationTest.CRATE_HTTP_PORT,
+        port=CRATE_HTTP_PORT,
         transport_port=GLOBAL_PORT_POOL.get(),
         env={
             "CRATE_JAVA_OPTS":
-                JMX_OPTS.format(MonitoringIntegrationTest.JMX_PORT)
+                JMX_OPTS.format(JMX_PORT)
         },
         settings={
             'license.enterprise': True,
@@ -194,14 +205,23 @@ def test_suite():
             "cluster.routing.allocation.disk.watermark.flood_stage" : "1k",
         }
     )
+
+    # Graceful tests
+    suite = unittest.TestSuite()
+    s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
+    s.layer = crateLayer
     suite.addTest(s)
 
+
     s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeStatusIntegrationTest))
+    s.layer = crateLayer
     suite.addTest(s)
 
     s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeInfoIntegrationTest))
+    s.layer = s.layer = crateLayer
     suite.addTest(s)
 
+    # JMX Disabled test
     s = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))
     s.layer = CrateLayer(
         'crate',
@@ -210,7 +230,7 @@ def test_suite():
         transport_port=GLOBAL_PORT_POOL.get(),
         env={
             "CRATE_JAVA_OPTS":
-                JMX_OPTS.format(MonitoringSettingIntegrationTest.JMX_PORT)
+                JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
         },
         settings={
             'license.enterprise': False,
