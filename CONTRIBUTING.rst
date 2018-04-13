@@ -63,6 +63,27 @@ Once that is done, we suggest you:
 General Tips
 ============
 
+Meaningful Commit Messages
+--------------------------
+
+Please choose a meaningful commit message. The commit message is not only
+valuable during the review process, but can be helpful for reasoning about
+any changes in the code base. For example, IntelliJ's "Annotate" feature,
+brings up the commits which introduced the code in a source file. Without
+meaningful commit messages, the commit history does not provide any valuable
+information.
+
+The subject of the commit message (i.e. first line) should contain a summary
+of the changes. Please use imperative mood. The subject can be prefixed with
+"Test: " or "Docs: " to indicate the changes are not primarily to the main
+code base. For example::
+
+    Add DROP VIEW support to the planner and executor
+    Test: Fix flakiness of JoinIntegrationTest
+    Docs: Include ON CONFLICT clause in INSERT page
+
+See also: https://chris.beams.io/posts/git-commit/
+
 Updating Your Branch
 --------------------
 
@@ -101,6 +122,9 @@ Once you're done, you can check it worked by running::
 If you're happy, force push::
 
     $ git push -f
+
+
+See also: http://www.ericbmerritt.com/2011/09/21/commit-hygiene-and-git.html
 
 .. _CLA: https://crate.io/community/contribute/agreements/
 .. _Crate.io: http://crate.io/
