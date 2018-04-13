@@ -19,10 +19,12 @@
 package io.crate.plugin;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.beans.NodeInfo;
 import io.crate.beans.NodeStatus;
 import io.crate.beans.QueryStats;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -41,10 +43,14 @@ public class CrateMonitor {
     private final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
     @Inject
-    public CrateMonitor(JobsLogs jobsLogs, Settings settings, SQLOperations sqlOperations) {
+    public CrateMonitor(JobsLogs jobsLogs,
+                        Settings settings,
+                        SQLOperations sqlOperations,
+                        ClusterService clusterService) {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
         registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
         registerMBean(NodeStatus.NAME, new NodeStatus(sqlOperations::isEnabled));
+        registerMBean(NodeInfo.NAME, new NodeInfo(() -> clusterService.localNode()));
     }
 
     private void registerMBean(String name, Object bean) {
