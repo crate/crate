@@ -90,7 +90,7 @@ public final class SQLPrinter {
 
         @Override
         public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, StringBuilder sb) {
-            visitQueriedRelation(relation.childRelation(), sb);
+            process(relation.childRelation(), sb);
             addOrderBy(sb, relation.orderBy());
             clauseAndSymbol(sb, "LIMIT", relation.limit());
             clauseAndSymbol(sb, "OFFSET", relation.offset());
@@ -103,14 +103,8 @@ public final class SQLPrinter {
         }
 
         @Override
-        public Void visitQueriedRelation(QueriedRelation relation, StringBuilder sb) {
-            if (relation instanceof UnionSelect) {
-                return visitUnionSelect((UnionSelect) relation, sb);
-            }
-            if (relation instanceof AnalyzedView) {
-                return visitView((AnalyzedView) relation, sb);
-            }
-            return super.visitQueriedRelation(relation, sb);
+        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, StringBuilder context) {
+            throw new UnsupportedOperationException("Joins are not yet supported.");
         }
 
         private Void printSelect(QueriedRelation relation, StringBuilder sb) {
@@ -252,7 +246,15 @@ public final class SQLPrinter {
                     sb.append(tableRelation.tableInfo().ident().sqlFqn());
                 }
             } else if (relation instanceof QueriedSelectRelation) {
-                visitQueriedRelation(((QueriedSelectRelation) relation).subRelation(), sb);
+                QueriedRelation subRelation = ((QueriedSelectRelation) relation).subRelation();
+                if (subRelation instanceof AnalyzedView) {
+                    process(subRelation, sb);
+                } else {
+                    sb.append("(");
+                    process(subRelation, sb);
+                    sb.append(") ");
+                    sb.append(relation.getQualifiedName());
+                }
             } else {
                 throw new IllegalStateException("Unknown relation in from clause: " + relation);
             }

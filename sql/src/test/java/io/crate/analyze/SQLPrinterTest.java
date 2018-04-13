@@ -122,7 +122,28 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
             // VIEW (order by)
             $("select * from v1 order by \"user\"", "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC"),
             // VIEW (order by / limit / offset)
-            $("select * from v1 order by \"user\" limit 1 offset 5", "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5")
+            $("select * from v1 order by \"user\" limit 1 offset 5",
+                "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+            // VIEW (group by / having)
+            $("select x, count(*) from v1 group by x having count(*) > 1",
+                "SELECT x, count(*) FROM doc.v1 GROUP BY x HAVING (count(*) > 1)"),
+
+            // SUBQUERY (simple)
+            $("select * from (select * from t1) a",
+                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a"),
+            // SUBQUERY (order by)
+            $("select * from (select * from t1) a order by \"user\"",
+                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY \"user\" ASC"),
+            // SUBQUERY (order by / limit / offset)
+            $("select * from (select * from t1) a order by \"user\" limit 1 offset 5",
+                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+            // SUBQUERY (nested)
+            $("select * from (select * from (select * from t1) a) b ORDER BY \"user\" LIMIT 1 OFFSET 5",
+                "SELECT \"user\", x FROM (SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) b) b ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+            // SUBQUERY (group by / having)
+            $("select x, cnt from (select x, count(*) as cnt from t1 group by x having count(*) > 1) a",
+                "SELECT x, cnt FROM (SELECT doc.t1.x, count(*) AS cnt FROM doc.t1 GROUP BY doc.t1.x HAVING (count(*) > 1)) a")
+
         );
     }
 }
