@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -52,16 +53,18 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x int, \"user\" string)")
             .addTable("create table t2 (x int, \"name\" string)")
             .addTable("create table \"user\" (name string)")
+            .addView(RelationName.fromIndexName("v1"), "select x, \"user\" from t1")
             .build();
         printer = new SQLPrinter(new SymbolPrinter(e.functions()));
     }
 
     @Test
     public void testPrintAndAnalyzeRoundTrip() {
-        String actualOutput = printer.format(e.analyze(input));
-        assertThat(actualOutput, is(expectedOutput));
+        String actualOutputRound1 = printer.format(e.analyze(input));
+        assertThat(actualOutputRound1, is(expectedOutput));
         // must be possible to analyze again without error
-        assertThat(printer.format(e.analyze(actualOutput)), is(expectedOutput));
+        String actualOutputRound2 = printer.format(e.analyze(actualOutputRound1));
+        assertThat(actualOutputRound2, is(expectedOutput));
     }
 
 
@@ -107,14 +110,19 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
             // UNION (simple)
             $("select * from t1 union all select * from t2",
                 "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2"),
-
             // UNION (order by)
             $("select \"user\" from t1 union all select name from t2 order by \"user\"",
                 "SELECT doc.t1.\"user\" FROM doc.t1 UNION ALL SELECT doc.t2.name FROM doc.t2 ORDER BY \"user\" ASC"),
-
             // UNION (order by / limit / offset)
             $("select * from t1 union all select * from t2 order by \"user\" limit 1 offset 5",
-                "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5")
+                "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+
+            // VIEW (simple)
+            $("select * from v1", "SELECT x, \"user\" FROM doc.v1"),
+            // VIEW (order by)
+            $("select * from v1 order by \"user\"", "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC"),
+            // VIEW (order by / limit / offset)
+            $("select * from v1 order by \"user\" limit 1 offset 5", "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5")
         );
     }
 }

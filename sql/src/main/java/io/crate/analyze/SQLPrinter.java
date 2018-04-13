@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -70,14 +71,20 @@ public final class SQLPrinter {
 
         @Override
         public Void visitQueriedTable(QueriedTable<?> queriedTable, StringBuilder sb) {
-            return simpleSelect(queriedTable, sb);
+            return printSelect(queriedTable, sb);
+        }
+
+        @Override
+        public Void visitView(AnalyzedView analyzedView, StringBuilder sb) {
+            sb.append(analyzedView.name());
+            return null;
         }
 
         @Override
         public Void visitUnionSelect(UnionSelect unionSelect, StringBuilder sb) {
-            simpleSelect((QueriedTable<?>) unionSelect.left(), sb);
+            printSelect(unionSelect.left(), sb);
             sb.append(" UNION ALL ");
-            simpleSelect((QueriedTable<?>) unionSelect.right(), sb);
+            printSelect(unionSelect.right(), sb);
             return null;
         }
 
@@ -91,14 +98,22 @@ public final class SQLPrinter {
         }
 
         @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, StringBuilder sb) {
+            return printSelect(relation, sb);
+        }
+
+        @Override
         public Void visitQueriedRelation(QueriedRelation relation, StringBuilder sb) {
             if (relation instanceof UnionSelect) {
                 return visitUnionSelect((UnionSelect) relation, sb);
             }
+            if (relation instanceof AnalyzedView) {
+                return visitView((AnalyzedView) relation, sb);
+            }
             return super.visitQueriedRelation(relation, sb);
         }
 
-        private Void simpleSelect(QueriedTable<?> relation, StringBuilder sb) {
+        private Void printSelect(QueriedRelation relation, StringBuilder sb) {
             sb.append("SELECT ");
             addOutputs(relation, sb);
             addFrom(sb, relation);
@@ -120,7 +135,7 @@ public final class SQLPrinter {
                 sb.append(")");
                 return sb.toString();
             }
-            if (symbol instanceof Field && ((Field) symbol).relation() instanceof UnionSelect) {
+            if (symbol instanceof Field) {
                 return Identifiers.quoteIfNeeded(((Field) symbol).outputName());
             }
             if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
@@ -212,26 +227,34 @@ public final class SQLPrinter {
                 }
             } else if (output instanceof SelectSymbol) {
                 sb.append(printSymbol(output));
+            } else if (output instanceof io.crate.expression.symbol.Literal && output.valueType().isNumeric()) {
+                sb.append(((io.crate.expression.symbol.Literal) output).value());
             } else {
-                sb.append(field.outputName());
+                sb.append(Identifiers.quoteIfNeeded(field.outputName()));
             }
         }
 
-        private void addFrom(StringBuilder sb, QueriedTable<?> relation) {
+        private void addFrom(StringBuilder sb, QueriedRelation relation) {
             sb.append(" FROM ");
-            AbstractTableRelation<?> tableRelation = relation.tableRelation();
-            if (tableRelation instanceof TableFunctionRelation) {
-                QualifiedName qName = tableRelation.getQualifiedName();
-                Function function = ((TableFunctionRelation) tableRelation).function();
-                if (qName.getParts().size() == 2 && qName.getParts().get(1).equals(function.info().ident().name())) {
-                    sb.append(printSymbol(function));
+            if (relation instanceof QueriedTable) {
+                AbstractTableRelation<?> tableRelation = ((QueriedTable) relation).tableRelation();
+                if (tableRelation instanceof TableFunctionRelation) {
+                    QualifiedName qName = tableRelation.getQualifiedName();
+                    Function function = ((TableFunctionRelation) tableRelation).function();
+                    if (qName.getParts().size() == 2 && qName.getParts().get(1).equals(function.info().ident().name())) {
+                        sb.append(printSymbol(function));
+                    } else {
+                        sb.append(printSymbol(function));
+                        sb.append(" AS ");
+                        sb.append(qName.toString());
+                    }
                 } else {
-                    sb.append(printSymbol(function));
-                    sb.append(" AS ");
-                    sb.append(qName.toString());
+                    sb.append(tableRelation.tableInfo().ident().sqlFqn());
                 }
+            } else if (relation instanceof QueriedSelectRelation) {
+                visitQueriedRelation(((QueriedSelectRelation) relation).subRelation(), sb);
             } else {
-                sb.append(tableRelation.tableInfo().ident().sqlFqn());
+                throw new IllegalStateException("Unknown relation in from clause: " + relation);
             }
         }
 
