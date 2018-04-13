@@ -25,8 +25,10 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
@@ -71,6 +73,31 @@ public final class SQLPrinter {
             return simpleSelect(queriedTable, sb);
         }
 
+        @Override
+        public Void visitUnionSelect(UnionSelect unionSelect, StringBuilder sb) {
+            simpleSelect((QueriedTable<?>) unionSelect.left(), sb);
+            sb.append(" UNION ALL ");
+            simpleSelect((QueriedTable<?>) unionSelect.right(), sb);
+            return null;
+        }
+
+        @Override
+        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, StringBuilder sb) {
+            visitQueriedRelation(relation.childRelation(), sb);
+            addOrderBy(sb, relation.orderBy());
+            clauseAndSymbol(sb, "LIMIT", relation.limit());
+            clauseAndSymbol(sb, "OFFSET", relation.offset());
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedRelation(QueriedRelation relation, StringBuilder sb) {
+            if (relation instanceof UnionSelect) {
+                return visitUnionSelect((UnionSelect) relation, sb);
+            }
+            return super.visitQueriedRelation(relation, sb);
+        }
+
         private Void simpleSelect(QueriedTable<?> relation, StringBuilder sb) {
             sb.append("SELECT ");
             addOutputs(relation, sb);
@@ -92,6 +119,9 @@ public final class SQLPrinter {
                 process(((SelectSymbol) symbol).relation(), sb);
                 sb.append(")");
                 return sb.toString();
+            }
+            if (symbol instanceof Field && ((Field) symbol).relation() instanceof UnionSelect) {
+                return Identifiers.quoteIfNeeded(((Field) symbol).outputName());
             }
             if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
                 return ((Reference) symbol).column().sqlFqn();

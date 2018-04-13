@@ -60,7 +60,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
         assertThat(orderedLimitedRelation.orderBy(),
-            isSQL("UnionSelect.id, UnionSelect.text"));
+            isSQL("doc.users.id, doc.users.text"));
         assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
         assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
 
@@ -69,7 +69,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(tableUnion.left(), instanceOf(QueriedTable.class));
         assertThat(tableUnion.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion.querySpec(),
-            isSQL("SELECT UnionSelect.id, UnionSelect.text"));
+            isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion.right().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
     }
@@ -85,7 +85,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            "limit 10 offset 20");
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
-        assertThat(orderedLimitedRelation.orderBy(), isSQL("UnionSelect.text"));
+        assertThat(orderedLimitedRelation.orderBy(), isSQL("u1.text"));
         assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
         assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
 
@@ -94,12 +94,12 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
         assertThat(tableUnion1.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion1.querySpec(),
-            isSQL("SELECT UnionSelect.id, UnionSelect.text"));
+            isSQL("SELECT u1.id, u1.text"));
         assertThat(tableUnion1.right().querySpec(), isSQL("SELECT doc.users.id, doc.users.name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         assertThat(tableUnion2.querySpec(),
-            isSQL("SELECT UnionSelect.id, UnionSelect.text"));
+            isSQL("SELECT u1.id, u1.text"));
         assertThat(tableUnion2.left(), instanceOf(QueriedTable.class));
         assertThat(tableUnion2.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion2.left().querySpec(), isSQL("SELECT doc.users.id, doc.users.text"));

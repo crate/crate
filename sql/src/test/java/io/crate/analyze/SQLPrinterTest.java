@@ -50,6 +50,7 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int, \"user\" string)")
+            .addTable("create table t2 (x int, \"name\" string)")
             .addTable("create table \"user\" (name string)")
             .build();
         printer = new SQLPrinter(new SymbolPrinter(e.functions()));
@@ -101,7 +102,19 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
             $("select col1 as x from unnest([1, 2]) t", "SELECT col1 AS x FROM unnest([1, 2]) AS t"),
 
             // table name requires quotes
-            $("select * from \"user\"", "SELECT doc.\"user\".name FROM doc.\"user\"")
+            $("select * from \"user\"", "SELECT doc.\"user\".name FROM doc.\"user\""),
+
+            // UNION (simple)
+            $("select * from t1 union all select * from t2",
+                "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2"),
+
+            // UNION (order by)
+            $("select \"user\" from t1 union all select name from t2 order by \"user\"",
+                "SELECT doc.t1.\"user\" FROM doc.t1 UNION ALL SELECT doc.t2.name FROM doc.t2 ORDER BY \"user\" ASC"),
+
+            // UNION (order by / limit / offset)
+            $("select * from t1 union all select * from t2 order by \"user\" limit 1 offset 5",
+                "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5")
         );
     }
 }
