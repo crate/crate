@@ -48,6 +48,7 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
 
     private int numSuccessMoveNextCallsInBatch = 0;
     private int currentBatch = 0;
+    private int moveToStartCalls = 0;
     private final AtomicBoolean currentlyLoading = new AtomicBoolean(false);
 
     /**
@@ -79,6 +80,7 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     @Override
     public void moveToStart() {
         ensureNotLoading();
+        moveToStartCalls++;
         currentBatch = 0;
         delegate.moveToStart();
         numSuccessMoveNextCallsInBatch = 0;
@@ -144,5 +146,9 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     @Override
     public void kill(@Nonnull Throwable throwable) {
         delegate.kill(throwable);
+    }
+
+    public int getMovetoStartCalls() {
+        return moveToStartCalls;
     }
 }

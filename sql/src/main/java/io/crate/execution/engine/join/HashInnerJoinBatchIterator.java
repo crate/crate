@@ -24,6 +24,7 @@ package io.crate.execution.engine.join;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import io.crate.data.BatchIterator;
+import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.join.ElementCombiner;
@@ -32,6 +33,7 @@ import io.crate.data.join.JoinBatchIterator;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -90,6 +92,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
+    private int numberOfLeftBatchesForBlock;
+    private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
 
     public HashInnerJoinBatchIterator(RamAccountingBatchIterator<L> left,
@@ -105,6 +109,8 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         this.hashBuilderForRight = hashBuilderForRight;
         this.blockSizeSupplier = blockSizeSupplier;
         recreateBuffer();
+        // initially 1 page/batch is loaded
+        numberOfLeftBatchesLoadedForBlock = 1;
         this.activeIt = left;
     }
 
@@ -121,6 +127,14 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         recreateBuffer();
         ((RamAccountingBatchIterator) left).releaseAccountedRows();
         leftMatchingRowsIterator = null;
+    }
+
+    @Override
+    public CompletionStage<?> loadNextBatch() {
+        if (activeIt == left) {
+            numberOfLeftBatchesLoadedForBlock++;
+        }
+        return super.loadNextBatch();
     }
 
     @Override
@@ -150,6 +164,12 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
         blockSize = blockSizeSupplier.get();
         this.buffer = new IntObjectHashMap<>(this.blockSize);
         numberOfRowsInBuffer = 0;
+
+        // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
+        // So we cannot rely on that to decide if processing 1 block is done, we must also know and track how much
+        // batches should be required for processing 1 block.
+        numberOfLeftBatchesForBlock = Math.max(1, (int) Math.ceil((double) blockSize / Paging.PAGE_SIZE));
+        numberOfLeftBatchesLoadedForBlock = leftBatchHasItems ? 1 : 0;
     }
 
     private boolean buildBufferAndMatchRight() {
@@ -163,12 +183,12 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
                 }
             }
 
-            if (leftBatchHasItems == false && numberOfRowsInBuffer < blockSize && left.allLoaded() == false) {
+            if (mustLoadLeftNextBatch()) {
                 // we should load the left side
                 return false;
             }
 
-            if (numberOfRowsInBuffer == blockSize || leftBatchHasItems == false) {
+            if (mustSwitchToRight()) {
                 activeIt = right;
             }
         }
@@ -214,5 +234,17 @@ public class HashInnerJoinBatchIterator<L extends Row, R extends Row, C> extends
             }
         }
         return false;
+    }
+
+    private boolean mustSwitchToRight() {
+        return numberOfRowsInBuffer == blockSize
+               || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
+    }
+
+    private boolean mustLoadLeftNextBatch() {
+        return leftBatchHasItems == false
+               && left.allLoaded() == false
+               && numberOfRowsInBuffer < blockSize
+               && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
     }
 }

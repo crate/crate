@@ -60,9 +60,9 @@ public class HashInnerJoinBatchIteratorMemoryTest {
     @Test
     public void testReleaseAccountingRows() throws Exception {
         TestRamAccountingBatchIterator leftIterator = new TestRamAccountingBatchIterator(
-            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 12), 3, 4, null),
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 12), 3, 3, null),
             mock(RowAccounting.class));
-        BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 5, null);
+        BatchIterator<Row> rightIterator = new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 4, null);
 
         when(circuitBreaker.getLimit()).thenReturn(110L);
         when(circuitBreaker.getUsed()).thenReturn(10L);
@@ -79,7 +79,7 @@ public class HashInnerJoinBatchIteratorMemoryTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
         consumer.getResult();
-        assertThat(leftIterator.countCallsForReleaseMem, is(6));
+        assertThat(leftIterator.countCallsForReleaseMem, is(7));
     }
 
     private class TestRamAccountingBatchIterator extends RamAccountingBatchIterator<Row> {
