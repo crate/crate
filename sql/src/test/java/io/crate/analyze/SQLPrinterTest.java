@@ -118,31 +118,31 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
                 "SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1 UNION ALL SELECT doc.t2.name, doc.t2.x FROM doc.t2 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
 
             // VIEW (simple)
-            $("select * from v1", "SELECT x, \"user\" FROM doc.v1"),
+            $("select * from v1", "SELECT doc.v1.x, doc.v1.\"user\" FROM doc.v1"),
             // VIEW (order by)
-            $("select * from v1 order by \"user\"", "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC"),
+            $("select * from v1 order by \"user\"", "SELECT doc.v1.x, doc.v1.\"user\" FROM doc.v1 ORDER BY doc.v1.\"user\" ASC"),
             // VIEW (order by / limit / offset)
             $("select * from v1 order by \"user\" limit 1 offset 5",
-                "SELECT x, \"user\" FROM doc.v1 ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+                "SELECT doc.v1.x, doc.v1.\"user\" FROM doc.v1 ORDER BY doc.v1.\"user\" ASC LIMIT 1 OFFSET 5"),
             // VIEW (group by / having)
-            $("select x, count(*) from v1 group by x having count(*) > 1",
-                "SELECT x, count(*) FROM doc.v1 GROUP BY x HAVING (count(*) > 1)"),
+            $("select doc.v1.x, count(*) from v1 group by doc.v1.x having count(*) > 1",
+                "SELECT doc.v1.x, count(*) FROM doc.v1 GROUP BY doc.v1.x HAVING (count(*) > 1)"),
 
             // SUBQUERY (simple)
             $("select * from (select * from t1) a",
-                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a"),
+                "SELECT a.\"user\", a.x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a"),
             // SUBQUERY (order by)
             $("select * from (select * from t1) a order by \"user\"",
-                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY \"user\" ASC"),
+                "SELECT a.\"user\", a.x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY a.\"user\" ASC"),
             // SUBQUERY (order by / limit / offset)
             $("select * from (select * from t1) a order by \"user\" limit 1 offset 5",
-                "SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+                "SELECT a.\"user\", a.x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) a ORDER BY a.\"user\" ASC LIMIT 1 OFFSET 5"),
             // SUBQUERY (nested)
-            $("select * from (select * from (select * from t1) a) b ORDER BY \"user\" LIMIT 1 OFFSET 5",
-                "SELECT \"user\", x FROM (SELECT \"user\", x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) b) b ORDER BY \"user\" ASC LIMIT 1 OFFSET 5"),
+            $("select * from (select * from (select * from t1) a) b ORDER BY b.\"user\" LIMIT 1 OFFSET 5",
+                "SELECT b.\"user\", b.x FROM (SELECT b.\"user\", b.x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) b) b ORDER BY b.\"user\" ASC LIMIT 1 OFFSET 5"),
             // SUBQUERY (group by / having)
             $("select x, cnt from (select x, count(*) as cnt from t1 group by x having count(*) > 1) a",
-                "SELECT x, cnt FROM (SELECT doc.t1.x, count(*) AS cnt FROM doc.t1 GROUP BY doc.t1.x HAVING (count(*) > 1)) a")
+                "SELECT a.x, a.cnt FROM (SELECT doc.t1.x, count(*) AS cnt FROM doc.t1 GROUP BY doc.t1.x HAVING (count(*) > 1)) a")
 
         );
     }

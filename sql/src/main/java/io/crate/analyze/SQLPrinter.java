@@ -130,7 +130,16 @@ public final class SQLPrinter {
                 return sb.toString();
             }
             if (symbol instanceof Field) {
-                return Identifiers.quoteIfNeeded(((Field) symbol).outputName());
+                Field field = ((Field) symbol);
+                if (field.relation() instanceof UnionSelect) {
+                    // do not fully qualify field names in union select
+                    return Identifiers.quoteIfNeeded(field.outputName());
+                } else if (field.relation() instanceof AnalyzedView) {
+                    // use the name of the view instead of the underlying relation
+                    return ((AnalyzedView) field.relation()).name() + "." + Identifiers.quoteIfNeeded(field.outputName());
+                } else {
+                    return field.relation().getQualifiedName() + "." + Identifiers.quoteIfNeeded(field.outputName());
+                }
             }
             if (symbol instanceof Reference && "".equals(((Reference) symbol).ident().tableIdent().schema())) {
                 return ((Reference) symbol).column().sqlFqn();
@@ -224,7 +233,7 @@ public final class SQLPrinter {
             } else if (output instanceof io.crate.expression.symbol.Literal && output.valueType().isNumeric()) {
                 sb.append(((io.crate.expression.symbol.Literal) output).value());
             } else {
-                sb.append(Identifiers.quoteIfNeeded(field.outputName()));
+                sb.append(printSymbol(output));
             }
         }
 
