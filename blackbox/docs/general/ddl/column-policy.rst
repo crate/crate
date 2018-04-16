@@ -28,6 +28,8 @@ Example::
 If you try to insert using a column not specified in the table schema,
 CrateDB will raise an error.
 
+::
+
     cr> insert into my_table (new_col) values(1);
     SQLActionException[ColumnUnknownException: Column new_col unknown]
 
