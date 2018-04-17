@@ -7,6 +7,8 @@ Configuration
 CrateDB ships with sensible defaults, so no configuration is needed for basic,
 single node use.
 
+.. _config-directory:
+
 CrateDB is typically configured via a configuration file located at
 ``config/crate.yml`` within the install directory.
 
@@ -60,6 +62,7 @@ settings will override configuration file settings.
 .. toctree::
    :maxdepth: 2
 
+   secure
    node
    cluster
    session

@@ -1,4 +1,5 @@
 .. highlight:: psql
+.. highlight:: sh
 .. _ref-create-repository:
 
 =====================
@@ -234,26 +235,28 @@ A repository that stores its snapshot on the Amazon S3 service.
   Path within the bucket to the repository.
 
 **access_key**
+  | *Secure setting*
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable ``AWS_ACCESS_KEY_ID``.
 
-  Access key used for authentication against AWS.
+  Access key used for authentication against AWS. 
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored 
+  in the keystore as so: 
 
-  .. WARNING::
+  .. code-block:: sh
 
-     If the access key is set explicity (not via environment variable) it will
-     be visible in plain text when querying the ``sys.repositories`` table.
+     sh$ ./bin/crate-keystore add s3.client.default.access_key
 
 **secret_key**
+  | *Secure setting*
   | *Type:*    ``string``
-  | *Default:* Globally defined environmental variable ``AWS_SECRET_KEY``.
 
   Secret key used for authentication against AWS.
+  As this is a :ref:`secure setting <conf-secure-settings>` it must be stored 
+  in the keystore as so: 
 
-  .. WARNING::
+  .. code-block:: sh
 
-     If the secret key is set explicity (not via environment variable) it will
-     be visible in plain text when querying the ``sys.repositories`` table.
+     sh$ ./bin/crate-keystore add s3.client.default.secret_key
 
 **concurrent_streams**
   | *Type:*    ``integer``
