@@ -15,3 +15,4 @@ Further
 - `Architecture <architecture.rst>`_
 - `Release workflow <release.rst>`_
 - `Benchmarks <benchmarks.rst>`_
+- `Logging <logging.rst>`_
