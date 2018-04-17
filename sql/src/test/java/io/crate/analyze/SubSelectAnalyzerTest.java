@@ -131,11 +131,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.joinPairs().get(0).condition(),
                    isSQL("(t1.i = t2.i)"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
-                   isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
+                   isSQL("SELECT t1.i, t1.a WHERE (t1.a > '50')"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
                    isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
-                   isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '100')"));
+                   isSQL("SELECT t2.b, t2.i WHERE (t2.b > '100')"));
     }
 
     @Test
@@ -151,11 +151,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.joinPairs().get(0).condition(),
             isSQL("(t1.i = t2.i)"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
-            isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
+            isSQL("SELECT t1.i, t1.a WHERE (t1.a > '50')"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
         assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
-            isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '100')"));
+            isSQL("SELECT t2.b, t2.i WHERE (t2.b > '100')"));
     }
 
     @Test
@@ -222,15 +222,15 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.outputs(), isSQL("t1.ma, t1.i, t2.mb, t2.i"));
         assertThat(relation.joinPairs().get(0).condition(), isSQL("(t1.i = t2.i)"));
         QueriedSelectRelation t1Sel = (QueriedSelectRelation) relation.sources().get(new QualifiedName("t1"));
-        assertThat(t1Sel.outputs(), isSQL("doc.t1.i, doc.t1.ma"));
+        assertThat(t1Sel.outputs(), isSQL("t1.i, t1.ma"));
         assertThat(t1Sel.groupBy(), isSQL(""));
-        assertThat(t1Sel.having(), isSQL("(doc.t1.ma > '50')"));
+        assertThat(t1Sel.having(), isSQL("(t1.ma > '50')"));
 
         assertThat(t1Sel.subRelation().groupBy(), isSQL("doc.t1.i"));
         assertThat(t1Sel.subRelation().having(), Matchers.nullValue());
 
         QueriedSelectRelation t2Sel = (QueriedSelectRelation) relation.sources().get(new QualifiedName("t2"));
-        assertThat(t2Sel.outputs(), isSQL("doc.t2.mb, doc.t2.i"));
+        assertThat(t2Sel.outputs(), isSQL("t2.mb, t2.i"));
         assertThat(t2Sel.groupBy(), isSQL(""));
         assertThat(t2Sel.having(), Matchers.nullValue());
 

@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -36,10 +37,12 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.Reference;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.List;
 
 public final class SQLPrinter {
@@ -103,8 +106,8 @@ public final class SQLPrinter {
         }
 
         @Override
-        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, StringBuilder context) {
-            throw new UnsupportedOperationException("Joins are not yet supported.");
+        public Void visitMultiSourceSelect(MultiSourceSelect mss, StringBuilder sb) {
+            return printSelect(mss, sb);
         }
 
         private Void printSelect(QueriedRelation relation, StringBuilder sb) {
@@ -264,8 +267,60 @@ public final class SQLPrinter {
                     sb.append(") ");
                     sb.append(relation.getQualifiedName());
                 }
+            } else if (relation instanceof MultiSourceSelect) {
+                addJoinClause((MultiSourceSelect) relation, sb);
             } else {
                 throw new IllegalStateException("Unknown relation in from clause: " + relation);
+            }
+        }
+
+        private void addJoinClause(MultiSourceSelect mss, StringBuilder sb) {
+            // first resolve implicit cross joins, e.g. select * from t1, t2
+            Iterator<AnalyzedRelation> sourcesIt = mss.sources().values().iterator();
+            int numberOfCrossJoins = mss.sources().size() - mss.joinPairs().size() - 1;
+            int i = 0;
+            while (i < numberOfCrossJoins) {
+                if (i == 0) {
+                    printRelationName(sourcesIt.next(), sb);
+                }
+                sb.append(" CROSS JOIN ");
+                printRelationName(sourcesIt.next(), sb);
+                i++;
+            }
+            // now print explicit join pairs
+            if (mss.joinPairs().isEmpty()) {
+                return;
+            }
+            if (i == 0) {
+                JoinPair firstPair = mss.joinPairs().iterator().next();
+                AnalyzedRelation leftRelation = mss.sources().get(firstPair.left());
+                printRelationName(leftRelation, sb);
+            }
+            for (JoinPair currentJoinPair : mss.joinPairs()) {
+                sb.append(" ");
+                sb.append(currentJoinPair.joinType());
+                sb.append(" JOIN ");
+                AnalyzedRelation rightRelation = mss.sources().get(currentJoinPair.right());
+                printRelationName(rightRelation, sb);
+                if (currentJoinPair.joinType() == JoinType.CROSS) {
+                    continue;
+                }
+                sb.append(" ON ");
+                sb.append(printSymbol(currentJoinPair.condition()));
+            }
+
+        }
+
+        private static void printRelationName(AnalyzedRelation relation, StringBuilder sb) {
+            if (relation instanceof QueriedTable) {
+                String rightRelationName = ((QueriedTable) relation).tableRelation().tableInfo().ident().sqlFqn();
+                sb.append(rightRelationName);
+                if (!rightRelationName.equals(relation.getQualifiedName().toString())) {
+                    sb.append(" AS ");
+                    sb.append(relation.getQualifiedName());
+                }
+            } else {
+                sb.append(relation.getQualifiedName());
             }
         }
 

@@ -142,8 +142,34 @@ public class SQLPrinterTest extends CrateDummyClusterServiceUnitTest {
                 "SELECT b.\"user\", b.x FROM (SELECT b.\"user\", b.x FROM (SELECT doc.t1.\"user\", doc.t1.x FROM doc.t1) b) b ORDER BY b.\"user\" ASC LIMIT 1 OFFSET 5"),
             // SUBQUERY (group by / having)
             $("select x, cnt from (select x, count(*) as cnt from t1 group by x having count(*) > 1) a",
-                "SELECT a.x, a.cnt FROM (SELECT doc.t1.x, count(*) AS cnt FROM doc.t1 GROUP BY doc.t1.x HAVING (count(*) > 1)) a")
+                "SELECT a.x, a.cnt FROM (SELECT doc.t1.x, count(*) AS cnt FROM doc.t1 GROUP BY doc.t1.x HAVING (count(*) > 1)) a"),
 
+            // JOIN (inner)
+            $("select * from t1 inner join t2 on t1.x = t2.x",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x FROM doc.t1 INNER JOIN doc.t2 ON (doc.t1.x = doc.t2.x)"),
+            // JOIN (inner, aliased)
+            $("select * from t1 a inner join t2 b on a.x = b.x",
+                "SELECT a.\"user\", a.x, b.name, b.x FROM doc.t1 AS a INNER JOIN doc.t2 AS b ON (a.x = b.x)"),
+            // JOIN (full)
+            $("select * from t1 full join t2 on t1.x = t2.x",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x FROM doc.t1 FULL JOIN doc.t2 ON (doc.t1.x = doc.t2.x)"),
+            // JOIN (left)
+            $("select * from t1 left join t2 on t1.x = t2.x",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x FROM doc.t1 LEFT JOIN doc.t2 ON (doc.t1.x = doc.t2.x)"),
+            // JOIN (right)
+            $("select * from t1 right join t2 on t1.x = t2.x",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x FROM doc.t1 RIGHT JOIN doc.t2 ON (doc.t1.x = doc.t2.x)"),
+            // JOIN (multiple / order by / limit)
+            $("select * from t1 right join t2 on t1.x = t2.x left join t1 b on b.x = t2.x order by b.x limit 1 offset 5",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x, b.\"user\", b.x FROM doc.t1 RIGHT JOIN doc.t2 ON (doc.t1.x = doc.t2.x) LEFT JOIN doc.t1 AS b ON (b.x = doc.t2.x) ORDER BY b.x ASC LIMIT 1 OFFSET 5"),
+            // JOIN (cross)
+            $("select * from t1, t2", "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x FROM doc.t1 CROSS JOIN doc.t2"),
+            // JOIN (cross, multiple)
+            $("select * from t1, t2, t1 b",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x, b.\"user\", b.x FROM doc.t1 CROSS JOIN doc.t2 CROSS JOIN doc.t1 AS b"),
+            // JOIN (cross / left)
+            $("select * from t1, t2 left join t1 b on b.x=t2.x",
+                "SELECT doc.t1.\"user\", doc.t1.x, doc.t2.name, doc.t2.x, b.\"user\", b.x FROM doc.t1 CROSS JOIN doc.t2 LEFT JOIN doc.t1 AS b ON (b.x = doc.t2.x)")
         );
     }
 }

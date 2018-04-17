@@ -49,7 +49,12 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
     @Override
     public String visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-        return queriedTable.tableRelation().tableInfo().ident().sqlFqn();
+        String fqn = queriedTable.tableRelation().tableInfo().ident().sqlFqn();
+        String qualifiedName = queriedTable.getQualifiedName().toString();
+        if (!fqn.equals(qualifiedName)) {
+            return qualifiedName;
+        }
+        return fqn;
     }
 
     @Override

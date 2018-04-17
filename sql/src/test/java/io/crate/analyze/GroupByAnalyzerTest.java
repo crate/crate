@@ -310,7 +310,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
         assertThat(outerRelation.subRelation().querySpec(),
-            isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
+            isSQL("SELECT max(t.id) GROUP BY t.name"));
     }
 
     @Test

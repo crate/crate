@@ -728,9 +728,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.querySpec().where().query(), isSQL("null"));
 
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(doc.users.id = doc.users_multi_pk.id)"));
+            isSQL("(u1.id = u2.id)"));
         assertThat(relation.joinPairs().get(1).condition(),
-            isSQL("(doc.users_multi_pk.id = doc.users_clustered_by_only.id)"));
+            isSQL("(u2.id = u3.id)"));
     }
 
     @Test

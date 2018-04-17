@@ -87,13 +87,6 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testErrorIsThrownForUnsupportedQueries() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Query cannot be used in a VIEW");
-        e.analyze("create view v1 as select t1.x, t1.x as y from t1, t1 as t2");
-    }
-
-    @Test
     public void testCreatingAViewInReadOnlySchemaIsProhibited() {
         for (String schema : Schemas.READ_ONLY_SCHEMAS) {
             try {
