@@ -579,7 +579,7 @@ auth:
 #
 # If you have your own compatible implementation of the EC2 API service you
 # can set the enpoint that should be used.
-#cloud.aws.ec2.endpoind: http://example.com/endpoint
+#discovery.ec2.endpoind: http://example.com/endpoint
 
 #/////////////////////////////// Azure Discovery /////////////////////////////
 

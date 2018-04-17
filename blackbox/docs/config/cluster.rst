@@ -434,12 +434,12 @@ CrateDB has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.zen.hosts_provider`` settings needs to be set to
 ``ec2``.
 
-**cloud.aws.access_key**
+**discovery.ec2.access_key**
   | *Runtime:*  ``no``
 
   The access key ID to identify the API calls.
 
-**cloud.aws.secret_key**
+**discovery.ec2.secret_key**
   | *Runtime:*  ``no``
 
   The secret key to identify the API calls.
@@ -493,7 +493,7 @@ Following settings control the discovery:
   E.g. to filter instances that have the ``environment`` tags with the value
   ``dev`` your setting will look like: ``discovery.ec2.tag.environment: dev``.
 
-**cloud.aws.ec2.endpoint**
+**discovery.ec2.endpoint**
   | *Runtime:*  ``no``
 
   If you have your own compatible implementation of the EC2 API service you can
