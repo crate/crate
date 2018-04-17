@@ -143,7 +143,7 @@ collection logging.
   | *Default for .deb:* /var/log/crate
 
 :CRATE_GC_LOG_SIZE:
-  | Maximum file size of log files before they ar grotated.
+  | Maximum file size of log files before they are rotated.
   | *Default:* 64m
 
 :CRATE_GC_LOG_FILES:
