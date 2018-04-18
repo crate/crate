@@ -83,8 +83,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     @VisibleForTesting
     void ensureColumnCanBeUpdated(ColumnIdent ci) {
         if (ci.isSystemColumn()) {
-            throw new ColumnValidationException(ci.toString(), tableInfo.ident(),
-                "Updating a system column is not supported");
+            throw new ColumnValidationException(ci.toString(), "Updating a system column is not supported");
         }
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             ensureNotUpdated(ci, pkIdent, "Updating a primary key is not supported");
@@ -109,7 +108,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     private void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
         if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
-            throw new ColumnValidationException(columnUpdated.toString(), tableInfo.ident(), errorMessage);
+            throw new ColumnValidationException(columnUpdated.toString(), errorMessage);
         }
     }
 }

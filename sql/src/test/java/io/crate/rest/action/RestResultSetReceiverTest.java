@@ -43,7 +43,6 @@ public class RestResultSetReceiverTest {
         RestChannel restChannel = new ErroneousChannel();
         RestResultSetReceiver restResultSetReceiver = new RestResultSetReceiver(
             restChannel,
-            t -> {},
             Collections.emptyList(),
             0,
             new RowAccounting(Collections.emptyList(),

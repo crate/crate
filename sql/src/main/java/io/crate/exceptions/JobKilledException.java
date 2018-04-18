@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class JobKilledException extends RuntimeException implements UnscopedException {
+public class JobKilledException extends RuntimeException implements CrateException {
 
     public static final String MESSAGE = "Job killed";
 

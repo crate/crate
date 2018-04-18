@@ -23,7 +23,7 @@
 package io.crate.exceptions;
 
 
-public class SnapshotNameInvalidException extends ConflictException implements ClusterScopeException {
+public class SnapshotNameInvalidException extends ConflictException {
 
     public SnapshotNameInvalidException(String msg) {
         super(msg);

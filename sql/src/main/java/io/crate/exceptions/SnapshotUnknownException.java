@@ -22,7 +22,7 @@
 package io.crate.exceptions;
 
 
-public class SnapshotUnknownException extends ResourceUnknownException implements ClusterScopeException {
+public class SnapshotUnknownException extends ResourceUnknownException {
 
     SnapshotUnknownException(String repositoryName, String snapshotName, Throwable cause) {
         super("Snapshot '" + repositoryName + "." + snapshotName + "' unknown", cause);

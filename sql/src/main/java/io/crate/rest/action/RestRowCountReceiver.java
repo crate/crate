@@ -23,10 +23,9 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.expression.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.expression.symbol.Field;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -43,18 +42,15 @@ class RestRowCountReceiver extends BaseResultReceiver {
     private static final Logger LOGGER = Loggers.getLogger(RestRowCountReceiver.class);
 
     private final RestChannel channel;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
     private final long startTime;
     private final boolean includeTypes;
     private long rowCount;
     private final ResultToXContentBuilder builder;
 
     RestRowCountReceiver(RestChannel channel,
-                         ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                          long startTime,
                          boolean includeTypes) {
         this.channel = channel;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.startTime = startTime;
         this.includeTypes = includeTypes;
         builder = builder();
@@ -102,8 +98,7 @@ class RestRowCountReceiver extends BaseResultReceiver {
     @Override
     public void fail(@Nonnull Throwable t) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator)));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t)));
         } catch (Throwable e) {
             LOGGER.error("failed to send failure response", e);
         } finally {

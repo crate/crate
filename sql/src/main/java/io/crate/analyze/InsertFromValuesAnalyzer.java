@@ -29,6 +29,11 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.core.StringUtils;
+import io.crate.core.collections.StringObjectMaps;
+import io.crate.data.Input;
+import io.crate.exceptions.ColumnValidationException;
+import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Literal;
@@ -36,11 +41,6 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.core.StringUtils;
-import io.crate.core.collections.StringObjectMaps;
-import io.crate.data.Input;
-import io.crate.exceptions.ColumnValidationException;
-import io.crate.execution.dml.upsert.TransportShardUpsertAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -369,10 +369,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 valuesSymbol = ValueNormalizer.normalizeInputForReference(valuesSymbol, column, tableRelation.tableInfo());
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                throw new ColumnValidationException(columnIdent.sqlFqn(), tableInfo.ident(), e);
+                throw new ColumnValidationException(columnIdent.sqlFqn(), e);
             } catch (ClassCastException e) {
                 // symbol is no Input
-                throw new ColumnValidationException(columnIdent.name(), tableInfo.ident(),
+                throw new ColumnValidationException(columnIdent.name(),
                     SymbolFormatter.format("Invalid value '%s' in insert statement", valuesSymbol));
             }
 

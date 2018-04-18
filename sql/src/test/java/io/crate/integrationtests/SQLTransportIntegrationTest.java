@@ -431,8 +431,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
-        ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
-        SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), null, x -> {}, x -> {});
+        ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.emptyList());
+        SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), null, x -> {});
         TransactionContext transactionContext = new TransactionContext(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(

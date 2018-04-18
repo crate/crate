@@ -23,30 +23,20 @@ package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
 
-import java.util.Collections;
 import java.util.Locale;
 
-public class InvalidRelationName extends ValidationException implements TableScopeException {
-
-    private final RelationName ident;
+public class InvalidRelationName extends ValidationException {
 
     InvalidRelationName(String indexName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", indexName), e);
-        ident = RelationName.fromIndexName(indexName);
     }
 
     public InvalidRelationName(RelationName ident) {
         super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", ident.fqn()));
-        this.ident = ident;
     }
 
     @Override
     public int errorCode() {
         return 2;
-    }
-
-    @Override
-    public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(ident);
     }
 }

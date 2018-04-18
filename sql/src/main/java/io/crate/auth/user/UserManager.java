@@ -77,10 +77,4 @@ public interface UserManager extends UserLookup {
      * All statements will be validated by this before planning/executing.
      */
     StatementAuthorizedValidator getStatementValidator(@Nullable User user);
-
-    /**
-     * Look up a exception authorization validator for the given user.
-     * All exceptions will be validated by this before sending them to the client.
-     */
-    ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user);
 }

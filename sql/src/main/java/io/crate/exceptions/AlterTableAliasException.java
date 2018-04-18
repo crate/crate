@@ -23,25 +23,17 @@ package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
 
-import java.util.Collections;
 import java.util.Locale;
 
-public class AlterTableAliasException extends ValidationException implements TableScopeException {
+public class AlterTableAliasException extends ValidationException {
 
-    private final RelationName relationName;
 
     public AlterTableAliasException(RelationName relationName) {
         super(String.format(Locale.ENGLISH, "Alter table using a \"%s\" as table alias is not supported", relationName.fqn()));
-        this.relationName = relationName;
     }
 
     @Override
     public int errorCode() {
         return 5;
-    }
-
-    @Override
-    public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
     }
 }

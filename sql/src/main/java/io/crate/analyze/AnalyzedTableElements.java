@@ -243,8 +243,8 @@ public class AnalyzedTableElements {
             column.validate();
             addCopyToInfo(column);
         }
-        validateIndexDefinitions(relationName);
-        validatePrimaryKeys(relationName);
+        validateIndexDefinitions();
+        validatePrimaryKeys();
         validateColumnStorageDefinitions();
     }
 
@@ -259,7 +259,7 @@ public class AnalyzedTableElements {
         }
         tableReferences.addAll(existingColumns);
 
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, relationName);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, transactionContext, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(functions);
@@ -338,22 +338,22 @@ public class AnalyzedTableElements {
         }
     }
 
-    private void validatePrimaryKeys(RelationName relationName) {
+    private void validatePrimaryKeys() {
         for (String additionalPrimaryKey : additionalPrimaryKeys) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey);
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+                throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
         }
         // will collect both column constraint and additional defined once and check for duplicates
         primaryKeys();
     }
 
-    private void validateIndexDefinitions(RelationName relationName) {
+    private void validateIndexDefinitions() {
         for (Map.Entry<String, Set<String>> entry : copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+                throw new ColumnUnknownException(columnIdent.sqlFqn());
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -438,7 +438,7 @@ public class AnalyzedTableElements {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), relationName);
+            throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
         }
         DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
         if (!DataTypes.isPrimitive(columnType)) {

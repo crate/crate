@@ -112,7 +112,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
             Field newField = sourceRelation.getField(columnIdent, operation);
             if (newField != null) {
                 if (lastField != null) {
-                    throw new AmbiguousColumnException(columnIdent, newField);
+                    throw new AmbiguousColumnException(columnIdent);
                 }
                 lastField = newField;
             }
@@ -123,9 +123,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
                 raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
                 throw new RelationUnknown(new RelationName(schema, columnTableName));
             }
-            QualifiedName tableName = sources.entrySet().iterator().next().getKey();
-            RelationName relationName = RelationName.fromIndexName(tableName.toString());
-            throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+            throw new ColumnUnknownException(columnIdent.sqlFqn());
         }
         return lastField;
     }

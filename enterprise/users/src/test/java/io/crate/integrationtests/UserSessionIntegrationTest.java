@@ -59,7 +59,7 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testQueryWithNullUserAndEnabledUserManagement() {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("MissingPrivilegeException: Missing privilege for user 'User `null` is not authorized to execute statement'");
+        expectedException.expectMessage("User `null` is not authorized to execute statement");
         execute("select username from sys.jobs", null, createNullUserSession(getNodeByEnterpriseNode(true)));
     }
 

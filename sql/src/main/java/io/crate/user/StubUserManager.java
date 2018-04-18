@@ -23,12 +23,11 @@
 package io.crate.user;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.UnsupportedFeatureException;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -73,12 +72,6 @@ public class StubUserManager implements UserManager {
     @Override
     public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
         return s -> {
-        };
-    }
-
-    @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
-        return t -> {
         };
     }
 }

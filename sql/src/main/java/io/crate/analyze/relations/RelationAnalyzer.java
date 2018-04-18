@@ -252,9 +252,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     joinCondition = expressionAnalyzer.convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
                 } catch (RelationUnknown e) {
-                    throw new RelationValidationException(e.getTableIdents(),
-                        String.format(Locale.ENGLISH,
-                        "missing FROM-clause entry for relation '%s'", e.getTableIdents()));
+                    throw new RelationValidationException(
+                        String.format(Locale.ENGLISH, "missing FROM-clause entry for relation '%s'", e.getTableIdents()));
                 }
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
@@ -650,7 +649,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
         Collection<Symbol> symbols = selectList.get(key);
         if (symbols.size() > 1) {
-            throw new AmbiguousColumnAliasException(key, symbols);
+            throw new AmbiguousColumnAliasException(key);
         }
         if (symbols.isEmpty()) {
             return null;

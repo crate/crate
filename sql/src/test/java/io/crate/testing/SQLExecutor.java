@@ -337,7 +337,7 @@ public class SQLExecutor {
                     tableStats
                 ),
                 relationAnalyzer,
-                new SessionContext(defaultSchema, user, s -> {}, t -> {}),
+                new SessionContext(defaultSchema, user, s -> {}),
                 random
             );
         }

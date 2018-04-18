@@ -28,8 +28,10 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.user.Privilege;
+import io.crate.auth.user.User;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -37,8 +39,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.auth.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -279,7 +279,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
-            new TransactionContext(new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {}, t -> {})),
+            new TransactionContext(new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {})),
             ParameterContext.EMPTY
         ).analyzedStatement();
     }

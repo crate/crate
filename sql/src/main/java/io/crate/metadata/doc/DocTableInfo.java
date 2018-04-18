@@ -433,7 +433,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 if (!forWrite) return null;
                 break;
             case STRICT:
-                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn(), ident());
+                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn());
                 return null;
             case IGNORED:
                 parentIsIgnored = true;

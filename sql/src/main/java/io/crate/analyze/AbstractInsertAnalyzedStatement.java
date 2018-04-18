@@ -95,7 +95,7 @@ public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStateme
             if (ref == null) {
                 DynamicReference reference = tableInfo.getDynamic(column, true);
                 if (reference == null) {
-                    throw new ColumnUnknownException(column.sqlFqn(), tableInfo.ident());
+                    throw new ColumnUnknownException(column.sqlFqn());
                 }
                 if (!allocatedReferences.add(reference)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference '%s' repeated", column.sqlFqn()));

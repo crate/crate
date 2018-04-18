@@ -23,32 +23,22 @@ package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
 
-import java.util.Collections;
 import java.util.Locale;
 
-public final class RelationAlreadyExists extends ConflictException implements TableScopeException {
-
-    private RelationName relationName;
+public final class RelationAlreadyExists extends ConflictException {
 
     private static final String MESSAGE_TMPL = "Relation '%s' already exists.";
 
     public RelationAlreadyExists(RelationName relationName) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, relationName));
-        this.relationName = relationName;
     }
 
     RelationAlreadyExists(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
-        this.relationName = RelationName.fromIndexName(tableName);
     }
 
     @Override
     public int errorCode() {
         return 3;
-    }
-
-    @Override
-    public Iterable<RelationName> getTableIdents() {
-        return Collections.singletonList(relationName);
     }
 }

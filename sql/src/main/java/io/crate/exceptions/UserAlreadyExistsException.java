@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class UserAlreadyExistsException extends ConflictException implements UnscopedException {
+public class UserAlreadyExistsException extends ConflictException {
 
     public UserAlreadyExistsException(String userName) {
         super(String.format(Locale.ENGLISH, "User '%s' already exists", userName));
