@@ -22,8 +22,14 @@ Current features:
 - :ref:`ingest_mqtt`: ingest data using MQTT_ without any 3rd party tools
 - :ref:`aggregation-hll-distinct`: distinct count aggregation using the
   `HyperLoglog++`_ algorithm
+- `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
+  `privileges browser`_
 
-.. _`enterprise edition`: https://crate.io/enterprise-edition/
-.. _`enterprise license`: https://crate.io/enterprise-edition/
+.. _enterprise edition: https://crate.io/enterprise-edition/
+.. _enterprise license: https://crate.io/enterprise-edition/
 .. _MQTT: http://mqtt.org/
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
+.. _shards browser: https://crate.io/docs/clients/admin-ui/en/latest/shards.html#shards
+.. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
+.. _privileges browser: https://crate.io/docs/clients/admin-ui/en/latest/privileges.html
+.. _The CrateDB admin UI: https://crate.io/docs/clients/admin-ui/en/latest/index.html
