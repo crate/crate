@@ -23,21 +23,21 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
+import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.Schemas;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
 
     private final int defaultLimit;
     private final Set<Option> options;
-    @Nullable
     private final User user;
     private final StatementAuthorizedValidator statementAuthorizedValidator;
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
@@ -47,7 +47,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private boolean hashJoinEnabled = true;
 
     public SessionContext(@Nullable String defaultSchema,
-                          @Nullable User user,
+                          User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
                           ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
         this(0, Option.NONE, defaultSchema, user,
@@ -57,12 +57,12 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     public SessionContext(int defaultLimit,
                           Set<Option> options,
                           @Nullable String defaultSchema,
-                          @Nullable User user,
+                          User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
                           ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
         this.defaultLimit = defaultLimit;
         this.options = options;
-        this.user = user;
+        this.user = requireNonNull(user, "User is required");
         this.statementAuthorizedValidator = statementAuthorizedValidator;
         this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.defaultSchema = defaultSchema;
@@ -87,7 +87,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     }
 
     public void setDefaultSchema(String schema) {
-        defaultSchema = Objects.requireNonNull(schema, "Default schema must never be set to null");
+        defaultSchema = requireNonNull(schema, "Default schema must never be set to null");
     }
 
     public void setSemiJoinsRewriteEnabled(boolean flag) {
@@ -106,7 +106,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         this.hashJoinEnabled = hashJoinEnabled;
     }
 
-    @Nullable
     public User user() {
         return user;
     }
@@ -129,7 +128,7 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Creates a new SessionContext with default settings.
      */
     public static SessionContext create() {
-        return create(null);
+        return create(User.CRATE_USER);
     }
 
     /**

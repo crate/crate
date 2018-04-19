@@ -19,10 +19,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.Option;
-import io.crate.action.sql.Session;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
-import io.crate.auth.user.UserManagerService;
 import io.crate.testing.SQLResponse;
 import org.junit.Before;
 
@@ -39,7 +38,7 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     Session createSuperUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, UserManagerService.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     protected Session createUserSession() {
@@ -49,11 +48,6 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     Session createUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, User.of("normal"), Option.NONE, DEFAULT_SOFT_LIMIT);
-    }
-
-    Session createNullUserSession(String node) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, null, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     @Before

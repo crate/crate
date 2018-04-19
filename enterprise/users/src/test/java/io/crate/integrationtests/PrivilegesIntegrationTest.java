@@ -23,7 +23,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
-import io.crate.auth.user.UserManagerService;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
 import org.junit.After;
@@ -124,7 +123,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testGrantPrivilegeToSuperuserThrowsException() {
-        String superuserName = UserManagerService.CRATE_USER.name();
+        String superuserName = User.CRATE_USER.name();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UnsupportedFeatureException: Cannot alter privileges for superuser '" +
                                         superuserName + "'");

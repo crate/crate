@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.auth.user.User;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.LtOperator;
@@ -132,7 +133,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
         SessionContext sessionContext = new SessionContext(
-            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, User.CRATE_USER,s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             new TransactionContext(sessionContext),
@@ -175,7 +176,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
         SessionContext sessionContext = new SessionContext(
-            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {});
+            0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, User.CRATE_USER, s -> {}, t -> {});
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             new TransactionContext(sessionContext),

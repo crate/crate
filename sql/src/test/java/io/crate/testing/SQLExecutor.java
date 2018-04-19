@@ -101,7 +101,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.SameShardAllocationD
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -190,10 +189,10 @@ public class SQLExecutor {
         private final UserDefinedFunctionService udfService;
         private final Random random;
         private String defaultSchema = Schemas.DOC_SCHEMA_NAME;
-        private User user = null;
-        private Provider<RelationAnalyzer> analyzerProvider = () -> null;
+        private User user = User.CRATE_USER;
 
         private TableStats tableStats = new TableStats();
+        private Settings settings = Settings.EMPTY;
 
         private Builder(ClusterService clusterService, int numNodes, Random random) {
             this.random = random;
@@ -268,6 +267,11 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder settings(Settings settings) {
+            this.settings = settings;
+            return this;
+        }
+
         /**
          * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
          * <p>
@@ -316,6 +320,7 @@ public class SQLExecutor {
             return new SQLExecutor(
                 functions,
                 new Analyzer(
+                    settings,
                     schemas,
                     functions,
                     relationAnalyzer,

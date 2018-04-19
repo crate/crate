@@ -31,7 +31,7 @@ public class AlwaysOKNullAuthentication implements Authentication {
     private final AuthenticationMethod alwaysOkNull = new AuthenticationMethod() {
         @Override
         public User authenticate(String userName, SecureString passwd, ConnectionProperties connectionProperties) {
-            return null;
+            return User.CRATE_USER;
         }
 
         @Override

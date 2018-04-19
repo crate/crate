@@ -113,7 +113,6 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -340,7 +339,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             userLookup = internalCluster().getInstance(UserLookup.class, node);
         } catch (ConfigurationException ignored) {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = userName -> null;
+            userLookup = userName -> User.CRATE_USER;
         }
         Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"));
         response = SQLTransportExecutor.execute(stmt, null, session).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
@@ -432,7 +431,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
-        SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), null, x -> {}, x -> {});
+        SessionContext sessionContext = new SessionContext(sqlExecutor.getDefaultSchema(), User.CRATE_USER, x -> {}, x -> {});
         TransactionContext transactionContext = new TransactionContext(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -624,7 +623,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            sqlExecutor.getDefaultSchema(), User.of("crate", EnumSet.of(User.Role.SUPERUSER)), Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlExecutor.getDefaultSchema(), User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**
@@ -638,7 +637,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     Session createSession(@Nullable String defaultSchema, Set<Option> options) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, null, options, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(defaultSchema, User.CRATE_USER, options, DEFAULT_SOFT_LIMIT);
     }
 
     /**

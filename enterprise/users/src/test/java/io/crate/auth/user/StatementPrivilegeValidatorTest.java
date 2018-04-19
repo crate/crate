@@ -49,7 +49,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import static io.crate.auth.user.UserManagerService.CRATE_USER;
+import static io.crate.auth.user.User.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -160,13 +160,6 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     public void testSuperUserByPassesValidation() throws Exception {
         analyzeAsSuperUser("select * from sys.cluster");
         assertThat(validationCallArguments.size(), is(0));
-    }
-
-    @Test
-    public void testSelectStatementNotAllowedAsNullUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User `null` is not authorized to execute statement");
-        analyze("select * from sys.cluster", null);
     }
 
     @Test

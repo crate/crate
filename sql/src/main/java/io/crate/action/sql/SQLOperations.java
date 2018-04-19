@@ -40,6 +40,8 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 import javax.annotation.Nullable;
 import java.util.Set;
 
+import static io.crate.auth.user.User.CRATE_USER;
+
 
 @Singleton
 public class SQLOperations {
@@ -89,18 +91,20 @@ public class SQLOperations {
     }
 
     public Session newSystemSession() {
-        User user = userManager.findUser("crate");
         return createSession(new SessionContext(
-            SysSchemaInfo.NAME, user, userManager.getStatementValidator(user), userManager.getExceptionValidator(user))
+            SysSchemaInfo.NAME,
+            CRATE_USER,
+            userManager.getStatementValidator(CRATE_USER),
+            userManager.getExceptionValidator(CRATE_USER))
         );
     }
 
-    public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
+    public Session createSession(@Nullable String defaultSchema, User user) {
         return createSession(new SessionContext(defaultSchema, user,
             userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
     }
 
-    public Session createSession(@Nullable String defaultSchema, @Nullable User user, Set<Option> options, int defaultLimit) {
+    public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options, int defaultLimit) {
         return createSession(new SessionContext(defaultLimit, options, defaultSchema, user,
             userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
     }

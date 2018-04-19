@@ -18,15 +18,13 @@
 
 package io.crate.scalar.systeminformation;
 
+import io.crate.auth.user.User;
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
-import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import io.crate.auth.user.User;
 import io.crate.scalar.UsersScalarFunctionModule;
 import io.crate.testing.SqlExpressions;
 import org.junit.Test;
-
-import javax.annotation.Nullable;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
@@ -35,7 +33,7 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
 
     private static final User TEST_USER = User.of("testUser");
 
-    private void setupFunctionsFor(@Nullable User user) {
+    private void setupFunctionsFor(User user) {
         sqlExpressions = new SqlExpressions(tableSources, null, null, user,
             new UsersScalarFunctionModule());
         functions = sqlExpressions.functions();
@@ -57,24 +55,6 @@ public class UserFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeUser() {
         setupFunctionsFor(TEST_USER);
         assertNormalize("user", isLiteral("testUser"), false);
-    }
-
-    @Test
-    public void testCurrentUserForMissingUserReturnsNull() {
-        setupFunctionsFor(null);
-        assertNormalize("current_user", isLiteral(null), false);
-    }
-
-    @Test
-    public void testUserForMissingUserReturnsNull() {
-        setupFunctionsFor(null);
-        assertNormalize("user", isLiteral(null), false);
-    }
-
-    @Test
-    public void testSessionUserForMissingUserReturnsNull() {
-        setupFunctionsFor(null);
-        assertNormalize("session_user", isLiteral(null), false);
     }
 
     @Test

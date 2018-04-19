@@ -30,6 +30,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
@@ -195,7 +196,7 @@ public class SQLTransportExecutor {
     public Session newSession() {
         return clientProvider.sqlOperations().createSession(
             defaultSchema,
-            null,
+            User.CRATE_USER,
             Option.NONE,
             DEFAULT_SOFT_LIMIT
         );

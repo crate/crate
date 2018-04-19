@@ -34,6 +34,8 @@ import java.util.Set;
 
 public class User {
 
+    public static final User CRATE_USER = new User("crate", EnumSet.of(Role.SUPERUSER), ImmutableSet.of(), null);
+
     public enum Role {
         SUPERUSER
     }

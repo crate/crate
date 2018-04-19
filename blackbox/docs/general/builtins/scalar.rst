@@ -1664,7 +1664,7 @@ Example::
    :ref:`enterprise feature <enterprise_features>`.
 
 The ``CURRENT_USER`` system information function returns the name of the
-current connected user or NULL if the user management module is disabled.
+current connected user or ``crate`` if the user management module is disabled.
 
 Returns: ``string``
 
@@ -1721,7 +1721,7 @@ Example::
    :ref:`enterprise feature <enterprise_features>`.
 
 The ``SESSION_USER`` system information function returns the name of the
-current connected user or NULL if the user management module is disabled.
+current connected user or ``crate`` if the user management module is disabled.
 
 Returns: ``string``
 

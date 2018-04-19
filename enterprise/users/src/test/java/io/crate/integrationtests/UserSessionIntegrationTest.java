@@ -18,7 +18,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -53,14 +52,7 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testSystemExecutorNullUser() {
         systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(false));
-        assertNull(response.rows()[0][0]);
-    }
-
-    @Test
-    public void testQueryWithNullUserAndEnabledUserManagement() {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("MissingPrivilegeException: Missing privilege for user 'User `null` is not authorized to execute statement'");
-        execute("select username from sys.jobs", null, createNullUserSession(getNodeByEnterpriseNode(true)));
+        assertThat(response.rows()[0][0], is("crate"));
     }
 
     private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {

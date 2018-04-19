@@ -42,17 +42,16 @@ import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import static io.crate.auth.user.User.CRATE_USER;
+
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
-
-    public static final User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of(), null);
 
     @VisibleForTesting
     static final StatementAuthorizedValidator BYPASS_AUTHORIZATION_CHECKS = s -> {

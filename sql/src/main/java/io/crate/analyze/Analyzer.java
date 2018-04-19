@@ -87,10 +87,13 @@ import io.crate.sql.tree.Update;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.util.ArrayList;
 import java.util.Locale;
+
+import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 
 @Singleton
 public class Analyzer {
@@ -138,7 +141,8 @@ public class Analyzer {
      *                         instance of the class
      */
     @Inject
-    public Analyzer(Schemas schemas,
+    public Analyzer(Settings settings,
+                    Schemas schemas,
                     Functions functions,
                     RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
@@ -192,7 +196,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas, ENTERPRISE_LICENSE_SETTING.setting().get(settings));
         this.createIngestionRuleAnalyzer = new CreateIngestionRuleAnalyzer(schemas);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);

@@ -23,7 +23,6 @@
 package io.crate.testing;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -32,18 +31,19 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
-import io.crate.expression.symbol.Symbol;
+import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.tablefunctions.TableFunctionModule;
-import io.crate.auth.user.User;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -64,16 +64,16 @@ public class SqlExpressions {
     private final Functions functions;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null, null, null);
+        this(sources, null, null, User.CRATE_USER);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
-        this(sources, null, parameters, null);
+        this(sources, null, parameters, User.CRATE_USER);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
-        this(sources, fieldResolver, null, null);
+        this(sources, fieldResolver, null, User.CRATE_USER);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,

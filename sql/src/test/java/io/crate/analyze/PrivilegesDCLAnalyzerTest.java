@@ -28,8 +28,10 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.user.Privilege;
+import io.crate.auth.user.User;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -37,13 +39,12 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.auth.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +59,7 @@ import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.DDL;
 import static io.crate.analyze.user.Privilege.Type.DML;
 import static io.crate.analyze.user.Privilege.Type.DQL;
+import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
@@ -288,7 +290,9 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testGrantWithoutUserManagementEnabledThrowsException() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("User management is not enabled");
-        e = SQLExecutor.builder(clusterService).build();
+        e = SQLExecutor.builder(clusterService)
+            .settings(Settings.builder().put(ENTERPRISE_LICENSE_SETTING.getKey(), false).build())
+            .build();
         e.analyze("GRANT DQL TO test");
     }
 

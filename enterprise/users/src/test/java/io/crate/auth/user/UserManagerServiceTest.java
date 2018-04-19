@@ -18,21 +18,21 @@
 
 package io.crate.auth.user;
 
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
 
+import static io.crate.auth.user.User.CRATE_USER;
 import static io.crate.auth.user.UserManagerService.ALWAYS_FAIL_EXCEPTION_VALIDATOR;
 import static io.crate.auth.user.UserManagerService.ALWAYS_FAIL_STATEMENT_VALIDATOR;
 import static io.crate.auth.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
-import static io.crate.auth.user.UserManagerService.CRATE_USER;
 import static io.crate.auth.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;

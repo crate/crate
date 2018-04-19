@@ -22,6 +22,7 @@
 
 package io.crate.auth;
 
+import io.crate.auth.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -36,6 +37,6 @@ public class AuthenticationMethodTest extends CrateUnitTest {
         AuthenticationMethod alwaysOkNullAuthMethod = alwaysOkNullAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkNullAuthMethod.name(), is("alwaysOkNull"));
-        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null, null));
+        assertThat(alwaysOkNullAuthMethod.authenticate("crate", null, null), is(User.CRATE_USER));
     }
 }

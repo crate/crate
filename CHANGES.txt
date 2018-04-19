@@ -66,6 +66,11 @@ Breaking Changes
 Changes
 =======
 
+- The default user if enterprise is disabled changed from ``null`` to
+  ``crate``. This causes entries in ``sys.jobs`` to show up with ``crate`` as
+  username. Functions like ``user`` will also return ``crate`` if enterprise is
+  enabled but the user module is not available.
+
 - Display the node information (name and id) of jobs in the ``sys.jobs``
   table.
 

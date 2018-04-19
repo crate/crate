@@ -24,19 +24,18 @@ package io.crate.analyze;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
+import io.crate.auth.user.User;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.auth.user.User;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.RevokePrivilege;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -50,14 +49,16 @@ import java.util.Set;
 class PrivilegesAnalyzer {
 
     private final Schemas schemas;
+    private final boolean userManagementEnabled;
     private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
 
-    PrivilegesAnalyzer(Schemas schemas) {
+    PrivilegesAnalyzer(Schemas schemas, boolean userManagementEnabled) {
         this.schemas = schemas;
+        this.userManagementEnabled = userManagementEnabled;
     }
 
-    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user, String defaultSchema) {
-        ensureUserManagementEnabled(user);
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user, String defaultSchema) {
+        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
 
@@ -66,8 +67,8 @@ class PrivilegesAnalyzer {
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user, String defaultSchema) {
-        ensureUserManagementEnabled(user);
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user, String defaultSchema) {
+        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, defaultSchema);
 
@@ -76,8 +77,8 @@ class PrivilegesAnalyzer {
                 clazz));
     }
 
-    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user, String defaultSchema) {
-        ensureUserManagementEnabled(user);
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user, String defaultSchema) {
+        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, defaultSchema);
 
@@ -86,8 +87,8 @@ class PrivilegesAnalyzer {
                 clazz));
     }
 
-    private static void ensureUserManagementEnabled(@Nullable User user) {
-        if (user == null) {
+    private void ensureUserManagementEnabled() {
+        if (!userManagementEnabled) {
             throw new UnsupportedOperationException("User management is not enabled");
         }
     }

@@ -1014,7 +1014,7 @@ that is performing the query::
 
     If the :ref:`enterprise edition <enterprise_features>` is disabled or the
     user management module is not available, the ``username`` is represented as
-    ``NULL``.
+    ``crate``.
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request

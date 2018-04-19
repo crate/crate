@@ -20,7 +20,6 @@
 package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.auth.user.UserManagerService;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -29,6 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static io.crate.auth.user.User.CRATE_USER;
 
 /**
  * Migration code for existing users, adds all available privilege to each existing user.
@@ -73,7 +74,7 @@ public class PrivilegesMetaDataUpgrader implements CustomMetaDataUpgrader {
                                 privilegeType,
                                 Privilege.Clazz.CLUSTER,
                                 null,
-                                UserManagerService.CRATE_USER.name()));
+                                CRATE_USER.name()));
                     }
                 }
             }

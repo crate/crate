@@ -26,7 +26,9 @@ import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
+import io.crate.auth.user.User;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 
 import java.net.InetAddress;
@@ -45,9 +47,10 @@ public class AuthenticationContextTest extends CrateUnitTest {
         ConnectionProperties connProperties = new ConnectionProperties(
             InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
-        AuthenticationContext authContext = new AuthenticationContext(authMethod, connProperties, userName, null);
+        AuthenticationContext authContext = new AuthenticationContext(
+            authMethod, connProperties, userName, Loggers.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
-        assertNull(authContext.authenticate());
+        assertThat(authContext.authenticate(), is(User.CRATE_USER));
         assertThat(authContext.password().getChars(), is(passwd));
         authContext.close();
 
